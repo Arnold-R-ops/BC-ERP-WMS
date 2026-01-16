@@ -1,0 +1,30 @@
+项目状态快照：WMS 智能批次重构 (V4.0)
+1. 核心架构决策
+
+库存模型： 废弃 Product.total_quantity。库存唯一真理是 Sum(Inventory_Batch.quantity)。
+
+一单多品： 采购单采用主从结构 (PurchaseOrder + PurchaseOrderItem)。
+
+批次范围： 全产品管理（无论是否有保质期，均生成批次以追踪 FIFO）。
+
+2. 批次码引擎 (Batch Engine)
+
+生成算法： Hashids + 环境变量 Salt。
+
+输入要素： SKU_ID + Expiry_Date + Sequence (严禁包含 Location 和 Supplier 明文)。
+
+生成时机： 第二阶段（单据确认时）点击按钮生成。
+
+3. 入库流程 (Smart Inbound)
+
+阶段一 (下单)： 允许只填基础信息，expiry_date 可为空。状态：Ordering。
+
+阶段二 (在途)： 厂家确认后，必填 expiry_date，必点“生成批次”。状态：In_Transit。
+
+阶段三 (入库)： 仓库点击确认，系统自动写入当前服务器时间为 entry_date (用于计算周转率)。状态：Completed。
+
+4. 容错与库位
+
+状态回退： 允许从 In_Transit 回退到 Ordering，但必须作废并删除已生成的批次码。
+
+库位管理： 手动录入（下拉/扫码）+ 系统智能推荐（基于历史）。

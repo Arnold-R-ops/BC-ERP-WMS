@@ -1,0 +1,80 @@
+🚀 WMS 项目开发规范 (V3.3 - SPU/SKU & 智能仓储版)
+
+## 1. 核心技术栈 (严格遵守) 🛠️
+* **开发语言:** Java 17 (LTS)。鼓励使用 Record (DTO)、Switch 表达式。
+* **核心框架:** Spring Boot 3.2.x。
+* **数据库:** PostgreSQL 16+。
+* **ORM 框架:** Spring Data JPA (Hibernate 实现)。**禁止**使用 MyBatis。
+* **工具库:**
+    * Lombok (简化代码)
+    * Spring Validation (参数校验)
+    * Hashids (v1.0.3+): 用于生成混淆批次码。
+* **环境变量:** 所有敏感密钥（DB密码、JWT Secret、Hashids Salt）必须通过 `System.getenv()` 读取，**严禁硬编码**。
+
+## 2. 架构与结构 (V3.3 重构) 🏗️
+* **分层架构:** `controller` -> `service` -> `repository` -> `entity`。
+* **实体层级 (Entity Hierarchy):**
+    * **SPU (ProductSpu):** 产品家族/大类 (如“茶叶”)。
+    * **SKU (Product):** 具体库存商品 (如“绿茶-箱装”)，包含 `pack_unit`, `conversion_rate`, `barcode`。
+    * **Inventory (InventoryBatch):** 具体的库存批次记录，关联 SKU 和 Location。
+* **DTO 规范:**
+    * 输入输出必须使用独立的 DTO (`dto` 包)。
+    * **数据脱敏 (Masking):** 针对非管理员用户，Service/Controller 层必须负责将 `cost_price` 等敏感字段在 DTO 中设为 null 或 `***`。
+* **配置格式:** 统一使用 YAML (`application.yml`)。
+
+## 3. 🌍 时区与国际化 (核心红线)
+* **后端时区:** 严格锁定为 **UTC**。
+* **Java 环境:** 启动类 `@PostConstruct` 中必须包含 `TimeZone.setDefault(TimeZone.getTimeZone("UTC"))`。
+* **数据库连接:** URL 必须包含 `?serverTimezone=UTC`。
+* **日期时间类型:**
+    * ✅ **必须使用:** `java.time.LocalDateTime`。
+    * ❌ **严禁使用:** `java.time.OffsetDateTime`, `java.util.Date`。
+* **语言规范:**
+    * **代码注释:** English ONLY (便于国际化团队维护)。
+    * **异常信息:** 使用错误码 (如 `BATCH_NOT_FOUND`)，禁止硬编码中文字符串。
+
+## 4. 🔐 安全规范 (Security Layer)
+* **认证机制:** Spring Security + JWT (Stateless)。
+* **密码存储:** BCryptPasswordEncoder。
+* **Admin Auto-Init:** 系统启动时，若 User 表为空，必须读取环境变量 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 自动初始化超级管理员账号。
+* **Hashids 安全:** 批次码生成的 Salt 必须足够复杂且仅存在于服务器环境变量中。
+
+## 5. 核心业务逻辑规范 (V3.3 架构师指令) 📝
+
+### 5.1 产品与单位 (Unit Strategy)
+* **自动拆包逻辑:** `Product` (SKU) 实体必须包含 `pack_unit` (包装单位，如"Box") 和 `conversion_rate` (换算率，如 10)。
+* **库存真理:** 数据库永远存储**最小单位**数量。前端展示时需调用 `formatQuantity()` 方法自动换算为 "X Box, Y Unit"。
+* **标识符:** 仓库作业优先使用 **Barcode** (条码) 而非 SKU Code。
+
+### 5.2 库存与多库位 (Inventory & Location)
+* **单一真理:** `Inventory_Batch` 表是库存数量的唯一来源。
+* **多库位支持:** 同一个 `batch_code` 允许在数据库中存在多条记录，通过 `location_id` 区分。
+* **禁止:** 在 Product 实体中增加 total_quantity 字段。总库存必须实时计算 (`SUM`) 或读取 Redis。
+
+### 5.3 智能出库算法 (The Brain) 🧠
+* 出库不再是简单的 FIFO，必须严格遵循 **4 步优先级策略**：
+    1.  **Loose Item First (零头优先):** 优先扣减 `quantity % conversion_rate != 0` 的记录 (已拆箱)。
+    2.  **FEFO (效期优先):** 在剩余库存中，按 `expiry_date ASC` 排序。
+    3.  **Cleardown (清空策略):** 若同一批次在多库位，优先推荐数量少的位置以腾空库位。
+    4.  **New Box (拆新箱):** 最后才拆整箱，并更新该库位状态为“零头”。
+
+### 5.4 并发控制
+* 关键库存实体必须使用 `@Version` (乐观锁) 防止超卖。
+
+## 6. 配置文件模板 (参考)
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/wms_db?serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update # 生产环境请改为 validate
+application:
+  security:
+    jwt-secret: ${JWT_SECRET}
+  batch:
+    hashids:
+      salt: ${BATCH_SALT}
+      min-length: 6

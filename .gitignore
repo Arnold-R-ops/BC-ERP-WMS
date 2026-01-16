@@ -1,0 +1,47 @@
+# ====================================================================
+# Java / Maven 项目 .gitignore 配置
+# ====================================================================
+
+# Maven 构建目录
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE 相关文件
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Lombok 生成的文件
+*.class
+
+# 日志文件
+logs/
+*.log
+*.log.*
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 环境配置文件（包含敏感信息）
+application-local.yml
+application-prod.yml
+
+# 数据库文件
+*.db
+*.sqlite

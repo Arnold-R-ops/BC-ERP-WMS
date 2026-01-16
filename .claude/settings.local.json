@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(set)",
+      "Bash(echo:*)",
+      "Bash(mvn clean compile:*)",
+      "Bash(dir:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

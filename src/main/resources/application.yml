@@ -1,0 +1,147 @@
+# ====================================================================
+# WMS 系统配置文件 (基于 Spring Boot 3.2.x + Java 17)
+# ====================================================================
+
+# 服务器配置
+server:
+  port: 8080                      # 应用端口号
+  servlet:
+    encoding:
+      charset: UTF-8              # 强制使用 UTF-8 编码
+      enabled: true
+      force: true
+
+# Spring 核心配置
+spring:
+  application:
+    name: wms-system              # 应用名称
+
+  # 数据源配置 (PostgreSQL 16)
+  datasource:
+    # 🔴 请根据实际情况修改以下三项
+    url: jdbc:postgresql://localhost:5432/wms_db?serverTimezone=UTC
+    username: postgres            # 数据库用户名（默认为 postgres）
+    password: 123465              # ⚠️ 请替换为你的数据库密码
+
+    driver-class-name: org.postgresql.Driver
+
+    # HikariCP 连接池配置（Spring Boot 3 默认使用 HikariCP）
+    hikari:
+      minimum-idle: 5                    # 最小空闲连接数
+      maximum-pool-size: 20              # 最大连接数
+      connection-timeout: 30000          # 连接超时时间（毫秒）
+      idle-timeout: 600000               # 空闲连接超时时间（10分钟）
+      max-lifetime: 1800000              # 连接最大存活时间（30分钟）
+      auto-commit: true
+      pool-name: WMS-HikariPool
+      connection-test-query: SELECT 1    # PostgreSQL 测试查询
+
+  # JPA / Hibernate 配置
+  jpa:
+    database: POSTGRESQL                 # 指定数据库类型
+    database-platform: org.hibernate.dialect.PostgreSQLDialect  # PostgreSQL 方言
+    show-sql: true                       # 控制台打印 SQL 语句（开发阶段建议开启）
+
+    hibernate:
+      ddl-auto: update                   # 自动更新表结构（开发阶段：update，生产环境：validate）
+                                         # 选项说明：
+                                         #   - none: 不做任何操作
+                                         #   - validate: 验证表结构，不修改
+                                         #   - update: 自动更新表结构（新增字段，不删除）
+                                         #   - create: 每次启动都删除并重建表（⚠️ 慎用）
+                                         #   - create-drop: 启动时创建，关闭时删除（仅测试用）
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl  # 使用原始字段名
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
+
+    properties:
+      hibernate:
+        format_sql: true                 # 格式化 SQL 输出（便于调试）
+        use_sql_comments: true           # SQL 中显示注释
+        jdbc:
+          batch_size: 20                 # 批量插入大小
+        order_inserts: true              # 优化批量插入顺序
+        order_updates: true              # 优化批量更新顺序
+
+  # 数据初始化配置（可选）
+  sql:
+    init:
+      mode: never                        # SQL 脚本执行模式（never / always / embedded）
+                                         # 如需执行 schema.sql 或 data.sql，改为 always
+
+  # JSON 配置
+  jackson:
+    time-zone: UTC                       # 时区设置为UTC
+    date-format: yyyy-MM-dd HH:mm:ss     # 日期格式化
+    serialization:
+      write-dates-as-timestamps: false   # 日期不序列化为时间戳
+    default-property-inclusion: non_null # 忽略 null 值字段
+
+# ====================================================================
+# JWT Configuration (JSON Web Token)
+# ====================================================================
+jwt:
+  # JWT 密钥（用于签名和验证 Token）
+  # ⚠️ 生产环境请务必替换为安全的密钥！
+  # 推荐生成方式：openssl rand -base64 64
+  # 要求：Base64 编码，至少 256 位（32 字节）
+  secret: WW91clN1cGVyU2VjcmV0S2V5Rm9ySldUVG9rZW5HZW5lcmF0aW9uTWluaW11bTI1NkJpdHNCYXNlNjRFbmNvZGVkU3RyaW5nPT0=
+
+  # Token 有效期（毫秒）
+  # 86400000 ms = 24 hours (1 day)
+  # 3600000 ms = 1 hour
+  # 604800000 ms = 7 days
+  expiration: 86400000  # 24 小时
+
+  # Token 签发者（可选，用于标识 Token 来源）
+  issuer: WMS-System
+
+  # Token 刷新阈值（距离过期还有多久时可以刷新，单位：毫秒）
+  # 如果距离过期时间小于此值，可以申请刷新 Token
+  refresh-threshold: 3600000  # 1 小时
+
+# ====================================================================
+# Batch Management Configuration (批次管理配置)
+# ====================================================================
+batch:
+  hashids:
+    # Hashids 密钥（用于批次码生成）
+    # ⚠️ 安全要求：必须从环境变量读取
+    # 生产环境设置：
+    #   Linux/Mac: export BATCH_SALT="your-secret-salt-value-min-32-characters"
+    #   Windows: set BATCH_SALT=your-secret-salt-value-min-32-characters
+    #   Docker: -e BATCH_SALT=your-secret-salt-value-min-32-characters
+    # 默认值仅用于开发环境测试
+    salt: ${BATCH_SALT:WMS_BATCH_DEFAULT_SALT_2025_FOR_DEVELOPMENT_ONLY}
+
+    # 批次码最小长度（生成的批次码字符数）
+    # 推荐值：6（如 R7M4K9）
+    min-length: 6
+
+# 日志配置
+logging:
+  level:
+    root: INFO                           # 根日志级别
+    com.wms: DEBUG                       # 你的业务代码包（请根据实际包名修改）
+    org.springframework.web: DEBUG       # Spring Web 日志
+    org.hibernate.SQL: DEBUG             # Hibernate SQL 日志
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # 显示 SQL 参数绑定
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"  # 控制台日志格式
+  file:
+    name: logs/wms-system.log            # 日志文件路径
+    max-size: 10MB                       # 单个日志文件最大大小
+    max-history: 30                      # 保留最近 30 天的日志
+
+# ====================================================================
+# 生产环境配置建议（在 application-prod.yml 中覆盖）
+# ====================================================================
+# spring:
+#   jpa:
+#     show-sql: false              # 关闭 SQL 输出
+#     hibernate:
+#       ddl-auto: validate         # 仅验证表结构，不自动修改
+# logging:
+#   level:
+#     root: WARN
+#     com.wms: INFO
