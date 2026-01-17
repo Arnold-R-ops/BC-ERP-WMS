@@ -1,206 +1,287 @@
 -- ============================================================================
--- V3.3 架构升级迁移脚本 (Phase 1: Database Schema Migration)
--- 功能：SPU-SKU 层级管理 + 多库位批次管理
--- 执行时机：在启动应用之前执行
--- 数据库：MySQL 8.0+
+-- BC ERP-WMS V3.3 Migration Script - Phase 1
+-- Database & Entity Layer Migration
+-- ============================================================================
 --
--- 升级内容：
--- 1. 新建 product_spu 表（SPU 产品家族）
--- 2. 修改 products 表（升级为 SKU 层级）
--- 3. 修改 inventory_batch 表（支持多库位）
--- 4. 数据迁移（现有数据迁移到默认 SPU）
+-- Purpose: Migrate from old version to V3.3 architecture
+-- - Create product_spu table (SPU-SKU hierarchy)
+-- - Update products table (add spu_id, sku_name, specs)
+-- - Update inventory_batch table (add location_code, modify constraints)
+-- - Data cleaning (create default SPU, update existing products)
 --
--- 回滚方案：见文件末尾
+-- Database: PostgreSQL 16
+-- Execution Order:
+-- 1. Create new tables
+-- 2. Modify existing tables (add columns)
+-- 3. Data cleaning (default SPU + update existing data)
+-- 4. Add constraints (FK, indexes)
+--
+-- Author: WMS Team
+-- Date: 2026-01-17
+-- Version: 3.3
 -- ============================================================================
 
 -- ============================================================================
--- Step 1: 创建 product_spu 表 (SPU Product Table)
+-- SECTION 1: Create New Tables
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS `product_spu` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'SPU ID（主键）',
-    `code` VARCHAR(50) NOT NULL COMMENT 'SPU 编码（唯一标识符）',
-    `name` VARCHAR(200) NOT NULL COMMENT 'SPU 名称（产品家族名称）',
-    `category` VARCHAR(100) DEFAULT NULL COMMENT '产品分类',
-    `description` VARCHAR(2000) DEFAULT NULL COMMENT 'SPU 描述',
-    `enabled` BOOLEAN NOT NULL DEFAULT TRUE COMMENT '是否启用',
-    `brand` VARCHAR(100) DEFAULT NULL COMMENT '品牌名称',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `idx_spu_code` (`code`),
-    KEY `idx_spu_name` (`name`),
-    KEY `idx_spu_category` (`category`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='产品 SPU 表（产品家族）';
+-- 1.1 Create product_spu table (Product Family)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS product_spu (
+    id BIGSERIAL PRIMARY KEY,
+    spu_code VARCHAR(50) NOT NULL UNIQUE,
+    spu_name VARCHAR(200) NOT NULL,
+    category VARCHAR(100),
+    brand VARCHAR(100),
+    description TEXT,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for product_spu
+CREATE INDEX IF NOT EXISTS idx_spu_code ON product_spu(spu_code);
+CREATE INDEX IF NOT EXISTS idx_spu_name ON product_spu(spu_name);
+CREATE INDEX IF NOT EXISTS idx_spu_category ON product_spu(category);
+
+-- Add comments for product_spu table
+COMMENT ON TABLE product_spu IS 'Product SPU (Standard Product Unit) - Product Family';
+COMMENT ON COLUMN product_spu.spu_code IS 'SPU code (unique identifier)';
+COMMENT ON COLUMN product_spu.spu_name IS 'SPU name (product family name)';
+COMMENT ON COLUMN product_spu.category IS 'Product category (optional)';
+COMMENT ON COLUMN product_spu.brand IS 'Brand name (optional)';
+COMMENT ON COLUMN product_spu.description IS 'SPU description (optional)';
+COMMENT ON COLUMN product_spu.enabled IS 'Whether SPU is enabled (default: true)';
 
 -- ============================================================================
--- Step 2: 插入默认 SPU (Default SPU for Data Migration)
+-- SECTION 2: Modify Existing Tables
 -- ============================================================================
 
--- 插入默认 SPU，用于容纳旧的 Product 数据
--- ID 固定为 1，确保数据迁移时可以引用
-INSERT INTO `product_spu` (`id`, `code`, `name`, `category`, `description`, `enabled`)
+-- 2.1 Modify products table (add SPU-SKU fields)
+-- ----------------------------------------------------------------------------
+-- Add spu_id column (nullable at first, will set NOT NULL after data cleaning)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS spu_id BIGINT;
+
+-- Add sku_name column
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sku_name VARCHAR(100);
+
+-- Add specs column (JSON or text)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS specs VARCHAR(500);
+
+-- Add comments for new columns
+COMMENT ON COLUMN products.spu_id IS 'Foreign key to product_spu (Product Family)';
+COMMENT ON COLUMN products.sku_name IS 'SKU-specific name (short identifier)';
+COMMENT ON COLUMN products.specs IS 'Specification description (JSON or text)';
+
+-- 2.2 Modify inventory_batch table (add location_code, modify constraints)
+-- ----------------------------------------------------------------------------
+-- Add location_code column (nullable at first, will update later)
+ALTER TABLE inventory_batch ADD COLUMN IF NOT EXISTS location_code VARCHAR(50);
+
+-- Add comment for location_code
+COMMENT ON COLUMN inventory_batch.location_code IS 'V3.3: Location code string (redundant field for quick query)';
+
+-- Drop old unique constraint on batch_code (if exists)
+DO $$
+BEGIN
+    -- Drop unique constraint on batch_code if exists
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'uk_batch_code' AND conrelid = 'inventory_batch'::regclass
+    ) THEN
+        ALTER TABLE inventory_batch DROP CONSTRAINT uk_batch_code;
+    END IF;
+
+    -- Drop old unique index on batch_code if exists
+    IF EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'idx_batch_code' AND tablename = 'inventory_batch'
+    ) THEN
+        DROP INDEX idx_batch_code;
+    END IF;
+END $$;
+
+-- ============================================================================
+-- SECTION 3: Data Cleaning (Critical for FK Constraints)
+-- ============================================================================
+
+-- 3.1 Insert Default SPU (ID=0) for existing products
+-- ----------------------------------------------------------------------------
+-- IMPORTANT: This prevents FK constraint errors when adding NOT NULL constraint on spu_id
+INSERT INTO product_spu (id, spu_code, spu_name, category, brand, description, enabled)
 VALUES (
-    1,
-    'SPU-DEFAULT-001',
-    'Default SPU',
-    'Default Category',
-    'Default SPU for existing products during V3.3 migration. Please reassign products to proper SPU categories.',
-    TRUE
+    0,
+    'DEFAULT-SPU',
+    'Default Product Family (Legacy Data)',
+    'Uncategorized',
+    NULL,
+    'Default SPU for existing products before V3.3 migration. Please update product-spu mapping manually.',
+    true
 )
-ON DUPLICATE KEY UPDATE `id` = `id`;  -- 如果已存在则不重复插入
+ON CONFLICT (id) DO NOTHING;  -- Skip if already exists
 
--- 重置自增 ID，确保后续插入的 SPU 从 2 开始
-ALTER TABLE `product_spu` AUTO_INCREMENT = 2;
+-- Reset sequence to ensure next auto-generated ID starts from 1
+SELECT setval('product_spu_id_seq', (SELECT GREATEST(1, MAX(id)) FROM product_spu), true);
 
--- ============================================================================
--- Step 3: 修改 products 表 (Upgrade to SKU Level)
--- ============================================================================
+-- 3.2 Update existing products: set spu_id to 0 (default SPU)
+-- ----------------------------------------------------------------------------
+UPDATE products
+SET spu_id = 0
+WHERE spu_id IS NULL;
 
--- 3.1 添加 spu_id 字段（外键关联到 product_spu）
-ALTER TABLE `products`
-ADD COLUMN `spu_id` BIGINT NULL COMMENT 'SPU ID（外键）' AFTER `id`;
+-- 3.3 Update existing products: set sku_name from name (if NULL)
+-- ----------------------------------------------------------------------------
+UPDATE products
+SET sku_name = name
+WHERE sku_name IS NULL OR sku_name = '';
 
--- 3.2 添加 sku_name 字段（SKU 特定名称）
-ALTER TABLE `products`
-ADD COLUMN `sku_name` VARCHAR(100) NULL COMMENT 'SKU 特定名称' AFTER `spu_id`;
+-- 3.4 Update inventory_batch: set location_code from location.location_code
+-- ----------------------------------------------------------------------------
+-- For batches that already have a location assigned, copy location_code
+UPDATE inventory_batch ib
+SET location_code = l.location_code
+FROM locations l
+WHERE ib.location_id = l.id
+  AND ib.location_code IS NULL;
 
--- 3.3 添加 specs 字段（规格描述）
-ALTER TABLE `products`
-ADD COLUMN `specs` VARCHAR(500) NULL COMMENT '规格描述（JSON 或文本）' AFTER `sku_name`;
+-- For batches without location (Stage 2: IN_TRANSIT), set temporary placeholder
+-- These will be updated when location is assigned in Stage 3
+UPDATE inventory_batch
+SET location_code = 'PENDING'
+WHERE location_code IS NULL AND location_id IS NULL;
 
--- 3.4 将现有所有 products 的 spu_id 更新为默认 SPU (ID=1)
-UPDATE `products`
-SET `spu_id` = 1
-WHERE `spu_id` IS NULL;
-
--- 3.5 将 name 复制到 sku_name（如果 sku_name 为空）
-UPDATE `products`
-SET `sku_name` = `name`
-WHERE `sku_name` IS NULL OR `sku_name` = '';
-
--- 3.6 将 spu_id 和 sku_name 设置为 NOT NULL（数据已迁移完成）
-ALTER TABLE `products`
-MODIFY COLUMN `spu_id` BIGINT NOT NULL COMMENT 'SPU ID（外键）';
-
-ALTER TABLE `products`
-MODIFY COLUMN `sku_name` VARCHAR(100) NOT NULL COMMENT 'SKU 特定名称';
-
--- 3.7 添加外键约束（关联到 product_spu）
-ALTER TABLE `products`
-ADD CONSTRAINT `fk_product_spu`
-FOREIGN KEY (`spu_id`) REFERENCES `product_spu`(`id`)
-ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- 3.8 添加索引（优化查询性能）
-ALTER TABLE `products`
-ADD INDEX `idx_spu_id` (`spu_id`);
+-- If still NULL (edge case), set to 'UNASSIGNED'
+UPDATE inventory_batch
+SET location_code = 'UNASSIGNED'
+WHERE location_code IS NULL;
 
 -- ============================================================================
--- Step 4: 修改 inventory_batch 表 (Multi-Location Batch Management)
+-- SECTION 4: Add Constraints (After Data Cleaning)
 -- ============================================================================
 
--- 4.1 添加 location_code 字段（库位编号字符串）
-ALTER TABLE `inventory_batch`
-ADD COLUMN `location_code` VARCHAR(50) NULL COMMENT '库位编号（如 A-1-101）' AFTER `batch_code`;
+-- 4.1 Add NOT NULL constraint on products.spu_id
+-- ----------------------------------------------------------------------------
+ALTER TABLE products ALTER COLUMN spu_id SET NOT NULL;
 
--- 4.2 将现有批次的 location_code 设置为默认值（如果有 location_id）
--- 假设 locations 表有 code 字段
-UPDATE `inventory_batch` ib
-INNER JOIN `locations` l ON ib.`location_id` = l.`id`
-SET ib.`location_code` = l.`code`
-WHERE ib.`location_code` IS NULL;
+-- 4.2 Add NOT NULL constraint on products.sku_name
+-- ----------------------------------------------------------------------------
+ALTER TABLE products ALTER COLUMN sku_name SET NOT NULL;
 
--- 4.3 如果没有 location，设置为默认值 "UNASSIGNED"
-UPDATE `inventory_batch`
-SET `location_code` = 'UNASSIGNED'
-WHERE `location_code` IS NULL OR `location_code` = '';
+-- 4.3 Add NOT NULL constraint on inventory_batch.location_code
+-- ----------------------------------------------------------------------------
+ALTER TABLE inventory_batch ALTER COLUMN location_code SET NOT NULL;
 
--- 4.4 将 location_code 设置为 NOT NULL
-ALTER TABLE `inventory_batch`
-MODIFY COLUMN `location_code` VARCHAR(50) NOT NULL COMMENT '库位编号（如 A-1-101）';
+-- 4.4 Add Foreign Key constraint: products.spu_id -> product_spu.id
+-- ----------------------------------------------------------------------------
+ALTER TABLE products
+ADD CONSTRAINT fk_product_spu
+FOREIGN KEY (spu_id)
+REFERENCES product_spu(id)
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
 
--- 4.5 移除 batch_code 的唯一约束（允许同一批次在多个库位）
-ALTER TABLE `inventory_batch`
-DROP INDEX `idx_batch_code`;
+-- 4.5 Add index on products.spu_id (for join performance)
+-- ----------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_spu_id ON products(spu_id);
 
--- 4.6 重新创建 batch_code 索引（非唯一）
-ALTER TABLE `inventory_batch`
-ADD INDEX `idx_batch_code` (`batch_code`);
-
--- 4.7 添加复合索引 (batch_code, location_code)
-ALTER TABLE `inventory_batch`
-ADD INDEX `idx_batch_location` (`batch_code`, `location_code`);
-
--- 4.8 添加 location_code 索引（优化库位查询）
-ALTER TABLE `inventory_batch`
-ADD INDEX `idx_location_code` (`location_code`);
+-- 4.6 Create new indexes for inventory_batch (V3.3 multi-location support)
+-- ----------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_batch_code ON inventory_batch(batch_code);
+CREATE INDEX IF NOT EXISTS idx_batch_location ON inventory_batch(batch_code, location_code);
+CREATE INDEX IF NOT EXISTS idx_location_code ON inventory_batch(location_code);
 
 -- ============================================================================
--- Step 5: 验证数据完整性 (Data Integrity Check)
+-- SECTION 5: Verification Queries (Optional, for manual check)
 -- ============================================================================
 
--- 5.1 检查所有 products 是否都有 spu_id
+-- Check 1: Verify default SPU was created
+-- Expected: 1 row with id=0
+SELECT * FROM product_spu WHERE id = 0;
+
+-- Check 2: Verify all products have spu_id assigned
+-- Expected: 0 rows (no NULL spu_id)
+SELECT COUNT(*) AS products_without_spu FROM products WHERE spu_id IS NULL;
+
+-- Check 3: Verify all products have sku_name assigned
+-- Expected: 0 rows (no NULL sku_name)
+SELECT COUNT(*) AS products_without_sku_name FROM products WHERE sku_name IS NULL;
+
+-- Check 4: Count products by SPU
 SELECT
-    COUNT(*) AS total_products,
-    SUM(CASE WHEN spu_id IS NULL THEN 1 ELSE 0 END) AS products_without_spu,
-    SUM(CASE WHEN spu_id = 1 THEN 1 ELSE 0 END) AS products_with_default_spu
-FROM `products`;
+    spu_id,
+    COUNT(*) AS product_count
+FROM products
+GROUP BY spu_id
+ORDER BY product_count DESC;
 
--- 5.2 检查所有 inventory_batch 是否都有 location_code
+-- Check 5: Verify inventory_batch table structure and data
 SELECT
-    COUNT(*) AS total_batches,
-    SUM(CASE WHEN location_code IS NULL THEN 1 ELSE 0 END) AS batches_without_location_code,
-    SUM(CASE WHEN location_code = 'UNASSIGNED' THEN 1 ELSE 0 END) AS batches_unassigned
-FROM `inventory_batch`;
+    CASE
+        WHEN location_code = 'PENDING' THEN 'In Transit (No Location)'
+        WHEN location_code = 'UNASSIGNED' THEN 'Unassigned (Edge Case)'
+        ELSE 'Received (Has Location)'
+    END AS status,
+    COUNT(*) AS batch_count
+FROM inventory_batch
+GROUP BY status;
 
--- 5.3 检查是否有重复的 (batch_code, location_code) 组合
-SELECT
-    batch_code,
-    location_code,
-    COUNT(*) AS duplicate_count
-FROM `inventory_batch`
-GROUP BY batch_code, location_code
-HAVING COUNT(*) > 1;
+-- Check 6: Verify no NULL location_code in inventory_batch
+SELECT COUNT(*) AS batches_without_location_code
+FROM inventory_batch
+WHERE location_code IS NULL;
 
 -- ============================================================================
--- Step 6: 迁移完成提示 (Migration Summary)
+-- SECTION 6: Migration Summary
 -- ============================================================================
 
 SELECT
     'V3.3 Migration Completed!' AS status,
     (SELECT COUNT(*) FROM product_spu) AS total_spus,
     (SELECT COUNT(*) FROM products) AS total_skus,
-    (SELECT COUNT(*) FROM inventory_batch) AS total_batches;
+    (SELECT COUNT(*) FROM inventory_batch) AS total_batches,
+    CURRENT_TIMESTAMP AS completed_at;
 
 -- ============================================================================
--- 回滚方案 (Rollback Script)
---
--- ⚠️ 警告：回滚将删除 V3.3 新增的所有数据和字段！
--- 请在执行回滚前务必备份数据库！
+-- SECTION 7: Rollback Script (Use with caution!)
 -- ============================================================================
+-- Uncomment below to rollback this migration
+-- WARNING: This will lose all SPU data and product-spu mappings!
 
 /*
--- 回滚 Step 4: 恢复 inventory_batch 表
-ALTER TABLE `inventory_batch` DROP INDEX `idx_location_code`;
-ALTER TABLE `inventory_batch` DROP INDEX `idx_batch_location`;
-ALTER TABLE `inventory_batch` DROP INDEX `idx_batch_code`;
-ALTER TABLE `inventory_batch` ADD UNIQUE INDEX `idx_batch_code` (`batch_code`);
-ALTER TABLE `inventory_batch` DROP COLUMN `location_code`;
+-- Rollback Step 1: Drop FK constraint
+ALTER TABLE products DROP CONSTRAINT IF EXISTS fk_product_spu;
 
--- 回滚 Step 3: 恢复 products 表
-ALTER TABLE `products` DROP INDEX `idx_spu_id`;
-ALTER TABLE `products` DROP FOREIGN KEY `fk_product_spu`;
-ALTER TABLE `products` DROP COLUMN `specs`;
-ALTER TABLE `products` DROP COLUMN `sku_name`;
-ALTER TABLE `products` DROP COLUMN `spu_id`;
+-- Rollback Step 2: Drop indexes
+DROP INDEX IF EXISTS idx_spu_id;
+DROP INDEX IF EXISTS idx_batch_code;
+DROP INDEX IF EXISTS idx_batch_location;
+DROP INDEX IF EXISTS idx_location_code;
 
--- 回滚 Step 2 & 1: 删除 product_spu 表
-DROP TABLE IF EXISTS `product_spu`;
+-- Rollback Step 3: Drop columns from products
+ALTER TABLE products DROP COLUMN IF EXISTS spu_id;
+ALTER TABLE products DROP COLUMN IF EXISTS sku_name;
+ALTER TABLE products DROP COLUMN IF EXISTS specs;
 
-SELECT 'V3.3 Migration Rolled Back!' AS status;
+-- Rollback Step 4: Drop columns from inventory_batch
+ALTER TABLE inventory_batch DROP COLUMN IF EXISTS location_code;
+
+-- Rollback Step 5: Drop product_spu table
+DROP TABLE IF EXISTS product_spu CASCADE;
+
+-- Rollback Step 6: Restore unique constraint on batch_code (if needed)
+-- Note: Only if you want to restore old architecture
+-- CREATE UNIQUE INDEX idx_batch_code ON inventory_batch(batch_code);
+
+SELECT 'V3.3 Migration Rolled Back!' AS status, CURRENT_TIMESTAMP AS completed_at;
 */
 
 -- ============================================================================
--- 迁移脚本结束
+-- Migration Complete!
+-- ============================================================================
+-- Next Steps:
+-- 1. Run this script in your PostgreSQL database
+-- 2. Verify data integrity with Section 5 queries
+-- 3. Update Java entity classes (ProductSpu.java, Product.java)
+-- 4. Test application startup (JPA should auto-detect schema changes)
+-- 5. Manually update product-spu mappings (change spu_id from 0 to actual SPU)
 -- ============================================================================

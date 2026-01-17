@@ -46,8 +46,8 @@ import java.util.List;
 @Table(
     name = "product_spu",
     indexes = {
-        @Index(name = "idx_spu_code", columnList = "code", unique = true),
-        @Index(name = "idx_spu_name", columnList = "name"),
+        @Index(name = "idx_spu_code", columnList = "spu_code", unique = true),
+        @Index(name = "idx_spu_name", columnList = "spu_name"),
         @Index(name = "idx_spu_category", columnList = "category")
     }
 )
@@ -77,8 +77,8 @@ public class ProductSpu extends BaseEntity {
      */
     @NotBlank(message = "SPU 编码不能为空")
     @Size(max = 50, message = "SPU 编码长度不能超过 50 个字符")
-    @Column(name = "code", nullable = false, unique = true, length = 50)
-    private String code;
+    @Column(name = "spu_code", nullable = false, unique = true, length = 50)
+    private String spuCode;
 
     /**
      * SPU 名称（产品家族名称）
@@ -91,8 +91,8 @@ public class ProductSpu extends BaseEntity {
      */
     @NotBlank(message = "SPU 名称不能为空")
     @Size(max = 200, message = "SPU 名称长度不能超过 200 个字符")
-    @Column(name = "name", nullable = false, length = 200)
-    private String name;
+    @Column(name = "spu_name", nullable = false, length = 200)
+    private String spuName;
 
     /**
      * 产品分类
