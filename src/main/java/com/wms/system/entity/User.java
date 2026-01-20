@@ -1,13 +1,11 @@
 package com.wms.system.entity;
 
-import com.wms.system.entity.enums.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -21,21 +19,24 @@ import java.util.List;
  * Business Rules:
  * - Username is unique and used for login
  * - Password is stored encrypted (BCrypt algorithm recommended)
- * - Role determines user permissions (ADMIN: full access, STAFF: basic operations)
+ * - Users can have multiple roles assigned via sys_user_role table
+ * - Default role determines initial active role upon login
  *
  * Security Integration:
  * - Implements UserDetails interface for Spring Security integration
- * - Provides authentication and authorization information
+ * - Provides authentication information (username, password, enabled status)
+ * - Authorization (roles) loaded dynamically from JWT token
  * - BCrypt password encoding ensures password security
  *
- * ERP Extension:
- * - Can add department field (departmentId) in future
- * - Can add employee number field (employeeNumber)
- * - Can support multi-role via @ManyToMany relationship
+ * Multi-Role System (v3.3+):
+ * - Role assignments managed via sys_user_role junction table
+ * - Users can switch roles without re-authentication
+ * - JWT token contains current_role claim for active role
+ * - Supports identity switching for users with multiple roles
  *
  * @author WMS Team
  * @since 2025-01-09
- * @version 2.0 (Spring Security Integration)
+ * @version 3.3 (Multi-Role RBAC System)
  */
 @Data
 @Builder
@@ -80,18 +81,28 @@ public class User extends BaseEntity implements UserDetails {
     private String password;
 
     /**
-     * User Role (enum type)
-     * - ADMIN: Administrator (full permissions)
-     * - STAFF: Regular employee (basic operation permissions)
+     * Default Role ID (User's preferred role for login)
      *
-     * Storage Method:
-     * - @Enumerated(EnumType.STRING): Store as string ("ADMIN", "STAFF"), easier to read and maintain
-     * - @Enumerated(EnumType.ORDINAL): Store as integer (0, 1), saves space but not recommended (enum order changes cause data corruption)
+     * This field stores the user's last used or preferred role.
+     * When user logs in, system will use this role as the initial active role.
+     * If NULL, system selects the role with minimum sort_order.
+     *
+     * @since v3.3 (Multi-Role System)
      */
-    @NotNull(message = "Role cannot be null")
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Role role;
+    @Column(name = "default_role_id")
+    private Long defaultRoleId;
+
+    /**
+     * Default Role Relationship (Lazy-loaded)
+     *
+     * Provides access to the full SysRole entity for the default role.
+     * Use LAZY fetch to avoid unnecessary database queries.
+     *
+     * @since v3.3 (Multi-Role System)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "default_role_id", insertable = false, updatable = false)
+    private SysRole defaultRole;
 
     /**
      * Display Name (optional, used for UI display)
@@ -119,16 +130,21 @@ public class User extends BaseEntity implements UserDetails {
     /**
      * Get User Authorities (Permissions)
      *
-     * Spring Security uses GrantedAuthority to represent permissions.
-     * Naming Convention: ROLE_ prefix (e.g., ROLE_ADMIN, ROLE_STAFF)
+     * Multi-Role System (v3.3+):
+     * Returns empty list because authorities are loaded dynamically from JWT token.
+     * The JWT contains 'current_role' claim which determines active permissions.
+     * This approach supports identity switching without reloading user entity.
      *
-     * @return Collection of GrantedAuthority
+     * Spring Security Integration:
+     * JwtAuthenticationFilter extracts current_role from JWT and sets it in SecurityContext.
+     * @PreAuthorize annotations check against the role in JWT, not this method.
+     *
+     * @return Empty collection (authorities loaded from JWT)
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Convert role enum to GrantedAuthority
-        // "ROLE_" prefix is Spring Security convention for role-based authorization
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        // Return empty list - authorities are dynamically loaded from JWT token
+        return List.of();
     }
 
     /**

@@ -1,7 +1,6 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.User;
-import com.wms.system.entity.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -50,15 +49,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     /**
-     * 根据角色查询用户列表
-     * 方法命名规范：findBy + 字段名（Role）
-     *
-     * @param role 用户角色（ADMIN / STAFF）
-     * @return 该角色的所有用户
-     */
-    List<User> findByRole(Role role);
-
-    /**
      * 查询所有启用的用户
      * 方法命名规范：findBy + 字段名（Enabled） + 条件（True）
      *
@@ -74,14 +64,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return 用户名包含关键词的所有用户
      */
     List<User> findByUsernameContaining(String keyword);
-
-    /**
-     * 根据角色和启用状态查询
-     * 方法命名规范：findBy + 字段1（Role） + And + 字段2（Enabled）
-     *
-     * @param role 用户角色
-     * @param enabled 是否启用
-     * @return 符合条件的用户列表
-     */
-    List<User> findByRoleAndEnabled(Role role, Boolean enabled);
 }

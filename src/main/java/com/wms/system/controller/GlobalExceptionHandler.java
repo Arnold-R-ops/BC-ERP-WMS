@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -138,6 +139,59 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle Unsupported Media Type (HttpMediaTypeNotSupportedException)
+     *
+     * Thrown when request Content-Type is not supported by the endpoint.
+     * For example, sending text/plain to an endpoint that requires application/json.
+     *
+     * Response example:
+     * <pre>
+     * {
+     *   "errorKey": "VALIDATION_FAILED",
+     *   "params": {
+     *     "contentType": "text/plain;charset=UTF-8",
+     *     "supportedTypes": ["application/json", "application/*+json"]
+     *   },
+     *   "timestamp": "...",
+     *   "path": "/api/auth/login",
+     *   "status": 415
+     * }
+     * </pre>
+     *
+     * @param ex HttpMediaTypeNotSupportedException
+     * @param request HTTP request
+     * @return ResponseEntity with ErrorResponse
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotSupported(
+        HttpMediaTypeNotSupportedException ex,
+        HttpServletRequest request
+    ) {
+        // Extract supported media types
+        String supportedTypes = ex.getSupportedMediaTypes().stream()
+            .map(Object::toString)
+            .reduce((a, b) -> a + ", " + b)
+            .orElse("application/json");
+
+        // Build error response
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.VALIDATION_FAILED)
+            .params(Map.of(
+                "contentType", ex.getContentType() != null ? ex.getContentType().toString() : "unknown",
+                "supportedTypes", supportedTypes
+            ))
+            .path(request.getRequestURI())
+            .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value())
+            .build();
+
+        // Log error
+        log.warn("Unsupported media type: contentType={}, supportedTypes={}, path={}",
+            ex.getContentType(), supportedTypes, request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(errorResponse);
+    }
+
+    /**
      * Handle Generic Exceptions (Unexpected Errors)
      *
      * Catches all other exceptions not handled by specific handlers.
@@ -198,25 +252,58 @@ public class GlobalExceptionHandler {
                  ErrorKeys.TRANSACTION_NOT_FOUND,
                  ErrorKeys.USER_NOT_FOUND,
                  ErrorKeys.SOURCE_ORDER_NOT_FOUND,
-                 ErrorKeys.RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+                 ErrorKeys.RESOURCE_NOT_FOUND,
+                 ErrorKeys.ROLE_NOT_FOUND,  // v3.3 Multi-Role System
+                 ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
+                 ErrorKeys.PO_ITEM_NOT_FOUND,
+                 ErrorKeys.BATCH_NOT_FOUND -> HttpStatus.NOT_FOUND;
 
             // 400 Bad Request
             case ErrorKeys.STOCK_INSUFFICIENT,
                  ErrorKeys.STOCK_INVALID_QUANTITY,
                  ErrorKeys.VALIDATION_FAILED,
                  ErrorKeys.PARAMETER_REQUIRED,
-                 ErrorKeys.TRANSACTION_INVALID_TYPE -> HttpStatus.BAD_REQUEST;
+                 ErrorKeys.TRANSACTION_INVALID_TYPE,
+                 ErrorKeys.PO_INVALID_STATUS,
+                 ErrorKeys.PO_ROLLBACK_NOT_ALLOWED,
+                 ErrorKeys.PO_EXPIRY_DATE_REQUIRED,
+                 ErrorKeys.BATCH_INACTIVE,
+                 ErrorKeys.BATCH_STOCK_INSUFFICIENT,
+                 ErrorKeys.BATCH_EXPIRED,
+                 ErrorKeys.INVALID_FILE_FORMAT,
+                 ErrorKeys.INVALID_EXCEL_DATA,
+                 ErrorKeys.FILE_READ_ERROR -> HttpStatus.BAD_REQUEST;
+
+            // 401 Unauthorized
+            case ErrorKeys.AUTH_INVALID_CREDENTIALS,
+                 ErrorKeys.AUTH_TOKEN_MISSING,
+                 ErrorKeys.AUTH_TOKEN_INVALID,
+                 ErrorKeys.AUTH_TOKEN_EXPIRED,
+                 ErrorKeys.AUTH_FAILED,
+                 ErrorKeys.AUTH_ACCESS_DENIED -> HttpStatus.UNAUTHORIZED;
+
+            // 403 Forbidden
+            case ErrorKeys.USER_UNAUTHORIZED,
+                 ErrorKeys.USER_ACCOUNT_DISABLED,
+                 ErrorKeys.OPERATION_NOT_ALLOWED,
+                 ErrorKeys.USER_NO_ROLES,  // v3.3 Multi-Role System
+                 ErrorKeys.USER_NO_ACTIVE_ROLES,  // v3.3 Multi-Role System
+                 ErrorKeys.ROLE_NOT_ASSIGNED,  // v3.3 Multi-Role System
+                 ErrorKeys.ROLE_DISABLED,  // v3.3 Multi-Role System
+                 ErrorKeys.PO_ALREADY_COMPLETED -> HttpStatus.FORBIDDEN;
 
             // 409 Conflict
             case ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
                  ErrorKeys.PRODUCT_ALREADY_EXISTS,
-                 ErrorKeys.LOCATION_ALREADY_EXISTS -> HttpStatus.CONFLICT;
+                 ErrorKeys.LOCATION_ALREADY_EXISTS,
+                 ErrorKeys.USER_ALREADY_EXISTS,  // v3.3 Multi-Role System
+                 ErrorKeys.BATCH_CODE_GENERATION_FAILED -> HttpStatus.CONFLICT;
 
-            // 403 Forbidden
-            case ErrorKeys.USER_UNAUTHORIZED,
-                 ErrorKeys.OPERATION_NOT_ALLOWED -> HttpStatus.FORBIDDEN;
+            // 500 Internal Server Error
+            case ErrorKeys.ROLE_SWITCH_FAILED,  // v3.3 Multi-Role System
+                 ErrorKeys.INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
 
-            // 500 Internal Server Error (default)
+            // Default (fallback)
             default -> {
                 log.warn("Unknown error key: {}, defaulting to 500 Internal Server Error", errorKey);
                 yield HttpStatus.INTERNAL_SERVER_ERROR;

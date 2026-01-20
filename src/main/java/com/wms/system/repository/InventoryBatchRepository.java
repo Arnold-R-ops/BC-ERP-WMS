@@ -33,14 +33,6 @@ import java.util.Optional;
 public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, Long> {
 
     /**
-     * Find batch by batch code (unique identifier)
-     *
-     * @param batchCode Hashids batch code (e.g., R7M4K9)
-     * @return Batch or empty
-     */
-    Optional<InventoryBatch> findByBatchCode(String batchCode);
-
-    /**
      * Check if batch code exists (for collision detection)
      *
      * @param batchCode Hashids batch code

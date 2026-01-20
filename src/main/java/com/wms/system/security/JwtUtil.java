@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -22,10 +23,16 @@ import java.util.function.Function;
  * JWT Utility Class
  *
  * Core Responsibilities:
- * 1. Generate JWT Token (username + role + expiration)
- * 2. Parse JWT Token (extract username, role, claims)
+ * 1. Generate JWT Token (username + current_role + available_roles + expiration)
+ * 2. Parse JWT Token (extract username, current_role, available_roles, claims)
  * 3. Validate JWT Token (signature + expiration)
  * 4. Check Token expiration status
+ *
+ * Multi-Role System (v3.3+):
+ * - Token contains 'current_role' claim (active role for authorization)
+ * - Token optionally contains 'available_roles' claim (all user roles)
+ * - Supports identity switching without re-authentication
+ * - Role switching generates new token with updated current_role
  *
  * Technical Implementation:
  * - Library: JJWT 0.12.3 (io.jsonwebtoken)
@@ -36,15 +43,22 @@ import java.util.function.Function;
  * Security Features:
  * - Signature verification prevents token tampering
  * - Expiration time enforces token validity period
- * - Claims include username and role for authorization
+ * - Claims include username and current_role for authorization
  *
  * Usage Example:
  * <pre>
- * // Generate token
- * String token = jwtUtil.generateToken("john_doe", "ADMIN");
+ * // Generate token with current role
+ * String token = jwtUtil.generateToken("john_doe", "WAREHOUSE_ADMIN");
  *
- * // Extract username
- * String username = jwtUtil.extractUsername(token);
+ * // Generate token with all roles
+ * List&lt;String&gt; roles = Arrays.asList("WAREHOUSE_ADMIN", "SALESPERSON");
+ * String token = jwtUtil.generateTokenWithRoles("john_doe", "WAREHOUSE_ADMIN", roles);
+ *
+ * // Extract current role
+ * String currentRole = jwtUtil.extractCurrentRole(token);
+ *
+ * // Extract available roles
+ * List&lt;String&gt; availableRoles = jwtUtil.extractAvailableRoles(token);
  *
  * // Validate token
  * boolean isValid = jwtUtil.isTokenValid(token, username);
@@ -52,7 +66,7 @@ import java.util.function.Function;
  *
  * @author WMS Team
  * @since 2025-01-11
- * @version 1.0 (JWT Authentication)
+ * @version 3.3 (Multi-Role RBAC System)
  */
 @Slf4j
 @Component
@@ -80,25 +94,29 @@ public class JwtUtil {
     private String ISSUER;
 
     /**
-     * ⭐ Generate JWT Token
+     * ⭐ Generate JWT Token (Basic)
+     *
+     * Generates a JWT token with current role only (no available_roles list).
+     * Use this method for simple authentication scenarios.
      *
      * Token Structure:
      * - Subject: username (unique identifier)
-     * - Claim "role": user role (ADMIN, STAFF, etc.)
+     * - Claim "current_role": user's active role (SUPER_ADMIN, WAREHOUSE_ADMIN, etc.)
      * - Issuer: WMS-System
      * - Issued At: current timestamp
      * - Expiration: current timestamp + expiration time
      * - Signature: HMAC-SHA256
      *
      * @param username User's username (cannot be null)
-     * @param role User's role (e.g., "ADMIN", "STAFF")
+     * @param currentRoleCode User's active role code (e.g., "SUPER_ADMIN", "WAREHOUSE_ADMIN")
      * @return JWT Token string (e.g., "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     * @since v3.3 (Multi-Role System)
      */
-    public String generateToken(String username, String role) {
-        log.debug("Generating JWT token for user: username={}, role={}", username, role);
+    public String generateToken(String username, String currentRoleCode) {
+        log.debug("Generating JWT token for user: username={}, currentRole={}", username, currentRoleCode);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
+        claims.put("current_role", currentRoleCode);  // Changed from "role" to "current_role"
 
         String token = Jwts.builder()
             .claims(claims)                                          // Add custom claims
@@ -109,7 +127,50 @@ public class JwtUtil {
             .signWith(getSigningKey())                               // Sign with secret key
             .compact();
 
-        log.info("JWT token generated successfully for user: {}", username);
+        log.info("JWT token generated successfully for user: {} with role: {}", username, currentRoleCode);
+        return token;
+    }
+
+    /**
+     * ⭐ Generate JWT Token (With Available Roles)
+     *
+     * Generates a JWT token with both current role and all available roles.
+     * Use this method for multi-role scenarios with identity switching support.
+     *
+     * Token Structure:
+     * - Subject: username (unique identifier)
+     * - Claim "current_role": user's active role
+     * - Claim "available_roles": list of all user's assigned roles
+     * - Issuer: WMS-System
+     * - Issued At: current timestamp
+     * - Expiration: current timestamp + expiration time
+     * - Signature: HMAC-SHA256
+     *
+     * @param username User's username (cannot be null)
+     * @param currentRoleCode User's active role code
+     * @param availableRoles List of all role codes assigned to the user
+     * @return JWT Token string with embedded role information
+     * @since v3.3 (Multi-Role System)
+     */
+    public String generateTokenWithRoles(String username, String currentRoleCode, List<String> availableRoles) {
+        log.debug("Generating JWT token for user: username={}, currentRole={}, availableRoles={}",
+            username, currentRoleCode, availableRoles);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("current_role", currentRoleCode);
+        claims.put("available_roles", availableRoles);
+
+        String token = Jwts.builder()
+            .claims(claims)
+            .subject(username)
+            .issuer(ISSUER)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+            .signWith(getSigningKey())
+            .compact();
+
+        log.info("JWT token generated successfully for user: {} with current role: {} and {} available roles",
+            username, currentRoleCode, availableRoles.size());
         return token;
     }
 
@@ -129,14 +190,50 @@ public class JwtUtil {
     }
 
     /**
-     * Extract User Role from Token
+     * Extract Current Role from Token
      *
-     * Extracts the "role" claim from JWT token payload.
+     * Extracts the "current_role" claim from JWT token payload.
+     * This is the active role used for authorization checks.
+     *
+     * @param token JWT Token string
+     * @return Current active role code (e.g., "SUPER_ADMIN", "WAREHOUSE_ADMIN")
+     * @since v3.3 (Multi-Role System)
+     */
+    public String extractCurrentRole(String token) {
+        return extractClaim(token, claims -> claims.get("current_role", String.class));
+    }
+
+    /**
+     * Extract Available Roles from Token
+     *
+     * Extracts the "available_roles" claim from JWT token payload.
+     * Returns all roles assigned to the user for identity switching.
+     *
+     * @param token JWT Token string
+     * @return List of available role codes (e.g., ["WAREHOUSE_ADMIN", "SALESPERSON"])
+     *         Returns null if available_roles claim is not present in token
+     * @since v3.3 (Multi-Role System)
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> extractAvailableRoles(String token) {
+        return extractClaim(token, claims -> claims.get("available_roles", List.class));
+    }
+
+    /**
+     * Extract User Role from Token
      *
      * @param token JWT Token string
      * @return User role (e.g., "ADMIN", "STAFF")
+     * @deprecated Since v3.3. Use {@link #extractCurrentRole(String)} instead.
+     *             The "role" claim has been replaced with "current_role" in multi-role system.
      */
+    @Deprecated(since = "v3.3", forRemoval = true)
     public String extractRole(String token) {
+        // For backward compatibility, try current_role first, then fall back to old "role" claim
+        String currentRole = extractCurrentRole(token);
+        if (currentRole != null) {
+            return currentRole;
+        }
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
 

@@ -19,11 +19,12 @@ import java.util.Map;
  *
  * Core Responsibility:
  * - Load user from database by username for Spring Security authentication
+ * - Wrap User entity in SecurityUser for consistent security context
  *
  * Spring Security Integration:
  * - Implements UserDetailsService interface (required by Spring Security)
  * - Called by AuthenticationManager during login process
- * - Returns UserDetails object containing user credentials and authorities
+ * - Returns SecurityUser (wrapper) containing user credentials and authorities
  *
  * Authentication Flow:
  * 1. User submits login request (username + password)
@@ -32,13 +33,18 @@ import java.util.Map;
  * 4. If match, authentication succeeds and JWT token is generated
  * 5. If no match, authentication fails and exception is thrown
  *
+ * Dynamic RBAC Integration:
+ * - Returns SecurityUser wrapper (not User directly)
+ * - DynamicAuthorizationManager extracts user ID from SecurityUser
+ * - User permissions loaded dynamically during authorization
+ *
  * Exception Handling:
- * - User not found: Throws BusinessException with AUTH_INVALID_CREDENTIALS
- * - Account disabled: UserDetails.isEnabled() returns false, Spring Security handles automatically
+ * - User not found: Throws UsernameNotFoundException (generic message)
+ * - Account disabled: SecurityUser.isEnabled() returns false, Spring Security handles automatically
  *
  * @author WMS Team
  * @since 2025-01-11
- * @version 1.0 (JWT Authentication)
+ * @version 2.0 (Dynamic RBAC System)
  */
 @Slf4j
 @Service
@@ -55,7 +61,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * Implementation Steps:
      * 1. Query user from database by username
      * 2. If user not found, throw exception (authentication fails)
-     * 3. If user found, return User entity (which implements UserDetails)
+     * 3. If user found, wrap in SecurityUser and return
      * 4. Spring Security automatically checks:
      *    - isEnabled()
      *    - isAccountNonLocked()
@@ -64,11 +70,16 @@ public class CustomUserDetailsService implements UserDetailsService {
      *
      * Security Notes:
      * - DO NOT reveal whether username or password is wrong (prevents username enumeration)
-     * - Use generic error message "AUTH_INVALID_CREDENTIALS" for both cases
+     * - Use generic error message for both cases
      * - Log detailed error for debugging, but return generic error to client
      *
+     * Dynamic RBAC Note:
+     * - Returns SecurityUser (wrapper) for consistent security context
+     * - DynamicAuthorizationManager extracts user ID from SecurityUser
+     * - Permissions loaded dynamically during request authorization
+     *
      * @param username Username (unique identifier)
-     * @return UserDetails User object containing credentials and authorities
+     * @return UserDetails SecurityUser wrapper containing user and authorities
      * @throws UsernameNotFoundException if user not found (caught by Spring Security)
      */
     @Override
@@ -86,15 +97,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                 throw new UsernameNotFoundException("Invalid username or password");
             });
 
-        log.info("User loaded successfully: username={}, role={}, enabled={}",
-            user.getUsername(), user.getRole(), user.isEnabled());
+        log.info("User loaded successfully: username={}, enabled={}",
+            user.getUsername(), user.isEnabled());
 
-        // Return User entity (which implements UserDetails)
-        // Spring Security will use this to:
-        // 1. Compare provided password with user.getPassword() (BCrypt)
-        // 2. Check user.isEnabled(), user.isAccountNonLocked(), etc.
-        // 3. Extract authorities from user.getAuthorities()
-        return user;
+        // Wrap User in SecurityUser for consistent security context
+        // DynamicAuthorizationManager expects SecurityUser to extract user ID
+        return new SecurityUser(user);
     }
 
     /**

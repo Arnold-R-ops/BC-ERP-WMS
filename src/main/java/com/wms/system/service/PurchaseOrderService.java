@@ -364,12 +364,17 @@ public class PurchaseOrderService {
         int totalReceivedInThisBatch = 0;
 
         for (BatchReceiptData receipt : receiptData) {
-            // Query batch by batch code
-            InventoryBatch batch = inventoryBatchRepository.findByBatchCode(receipt.getBatchCode())
-                .orElseThrow(() -> new BusinessException(
+            // Query batch by batch code (V3.3: returns List, get first one)
+            List<InventoryBatch> batches = inventoryBatchRepository.findByBatchCode(receipt.getBatchCode());
+
+            if (batches.isEmpty()) {
+                throw new BusinessException(
                     ErrorKeys.BATCH_NOT_FOUND,
                     Map.of("batchCode", receipt.getBatchCode())
-                ));
+                );
+            }
+
+            InventoryBatch batch = batches.get(0); // Get first batch
 
             // Validate batch is active
             if (!batch.getActive()) {

@@ -1,0 +1,53 @@
+# ===================================================================
+# Spring Boot 测试环境配置
+# Profile: test
+# 用于单元测试和集成测试
+# ===================================================================
+
+spring:
+  # 允许 bean 定义覆盖（测试环境需要覆盖 initAdminUser bean）
+  main:
+    allow-bean-definition-overriding: true
+
+  # 数据源配置（使用 PostgreSQL 测试数据库）
+  datasource:
+    url: jdbc:postgresql://localhost:5432/wms_db_test?serverTimezone=UTC
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: 123465
+
+  # JPA 配置
+  jpa:
+    database: POSTGRESQL
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create  # 每次测试启动时重建表结构（强制重新创建）
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        # 添加以下属性以确保正确处理已存在的表
+        hbm2ddl:
+          auto: create
+        globally_quoted_identifiers: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+# JWT 配置（测试环境）
+jwt:
+  # Base64 编码的测试密钥（至少 256 位）
+  # 原始字符串: test-jwt-secret-key-for-integration-testing-only-2026
+  # Base64 编码后长度足够，满足 HS256 算法要求
+  secret: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItaW50ZWdyYXRpb24tdGVzdGluZy1vbmx5LWRvLW5vdC11c2UtaW4tcHJvZHVjdGlvbi1lbnZpcm9ubWVudC0yMDI2
+  expiration: 86400000  # 24 小时（毫秒）
+  issuer: WMS-System-Test
+
+# 日志配置（测试环境）
+logging:
+  level:
+    root: INFO
+    com.wms.system: DEBUG
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate: WARN

@@ -1,16 +1,13 @@
 package com.wms.system.security;
 
 import com.wms.system.entity.User;
-import com.wms.system.entity.enums.Role;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 /**
  * Spring Security 用户身份包装类
@@ -25,13 +22,9 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 将 Role 枚举转换为 Spring Security 的 Authority
-        // 假设 User 中有 getRole() 方法，且 Role 是枚举
-        if (user.getRole() != null) {
-            return Collections.singletonList(
-                    new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
-            );
-        }
+        // v3.3 Multi-Role System:
+        // Authorities are now loaded dynamically from JWT token (JwtAuthenticationFilter)
+        // This method returns empty list; actual authorities come from token's current_role claim
         return Collections.emptyList();
     }
 
@@ -65,21 +58,12 @@ public class SecurityUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        // 如果你的 User 表有 enabled 字段，可以改为: return user.isEnabled();
-        return true;
+        // 返回用户实体的 enabled 字段值
+        // 如果 enabled 为 null，默认返回 true（向后兼容）
+        return user.getEnabled() != null ? user.getEnabled() : true;
     }
 
     // ========== 便捷方法 (快捷代理内部 User 对象) ==========
-
-    /**
-     * 获取用户角色
-     * 代理调用内部 user.getRole()
-     *
-     * @return 用户角色枚举
-     */
-    public Role getRole() {
-        return user.getRole();
-    }
 
     /**
      * 获取用户 ID

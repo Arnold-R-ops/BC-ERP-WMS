@@ -162,6 +162,25 @@ public final class ErrorKeys {
     public static final String USER_ACCOUNT_DISABLED = "USER_ACCOUNT_DISABLED";
 
     /**
+     * User has no roles assigned (Multi-Role System v3.3+)
+     *
+     * Parameters:
+     * - userId (Long): User ID
+     * - username (String): Username
+     */
+    public static final String USER_NO_ROLES = "USER_NO_ROLES";
+
+    /**
+     * User has no active roles (all roles are disabled) (Multi-Role System v3.3+)
+     *
+     * Parameters:
+     * - userId (Long): User ID
+     * - username (String): Username
+     * - totalRoles (Integer): Total number of assigned roles
+     */
+    public static final String USER_NO_ACTIVE_ROLES = "USER_NO_ACTIVE_ROLES";
+
+    /**
      * Unauthorized operation (insufficient permissions)
      *
      * Parameters:
@@ -170,6 +189,48 @@ public final class ErrorKeys {
      * - currentRole (String): Current user's role
      */
     public static final String USER_UNAUTHORIZED = "USER_UNAUTHORIZED";
+
+    // ========== Role Related Errors (Multi-Role System v3.3+) ==========
+
+    /**
+     * Role not found by ID or role code
+     *
+     * Parameters:
+     * - roleId (Long): Role ID (optional)
+     * - roleCode (String): Role code (optional)
+     */
+    public static final String ROLE_NOT_FOUND = "ROLE_NOT_FOUND";
+
+    /**
+     * Role is not assigned to the user
+     *
+     * Parameters:
+     * - roleId (Long): Role ID
+     * - roleCode (String): Role code
+     * - userId (Long): User ID
+     * - username (String): Username
+     */
+    public static final String ROLE_NOT_ASSIGNED = "ROLE_NOT_ASSIGNED";
+
+    /**
+     * Role is disabled (inactive)
+     *
+     * Parameters:
+     * - roleId (Long): Role ID
+     * - roleCode (String): Role code
+     * - roleName (String): Role display name
+     */
+    public static final String ROLE_DISABLED = "ROLE_DISABLED";
+
+    /**
+     * Role switch operation failed
+     *
+     * Parameters:
+     * - targetRoleCode (String): Target role code
+     * - username (String): Username
+     * - reason (String): Failure reason
+     */
+    public static final String ROLE_SWITCH_FAILED = "ROLE_SWITCH_FAILED";
 
     // ========== Authentication/JWT Related Errors ==========
 

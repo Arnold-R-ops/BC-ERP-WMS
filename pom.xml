@@ -125,6 +125,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- ========== Cache Dependencies (Caffeine for RBAC Permission Caching) ========== -->
+
+        <!-- Spring Boot Cache Starter (缓存抽象) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Caffeine Cache (高性能本地缓存) -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- ========== Batch Management & Excel Import Dependencies ========== -->
 
         <!-- Hashids (批次码生成 - 短码加密) -->
@@ -146,6 +160,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Security Test (用于测试 Security 配置) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

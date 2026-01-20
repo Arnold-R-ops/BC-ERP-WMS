@@ -1,7 +1,6 @@
 package com.wms.system;
 
 import com.wms.system.entity.User;
-import com.wms.system.entity.enums.Role;
 import com.wms.system.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +68,12 @@ public class WmsSystemApplication {
      * Admin Credentials:
      * - Username: admin
      * - Password: password123
-     * - Role: ADMIN
+     * - Role: SUPER_ADMIN (assigned via Flyway migration V3_3)
+     *
+     * v3.3 Multi-Role System:
+     * - User roles are now assigned via sys_user_role junction table
+     * - Flyway migration V3_3__multi_role_migration.sql handles role assignment
+     * - This method only creates the User entity without role assignment
      *
      * This CommandLineRunner executes AFTER all beans are initialized.
      * It uses the same PasswordEncoder configured in SecurityConfig.
@@ -103,7 +107,8 @@ public class WmsSystemApplication {
                     adminUser = User.builder()
                         .username(adminUsername)
                         .password(encodedPassword)
-                        .role(Role.ADMIN)
+                        // v3.3 Multi-Role System: Role assignment now handled via sys_user_role table
+                        // Flyway migration V3_3__multi_role_migration.sql assigns SUPER_ADMIN role
                         .displayName("System Administrator")
                         .enabled(true)
                         .remark("Auto-created admin user on system startup")
@@ -114,7 +119,7 @@ public class WmsSystemApplication {
                     System.out.println("[SUCCESS] Admin user created successfully!");
                     System.out.println("  ├─ Username: " + adminUsername);
                     System.out.println("  ├─ Password: " + adminPassword + " (plain text for testing)");
-                    System.out.println("  ├─ Role: ADMIN");
+                    System.out.println("  ├─ Role: SUPER_ADMIN (assigned via Flyway migration)");
                     System.out.println("  └─ BCrypt Hash: " + encodedPassword);
 
                 } else {

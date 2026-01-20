@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * JWT Authentication Filter
@@ -26,7 +30,14 @@ import java.io.IOException;
  * - Intercept ALL incoming HTTP requests BEFORE they reach Controllers
  * - Extract JWT token from Authorization header
  * - Validate token signature and expiration
+ * - Extract current_role from token and set in SecurityContext
  * - Set Authentication object in SecurityContext if valid
+ *
+ * Multi-Role System (v3.3+):
+ * - Extracts 'current_role' claim from JWT token
+ * - Creates GrantedAuthority with ROLE_ prefix for authorization
+ * - Supports identity switching via role-specific tokens
+ * - Authorization checks use current_role, not all user roles
  *
  * Filter Chain Position:
  * - Executes BEFORE UsernamePasswordAuthenticationFilter
@@ -35,9 +46,11 @@ import java.io.IOException;
  * Authentication Flow:
  * 1. Client sends request with Authorization header: "Bearer {token}"
  * 2. This filter extracts and validates the token
- * 3. If valid, creates Authentication object and sets in SecurityContext
- * 4. Subsequent filters and Controllers can access authenticated user via SecurityContextHolder
- * 5. If invalid, request continues WITHOUT authentication (will be rejected by SecurityConfig rules)
+ * 3. Extracts current_role from token claims
+ * 4. If valid, creates Authentication object with role-based authority
+ * 5. Sets Authentication in SecurityContext for this request
+ * 6. Subsequent filters and Controllers can access via SecurityContextHolder
+ * 7. @PreAuthorize annotations check against the current_role in token
  *
  * Token Format:
  * - Header name: Authorization
@@ -52,7 +65,7 @@ import java.io.IOException;
  *
  * @author WMS Team
  * @since 2025-01-11
- * @version 1.0 (JWT Authentication)
+ * @version 3.3 (Multi-Role RBAC System)
  */
 @Slf4j
 @Component
@@ -111,44 +124,59 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 4. Extract username from token
             String username = jwtUtil.extractUsername(token);
 
-            log.debug("JWT token parsed: username={}", username);
+            // 5. Extract current role from token (Multi-Role System v3.3+)
+            String currentRole = jwtUtil.extractCurrentRole(token);
 
-            // 5. Check if user is NOT already authenticated
+            log.debug("JWT token parsed: username={}, currentRole={}", username, currentRole);
+
+            // 6. Check if user is NOT already authenticated
             // (SecurityContextHolder.getContext().getAuthentication() == null means not authenticated yet)
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // 6. Load user details from database
+                // 7. Load user details from database
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 7. Validate token (signature + expiration + username match)
+                // 8. Validate token (signature + expiration + username match)
                 if (jwtUtil.isTokenValid(token, username)) {
-                    log.info("JWT token validated successfully: username={}, path={}",
-                        username, request.getRequestURI());
+                    log.info("JWT token validated successfully: username={}, currentRole={}, path={}",
+                        username, currentRole, request.getRequestURI());
 
-                    // 8. Create Authentication object
+                    // 9. Create authorities list with current role from JWT token
+                    // Multi-Role System: Authorization is based on current_role in token, not all user roles
+                    List<GrantedAuthority> authorities = new ArrayList<>();
+                    if (currentRole != null && !currentRole.isEmpty()) {
+                        // Add ROLE_ prefix (Spring Security convention)
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + currentRole));
+                        log.debug("Authority granted: ROLE_{}", currentRole);
+                    } else {
+                        log.warn("No current_role found in JWT token for user: {}", username);
+                    }
+
+                    // 10. Create Authentication object
                     // This object contains:
                     // - Principal: UserDetails (user information)
                     // - Credentials: null (no password needed after authentication)
-                    // - Authorities: User roles/permissions
+                    // - Authorities: Current role from JWT token (not from User entity)
                     UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(
                             userDetails,           // Principal (authenticated user)
                             null,                  // Credentials (not needed)
-                            userDetails.getAuthorities()  // Authorities (roles/permissions)
+                            authorities            // Authorities (current role from JWT)
                         );
 
-                    // 9. Set authentication details (request info like IP address)
+                    // 11. Set authentication details (request info like IP address)
                     authenticationToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-                    // 10. Set Authentication in SecurityContext
+                    // 12. Set Authentication in SecurityContext
                     // This makes user "authenticated" for this request
                     // Subsequent filters and controllers can access via SecurityContextHolder
+                    // @PreAuthorize checks will validate against the current_role
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
                     log.debug("Authentication set in SecurityContext: username={}, authorities={}",
-                        username, userDetails.getAuthorities());
+                        username, authorities);
                 } else {
                     log.warn("JWT token validation failed: username={}, token might be expired or invalid",
                         username);
@@ -181,8 +209,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Unexpected error, continue without authentication
         }
 
-        // 11. Continue filter chain (pass request to next filter/controller)
-        // If authentication was set, request is authenticated
+        // 13. Continue filter chain (pass request to next filter/controller)
+        // If authentication was set, request is authenticated with current_role
         // If not, request continues unauthenticated (will be rejected by SecurityConfig if needed)
         filterChain.doFilter(request, response);
     }

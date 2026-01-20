@@ -5,31 +5,40 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * Login Response DTO
  *
  * Returned to client after successful authentication.
  *
- * Response Format:
+ * Response Format (Multi-Role System v3.3+):
  * <pre>
  * {
  *   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
  *   "tokenType": "Bearer",
  *   "username": "john_doe",
- *   "role": "ADMIN",
+ *   "currentRole": "WAREHOUSE_ADMIN",
+ *   "availableRoles": ["WAREHOUSE_ADMIN", "SALESPERSON"],
  *   "expiresIn": 86400000
  * }
  * </pre>
+ *
+ * Multi-Role System Features:
+ * - currentRole: The active role in the JWT token (used for authorization)
+ * - availableRoles: All roles assigned to the user (for identity switching)
+ * - Users can switch roles without re-authentication via /api/auth/switch-role
  *
  * Client Usage:
  * 1. Store token in localStorage or sessionStorage
  * 2. Include token in all subsequent requests:
  *    Authorization: Bearer {token}
- * 3. Refresh token before expiration
+ * 3. Display available roles for user to switch identities
+ * 4. Refresh token before expiration
  *
  * @author WMS Team
  * @since 2025-01-11
- * @version 1.0 (JWT Authentication)
+ * @version 3.3 (Multi-Role RBAC System)
  */
 @Data
 @Builder
@@ -54,9 +63,28 @@ public class LoginResponse {
     private String username;
 
     /**
-     * User role (ADMIN, STAFF, etc.)
+     * Current active role code (used for authorization)
+     *
+     * This is the role embedded in the JWT token's 'current_role' claim.
+     * All authorization checks (@PreAuthorize) are based on this role.
+     *
+     * Example: "SUPER_ADMIN", "WAREHOUSE_ADMIN", "SALESPERSON"
+     *
+     * @since v3.3 (Multi-Role System)
      */
-    private String role;
+    private String currentRole;
+
+    /**
+     * List of all available role codes for this user
+     *
+     * Contains all active roles assigned to the user via sys_user_role table.
+     * Client can use this list to display role switching options.
+     *
+     * Example: ["WAREHOUSE_ADMIN", "SALESPERSON", "PURCHASER"]
+     *
+     * @since v3.3 (Multi-Role System)
+     */
+    private List<String> availableRoles;
 
     /**
      * Token expiration time in milliseconds

@@ -21,56 +21,73 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Spring Security Configuration
  *
  * Core Responsibilities:
- * 1. Configure security filter chain (which endpoints require authentication)
+ * 1. Configure security filter chain with dynamic RBAC authorization
  * 2. Configure password encoder (BCrypt for secure password hashing)
  * 3. Configure authentication provider (how to validate credentials)
  * 4. Add JWT authentication filter to filter chain
  * 5. Disable CSRF (not needed for stateless JWT authentication)
  * 6. Configure session management (stateless for JWT)
  *
- * Security Rules:
- * - ✅ ALLOW: /api/auth/** (login, register endpoints)
- * - ✅ ALLOW: /health/** (health check endpoints)
- * - 🔒 REQUIRE AUTH: /api/inventory/** (inventory management APIs)
- * - 🔒 REQUIRE AUTH: /api/predictions/** (prediction APIs)
- * - 🔒 REQUIRE AUTH: All other endpoints
+ * Security Rules (Dynamic RBAC):
+ * - ✅ Public endpoints (configured in DynamicAuthorizationManager):
+ *   - /api/auth/** (login, register endpoints)
+ *   - /health/** (health check endpoints)
+ *   - /actuator/** (monitoring endpoints)
+ * - 🔒 Protected endpoints (dynamically checked against user permissions):
+ *   - All API endpoints checked against sys_permission table
+ *   - Permissions loaded from database with role inheritance
+ *   - Cached for 30 minutes for performance
  *
- * Authentication Flow:
+ * Authentication & Authorization Flow:
  * 1. Client sends request with JWT token in Authorization header
  * 2. JwtAuthenticationFilter intercepts and validates token
  * 3. If valid, sets Authentication in SecurityContext
- * 4. SecurityFilterChain checks if endpoint requires authentication
- * 5. If authenticated, request proceeds to controller
- * 6. If not authenticated, returns 401 Unauthorized
+ * 4. DynamicAuthorizationManager checks user permissions
+ * 5. Permissions loaded from database (with caching)
+ * 6. Request matched against permission resource_path patterns
+ * 7. If authorized, request proceeds to controller
+ * 8. If not authorized, returns 403 Forbidden
  *
  * @author WMS Team
  * @since 2025-01-11
- * @version 1.0 (JWT Authentication)
+ * @version 2.0 (Dynamic RBAC System)
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity  // Enable @PreAuthorize, @Secured annotations (for role-based access control)
+@EnableMethodSecurity  // Enable @PreAuthorize, @Secured annotations (for method-level security)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final DynamicAuthorizationManager dynamicAuthorizationManager;
 
     /**
-     * ⭐ Configure Security Filter Chain
+     * ⭐ Configure Security Filter Chain (Dynamic RBAC)
      *
-     * Defines which endpoints are public and which require authentication.
+     * Integrates DynamicAuthorizationManager for database-driven permission checking.
      *
      * Configuration Details:
      * - CSRF disabled: JWT is stateless, CSRF not needed
      * - Session management: STATELESS (no HTTP session, JWT only)
      * - Authorization rules:
-     *   - /api/auth/** → permitAll (public login/register)
-     *   - /health/** → permitAll (public health check)
-     *   - /api/inventory/** → authenticated (requires JWT)
-     *   - /api/predictions/** → authenticated (requires JWT)
-     *   - anyRequest → authenticated (default deny)
+     *   - Public endpoints handled by DynamicAuthorizationManager
+     *   - All other endpoints checked against user permissions from database
+     *   - Permissions cached for 30 minutes for performance
      * - JWT filter: Added BEFORE UsernamePasswordAuthenticationFilter
+     *
+     * Dynamic Authorization Process:
+     * 1. Request intercepted by DynamicAuthorizationManager
+     * 2. User permissions loaded from cache or database
+     * 3. Request URI and HTTP method matched against API permissions
+     * 4. Ant path matching used for flexible pattern matching
+     * 5. Access granted/denied based on permission match
+     *
+     * Benefits of Dynamic RBAC:
+     * - No code changes for permission updates
+     * - Permissions managed via database/admin UI
+     * - Role inheritance supported (e.g., CHAIRMAN inherits multiple roles)
+     * - Fine-grained control (method + path pattern)
      *
      * @param http HttpSecurity configuration object
      * @return SecurityFilterChain Configured security filter chain
@@ -83,18 +100,11 @@ public class SecurityConfig {
             // JWT is stateless, no cookies used, CSRF not needed
             .csrf(AbstractHttpConfigurer::disable)
 
-            // Configure authorization rules
+            // Configure dynamic authorization using DynamicAuthorizationManager
             .authorizeHttpRequests(auth -> auth
-                // ✅ Public endpoints (no authentication required)
-                .requestMatchers("/api/auth/**").permitAll()     // Login, register
-                .requestMatchers("/health/**").permitAll()       // Health check
-
-                // 🔒 Protected endpoints (authentication required)
-                .requestMatchers("/api/inventory/**").authenticated()    // Inventory APIs
-                .requestMatchers("/api/predictions/**").authenticated()  // Prediction APIs
-
-                // 🔒 Default rule: All other endpoints require authentication
-                .anyRequest().authenticated()
+                // ALL requests (including public endpoints) handled by DynamicAuthorizationManager
+                // Public endpoints are identified inside DynamicAuthorizationManager
+                .anyRequest().access(dynamicAuthorizationManager)
             )
 
             // Configure session management (STATELESS for JWT)
@@ -104,7 +114,7 @@ public class SecurityConfig {
             )
 
             // Add JWT authentication filter BEFORE UsernamePasswordAuthenticationFilter
-            // This ensures JWT token is validated before standard authentication
+            // This ensures JWT token is validated before authorization check
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

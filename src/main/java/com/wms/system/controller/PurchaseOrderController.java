@@ -3,7 +3,6 @@ package com.wms.system.controller;
 import com.wms.system.dto.*;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
-import com.wms.system.entity.enums.Role;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.service.ExcelImportService;
 import com.wms.system.service.PurchaseOrderService;
@@ -118,8 +117,8 @@ public class PurchaseOrderController {
         );
 
         // Convert to response DTO with privacy masking
-        Role userRole = getUserRole(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRole);
+        String userRoleCode = getUserRoleCode(authentication);
+        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
 
         log.info("API: Purchase order created - poNumber={}, status={}, totalQuantity={}",
             response.getPoNumber(), response.getStatus(), response.getTotalQuantity());
@@ -182,8 +181,8 @@ public class PurchaseOrderController {
         );
 
         // Convert to response DTO with privacy masking
-        Role userRole = getUserRole(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRole);
+        String userRoleCode = getUserRoleCode(authentication);
+        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
 
         log.info("API: Excel import completed - poNumber={}, itemCount={}",
             response.getPoNumber(), response.getItems().size());
@@ -240,8 +239,8 @@ public class PurchaseOrderController {
         PurchaseOrder purchaseOrder = purchaseOrderService.confirmAndGenerateBatchCodes(id, updates);
 
         // Convert to response DTO with privacy masking
-        Role userRole = getUserRole(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRole);
+        String userRoleCode = getUserRoleCode(authentication);
+        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
 
         log.info("API: Batch codes generated - poNumber={}, status={}, batchCount={}",
             response.getPoNumber(), response.getStatus(),
@@ -315,8 +314,8 @@ public class PurchaseOrderController {
         );
 
         // Convert to response DTO with privacy masking
-        Role userRole = getUserRole(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRole);
+        String userRoleCode = getUserRoleCode(authentication);
+        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
 
         log.info("API: Physical receipt completed - poNumber={}, status={}, receivedQty={}/{}",
             response.getPoNumber(), response.getStatus(),
@@ -361,8 +360,8 @@ public class PurchaseOrderController {
         PurchaseOrder purchaseOrder = purchaseOrderService.rollbackToOrdering(id, reason);
 
         // Convert to response DTO with privacy masking
-        Role userRole = getUserRole(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRole);
+        String userRoleCode = getUserRoleCode(authentication);
+        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
 
         log.info("API: Rollback completed - poNumber={}, status={}",
             response.getPoNumber(), response.getStatus());
@@ -392,8 +391,8 @@ public class PurchaseOrderController {
 
         PurchaseOrder purchaseOrder = purchaseOrderService.findById(id);
 
-        Role userRole = getUserRole(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRole);
+        String userRoleCode = getUserRoleCode(authentication);
+        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
 
         return ResponseEntity.ok(response);
     }
@@ -426,9 +425,9 @@ public class PurchaseOrderController {
             purchaseOrders = List.of();  // TODO: Implement findAll with pagination
         }
 
-        Role userRole = getUserRole(authentication);
+        String userRoleCode = getUserRoleCode(authentication);
         List<PurchaseOrderResponse> responses = purchaseOrders.stream()
-            .map(po -> mapToResponse(po, userRole))
+            .map(po -> mapToResponse(po, userRoleCode))
             .collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
@@ -437,40 +436,53 @@ public class PurchaseOrderController {
     // ========== Helper Methods ==========
 
     /**
-     * Get current user's role from authentication
+     * Get current user's role code from authentication
+     *
+     * v3.3 Multi-Role System:
+     * - Role extracted from JWT token's current_role claim
+     * - JwtAuthenticationFilter sets authorities as "ROLE_{roleCode}"
+     * - This method extracts the role code from authorities
      *
      * @param authentication Authentication object
-     * @return Role User role (default: STAFF if not found)
+     * @return String Role code (e.g., "SUPER_ADMIN", "WAREHOUSE_ADMIN", "STAFF")
+     *         Returns "STAFF" as default (most restrictive)
      */
-    private Role getUserRole(Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() instanceof SecurityUser) {
-            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-            return securityUser.getRole();
+    private String getUserRoleCode(Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities() != null) {
+            // Extract role from authorities (format: "ROLE_SUPER_ADMIN" → "SUPER_ADMIN")
+            return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority())
+                .map(authority -> authority.startsWith("ROLE_") ?
+                     authority.substring(5) : authority)
+                .orElse("STAFF");  // Default to most restrictive role
         }
-        return Role.STAFF;  // Default to most restrictive role
+        return "STAFF";
     }
 
     /**
      * Map PurchaseOrder entity to Response DTO with privacy masking
      *
-     * Privacy Rules:
-     * - STAFF role: supplier = "***", totalCost = null, unitCost = null
-     * - ADMIN/MANAGER roles: all fields visible
+     * Privacy Rules (v3.3 Multi-Role System):
+     * - STAFF/SALESPERSON roles: supplier = "***", totalCost = null, unitCost = null
+     * - SUPER_ADMIN/WAREHOUSE_ADMIN/PURCHASER roles: all fields visible
      *
      * @param purchaseOrder Purchase order entity
-     * @param userRole Current user's role
+     * @param userRoleCode Current user's role code (e.g., "STAFF", "SUPER_ADMIN")
      * @return PurchaseOrderResponse Response DTO
      */
-    private PurchaseOrderResponse mapToResponse(PurchaseOrder purchaseOrder, Role userRole) {
-        boolean isStaff = (userRole == Role.STAFF);
+    private PurchaseOrderResponse mapToResponse(PurchaseOrder purchaseOrder, String userRoleCode) {
+        // Mask sensitive data for restricted roles
+        boolean maskSensitiveData = "STAFF".equals(userRoleCode) ||
+                                     "SALESPERSON".equals(userRoleCode);
 
         return PurchaseOrderResponse.builder()
             .id(purchaseOrder.getId())
             .poNumber(purchaseOrder.getPoNumber())
-            .supplier(isStaff ? "***" : purchaseOrder.getSupplier())  // Privacy masking
+            .supplier(maskSensitiveData ? "***" : purchaseOrder.getSupplier())  // Privacy masking
             .status(purchaseOrder.getStatus())
             .totalQuantity(purchaseOrder.getTotalQuantity())
-            .totalCost(isStaff ? null : purchaseOrder.getTotalCost())  // Privacy masking
+            .totalCost(maskSensitiveData ? null : purchaseOrder.getTotalCost())  // Privacy masking
             .expectedDate(purchaseOrder.getExpectedDate())
             .actualEntryDate(purchaseOrder.getActualEntryDate())
             .operatorId(purchaseOrder.getOperatorId())
@@ -478,7 +490,7 @@ public class PurchaseOrderController {
             .remark(purchaseOrder.getRemark())
             .auditLog(purchaseOrder.getAuditLog())
             .items(purchaseOrder.getItems().stream()
-                .map(item -> mapToItemResponse(item, isStaff))
+                .map(item -> mapToItemResponse(item, maskSensitiveData))
                 .collect(Collectors.toList()))
             .createdAt(purchaseOrder.getCreatedAt())
             .updatedAt(purchaseOrder.getUpdatedAt())

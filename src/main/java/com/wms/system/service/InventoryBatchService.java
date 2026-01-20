@@ -340,17 +340,27 @@ public class InventoryBatchService {
     /**
      * Query batch by batch code
      *
+     * V3.3 Update: Returns first batch if multiple locations exist
+     * For location-specific query, use findByBatchCodeAndLocationCode()
+     *
      * @param batchCode Batch code
      * @return InventoryBatch Batch entity
      * @throws BusinessException if not found
      */
     @Transactional(readOnly = true)
     public InventoryBatch findByBatchCode(String batchCode) {
-        return inventoryBatchRepository.findByBatchCode(batchCode)
-            .orElseThrow(() -> new BusinessException(
+        List<InventoryBatch> batches = inventoryBatchRepository.findByBatchCode(batchCode);
+
+        if (batches.isEmpty()) {
+            throw new BusinessException(
                 ErrorKeys.BATCH_NOT_FOUND,
                 Map.of("batchCode", batchCode)
-            ));
+            );
+        }
+
+        // V3.3: Return first batch if multiple locations exist
+        // Warning: Consider using findByBatchCodeAndLocationCode() for specific location
+        return batches.get(0);
     }
 
     /**
