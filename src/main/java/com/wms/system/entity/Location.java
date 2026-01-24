@@ -58,9 +58,38 @@ public class Location extends BaseEntity {
     private Long id;
 
     /**
-     * 仓库编码（支持多仓库管理）
+     * 仓库关系（Phase 3.4 新增）
+     * 多对一关系：多个库位属于一个仓库
+     *
+     * 技术实现：
+     * - 使用 LAZY 加载（避免性能问题）
+     * - 使用 @JoinColumn 指定外键列名（warehouse_id）
+     * - 使用 @ToString.Exclude 防止循环引用
+     * - 外键约束：ON DELETE RESTRICT, ON UPDATE CASCADE
+     *
+     * 业务规则：
+     * - 创建库位时必须指定仓库
+     * - 仓库不能为空（optional = false）
+     * - warehouseCode 字段会从 warehouse.code 自动同步（@PrePersist/@PreUpdate）
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "warehouse_id", nullable = false,
+                foreignKey = @ForeignKey(name = "fk_location_warehouse"))
+    @ToString.Exclude
+    private Warehouse warehouse;
+
+    /**
+     * 仓库编码（冗余字段，Phase 3.4 保留用于性能优化）
      * 格式：字母开头，可包含字母、数字、短横线
      * 示例："WH01", "MAIN-WH", "SH-WH-01"
+     *
+     * Phase 3.4 架构决策：
+     * - 此字段从 warehouse.code 自动同步（@PrePersist/@PreUpdate）
+     * - 保留原因：
+     *   1. 性能优化：避免频繁 JOIN 查询
+     *   2. 索引效率：现有复合唯一约束依赖此字段
+     *   3. 向后兼容：现有查询方法继续工作
+     * - 不应手动设置此字段，由 JPA 生命周期回调自动维护
      *
      * 单仓库系统可固定为 "WH01"
      * 多仓库系统需要根据实际情况分配编码
@@ -143,16 +172,29 @@ public class Location extends BaseEntity {
     private String remark;
 
     /**
-     * JPA 生命周期回调：在持久化或更新前自动生成 locationCode
+     * JPA 生命周期回调：在持久化或更新前自动同步 warehouseCode 并生成 locationCode
+     *
+     * Phase 3.4 更新：
+     * - Step 1: 从 warehouse.code 同步到 warehouseCode（冗余字段自动维护）
+     * - Step 2: 使用 warehouseCode 生成 locationCode（保持现有逻辑）
      */
     @PrePersist
     @PreUpdate
-    private void generateLocationCode() {
-        this.locationCode = String.format("%s-%s-%s-%s",
-            warehouseCode,
-            zone.name(),
-            shelfNumber,
-            positionNumber
-        );
+    private void syncWarehouseCodeAndGenerateLocationCode() {
+        // Step 1: 同步 warehouse.code → warehouseCode（冗余字段维护）
+        if (warehouse != null && warehouse.getCode() != null) {
+            this.warehouseCode = warehouse.getCode();
+        }
+
+        // Step 2: 生成 locationCode（现有逻辑）
+        if (warehouseCode != null && zone != null &&
+            shelfNumber != null && positionNumber != null) {
+            this.locationCode = String.format("%s-%s-%s-%s",
+                warehouseCode,
+                zone.name(),
+                shelfNumber,
+                positionNumber
+            );
+        }
     }
 }

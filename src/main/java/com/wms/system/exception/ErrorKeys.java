@@ -61,6 +61,25 @@ public final class ErrorKeys {
      */
     public static final String LOCATION_ALREADY_EXISTS = "LOCATION_ALREADY_EXISTS";
 
+    // ========== Warehouse Related Errors (Phase 3.4) ==========
+
+    /**
+     * Warehouse not found by ID or code
+     *
+     * Parameters:
+     * - warehouseId (Long): Warehouse ID (optional)
+     * - code (String): Warehouse code (optional)
+     */
+    public static final String WAREHOUSE_NOT_FOUND = "WAREHOUSE_NOT_FOUND";
+
+    /**
+     * Warehouse already exists (duplicate code)
+     *
+     * Parameters:
+     * - code (String): Duplicate warehouse code
+     */
+    public static final String WAREHOUSE_ALREADY_EXISTS = "WAREHOUSE_ALREADY_EXISTS";
+
     // ========== Stock/Inventory Related Errors ==========
 
     /**

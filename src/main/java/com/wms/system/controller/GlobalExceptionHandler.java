@@ -256,7 +256,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.ROLE_NOT_FOUND,  // v3.3 Multi-Role System
                  ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
                  ErrorKeys.PO_ITEM_NOT_FOUND,
-                 ErrorKeys.BATCH_NOT_FOUND -> HttpStatus.NOT_FOUND;
+                 ErrorKeys.BATCH_NOT_FOUND,
+                 ErrorKeys.WAREHOUSE_NOT_FOUND -> HttpStatus.NOT_FOUND;  // Phase 3.4
 
             // 400 Bad Request
             case ErrorKeys.STOCK_INSUFFICIENT,
@@ -297,7 +298,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PRODUCT_ALREADY_EXISTS,
                  ErrorKeys.LOCATION_ALREADY_EXISTS,
                  ErrorKeys.USER_ALREADY_EXISTS,  // v3.3 Multi-Role System
-                 ErrorKeys.BATCH_CODE_GENERATION_FAILED -> HttpStatus.CONFLICT;
+                 ErrorKeys.BATCH_CODE_GENERATION_FAILED,
+                 ErrorKeys.WAREHOUSE_ALREADY_EXISTS -> HttpStatus.CONFLICT;  // Phase 3.4
 
             // 500 Internal Server Error
             case ErrorKeys.ROLE_SWITCH_FAILED,  // v3.3 Multi-Role System

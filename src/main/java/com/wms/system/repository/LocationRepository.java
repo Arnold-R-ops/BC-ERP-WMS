@@ -1,6 +1,7 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.Location;
+import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.Zone;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -186,4 +187,78 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
      * @return 该仓库的库位总数
      */
     long countByWarehouseCode(String warehouseCode);
+
+    // ========== Phase 3.4: Warehouse-based Query Methods ==========
+
+    /**
+     * 根据仓库对象查询所有库位（Phase 3.4 新增）
+     * 方法命名规范：findBy + 关联实体（Warehouse）
+     *
+     * 使用场景：
+     * 1. 已有 Warehouse 对象时，直接查询其关联的库位
+     * 2. 利用 JPA 关联关系查询
+     *
+     * @param warehouse 仓库对象
+     * @return 该仓库的所有库位
+     */
+    List<Location> findByWarehouse(Warehouse warehouse);
+
+    /**
+     * 根据仓库ID查询所有库位（Phase 3.4 新增）
+     * 方法命名规范：findBy + 关联实体（Warehouse） + Id
+     *
+     * 使用场景：
+     * 1. 只有仓库ID时，查询其关联的库位
+     * 2. 避免先查询 Warehouse 对象的额外开销
+     *
+     * @param warehouseId 仓库ID
+     * @return 该仓库的所有库位
+     */
+    List<Location> findByWarehouseId(Long warehouseId);
+
+    /**
+     * 根据仓库对象和区域查询库位（Phase 3.4 新增）
+     * 方法命名规范：findBy + 关联实体（Warehouse） + And + 字段（Zone）
+     *
+     * 使用场景：
+     * 1. 查询指定仓库的指定区域库位
+     * 2. 例如：查询 WH01 仓库的 ZONE_A 区域库位
+     *
+     * @param warehouse 仓库对象
+     * @param zone 库位区域
+     * @return 符合条件的库位列表
+     */
+    List<Location> findByWarehouseAndZone(Warehouse warehouse, Zone zone);
+
+    /**
+     * 查询指定仓库的空闲库位（Phase 3.4 新增）
+     *
+     * 业务逻辑：
+     * 查询指定仓库中没有库存记录的库位
+     *
+     * 使用场景：
+     * 1. 多仓库管理时，按仓库推荐空闲库位
+     * 2. 统计各仓库的可用库位数量
+     *
+     * @param warehouseId 仓库ID
+     * @return 该仓库的所有空闲库位
+     */
+    @Query("SELECT l FROM Location l " +
+           "WHERE l.warehouse.id = :warehouseId " +
+           "AND l.enabled = true " +
+           "AND NOT EXISTS (SELECT 1 FROM Inventory i WHERE i.location = l)")
+    List<Location> findEmptyLocationsByWarehouseId(@Param("warehouseId") Long warehouseId);
+
+    /**
+     * 统计指定仓库的库位总数（Phase 3.4 新增，使用 warehouse_id）
+     * 方法命名规范：countBy + 关联实体（Warehouse） + Id
+     *
+     * 使用场景：
+     * 1. 统计各仓库的库位数量
+     * 2. 仓库管理界面显示统计信息
+     *
+     * @param warehouseId 仓库ID
+     * @return 该仓库的库位总数
+     */
+    long countByWarehouseId(Long warehouseId);
 }

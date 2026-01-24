@@ -697,13 +697,12 @@ ORDERING → IN_TRANSIT → PARTIALLY_RECEIVED → COMPLETED
 库位实体，支持多层级管理：仓库 → 库区 → 货架 → 层 → 库位。
 
 **核心字段**：
-- `warehouseCode`：仓库编码（如 "WH01"）
+- `warehouse`：仓库关系（Phase 3.4 新增，ManyToOne 关系）
+- `warehouseCode`：仓库编码（冗余字段，从 warehouse.code 自动同步）
 - `zone`：库区枚举（ZONE_A, ZONE_B, ZONE_C, ZONE_D）
-- `shelfCode`：货架编码（如 "A"）
-- `layer`：层号（如 1）
-- `positionNumber`：库位号（如 1）
+- `shelfNumber`：货架编码（如 "A-01"）
+- `positionNumber`：位号（如 "001"）
 - `locationCode`：完整库位码（自动生成，如 "WH01-ZONE_A-A-01-001"）
-- `capacity`：库位容量
 - `enabled`：是否启用
 
 ---

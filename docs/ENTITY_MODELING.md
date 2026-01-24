@@ -112,10 +112,12 @@
 **唯一约束：**
 - `uk_location (warehouse_code, zone, shelf_number, position_number)`
 
-**库位编码自动生成规则：**
+**库位编码自动生成规则（Phase 3.4 更新）：**
 ```
-location_code = {warehouseCode}-{zone}-{shelfNumber}-{positionNumber}
+location_code = {warehouse.code}-{zone}-{shelfNumber}-{positionNumber}
 示例：WH01-ZONE_A-A-01-001
+
+注意：warehouseCode 字段从 warehouse.code 自动同步（@PrePersist/@PreUpdate）
 ```
 
 ---

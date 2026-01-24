@@ -128,20 +128,24 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Integer sumTotalQuantityByProduct(@Param("productId") Long productId);
 
     /**
-     * 计算某商品在指定仓库的总库存
+     * 计算某商品在指定仓库的总库存（Phase 3.4 更新）
      *
      * 业务场景：
      * 多仓库管理时，查询某商品在某个仓库的总库存
      *
+     * Phase 3.4 变更：
+     * - 参数从 warehouseCode (String) 改为 warehouseId (Long)
+     * - JPQL 查询从 i.location.warehouseCode 改为 i.location.warehouse.id
+     *
      * @param productId 商品ID
-     * @param warehouseCode 仓库编码
+     * @param warehouseId 仓库ID
      * @return 该商品在该仓库的总库存
      */
     @Query("SELECT SUM(i.quantity) FROM Inventory i " +
            "WHERE i.product.id = :productId " +
-           "AND i.location.warehouseCode = :warehouseCode")
+           "AND i.location.warehouse.id = :warehouseId")
     Integer sumTotalQuantityByProductAndWarehouse(@Param("productId") Long productId,
-                                                    @Param("warehouseCode") String warehouseCode);
+                                                    @Param("warehouseId") Long warehouseId);
 
     /**
      * 查询某商品在指定区域的库存分布
@@ -221,21 +225,25 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     long countOccupiedLocations();
 
     /**
-     * 查询指定商品在指定仓库和区域的库存记录
+     * 查询指定商品在指定仓库和区域的库存记录（Phase 3.4 更新）
      *
      * 业务场景：
      * 精确查询某商品在某仓库某区域的库存分布
      *
+     * Phase 3.4 变更：
+     * - 参数从 warehouseCode (String) 改为 warehouseId (Long)
+     * - JPQL 查询从 i.location.warehouseCode 改为 i.location.warehouse.id
+     *
      * @param productId 商品ID
-     * @param warehouseCode 仓库编码
+     * @param warehouseId 仓库ID
      * @param zone 库位区域
      * @return 符合条件的库存记录
      */
     @Query("SELECT i FROM Inventory i " +
            "WHERE i.product.id = :productId " +
-           "AND i.location.warehouseCode = :warehouseCode " +
+           "AND i.location.warehouse.id = :warehouseId " +
            "AND i.location.zone = :zone")
     List<Inventory> findByProductAndWarehouseAndZone(@Param("productId") Long productId,
-                                                       @Param("warehouseCode") String warehouseCode,
+                                                       @Param("warehouseId") Long warehouseId,
                                                        @Param("zone") String zone);
 }
