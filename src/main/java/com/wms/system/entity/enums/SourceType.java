@@ -14,6 +14,11 @@ public enum SourceType {
     PURCHASE_IN("采购入库"),
 
     /**
+     * 入库单入库：V3.5 新入库系统的入库流水
+     */
+    INBOUND_IN("入库单入库"),
+
+    /**
      * 销售出库：客户订单发货出库
      */
     SALE_OUT("销售出库"),
@@ -88,6 +93,7 @@ public enum SourceType {
      */
     public boolean isInbound() {
         return this == PURCHASE_IN
+            || this == INBOUND_IN
             || this == RETURN_IN
             || this == PRODUCTION_IN
             || this == TRANSFER_IN

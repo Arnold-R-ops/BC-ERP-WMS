@@ -209,6 +209,27 @@ public class Product extends BaseEntity {
     private Integer leadTime = 7;
 
     /**
+     * 安全库存（V3.6 新增）
+     * 用于计算预警状态
+     *
+     * 说明：
+     * - 当实际库存 < safetyStock 时，系统显示预警状态（红色）
+     * - 当实际库存 >= safetyStock 时，系统显示充足状态（绿色）
+     *
+     * 示例：
+     * - 快消品：safetyStock = 100（保证 3-5 天销量）
+     * - 慢销品：safetyStock = 10（避免积压）
+     *
+     * 默认值：0（不设置预警）
+     *
+     * @since V3.6
+     */
+    @Min(value = 0, message = "安全库存不能为负数")
+    @Column(name = "safety_stock", nullable = false)
+    @Builder.Default
+    private Integer safetyStock = 0;
+
+    /**
      * 商品描述（可选）
      */
     @Column(length = 1000)

@@ -257,7 +257,9 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
                  ErrorKeys.PO_ITEM_NOT_FOUND,
                  ErrorKeys.BATCH_NOT_FOUND,
-                 ErrorKeys.WAREHOUSE_NOT_FOUND -> HttpStatus.NOT_FOUND;  // Phase 3.4
+                 ErrorKeys.WAREHOUSE_NOT_FOUND,  // Phase 3.4
+                 "INBOUND_ORDER_NOT_FOUND",  // Phase 3.5
+                 "ITEM_NOT_FOUND" -> HttpStatus.NOT_FOUND;  // Phase 3.5
 
             // 400 Bad Request
             case ErrorKeys.STOCK_INSUFFICIENT,
@@ -273,7 +275,12 @@ public class GlobalExceptionHandler {
                  ErrorKeys.BATCH_EXPIRED,
                  ErrorKeys.INVALID_FILE_FORMAT,
                  ErrorKeys.INVALID_EXCEL_DATA,
-                 ErrorKeys.FILE_READ_ERROR -> HttpStatus.BAD_REQUEST;
+                 ErrorKeys.FILE_READ_ERROR,
+                 "SUPPLIER_NOT_FOUND",  // Phase 3.5
+                 "INVALID_STATUS_FOR_APPROVAL",  // Phase 3.5
+                 "INVALID_STATUS_FOR_CONFIRMATION",  // Phase 3.5
+                 "INVALID_STATUS_FOR_RECEIVING",  // Phase 3.5
+                 "ACTUAL_QTY_EXCEEDS_CONFIRMED_QTY" -> HttpStatus.BAD_REQUEST;  // Phase 3.5
 
             // 401 Unauthorized
             case ErrorKeys.AUTH_INVALID_CREDENTIALS,

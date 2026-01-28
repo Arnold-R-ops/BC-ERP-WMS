@@ -1,6 +1,7 @@
 package com.wms.system.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.*;
 import com.wms.system.entity.SysRole;
 import com.wms.system.entity.SysUserRole;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -52,6 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 @ActiveProfiles("test")
+@Import(TestSecurityConfig.class)
 @DisplayName("UserController 集成测试")
 @SuppressWarnings("unchecked")
 class UserControllerIntegrationTest {

@@ -413,6 +413,26 @@ public final class ErrorKeys {
      */
     public static final String BATCH_EXPIRED = "BATCH_EXPIRED";
 
+    /**
+     * Insufficient stock for operation (alias for STOCK_INSUFFICIENT)
+     *
+     * Parameters:
+     * - productId (Long): Product ID
+     * - requestedQuantity (Integer): Requested quantity
+     * - availableQuantity (Integer): Available quantity
+     */
+    public static final String INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK";
+
+    /**
+     * Expired batch found during FIFO outbound operation
+     *
+     * Parameters:
+     * - batchCode (String): Expired batch code
+     * - expiryDate (String): Expiry date
+     * - productId (Long): Product ID
+     */
+    public static final String EXPIRED_BATCH_FOUND = "EXPIRED_BATCH_FOUND";
+
     // ========== Validation Related Errors ==========
 
     /**

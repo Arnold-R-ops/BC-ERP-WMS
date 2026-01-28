@@ -1,6 +1,7 @@
 package com.wms.system.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.controller.LocationController.CreateLocationRequest;
 import com.wms.system.controller.LocationController.UpdateLocationRequest;
 import com.wms.system.entity.Location;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -53,6 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@Import(TestSecurityConfig.class)
 @DisplayName("LocationController 集成测试")
 class LocationControllerIntegrationTest {
 

@@ -289,4 +289,19 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         @Param("conversionRate") Integer conversionRate,
         @Param("active") Boolean active
     );
+
+    /**
+     * Find inventory batches by batch code and location
+     *
+     * Used for inbound operations to check if a batch already exists in a location
+     *
+     * @param batchCode Batch code
+     * @param location Location entity
+     * @return List of matching batches
+     */
+    @Query("SELECT b FROM InventoryBatch b WHERE b.batchCode = :batchCode AND b.location = :location")
+    List<InventoryBatch> findByBatchCodeAndLocation(
+        @Param("batchCode") String batchCode,
+        @Param("location") com.wms.system.entity.Location location
+    );
 }

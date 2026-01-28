@@ -73,6 +73,10 @@ public class InventoryBatch extends BaseEntity {
      * - 算法: Hashids 1.0.3
      * - Salt: ${BATCH_SALT} 环境变量
      *
+     * V3.5 更新：支持 SPU-SKU-DATE 格式
+     * - 格式: SPU001-SKU001-20260126 (最长约30字符)
+     * - 支持序号后缀: SPU001-SKU001-20260126-01
+     *
      * 特点:
      * - 短码（6字符）易于打印和扫码
      * - 非连续性（不暴露业务信息）
@@ -84,7 +88,7 @@ public class InventoryBatch extends BaseEntity {
      * - FIFO 出库排序
      * - 批次追踪和溯源
      */
-    @Column(name = "batch_code", nullable = false, length = 20)
+    @Column(name = "batch_code", nullable = false, length = 50)
     private String batchCode;
 
     // ========== V3.3 多库位批次管理 (Multi-Location Batch Management) ==========
@@ -121,9 +125,10 @@ public class InventoryBatch extends BaseEntity {
      * 关联采购单明细（多对一）
      *
      * 用于回溯批次来源和采购订单
+     * V3.5: 改为可选，支持入库单系统（不依赖采购单）
      */
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "purchase_order_item_id", nullable = false, foreignKey = @ForeignKey(name = "fk_batch_po_item"))
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "purchase_order_item_id", nullable = true, foreignKey = @ForeignKey(name = "fk_batch_po_item"))
     private PurchaseOrderItem purchaseOrderItem;
 
     /**
