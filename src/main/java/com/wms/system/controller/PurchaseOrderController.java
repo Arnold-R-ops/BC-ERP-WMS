@@ -9,6 +9,8 @@ import com.wms.system.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -407,22 +409,24 @@ public class PurchaseOrderController {
      * Returns List<PurchaseOrderResponse> with privacy masking applied
      *
      * @param status Purchase order status (optional)
+     * @param pageable Pagination parameters (optional)
      * @param authentication Current user authentication
      * @return ResponseEntity<List<PurchaseOrderResponse>> Purchase orders
      */
     @GetMapping
     public ResponseEntity<List<PurchaseOrderResponse>> getPurchaseOrders(
         @RequestParam(value = "status", required = false) PurchaseOrderStatus status,
+        @PageableDefault(size = 20, page = 0) Pageable pageable,
         Authentication authentication
     ) {
-        log.info("API: Query purchase orders - status={}", status);
+        log.info("API: Query purchase orders - status={}, page={}, size={}",
+            status, pageable.getPageNumber(), pageable.getPageSize());
 
         List<PurchaseOrder> purchaseOrders;
         if (status != null) {
-            purchaseOrders = purchaseOrderService.findByStatus(status);
+            purchaseOrders = purchaseOrderService.findByStatus(status, pageable);
         } else {
-            // Return all (implement pagination in future)
-            purchaseOrders = List.of();  // TODO: Implement findAll with pagination
+            purchaseOrders = purchaseOrderService.findAll(pageable);
         }
 
         String userRoleCode = getUserRoleCode(authentication);

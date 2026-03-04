@@ -12,6 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -251,7 +254,12 @@ public class RoleService {
             return;
         }
 
-        // TODO: Add circular inheritance detection
+        if (wouldCreateCircularInheritance(childRoleId, parentRoleId)) {
+            throw new IllegalArgumentException(String.format(
+                "Circular inheritance detected: childRole=%s, parentRole=%s",
+                childRole.getRoleCode(), parentRole.getRoleCode()
+            ));
+        }
 
         // Create inheritance relationship
         SysRoleInherit inherit = SysRoleInherit.builder()
@@ -296,6 +304,33 @@ public class RoleService {
     }
 
     // ========== Helper Methods ==========
+
+    private boolean wouldCreateCircularInheritance(Long childRoleId, Long parentRoleId) {
+        if (childRoleId.equals(parentRoleId)) {
+            return true;
+        }
+
+        Set<Long> visited = new HashSet<>();
+        Deque<Long> stack = new ArrayDeque<>();
+        stack.push(parentRoleId);
+
+        while (!stack.isEmpty()) {
+            Long current = stack.pop();
+            if (!visited.add(current)) {
+                continue;
+            }
+            if (childRoleId.equals(current)) {
+                return true;
+            }
+
+            Set<Long> parents = roleInheritRepository.findParentRoleIdsByChildRoleId(current);
+            if (parents != null && !parents.isEmpty()) {
+                parents.forEach(stack::push);
+            }
+        }
+
+        return false;
+    }
 
     /**
      * Convert SysRole entity to RoleDTO

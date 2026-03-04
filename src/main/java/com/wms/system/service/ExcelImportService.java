@@ -58,6 +58,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ExcelImportService {
 
+    private static final DataFormatter CELL_FORMATTER = new DataFormatter();
+
     /**
      * ⭐ Import purchase order from Excel file
      *
@@ -246,18 +248,18 @@ public class ExcelImportService {
         }
 
         try {
-            if (cell.getCellType() == CellType.NUMERIC) {
+            CellType cellType = getEffectiveCellType(cell);
+            if (cellType == CellType.NUMERIC) {
                 return (long) cell.getNumericCellValue();
-            } else if (cell.getCellType() == CellType.STRING) {
+            } else if (cellType == CellType.STRING) {
                 String value = cell.getStringCellValue().trim();
                 return value.isEmpty() ? null : Long.parseLong(value);
             }
         } catch (Exception e) {
-            log.warn("Failed to parse Long from cell: columnIndex={}, error={}",
-                columnIndex, e.getMessage());
+            throw new IllegalArgumentException(buildParseError("Long", columnIndex, cell));
         }
 
-        return null;
+        throw new IllegalArgumentException(buildParseError("Long", columnIndex, cell));
     }
 
     /**
@@ -274,18 +276,18 @@ public class ExcelImportService {
         }
 
         try {
-            if (cell.getCellType() == CellType.NUMERIC) {
+            CellType cellType = getEffectiveCellType(cell);
+            if (cellType == CellType.NUMERIC) {
                 return (int) cell.getNumericCellValue();
-            } else if (cell.getCellType() == CellType.STRING) {
+            } else if (cellType == CellType.STRING) {
                 String value = cell.getStringCellValue().trim();
                 return value.isEmpty() ? null : Integer.parseInt(value);
             }
         } catch (Exception e) {
-            log.warn("Failed to parse Integer from cell: columnIndex={}, error={}",
-                columnIndex, e.getMessage());
+            throw new IllegalArgumentException(buildParseError("Integer", columnIndex, cell));
         }
 
-        return null;
+        throw new IllegalArgumentException(buildParseError("Integer", columnIndex, cell));
     }
 
     /**
@@ -302,18 +304,18 @@ public class ExcelImportService {
         }
 
         try {
-            if (cell.getCellType() == CellType.NUMERIC) {
+            CellType cellType = getEffectiveCellType(cell);
+            if (cellType == CellType.NUMERIC) {
                 return BigDecimal.valueOf(cell.getNumericCellValue());
-            } else if (cell.getCellType() == CellType.STRING) {
+            } else if (cellType == CellType.STRING) {
                 String value = cell.getStringCellValue().trim();
                 return value.isEmpty() ? null : new BigDecimal(value);
             }
         } catch (Exception e) {
-            log.warn("Failed to parse BigDecimal from cell: columnIndex={}, error={}",
-                columnIndex, e.getMessage());
+            throw new IllegalArgumentException(buildParseError("BigDecimal", columnIndex, cell));
         }
 
-        return null;
+        throw new IllegalArgumentException(buildParseError("BigDecimal", columnIndex, cell));
     }
 
     /**
@@ -334,13 +336,14 @@ public class ExcelImportService {
         }
 
         try {
-            if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            CellType cellType = getEffectiveCellType(cell);
+            if (cellType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
                 // Excel date cell
                 Date date = cell.getDateCellValue();
                 return date.toInstant()
                     .atZone(ZoneId.systemDefault())
                     .toLocalDate();
-            } else if (cell.getCellType() == CellType.STRING) {
+            } else if (cellType == CellType.STRING) {
                 // String cell (format: yyyy-MM-dd)
                 String value = cell.getStringCellValue().trim();
                 if (value.isEmpty()) {
@@ -349,11 +352,10 @@ public class ExcelImportService {
                 return LocalDate.parse(value);  // ISO-8601 format
             }
         } catch (Exception e) {
-            log.warn("Failed to parse LocalDate from cell: columnIndex={}, error={}",
-                columnIndex, e.getMessage());
+            throw new IllegalArgumentException(buildParseError("LocalDate", columnIndex, cell));
         }
 
-        return null;
+        throw new IllegalArgumentException(buildParseError("LocalDate", columnIndex, cell));
     }
 
     /**
@@ -370,18 +372,48 @@ public class ExcelImportService {
         }
 
         try {
-            if (cell.getCellType() == CellType.STRING) {
+            CellType cellType = getEffectiveCellType(cell);
+            if (cellType == CellType.STRING) {
                 String value = cell.getStringCellValue().trim();
                 return value.isEmpty() ? null : value;
-            } else if (cell.getCellType() == CellType.NUMERIC) {
+            } else if (cellType == CellType.NUMERIC) {
                 // Convert numeric to string
                 return String.valueOf((long) cell.getNumericCellValue());
+            } else if (cellType == CellType.BOOLEAN) {
+                return String.valueOf(cell.getBooleanCellValue());
             }
         } catch (Exception e) {
-            log.warn("Failed to parse String from cell: columnIndex={}, error={}",
-                columnIndex, e.getMessage());
+            throw new IllegalArgumentException(buildParseError("String", columnIndex, cell));
         }
 
-        return null;
+        throw new IllegalArgumentException(buildParseError("String", columnIndex, cell));
+    }
+
+    private CellType getEffectiveCellType(Cell cell) {
+        CellType cellType = cell.getCellType();
+        if (cellType == CellType.FORMULA) {
+            return cell.getCachedFormulaResultType();
+        }
+        return cellType;
+    }
+
+    private String buildParseError(String targetType, int columnIndex, Cell cell) {
+        return String.format(
+            "Invalid %s in column %s: %s",
+            targetType,
+            formatColumnLabel(columnIndex),
+            CELL_FORMATTER.formatCellValue(cell)
+        );
+    }
+
+    private String formatColumnLabel(int columnIndex) {
+        int index = columnIndex;
+        StringBuilder label = new StringBuilder();
+        while (index >= 0) {
+            int remainder = index % 26;
+            label.insert(0, (char) ('A' + remainder));
+            index = (index / 26) - 1;
+        }
+        return label.toString();
     }
 }

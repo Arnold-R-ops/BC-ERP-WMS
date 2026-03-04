@@ -134,6 +134,17 @@ public class InventoryBatchService {
                 Map.of("productId", productId)
             ));
 
+        if (requestedQuantity == null || requestedQuantity <= 0) {
+            Object quantityValue = requestedQuantity == null ? "null" : requestedQuantity;
+            throw new BusinessException(
+                ErrorKeys.STOCK_INVALID_QUANTITY,
+                Map.of(
+                    "quantity", quantityValue,
+                    "operationType", "OUTBOUND"
+                )
+            );
+        }
+
         log.info("📦 Product info: name={}, packUnit={}, conversionRate={}, formattedRequest={}",
             product.getName(), product.getPackUnit(), product.getConversionRate(),
             product.formatQuantity(requestedQuantity));
@@ -152,15 +163,30 @@ public class InventoryBatchService {
             log.info("⚠️ Stage 1: No loose batches found");
         }
 
-        // Stage 2: Query full pack batches (整箱批次)
-        List<InventoryBatch> fullPackBatches = inventoryBatchRepository
-            .findFullPackBatchesByProductOrderByExpiryDateAsc(productId, product.getConversionRate(), true);
+        int looseAvailable = looseBatches.stream()
+            .mapToInt(InventoryBatch::getQuantity)
+            .sum();
 
-        if (!fullPackBatches.isEmpty()) {
-            allBatches.addAll(fullPackBatches);
-            log.info("✅ Stage 2: Found {} full pack batches (整箱批次)", fullPackBatches.size());
+        // Stage 2: Query full pack batches only when loose batches are insufficient
+        if (looseAvailable < requestedQuantity) {
+            List<InventoryBatch> fullPackBatches = inventoryBatchRepository
+                .findFullPackBatchesByProductOrderByExpiryDateAsc(productId, product.getConversionRate(), true);
+
+            if (!fullPackBatches.isEmpty()) {
+                allBatches.addAll(fullPackBatches);
+                log.info("✅ Stage 2: Found {} full pack batches (整箱批次)", fullPackBatches.size());
+            } else {
+                log.info("⚠️ Stage 2: No full pack batches found");
+            }
         } else {
-            log.info("⚠️ Stage 2: No full pack batches found");
+            log.info("Skipping full pack query: looseAvailable={}, requestedQuantity={}",
+                looseAvailable, requestedQuantity);
+        }
+
+        List<InventoryBatch> activeBatchesForCheck = inventoryBatchRepository
+            .findByProductIdAndActiveOrderByExpiryDateAsc(productId, true);
+        if (activeBatchesForCheck == null || activeBatchesForCheck.isEmpty()) {
+            activeBatchesForCheck = allBatches;
         }
 
         // Validate we have batches
@@ -168,19 +194,20 @@ public class InventoryBatchService {
             log.error("❌ No active batches found: productId={}", productId);
 
             throw new BusinessException(
-                ErrorKeys.BATCH_STOCK_INSUFFICIENT,
+                ErrorKeys.INSUFFICIENT_STOCK,
                 Map.of(
                     "productId", productId,
                     "productName", product.getName(),
                     "requestedQuantity", requestedQuantity,
-                    "availableQuantity", 0
+                    "availableQuantity", 0,
+                    "shortage", requestedQuantity
                 )
             );
         }
 
         // 3. Check for expired batches (reject outbound if found)
         LocalDate today = LocalDate.now();
-        List<InventoryBatch> expiredBatches = allBatches.stream()
+        List<InventoryBatch> expiredBatches = activeBatchesForCheck.stream()
             .filter(b -> b.getExpiryDate().isBefore(today))
             .toList();
 
@@ -190,12 +217,32 @@ public class InventoryBatchService {
                 firstExpired.getBatchCode(), firstExpired.getExpiryDate(), firstExpired.getQuantity());
 
             throw new BusinessException(
-                ErrorKeys.BATCH_EXPIRED,
+                ErrorKeys.EXPIRED_BATCH_FOUND,
                 Map.of(
                     "batchCode", firstExpired.getBatchCode(),
                     "expiryDate", firstExpired.getExpiryDate().toString(),
                     "productId", productId,
                     "productName", product.getName()
+                )
+            );
+        }
+
+        int totalAvailable = activeBatchesForCheck.stream()
+            .mapToInt(InventoryBatch::getQuantity)
+            .sum();
+
+        if (totalAvailable < requestedQuantity) {
+            log.error("Insufficient stock before deduction: productId={}, requested={}, available={}",
+                productId, requestedQuantity, totalAvailable);
+
+            throw new BusinessException(
+                ErrorKeys.INSUFFICIENT_STOCK,
+                Map.of(
+                    "productId", productId,
+                    "productName", product.getName(),
+                    "requestedQuantity", requestedQuantity,
+                    "availableQuantity", totalAvailable,
+                    "shortage", requestedQuantity - totalAvailable
                 )
             );
         }
@@ -277,7 +324,7 @@ public class InventoryBatchService {
                 productId, requestedQuantity, availableQuantity, remaining);
 
             throw new BusinessException(
-                ErrorKeys.BATCH_STOCK_INSUFFICIENT,
+                ErrorKeys.INSUFFICIENT_STOCK,
                 Map.of(
                     "productId", productId,
                     "productName", product.getName(),
@@ -311,6 +358,12 @@ public class InventoryBatchService {
      */
     @Transactional(readOnly = true)
     public Integer getTotalStock(Long productId) {
+        productRepository.findById(productId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.PRODUCT_NOT_FOUND,
+                Map.of("productId", productId)
+            ));
+
         Integer totalStock = inventoryBatchRepository.sumQuantityByProduct(productId);
         return totalStock != null ? totalStock : 0;
     }

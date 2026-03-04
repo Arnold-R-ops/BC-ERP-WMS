@@ -2,6 +2,8 @@ package com.wms.system.repository;
 
 import com.wms.system.entity.PurchaseOrder;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,6 +54,15 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
      * @return List of purchase orders
      */
     List<PurchaseOrder> findByStatus(PurchaseOrderStatus status);
+
+    /**
+     * Find purchase orders by status (paged)
+     *
+     * @param status Purchase order status
+     * @param pageable Pagination info
+     * @return Page of purchase orders
+     */
+    Page<PurchaseOrder> findByStatus(PurchaseOrderStatus status, Pageable pageable);
 
     /**
      * Find purchase orders by supplier

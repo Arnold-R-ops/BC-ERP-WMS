@@ -3,6 +3,8 @@ package com.wms.system.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 
@@ -46,6 +48,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
+@SQLDelete(sql = "UPDATE products SET is_deleted = true WHERE id = ?")
+@SQLRestriction("is_deleted = false")
 @Table(
     name = "products",
     indexes = {
@@ -409,4 +413,100 @@ public class Product extends BaseEntity {
         }
         return quantity % this.conversionRate == 0;
     }
+
+    // ========== V3.7 销售与出库系统字段 (Sales and Outbound System) ==========
+
+    /**
+     * 最低限价（V3.7 新增）
+     *
+     * 说明：
+     * - 销售订单单价低于此值时，触发审批流程
+     * - 用于风控检查，防止低价销售
+     * - 默认值：0.00（不设置限价）
+     *
+     * 示例：
+     * - 成本价 50 元，最低限价设为 60 元（保证 20% 利润）
+     * - 销售员报价 55 元时，需要经理审批
+     *
+     * @since V3.7
+     */
+    @DecimalMin(value = "0.00", message = "最低限价不能为负数")
+    @Column(name = "min_sales_price", precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal minSalesPrice = BigDecimal.ZERO;
+
+    /**
+     * 临期天数阈值（V3.7 新增）
+     *
+     * 说明：
+     * - 距离过期日期小于此天数时，标记为临期商品
+     * - 用于智能分配算法中的临期过滤
+     * - 客户可选择拒收临期商品
+     *
+     * 计算公式：
+     * - 临期判断：CURRENT_DATE + near_expiry_days >= expiry_date
+     *
+     * 示例：
+     * - 食品类：near_expiry_days = 90（3个月内过期）
+     * - 药品类：near_expiry_days = 180（6个月内过期）
+     * - 日用品：near_expiry_days = 30（1个月内过期）
+     *
+     * 默认值：90 天
+     *
+     * @since V3.7
+     */
+    @Min(value = 0, message = "临期天数阈值不能为负数")
+    @Column(name = "near_expiry_days", nullable = false)
+    @Builder.Default
+    private Integer nearExpiryDays = 90;
+
+    /**
+     * 箱规（每箱数量）（V3.7 新增）
+     *
+     * 说明：
+     * - 每箱包含的基础单位数量
+     * - 用于智能分配算法中的整箱策略
+     * - 与 conversionRate 概念相同，但用于销售场景
+     *
+     * 整箱策略：
+     * - 如果订单数量是箱规的整数倍，优先从整箱批次分配
+     * - 避免拆箱，提高拣货效率
+     *
+     * 示例：
+     * - 饮料：per_pack_qty = 24（24瓶/箱）
+     * - 零食：per_pack_qty = 12（12包/箱）
+     * - 散装商品：per_pack_qty = 1（不分箱）
+     *
+     * 默认值：1（与 conversionRate 保持一致）
+     *
+     * @since V3.7
+     */
+    @Min(value = 1, message = "箱规必须大于等于 1")
+    @Column(name = "per_pack_qty", nullable = false)
+    @Builder.Default
+    private Integer perPackQty = 1;
+
+    // ========== V4.2 逻辑删除 (Soft Delete) ==========
+
+    /**
+     * 逻辑删除标记（V4.2 新增）
+     *
+     * 说明：
+     * - true: 商品已下架并逻辑删除（不出现在任何查询结果中）
+     * - false: 正常商品
+     *
+     * 注意：
+     * - 此字段与 enabled（是否启用）并存
+     * - enabled=false 仅禁止新的出入库，商品仍可查询
+     * - is_deleted=true 则从所有查询中彻底过滤，用于彻底停用的 SKU
+     *
+     * 技术实现：
+     * - @SQLDelete 拦截 JPA delete 操作，改写为 UPDATE SET is_deleted = true
+     * - @SQLRestriction 自动在所有查询中追加 WHERE is_deleted = false
+     *
+     * @since V4.2 (AI Foundation Patch)
+     */
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
 }

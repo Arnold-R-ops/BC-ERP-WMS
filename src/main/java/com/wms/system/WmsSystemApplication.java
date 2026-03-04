@@ -58,7 +58,7 @@ public class WmsSystemApplication {
     }
 
     /**
-     * ⭐ Auto Initialize Admin User on Startup
+     * �?Auto Initialize Admin User on Startup
      *
      * EMERGENCY FIX:
      * - Automatically creates or resets admin user on every startup
@@ -118,15 +118,13 @@ public class WmsSystemApplication {
 
                     System.out.println("[SUCCESS] Admin user created successfully!");
                     System.out.println("  ├─ Username: " + adminUsername);
-                    System.out.println("  ├─ Password: " + adminPassword + " (plain text for testing)");
+                    System.out.println("  - Password: initialized (hidden)");
                     System.out.println("  ├─ Role: SUPER_ADMIN (assigned via Flyway migration)");
-                    System.out.println("  └─ BCrypt Hash: " + encodedPassword);
 
                 } else {
                     // Admin user exists, FORCE reset password
                     System.out.println("[INFO] Admin user found, FORCE resetting password...");
                     System.out.println("  ├─ User ID: " + adminUser.getId());
-                    System.out.println("  ├─ Old Password Hash: " + adminUser.getPassword());
 
                     String newEncodedPassword = passwordEncoder.encode(adminPassword);
                     adminUser.setPassword(newEncodedPassword);
@@ -135,17 +133,14 @@ public class WmsSystemApplication {
 
                     System.out.println("[SUCCESS] Admin password reset successfully!");
                     System.out.println("  ├─ Username: " + adminUsername);
-                    System.out.println("  ├─ New Password: " + adminPassword + " (plain text for testing)");
-                    System.out.println("  └─ New BCrypt Hash: " + newEncodedPassword);
+                    System.out.println("  - New password: updated (hidden)");
                 }
 
                 // Verify password encoding
                 boolean passwordMatches = passwordEncoder.matches(adminPassword, adminUser.getPassword());
 
                 System.out.println("\n[VERIFICATION] Password encoding verification:");
-                System.out.println("  ├─ Plain Password: " + adminPassword);
-                System.out.println("  ├─ Stored Hash: " + adminUser.getPassword());
-                System.out.println("  └─ Password Matches: " + (passwordMatches ? "✅ YES" : "❌ NO"));
+                System.out.println("  └─ Password Matches: " + (passwordMatches ? "�?YES" : "�?NO"));
 
                 if (!passwordMatches) {
                     System.err.println("[ERROR] Password verification FAILED! Hash mismatch!");
@@ -154,9 +149,7 @@ public class WmsSystemApplication {
 
                 System.out.println("\n=======================================================");
                 System.out.println("=== [STARTUP] Admin User Initialization Complete   ===");
-                System.out.println("=== You can now login with:                         ===");
-                System.out.println("===   Username: admin                               ===");
-                System.out.println("===   Password: password123                         ===");
+                System.out.println("=== Admin credentials are configured (hidden).      ===");
                 System.out.println("=======================================================\n");
 
             } catch (Exception e) {

@@ -512,4 +512,293 @@ public final class ErrorKeys {
      * - error (String): Error message
      */
     public static final String FILE_READ_ERROR = "FILE_READ_ERROR";
+
+    /**
+     * Excel template generation failed
+     *
+     * Parameters:
+     * - reason (String): Failure reason
+     */
+    public static final String EXCEL_TEMPLATE_GENERATION_FAILED = "EXCEL_TEMPLATE_GENERATION_FAILED";
+
+    // ========== Customer Related Errors (V3.7) ==========
+
+    /**
+     * Customer not found by ID or code
+     *
+     * Parameters:
+     * - customerId (Long): Customer ID (optional)
+     * - customerCode (String): Customer code (optional)
+     */
+    public static final String CUSTOMER_NOT_FOUND = "CUSTOMER_NOT_FOUND";
+
+    /**
+     * Customer already exists (duplicate code)
+     *
+     * Parameters:
+     * - customerCode (String): Duplicate customer code
+     */
+    public static final String CUSTOMER_ALREADY_EXISTS = "CUSTOMER_ALREADY_EXISTS";
+
+    /**
+     * Customer is inactive
+     *
+     * Parameters:
+     * - customerId (Long): Customer ID
+     * - customerCode (String): Customer code
+     */
+    public static final String CUSTOMER_INACTIVE = "CUSTOMER_INACTIVE";
+
+    // ========== Sales Order Related Errors (V3.7) ==========
+
+    /**
+     * Sales order not found by ID or order number
+     *
+     * Parameters:
+     * - salesOrderId (Long): Sales order ID (optional)
+     * - orderNo (String): Order number (optional)
+     */
+    public static final String SALES_ORDER_NOT_FOUND = "SALES_ORDER_NOT_FOUND";
+
+    /**
+     * Sales order cannot be modified (invalid status)
+     *
+     * Parameters:
+     * - salesOrderId (Long): Sales order ID
+     * - currentStatus (String): Current order status
+     * - allowedStatuses (String): Allowed statuses for modification (e.g., "DRAFT, PENDING_APPROVAL")
+     */
+    public static final String SALES_ORDER_CANNOT_MODIFY = "SALES_ORDER_CANNOT_MODIFY";
+
+    /**
+     * Sales order cannot be cancelled (invalid status)
+     *
+     * Parameters:
+     * - salesOrderId (Long): Sales order ID
+     * - currentStatus (String): Current order status
+     * - reason (String): Reason for denial
+     */
+    public static final String SALES_ORDER_CANNOT_CANCEL = "SALES_ORDER_CANNOT_CANCEL";
+
+    /**
+     * Sales order already exists (duplicate order number)
+     *
+     * Parameters:
+     * - orderNo (String): Duplicate order number
+     */
+    public static final String SALES_ORDER_ALREADY_EXISTS = "SALES_ORDER_ALREADY_EXISTS";
+
+    /**
+     * Sales order status is invalid for the requested operation
+     *
+     * Parameters:
+     * - salesOrderId (Long): Sales order ID
+     * - currentStatus (String): Current order status
+     * - requiredStatus (String): Required status for operation (optional)
+     */
+    public static final String SALES_ORDER_INVALID_STATUS = "SALES_ORDER_INVALID_STATUS";
+
+    /**
+     * Sales order item not found by ID
+     *
+     * Parameters:
+     * - itemId (Long): Sales order item ID
+     * - salesOrderId (Long): Parent sales order ID (optional)
+     */
+    public static final String SALES_ORDER_ITEM_NOT_FOUND = "SALES_ORDER_ITEM_NOT_FOUND";
+
+    /**
+     * Unit price is below minimum sales price
+     *
+     * Parameters:
+     * - productId (Long): Product ID
+     * - productName (String): Product name
+     * - unitPrice (BigDecimal): Requested unit price
+     * - minSalesPrice (BigDecimal): Minimum sales price
+     */
+    public static final String SALES_PRICE_BELOW_MINIMUM = "SALES_PRICE_BELOW_MINIMUM";
+
+    /**
+     * Total amount exceeds approval threshold
+     *
+     * Parameters:
+     * - totalAmount (BigDecimal): Total order amount
+     * - approvalThreshold (BigDecimal): Approval threshold
+     */
+    public static final String SALES_AMOUNT_EXCEEDS_THRESHOLD = "SALES_AMOUNT_EXCEEDS_THRESHOLD";
+
+    // ========== Outbound Task Related Errors (V3.7) ==========
+
+    /**
+     * Outbound task not found by ID
+     *
+     * Parameters:
+     * - taskId (Long): Outbound task ID
+     */
+    public static final String OUTBOUND_TASK_NOT_FOUND = "OUTBOUND_TASK_NOT_FOUND";
+
+    /**
+     * Outbound task status is invalid for the requested operation
+     *
+     * Parameters:
+     * - taskId (Long): Outbound task ID
+     * - currentStatus (String): Current task status
+     * - requiredStatus (String): Required status for operation (optional)
+     */
+    public static final String OUTBOUND_TASK_INVALID_STATUS = "OUTBOUND_TASK_INVALID_STATUS";
+
+    /**
+     * Outbound task already completed
+     *
+     * Parameters:
+     * - taskId (Long): Outbound task ID
+     */
+    public static final String OUTBOUND_TASK_ALREADY_COMPLETED = "OUTBOUND_TASK_ALREADY_COMPLETED";
+
+    /**
+     * Actual quantity exceeds planned quantity
+     *
+     * Parameters:
+     * - taskId (Long): Outbound task ID
+     * - planQty (Integer): Planned quantity
+     * - actualQty (Integer): Actual quantity
+     */
+    public static final String OUTBOUND_ACTUAL_QTY_EXCEEDS_PLAN = "OUTBOUND_ACTUAL_QTY_EXCEEDS_PLAN";
+
+    // ========== System Config Related Errors (V3.7) ==========
+
+    /**
+     * System configuration not found by key
+     *
+     * Parameters:
+     * - configKey (String): Configuration key
+     */
+    public static final String SYSTEM_CONFIG_NOT_FOUND = "SYSTEM_CONFIG_NOT_FOUND";
+
+    /**
+     * Invalid configuration value type
+     *
+     * Parameters:
+     * - configKey (String): Configuration key
+     * - expectedType (String): Expected type (DECIMAL, INTEGER, STRING, BOOLEAN)
+     * - actualValue (String): Actual value
+     */
+    public static final String SYSTEM_CONFIG_INVALID_TYPE = "SYSTEM_CONFIG_INVALID_TYPE";
+
+    // ========== Stocktake Related Errors (V3.8) ==========
+
+    /**
+     * Stocktake task not found by ID or task number
+     *
+     * Parameters:
+     * - taskId (Long): Stocktake task ID (optional)
+     * - taskNo (String): Task number (optional)
+     */
+    public static final String STOCKTAKE_TASK_NOT_FOUND = "STOCKTAKE_TASK_NOT_FOUND";
+
+    /**
+     * Stocktake item not found by ID
+     *
+     * Parameters:
+     * - itemId (Long): Stocktake item ID
+     * - taskId (Long): Parent task ID (optional)
+     */
+    public static final String STOCKTAKE_ITEM_NOT_FOUND = "STOCKTAKE_ITEM_NOT_FOUND";
+
+    /**
+     * Stocktake task status is invalid for the requested operation
+     *
+     * Parameters:
+     * - taskId (Long): Stocktake task ID
+     * - currentStatus (String): Current task status
+     * - requiredStatus (String): Required status for operation (optional)
+     */
+    public static final String STOCKTAKE_TASK_INVALID_STATUS = "STOCKTAKE_TASK_INVALID_STATUS";
+
+    /**
+     * Stocktake task cannot start (invalid status)
+     *
+     * Parameters:
+     * - taskId (Long): Stocktake task ID
+     * - currentStatus (String): Current task status
+     */
+    public static final String STOCKTAKE_TASK_CANNOT_START = "STOCKTAKE_TASK_CANNOT_START";
+
+    /**
+     * Stocktake task cannot count (invalid status)
+     *
+     * Parameters:
+     * - taskId (Long): Stocktake task ID
+     * - currentStatus (String): Current task status
+     */
+    public static final String STOCKTAKE_TASK_CANNOT_COUNT = "STOCKTAKE_TASK_CANNOT_COUNT";
+
+    /**
+     * Stocktake task cannot review (invalid status)
+     *
+     * Parameters:
+     * - taskId (Long): Stocktake task ID
+     * - currentStatus (String): Current task status
+     */
+    public static final String STOCKTAKE_TASK_CANNOT_REVIEW = "STOCKTAKE_TASK_CANNOT_REVIEW";
+
+    // ========== Shopify Integration Related Errors (V3.9) ==========
+
+    /**
+     * Shopify API error (generic API call failure)
+     *
+     * Parameters:
+     * - storeUrl (String): Shopify store URL
+     * - endpoint (String): API endpoint
+     * - statusCode (Integer): HTTP status code (optional)
+     * - error (String): Error message
+     */
+    public static final String SHOPIFY_API_ERROR = "SHOPIFY_API_ERROR";
+
+    /**
+     * Shopify authentication failed (401/403)
+     *
+     * Parameters:
+     * - storeUrl (String): Shopify store URL
+     * - statusCode (Integer): HTTP status code
+     */
+    public static final String SHOPIFY_AUTH_FAILED = "SHOPIFY_AUTH_FAILED";
+
+    /**
+     * Shopify rate limit exceeded (429)
+     *
+     * Parameters:
+     * - storeUrl (String): Shopify store URL
+     * - retryAfter (Integer): Retry after seconds (optional)
+     */
+    public static final String SHOPIFY_RATE_LIMIT = "SHOPIFY_RATE_LIMIT";
+
+    /**
+     * SKU not found in WMS during Shopify order sync
+     *
+     * Parameters:
+     * - sku (String): SKU from Shopify
+     * - externalOrderNo (String): Shopify order number
+     * - externalOrderId (String): Shopify order ID
+     */
+    public static final String SHOPIFY_SKU_NOT_FOUND = "SHOPIFY_SKU_NOT_FOUND";
+
+    /**
+     * Shopify order already synced (duplicate)
+     *
+     * Parameters:
+     * - externalOrderId (String): Shopify order ID
+     * - externalOrderNo (String): Shopify order number
+     * - salesOrderId (Long): Existing WMS sales order ID
+     */
+    public static final String SHOPIFY_ORDER_ALREADY_SYNCED = "SHOPIFY_ORDER_ALREADY_SYNCED";
+
+    /**
+     * Integration configuration not found
+     *
+     * Parameters:
+     * - platform (String): Platform type (e.g., SHOPIFY)
+     * - configId (Long): Configuration ID (optional)
+     */
+    public static final String INTEGRATION_CONFIG_NOT_FOUND = "INTEGRATION_CONFIG_NOT_FOUND";
 }

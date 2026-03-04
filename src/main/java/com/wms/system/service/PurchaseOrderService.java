@@ -15,6 +15,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -138,6 +139,7 @@ public class PurchaseOrderService {
                 .orderedQuantity(itemData.getOrderedQuantity())
                 .receivedQuantity(0)  // Initially 0
                 .unitCost(itemData.getUnitCost())
+                .productPriceSnapshot(product.getUnitPrice())  // V4.2: 固化下单时的商品标价快照
                 .expiryDate(itemData.getExpiryDate())  // Optional at Stage 1
                 .productionDate(itemData.getProductionDate())
                 .externalBatchCode(itemData.getExternalBatchCode())
@@ -418,6 +420,8 @@ public class PurchaseOrderService {
                 .sourceOrderId(purchaseOrder.getPoNumber())
                 .operatorId(operatorId)
                 .operatorName(operatorName)
+                .reasonCode("PURCHASE_INBOUND")  // V4.2: 结构化归因码
+                .remarks(String.format("采购入库，批次 %s", savedBatch.getBatchCode()))  // V4.2: 归因短注释
                 .remark(String.format("Purchase receipt - Batch: %s", savedBatch.getBatchCode()))
                 .build();
 
@@ -603,6 +607,29 @@ public class PurchaseOrderService {
     @Transactional(readOnly = true)
     public List<PurchaseOrder> findByStatus(PurchaseOrderStatus status) {
         return purchaseOrderRepository.findByStatus(status);
+    }
+
+    /**
+     * Query purchase orders by status (paged)
+     *
+     * @param status Purchase order status
+     * @param pageable Pagination info
+     * @return List of purchase orders (paged content)
+     */
+    @Transactional(readOnly = true)
+    public List<PurchaseOrder> findByStatus(PurchaseOrderStatus status, Pageable pageable) {
+        return purchaseOrderRepository.findByStatus(status, pageable).getContent();
+    }
+
+    /**
+     * Query all purchase orders (paged)
+     *
+     * @param pageable Pagination info
+     * @return List of purchase orders (paged content)
+     */
+    @Transactional(readOnly = true)
+    public List<PurchaseOrder> findAll(Pageable pageable) {
+        return purchaseOrderRepository.findAll(pageable).getContent();
     }
 
     // ========== Inner Classes (Data Transfer Objects) ==========

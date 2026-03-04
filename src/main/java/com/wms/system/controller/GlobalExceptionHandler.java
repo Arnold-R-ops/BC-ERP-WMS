@@ -4,14 +4,19 @@ import com.wms.system.dto.ErrorResponse;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -85,6 +90,110 @@ public class GlobalExceptionHandler {
             ex.getErrorKey(), ex.getParams(), request.getRequestURI(), ex);
 
         return ResponseEntity.status(status).body(errorResponse);
+    }
+
+    /**
+     * Handle Access Denied (Spring Security)
+     *
+     * Converts AccessDeniedException to 403 Forbidden.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+        AccessDeniedException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.AUTH_ACCESS_DENIED)
+            .params(Map.of(
+                "message", ex.getMessage() != null ? ex.getMessage() : "Access denied",
+                "exceptionType", ex.getClass().getSimpleName()
+            ))
+            .path(request.getRequestURI())
+            .status(HttpStatus.FORBIDDEN.value())
+            .build();
+
+        log.warn("Access denied: path={}, message={}", request.getRequestURI(), ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    /**
+     * Handle Request Parameter Type Mismatch
+     *
+     * Example: /api/warehouses/{id} with non-numeric id.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+        MethodArgumentTypeMismatchException ex,
+        HttpServletRequest request
+    ) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("parameter", ex.getName());
+        params.put("value", ex.getValue() != null ? ex.getValue().toString() : "null");
+        if (ex.getRequiredType() != null) {
+            params.put("expectedType", ex.getRequiredType().getSimpleName());
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.VALIDATION_FAILED)
+            .params(params)
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        log.warn("Type mismatch: param={}, value={}, expected={}, path={}",
+            ex.getName(), ex.getValue(), ex.getRequiredType(), request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Handle Missing Request Parameters
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParameter(
+        MissingServletRequestParameterException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.PARAMETER_REQUIRED)
+            .params(Map.of(
+                "parameter", ex.getParameterName(),
+                "expectedType", ex.getParameterType()
+            ))
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        log.warn("Missing parameter: param={}, path={}", ex.getParameterName(), request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Handle Validation Errors for @RequestParam/@PathVariable
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+        ConstraintViolationException ex,
+        HttpServletRequest request
+    ) {
+        Map<String, Object> validationErrors = new HashMap<>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            String fieldName = violation.getPropertyPath().toString();
+            validationErrors.put(fieldName, violation.getMessage());
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.VALIDATION_FAILED)
+            .params(validationErrors)
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        log.warn("Constraint violation: errors={}, path={}", validationErrors, request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     /**
@@ -258,6 +367,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PO_ITEM_NOT_FOUND,
                  ErrorKeys.BATCH_NOT_FOUND,
                  ErrorKeys.WAREHOUSE_NOT_FOUND,  // Phase 3.4
+                 ErrorKeys.INTEGRATION_CONFIG_NOT_FOUND,  // V3.9 Shopify Integration
+                 ErrorKeys.SHOPIFY_SKU_NOT_FOUND,  // V3.9 Shopify Integration
                  "INBOUND_ORDER_NOT_FOUND",  // Phase 3.5
                  "ITEM_NOT_FOUND" -> HttpStatus.NOT_FOUND;  // Phase 3.5
 
@@ -273,9 +384,13 @@ public class GlobalExceptionHandler {
                  ErrorKeys.BATCH_INACTIVE,
                  ErrorKeys.BATCH_STOCK_INSUFFICIENT,
                  ErrorKeys.BATCH_EXPIRED,
+                 ErrorKeys.INSUFFICIENT_STOCK,
+                 ErrorKeys.EXPIRED_BATCH_FOUND,
                  ErrorKeys.INVALID_FILE_FORMAT,
                  ErrorKeys.INVALID_EXCEL_DATA,
                  ErrorKeys.FILE_READ_ERROR,
+                 ErrorKeys.SHOPIFY_API_ERROR,  // V3.9 Shopify Integration
+                 ErrorKeys.SHOPIFY_RATE_LIMIT,  // V3.9 Shopify Integration
                  "SUPPLIER_NOT_FOUND",  // Phase 3.5
                  "INVALID_STATUS_FOR_APPROVAL",  // Phase 3.5
                  "INVALID_STATUS_FOR_CONFIRMATION",  // Phase 3.5
@@ -284,11 +399,8 @@ public class GlobalExceptionHandler {
 
             // 401 Unauthorized
             case ErrorKeys.AUTH_INVALID_CREDENTIALS,
-                 ErrorKeys.AUTH_TOKEN_MISSING,
-                 ErrorKeys.AUTH_TOKEN_INVALID,
-                 ErrorKeys.AUTH_TOKEN_EXPIRED,
                  ErrorKeys.AUTH_FAILED,
-                 ErrorKeys.AUTH_ACCESS_DENIED -> HttpStatus.UNAUTHORIZED;
+                 ErrorKeys.SHOPIFY_AUTH_FAILED -> HttpStatus.UNAUTHORIZED;  // V3.9 Shopify Integration
 
             // 403 Forbidden
             case ErrorKeys.USER_UNAUTHORIZED,
@@ -298,6 +410,10 @@ public class GlobalExceptionHandler {
                  ErrorKeys.USER_NO_ACTIVE_ROLES,  // v3.3 Multi-Role System
                  ErrorKeys.ROLE_NOT_ASSIGNED,  // v3.3 Multi-Role System
                  ErrorKeys.ROLE_DISABLED,  // v3.3 Multi-Role System
+                 ErrorKeys.AUTH_TOKEN_MISSING,
+                 ErrorKeys.AUTH_TOKEN_INVALID,
+                 ErrorKeys.AUTH_TOKEN_EXPIRED,
+                 ErrorKeys.AUTH_ACCESS_DENIED,
                  ErrorKeys.PO_ALREADY_COMPLETED -> HttpStatus.FORBIDDEN;
 
             // 409 Conflict
@@ -306,7 +422,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.LOCATION_ALREADY_EXISTS,
                  ErrorKeys.USER_ALREADY_EXISTS,  // v3.3 Multi-Role System
                  ErrorKeys.BATCH_CODE_GENERATION_FAILED,
-                 ErrorKeys.WAREHOUSE_ALREADY_EXISTS -> HttpStatus.CONFLICT;  // Phase 3.4
+                 ErrorKeys.WAREHOUSE_ALREADY_EXISTS,  // Phase 3.4
+                 ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED -> HttpStatus.CONFLICT;  // V3.9 Shopify Integration
 
             // 500 Internal Server Error
             case ErrorKeys.ROLE_SWITCH_FAILED,  // v3.3 Multi-Role System

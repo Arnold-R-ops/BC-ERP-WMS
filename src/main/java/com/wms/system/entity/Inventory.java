@@ -44,8 +44,8 @@ import lombok.*;
 @Table(
     name = "inventory",
     indexes = {
-        @Index(name = "idx_product_id", columnList = "product_id"),
-        @Index(name = "idx_location_id", columnList = "location_id")
+        @Index(name = "idx_inventory_product_id", columnList = "product_id"),
+        @Index(name = "idx_inventory_location_id", columnList = "location_id")
     },
     uniqueConstraints = {
         // 确保同一个库位只能存储一个商品的一个批次（当前不考虑批次，所以一个库位一个商品）
