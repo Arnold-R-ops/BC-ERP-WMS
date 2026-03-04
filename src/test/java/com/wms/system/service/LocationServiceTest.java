@@ -25,24 +25,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * LocationService 单元测试
+ * LocationService 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
  *
- * 测试库位管理服务的核心功能
+ * 濠电偞娼欓鍫ユ儊椤栨稒鍎熼柟鎹愬皺缁夊绱掗悪鍛？闁诡喖锕闈涱吋閸涱収娼抽梺姹囧妼鐎氼參鎮х€圭姷鐤€闁告劑鍔岄～鐘绘煠?
  *
- * 测试场景：
- * 1. 创建库位（成功/仓库不存在/库位已存在）
- * 2. 根据ID查询库位（成功/不存在）
- * 3. 根据仓库ID查询库位
- * 4. 查询仓库的空闲库位
- * 5. 更新库位信息
- * 6. 启用库位
- * 7. 禁用库位
+ * 濠电偞娼欓鍫ユ儊椤栫偛鎹堕柣鎴炆戦悵顖炴煥?
+ * 1. 闂佸憡甯楃粙鎴犵磽閹惧瓨鍎熼柟鎹愬皺缁夋挳鏌ㄥ☉妯煎闁搞劍宀稿畷?婵炲濮甸幐鍝ヨ姳鏉堛劎鈻旂€广儱鎳愰幗鐘绘煕?闁圭厧鐡ㄩ幐椋庣礊閸涱収鍟呴柟缁樺笧閹界娀鏌涢敂鑽ゅ帨缂?
+ * 2. 闂佸搫绉烽～澶婄暤娑擃搳闂佸搫琚崕鎾敋濡や焦鍎熼柟鎹愬皺缁夋挳鏌ㄥ☉妯煎闁搞劍宀稿畷?婵炴垶鎸哥粔鎾偤閵娾晛鎹舵い顓熷笧缁€?
+ * 3. 闂佸搫绉烽～澶婄暤娴ｅ湱顩烽柟鎯х－濮樷問D闂佸搫琚崕鎾敋濡や焦鍎熼柟鎹愬皺缁?
+ * 4. 闂佸搫琚崕鎾敋濡や胶顩烽柟鎯х－濮樸劑鏌ｉ妸銉ヮ伀闁宠鐗犲濠氬箵閹烘梹鐨戞繛?
+ * 5. 闂佸搫娲ら悺銊╁蓟婵犲啯鍎熼柟鎹愬皺缁夋潙菐閸ワ絽澧插ù?
+ * 6. 闂佸憡鍑归崹鎶藉极閵堝棙鍎熼柟鎹愬皺缁?
+ * 7. 缂備礁鍊烽懗鍫曞极閵堝棙鍎熼柟鎹愬皺缁?
  *
  * @author WMS Team
  * @since 2025-01-23 (Phase 3.4)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("LocationService 单元测试")
+@DisplayName("case-1")
 class LocationServiceTest {
 
     @Mock
@@ -78,7 +78,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("创建库位 - 成功")
+    @DisplayName("case-2")
     void createLocation_Success() {
         // Given
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -107,7 +107,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("创建库位 - 仓库不存在")
+    @DisplayName("case-3")
     void createLocation_WarehouseNotFound() {
         // Given
         when(warehouseRepository.findById(999L)).thenReturn(Optional.empty());
@@ -122,7 +122,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("创建库位 - 库位已存在")
+    @DisplayName("case-4")
     void createLocation_LocationAlreadyExists() {
         // Given
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -140,7 +140,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("根据ID查询库位 - 成功")
+    @DisplayName("case-5")
     void getLocationById_Success() {
         // Given
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
@@ -155,7 +155,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("根据ID查询库位 - 不存在")
+    @DisplayName("case-6")
     void getLocationById_NotFound() {
         // Given
         when(locationRepository.findById(999L)).thenReturn(Optional.empty());
@@ -167,7 +167,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("根据仓库ID查询所有库位")
+    @DisplayName("case-7")
     void getLocationsByWarehouse() {
         // Given
         Location location2 = Location.builder()
@@ -189,7 +189,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("查询指定仓库的空闲库位")
+    @DisplayName("case-8")
     void getEmptyLocationsByWarehouse() {
         // Given
         when(locationRepository.findEmptyLocationsByWarehouseId(1L)).thenReturn(Arrays.asList(testLocation));
@@ -203,7 +203,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("更新库位信息 - 成功")
+    @DisplayName("case-9")
     void updateLocation_Success() {
         // Given
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
@@ -219,7 +219,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("更新库位信息 - 库位不存在")
+    @DisplayName("case-10")
     void updateLocation_NotFound() {
         // Given
         when(locationRepository.findById(999L)).thenReturn(Optional.empty());
@@ -233,7 +233,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("启用库位 - 成功")
+    @DisplayName("case-11")
     void enableLocation_Success() {
         // Given
         testLocation.setEnabled(false);
@@ -249,7 +249,7 @@ class LocationServiceTest {
     }
 
     @Test
-    @DisplayName("禁用库位 - 成功")
+    @DisplayName("case-12")
     void disableLocation_Success() {
         // Given
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));

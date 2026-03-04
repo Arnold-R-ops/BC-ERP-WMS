@@ -26,23 +26,23 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * InboundOrderController 单元测试
+ * InboundOrderController 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
  *
- * 使用 Mockito 模拟所有依赖，专注于测试控制器逻辑
+ * 婵炶揪缍€濞夋洟寮?Mockito 濠碘槅鍨崜婵堚偓姘懇楠炲秹鍩€椤掑嫬瀚夊璺侯槺鐠愨晠鎮硅閻楊厾妲愬┑鍥┾枖闁规儳鐡ㄩ弳鍫澝瑰鍐劉缂佷礁顕幏鐘诲即閻旇渹绮梺鍛婂笩濞夋稑鈻嶉幒妤佺劵闁哄嫬绻掔敮?
  *
- * 测试覆盖：
- * 1. 创建入库单
- * 2. 总经理审批
- * 3. 采购员确认
- * 4. 仓库收货
- * 5. 拒绝入库单
- * 6. 查询入库单（按ID/按状态）
+ * 濠电偞娼欓鍫ユ儊椤栨粍鍟洪柛鈩冪懄绾句即鏌?
+ * 1. 闂佸憡甯楃粙鎴犵磽閹捐绀傞柕澶堝劤濮樸劑鏌?
+ * 2. 闂佽鍓濆畷鐢靛垝閿熺姵鍋犻柛鈩冾殢閸氣偓闂?
+ * 3. 闂備焦褰冨ú鈺呭窗濮椻偓瀹曘劌螣鐏忔牑鍋撳Ο鍏煎?
+ * 4. 婵炲濮甸幐鍝ヨ姳闁秴缁╅柟顖滃瑜?
+ * 5. 闂佸綊鏀辩敮鐐靛垝閻戣棄绀傞柕澶堝劤濮樸劑鏌?
+ * 6. 闂佸搫琚崕鎾敋濡ゅ懎绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭┛缂佽鲸鐟╅獮鎰箙閸?闂佸湱顭堥ˇ杈ㄦ叏閹间礁绠戝〒姘功缁€?
  *
  * @author WMS Team
  * @since 2026-01-26 (Phase 3.5)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("InboundOrderController 单元测试")
+@DisplayName("case-1")
 class InboundOrderControllerTest {
 
     @Mock
@@ -87,10 +87,10 @@ class InboundOrderControllerTest {
                 .build();
     }
 
-    // ==================== 创建入库单测试 ====================
+    // ==================== 闂佸憡甯楃粙鎴犵磽閹捐绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭缂佷礁顕幏?====================
 
     @Test
-    @DisplayName("创建入库单 - 成功")
+    @DisplayName("case-2")
     void createInboundOrder_Success() {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
@@ -114,7 +114,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("创建入库单 - 供应商不存在")
+    @DisplayName("case-3")
     void createInboundOrder_SupplierNotFound() {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
@@ -129,10 +129,10 @@ class InboundOrderControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", "SUPPLIER_NOT_FOUND");
     }
 
-    // ==================== 总经理审批测试 ====================
+    // ==================== 闂佽鍓濆畷鐢靛垝閿熺姵鍋犻柛鈩冾殢閸氣偓闂侀€涚祷椤绮婄€靛憡瀚?====================
 
     @Test
-    @DisplayName("总经理审批 - 成功")
+    @DisplayName("case-4")
     void approvePlan_Success() {
         // Given
         ApprovalRequest request = new ApprovalRequest();
@@ -159,7 +159,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("总经理审批 - 入库单不存在")
+    @DisplayName("case-5")
     void approvePlan_OrderNotFound() {
         // Given
         ApprovalRequest request = new ApprovalRequest();
@@ -174,10 +174,10 @@ class InboundOrderControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", "INBOUND_ORDER_NOT_FOUND");
     }
 
-    // ==================== 采购员确认测试 ====================
+    // ==================== 闂備焦褰冨ú鈺呭窗濮椻偓瀹曘劌螣鐏忔牑鍋撳Ο鍏煎闁靛牆妫涢妶鎾偣?====================
 
     @Test
-    @DisplayName("采购员确认 - 成功")
+    @DisplayName("case-6")
     void confirmOrder_Success() {
         // Given
         ConfirmOrderRequest request = new ConfirmOrderRequest();
@@ -211,7 +211,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("采购员确认 - 状态错误")
+    @DisplayName("case-7")
     void confirmOrder_InvalidStatus() {
         // Given
         ConfirmOrderRequest request = new ConfirmOrderRequest();
@@ -225,10 +225,10 @@ class InboundOrderControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", "INVALID_STATUS_FOR_CONFIRMATION");
     }
 
-    // ==================== 仓库收货测试 ====================
+    // ==================== 婵炲濮甸幐鍝ヨ姳闁秴缁╅柟顖滃瑜版稒绻涢弶鎴創闁?====================
 
     @Test
-    @DisplayName("仓库收货 - 成功")
+    @DisplayName("case-8")
     void receiveGoods_Success() {
         // Given
         ReceiveGoodsRequest request = new ReceiveGoodsRequest();
@@ -261,7 +261,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("仓库收货 - 实收数量超过确认数量")
+    @DisplayName("case-9")
     void receiveGoods_ActualQtyExceedsConfirmedQty() {
         // Given
         ReceiveGoodsRequest request = new ReceiveGoodsRequest();
@@ -275,10 +275,10 @@ class InboundOrderControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", "ACTUAL_QTY_EXCEEDS_CONFIRMED_QTY");
     }
 
-    // ==================== 拒绝入库单测试 ====================
+    // ==================== 闂佸綊鏀辩敮鐐靛垝閻戣棄绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭缂佷礁顕幏?====================
 
     @Test
-    @DisplayName("拒绝入库单 - 成功")
+    @DisplayName("case-10")
     void rejectOrder_Success() {
         // Given
         RejectRequest request = new RejectRequest();
@@ -301,10 +301,10 @@ class InboundOrderControllerTest {
         verify(inboundOrderService).rejectOrder(1L, "Budget insufficient", 1L, "testuser");
     }
 
-    // ==================== 查询测试 ====================
+    // ==================== 闂佸搫琚崕鎾敋濡も偓闇夐悗锝庡幘濡?====================
 
     @Test
-    @DisplayName("根据ID查询入库单 - 成功")
+    @DisplayName("case-11")
     void getInboundOrderById_Success() {
         // Given
         when(inboundOrderService.getInboundOrderById(1L)).thenReturn(testResponse);
@@ -323,7 +323,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("根据ID查询入库单 - 不存在")
+    @DisplayName("case-12")
     void getInboundOrderById_NotFound() {
         // Given
         when(inboundOrderService.getInboundOrderById(999L))
@@ -336,7 +336,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("查询待审批的入库单")
+    @DisplayName("case-13")
     void getPendingApprovalOrders_Success() {
         // Given
         when(inboundOrderService.getInboundOrdersByStatus(InboundOrderStatus.PENDING_APPROVAL))
@@ -357,7 +357,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("查询待确认的入库单")
+    @DisplayName("case-14")
     void getPendingConfirmationOrders_Success() {
         // Given
         testResponse.setStatus(InboundOrderStatus.APPROVED_PLAN);
@@ -379,7 +379,7 @@ class InboundOrderControllerTest {
     }
 
     @Test
-    @DisplayName("查询待收货的入库单")
+    @DisplayName("case-15")
     void getPendingReceivalOrders_Success() {
         // Given
         testResponse.setStatus(InboundOrderStatus.AWAITING_RECEIVAL);

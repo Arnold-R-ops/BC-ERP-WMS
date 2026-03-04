@@ -18,23 +18,23 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * SpuSkuDateBatchCodeGenerator 单元测试
+ * SpuSkuDateBatchCodeGenerator 閸楁洖鍘撳ù瀣槸
  *
- * 测试 SPU-SKU-DATE 批次码生成器的核心功能
+ * 濞村鐦?SPU-SKU-DATE 閹佃顐奸惍浣烘晸閹存劕娅掗惃鍕壋韫囧啫濮涢懗?
  *
- * 测试场景：
- * 1. 生成基础批次码（无冲突）
- * 2. 生成批次码（有冲突，添加序号）
- * 3. 生成批次码（序号用尽，抛出异常）
- * 4. 验证批次码格式
- * 5. 从批次码中提取日期
- * 6. 处理产品无 SPU/SKU 的情况
+ * 濞村鐦崷鐑樻珯閿?
+ * 1. 閻㈢喐鍨氶崺铏诡攨閹佃顐奸惍渚婄礄閺冪姴鍟跨粣渚婄礆
+ * 2. 閻㈢喐鍨氶幍瑙勵偧閻緤绱欓張澶婂暱缁愪緤绱濆ǎ璇插鎼村繐褰块敍?
+ * 3. 閻㈢喐鍨氶幍瑙勵偧閻緤绱欐惔蹇撳娇閻劌鏁栭敍灞惧閸戝搫绱撶敮闈╃礆
+ * 4. 妤犲矁鐦夐幍瑙勵偧閻焦鐗稿?
+ * 5. 娴犲孩澹掑▎锛勭垳娑擃厽褰侀崣鏍ㄦ）閺?
+ * 6. 婢跺嫮鎮婃禍褍鎼ч弮?SPU/SKU 閻ㄥ嫭鍎忛崘?
  *
  * @author WMS Team
  * @since 2026-01-26 (Phase 3.5)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SpuSkuDateBatchCodeGenerator 单元测试")
+@DisplayName("case-1")
 class SpuSkuDateBatchCodeGeneratorTest {
 
     @Mock
@@ -65,10 +65,10 @@ class SpuSkuDateBatchCodeGeneratorTest {
                 .build();
     }
 
-    // ==================== 生成批次码测试 ====================
+    // ==================== 閻㈢喐鍨氶幍瑙勵偧閻焦绁寸拠?====================
 
     @Test
-    @DisplayName("生成批次码 - 无冲突")
+    @DisplayName("case-2")
     void generateUnique_NoCollision() {
         // Given
         when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
@@ -83,7 +83,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("生成批次码 - 有冲突，添加序号-01")
+    @DisplayName("case-3")
     void generateUnique_WithCollision_AddSequence01() {
         // Given
         when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
@@ -101,7 +101,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("生成批次码 - 多次冲突，添加序号-05")
+    @DisplayName("case-4")
     void generateUnique_MultipleCollisions_AddSequence05() {
         // Given
         when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
@@ -125,7 +125,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("生成批次码 - 序号用尽，抛出异常")
+    @DisplayName("case-5")
     void generateUnique_SequenceExhausted_ThrowsException() {
         // Given
         String baseBatchCode = "SPU001-SKU001-20260126";
@@ -137,10 +137,10 @@ class SpuSkuDateBatchCodeGeneratorTest {
                 .hasFieldOrPropertyWithValue("errorKey", "BATCH_CODE_GENERATION_FAILED");
     }
 
-    // ==================== 产品无 SPU/SKU 测试 ====================
+    // ==================== 娴溠冩惂閺?SPU/SKU 濞村鐦?====================
 
     @Test
-    @DisplayName("生成批次码 - 产品无 SPU，使用默认值")
+    @DisplayName("case-6")
     void generateUnique_ProductWithoutSpu_UseDefault() {
         // Given
         testProduct.setSpu(null);
@@ -155,7 +155,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("生成批次码 - 产品无 SKU，使用默认值")
+    @DisplayName("case-7")
     void generateUnique_ProductWithoutSku_UseDefault() {
         // Given
         testProduct.setBarcode(null);
@@ -171,7 +171,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("生成批次码 - 使用 skuName 作为 SKU")
+    @DisplayName("case-8")
     void generateUnique_UseSkuName() {
         // Given
         testProduct.setBarcode(null);
@@ -186,17 +186,17 @@ class SpuSkuDateBatchCodeGeneratorTest {
         assertThat(batchCode).isEqualTo("SPU001-TestSKUName-20260126");
     }
 
-    // ==================== 验证批次码格式测试 ====================
+    // ==================== 妤犲矁鐦夐幍瑙勵偧閻焦鐗稿蹇旂ゴ鐠?====================
 
     @Test
-    @DisplayName("验证批次码格式 - 有效格式（无序号）")
+    @DisplayName("case-9")
     void isValidFormat_ValidWithoutSequence() {
         // When & Then
         assertThat(batchCodeGenerator.isValidFormat("SPU001-SKU001-20260126")).isTrue();
     }
 
     @Test
-    @DisplayName("验证批次码格式 - 有效格式（有序号）")
+    @DisplayName("case-10")
     void isValidFormat_ValidWithSequence() {
         // When & Then
         assertThat(batchCodeGenerator.isValidFormat("SPU001-SKU001-20260126-01")).isTrue();
@@ -204,7 +204,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("验证批次码格式 - 无效格式")
+    @DisplayName("case-11")
     void isValidFormat_Invalid() {
         // When & Then
         assertThat(batchCodeGenerator.isValidFormat(null)).isFalse();
@@ -216,10 +216,10 @@ class SpuSkuDateBatchCodeGeneratorTest {
         assertThat(batchCodeGenerator.isValidFormat("SPU001-SKU001-20260126-ABC")).isFalse();
     }
 
-    // ==================== 提取日期测试 ====================
+    // ==================== 閹绘劕褰囬弮銉︽埂濞村鐦?====================
 
     @Test
-    @DisplayName("从批次码提取日期 - 成功（无序号）")
+    @DisplayName("case-12")
     void extractDate_Success_WithoutSequence() {
         // When
         LocalDate date = batchCodeGenerator.extractDate("SPU001-SKU001-20260126");
@@ -229,7 +229,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("从批次码提取日期 - 成功（有序号）")
+    @DisplayName("case-13")
     void extractDate_Success_WithSequence() {
         // When
         LocalDate date = batchCodeGenerator.extractDate("SPU001-SKU001-20260126-05");
@@ -239,7 +239,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("从批次码提取日期 - 无效格式返回 null")
+    @DisplayName("case-14")
     void extractDate_InvalidFormat_ReturnsNull() {
         // When & Then
         assertThat(batchCodeGenerator.extractDate(null)).isNull();
@@ -249,16 +249,16 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("从批次码提取日期 - 日期解析失败返回 null")
+    @DisplayName("case-15")
     void extractDate_ParseError_ReturnsNull() {
         // When & Then
         assertThat(batchCodeGenerator.extractDate("SPU001-SKU001-99999999")).isNull();
     }
 
-    // ==================== 边界测试 ====================
+    // ==================== 鏉堝湱鏅ù瀣槸 ====================
 
     @Test
-    @DisplayName("生成批次码 - 不同日期生成不同批次码")
+    @DisplayName("case-16")
     void generateUnique_DifferentDates_DifferentBatchCodes() {
         // Given
         LocalDate date1 = LocalDate.of(2026, 1, 26);
@@ -280,7 +280,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
     }
 
     @Test
-    @DisplayName("生成批次码 - 序号格式为两位数")
+    @DisplayName("case-17")
     void generateUnique_SequenceFormat_TwoDigits() {
         // Given
         when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
@@ -292,7 +292,7 @@ class SpuSkuDateBatchCodeGeneratorTest {
         String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
 
         // Then
-        assertThat(batchCode).endsWith("-01"); // 两位数格式
-        assertThat(batchCode).doesNotEndWith("-1"); // 不是一位数
+        assertThat(batchCode).endsWith("-01"); // 娑撱倓缍呴弫鐗堢壐瀵?
+        assertThat(batchCode).doesNotEndWith("-1"); // 娑撳秵妲告稉鈧担宥嗘殶
     }
 }

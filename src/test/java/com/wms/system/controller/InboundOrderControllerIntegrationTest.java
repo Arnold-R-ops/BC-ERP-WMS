@@ -34,19 +34,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * InboundOrderController 集成测试
+ * InboundOrderController 闂傚倸妫楀Λ娆撳垂濮橆優鍦偓锝庡幘濡?
  *
- * 使用 @SpringBootTest 启动完整的 Spring 容器
- * 使用 MockMvc 模拟 HTTP 请求
- * 使用真实的数据库进行测试
+ * 婵炶揪缍€濞夋洟寮?@SpringBootTest 闂佸憡鍑归崹鐗堟叏閳哄啠鍋撻悷鐗堟拱闁哄棴缍侀幆?Spring 闁诲骸婀遍幊鎾斥枍?
+ * 婵炶揪缍€濞夋洟寮?MockMvc 濠碘槅鍨崜婵堚偓?HTTP 闁荤姴娲弨閬嶆儑?
+ * 婵炶揪缍€濞夋洟寮妶澶嬪剳闁绘棃顥撻弶浠嬫煟閵娿儱顏柡鍡欏枛楠炴垿顢欓懖鈺傜殤闁哄鏅滅粙鏍€侀幋婢濆湱鈧綆鍘惧Σ?
  *
- * 测试覆盖：
- * 1. 完整的入库流程（创建 → 审批 → 确认 → 收货）
- * 2. 数据库持久化验证
- * 3. 批次码生成验证
- * 4. 库存更新验证
- * 5. 权限控制验证
- * 6. 异常处理验证
+ * 濠电偞娼欓鍫ユ儊椤栨粍鍟洪柛鈩冪懄绾句即鏌?
+ * 1. 闁诲海鎳撻張顒勫汲閿濆鍎嶉柛鏇ㄥ亜瀵娊骞栫€涙ɑ灏扮紒渚婂缁瑧鈧絽澧庣粈鍕煕閹烘挾鈽夌紓?闂?闁诲骸鍘滈崜婵囩珶?闂?缂佺虎鍙庨崰娑㈩敇?闂?闂佽　鍋撻柟顖滃瑜版盯鏌?
+ * 2. 闂佽桨鑳舵晶妤€鐣垫担瑙勫劅闁圭偓娼欓惁顔尖槈閺傛寧鍣归悗闈涘级椤ㄣ儱鐣濋崘顏咁潔
+ * 3. 闂侀€涚祷椤顢曟總鍛婂剺濞达絿鍎ら弲鎼佹煙鐎涙ê濮嶉柣娑欑懅閹?
+ * 4. 闁圭厧鐡ㄩ幐鎼佹偤閵娾晛鍗抽悗娑櫳戦悡鈧俊銈囧Т閻線鎯?
+ * 5. 闂佸搫顦崯鏉戭瀶濞差亜绠崇憸宥夊春濡や緡娈界€光偓閸愵亝顫?
+ * 6. 閻庢鍠栭崐鎼佹偉閼搁潧绶為柛鏇ㄥ幗閸婄偛螖閻樿尙鐒烽柣?
  *
  * @author WMS Team
  * @since 2026-01-26 (Phase 3.5)
@@ -56,7 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Transactional
 @WithMockUser(authorities = {"SUPER_ADMIN"})
-@DisplayName("InboundOrderController 集成测试")
+@DisplayName("case-1")
 class InboundOrderControllerIntegrationTest {
 
     @Autowired
@@ -124,7 +124,7 @@ class InboundOrderControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 清理数据
+        // 濠电偞鎸搁幊鎰板箖婵犲洤鏋侀柣妤€鐗嗙粊?
         inboundOrderItemRepository.deleteAll();
         inboundOrderRepository.deleteAll();
         inventoryBatchRepository.deleteAll();
@@ -137,7 +137,7 @@ class InboundOrderControllerIntegrationTest {
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
 
-        // 创建测试供应商
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡茬銆掑顓犫槈缂併劍鐓″畷?
         testSupplier = supplierRepository.save(Supplier.builder()
                 .code("SUP001")
                 .name("Test Supplier")
@@ -146,7 +146,7 @@ class InboundOrderControllerIntegrationTest {
                 .isActive(true)
                 .build());
 
-        // 创建测试产品
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡茬霉濠х姴鍟幆?
         ProductSpu spu = productSpuRepository.save(ProductSpu.builder()
                 .spuCode("SPU001")
                 .spuName("Test SPU")
@@ -157,11 +157,11 @@ class InboundOrderControllerIntegrationTest {
                 .barcode("SKU001")
                 .skuName("Test SKU")
                 .spu(spu)
-                .unitPrice(BigDecimal.valueOf(100.00))  // 使用 BigDecimal
+                .unitPrice(BigDecimal.valueOf(100.00))  // 婵炶揪缍€濞夋洟寮?BigDecimal
                 .enabled(true)
                 .build());
 
-        // 创建测试仓库
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡茬霉閻樿櫕灏紒?
         testWarehouse = warehouseRepository.save(Warehouse.builder()
                 .code("WH01")
                 .name("Main Warehouse")
@@ -169,7 +169,7 @@ class InboundOrderControllerIntegrationTest {
                 .isActive(true)
                 .build());
 
-        // 创建测试库位
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡叉悂骞栫€涙ɑ灏紓?
         testLocation = locationRepository.save(Location.builder()
                 .locationCode("WH01-A-01-001")
                 .warehouse(testWarehouse)
@@ -180,16 +180,16 @@ class InboundOrderControllerIntegrationTest {
                 .enabled(true)
                 .build());
 
-        // 创建测试用户和角色
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡叉悂鏌ｉ～顒€濡介柛鈺傜洴瀹曨亜鐣濋崘鐐仴闂?
         setupUsersAndRoles();
     }
 
     private void setupUsersAndRoles() {
-        // 获取或创建角色
+        // 闂佸吋鍎抽崲鑼躲亹閸ヮ剙绠ｉ柡宓啰浠悗鐐瑰€濈紓姘讹綖濡ゅ懏鍤?
         SysRole buyerRole = roleRepository.findByRoleCode("BUYER")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
                         .roleCode("BUYER")
-                        .roleName("采购员")
+                        .roleName("闂備焦褰冨ú鈺呭窗濮椻偓瀹?")
                         .sortOrder(3)
                         .status("ACTIVE")
                         .build()));
@@ -197,7 +197,7 @@ class InboundOrderControllerIntegrationTest {
         SysRole chairmanRole = roleRepository.findByRoleCode("CHAIRMAN")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
                         .roleCode("CHAIRMAN")
-                        .roleName("总经理")
+                        .roleName("闂佽鍓濆畷鐢靛垝閿熺姵鍋?")
                         .sortOrder(1)
                         .status("ACTIVE")
                         .build()));
@@ -205,16 +205,16 @@ class InboundOrderControllerIntegrationTest {
         SysRole warehouseRole = roleRepository.findByRoleCode("WAREHOUSE_ADMIN")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
                         .roleCode("WAREHOUSE_ADMIN")
-                        .roleName("仓库管理员")
+                        .roleName("婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌?")
                         .sortOrder(4)
                         .status("ACTIVE")
                         .build()));
 
-        // 创建采购员用户
+        // 闂佸憡甯楃粙鎴犵磽閹剧粯鐓傞柛銉簻閺嬬娀鏌涘☉娆樼劷闁轰降鍊濋獮?
         buyerUser = userRepository.save(User.builder()
                 .username("buyer")
                 .password(passwordEncoder.encode(TEST_PASSWORD))
-                .displayName("采购员")
+                .displayName("闂備焦褰冨ú鈺呭窗濮椻偓瀹?")
                 .enabled(true)
                 .build());
         userRoleRepository.save(SysUserRole.builder()
@@ -225,11 +225,11 @@ class InboundOrderControllerIntegrationTest {
                 .build());
         buyerToken = jwtUtil.generateToken(buyerUser.getUsername(), buyerRole.getRoleCode());
 
-        // 创建总经理用户
+        // 闂佸憡甯楃粙鎴犵磽閹捐绠戦柤濮愬€楅惀鍛存煟閻愬弶顥犻柡浣靛€濋獮?
         gmUser = userRepository.save(User.builder()
                 .username("chairman")
                 .password(passwordEncoder.encode(TEST_PASSWORD))
-                .displayName("总经理")
+                .displayName("闂佽鍓濆畷鐢靛垝閿熺姵鍋?")
                 .enabled(true)
                 .build());
         userRoleRepository.save(SysUserRole.builder()
@@ -240,11 +240,11 @@ class InboundOrderControllerIntegrationTest {
                 .build());
         gmToken = jwtUtil.generateToken(gmUser.getUsername(), chairmanRole.getRoleCode());
 
-        // 创建仓库管理员用户
+        // 闂佸憡甯楃粙鎴犵磽閹惧顩烽柟鎯х－濮樸劎绱掗悪鍛？闁诡喖锕畷銊ノ熼崗鍏兼闂?
         warehouseUser = userRepository.save(User.builder()
                 .username("warehouse")
                 .password(passwordEncoder.encode(TEST_PASSWORD))
-                .displayName("仓库管理员")
+                .displayName("婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌?")
                 .enabled(true)
                 .build());
         userRoleRepository.save(SysUserRole.builder()
@@ -257,7 +257,7 @@ class InboundOrderControllerIntegrationTest {
     }
 
     /**
-     * 创建 Authentication 对象用于测试
+     * 闂佸憡甯楃粙鎴犵磽?Authentication 闁诲海鏁搁、濠囨寘閸曨垱鍋ㄩ柕濞垮€楅懝鐐箾閺夋埈鍎撻柣?
      */
     private UsernamePasswordAuthenticationToken createAuthentication(User user) {
         SecurityUser securityUser = new SecurityUser(user);
@@ -270,7 +270,7 @@ class InboundOrderControllerIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        // 清理数据
+        // 濠电偞鎸搁幊鎰板箖婵犲洤鏋侀柣妤€鐗嗙粊?
         inboundOrderItemRepository.deleteAll();
         inboundOrderRepository.deleteAll();
         inventoryBatchRepository.deleteAll();
@@ -284,12 +284,12 @@ class InboundOrderControllerIntegrationTest {
         userRepository.deleteAll();
     }
 
-    // ==================== 完整流程测试 ====================
+    // ==================== 闁诲海鎳撻張顒勫汲閿濆悿瑙勬媴鐞涒剝鐓犲┑鐐存綑椤戝牓鎯?====================
 
     @Test
-    @DisplayName("完整入库流程 - 创建 → 审批 → 确认 → 收货")
+    @DisplayName("case-2")
     void completeInboundFlow_Success() throws Exception {
-        // Step 1: 采购员创建入库单
+        // Step 1: 闂備焦褰冨ú鈺呭窗濮椻偓瀹曘劌螣閸濆嫮浠悗鐐瑰€曢幖顐﹀矗閸℃ɑ鍎熼柟鎯у暱缁€?
         CreateInboundOrderRequest createRequest = new CreateInboundOrderRequest();
         createRequest.setSupplierId(testSupplier.getId());
         createRequest.setExpectedDate(LocalDate.now().plusDays(7));
@@ -316,12 +316,12 @@ class InboundOrderControllerIntegrationTest {
         InboundOrderResponse createdOrder = objectMapper.readValue(createResponse, InboundOrderResponse.class);
         Long orderId = createdOrder.getId();
 
-        // 验证数据库
+        // 婵°倗濮撮惌渚€鎯佹径鎰瀬闁绘鐗嗙粊锕傚箹?
         InboundOrder dbOrder = inboundOrderRepository.findById(orderId).orElseThrow();
         assertThat(dbOrder.getStatus()).isEqualTo(InboundOrderStatus.PENDING_APPROVAL);
         assertThat(dbOrder.getTotalPlanQty()).isEqualTo(100);
 
-        // Step 2: 总经理审批
+        // Step 2: 闂佽鍓濆畷鐢靛垝閿熺姵鍋犻柛鈩冾殢閸氣偓闂?
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setComment("Approved by GM");
 
@@ -335,12 +335,12 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.gmApprovedBy").value(gmUser.getId()))
                 .andExpect(jsonPath("$.gmApprovedAt").exists());
 
-        // 验证数据库
+        // 婵°倗濮撮惌渚€鎯佹径鎰瀬闁绘鐗嗙粊锕傚箹?
         dbOrder = inboundOrderRepository.findById(orderId).orElseThrow();
         assertThat(dbOrder.getStatus()).isEqualTo(InboundOrderStatus.APPROVED_PLAN);
         assertThat(dbOrder.getGmApprovedBy()).isEqualTo(gmUser.getId());
 
-        // Step 3: 采购员确认
+        // Step 3: 闂備焦褰冨ú鈺呭窗濮椻偓瀹曘劌螣鐏忔牑鍋撳Ο鍏煎?
         ConfirmOrderRequest confirmRequest = new ConfirmOrderRequest();
         confirmRequest.setComment("Confirmed by buyer");
 
@@ -364,7 +364,7 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.confirmedBy").value(buyerUser.getId()))
                 .andExpect(jsonPath("$.totalConfirmedQty").value(90));
 
-        // 验证数据库和批次码生成
+        // 婵°倗濮撮惌渚€鎯佹径鎰瀬闁绘鐗嗙粊锕傚箹鐎涙ɑ灏柟铚傚嵆楠炲秶鎲撮崟闈涗还闂佹椿鍠曢懗鍫曞极閹捐绠?
         dbOrder = inboundOrderRepository.findById(orderId).orElseThrow();
         assertThat(dbOrder.getStatus()).isEqualTo(InboundOrderStatus.AWAITING_RECEIVAL);
         assertThat(dbOrder.getTotalConfirmedQty()).isEqualTo(90);
@@ -374,7 +374,7 @@ class InboundOrderControllerIntegrationTest {
         assertThat(confirmedItem.getBatchCode()).matches("SPU\\d+-SKU\\d+-\\d{8}(-\\d{2})?");
         assertThat(confirmedItem.getConfirmedQty()).isEqualTo(90);
 
-        // Step 4: 仓库收货
+        // Step 4: 婵炲濮甸幐鍝ヨ姳闁秴缁╅柟顖滃瑜?
         ReceiveGoodsRequest receiveRequest = new ReceiveGoodsRequest();
         ReceiveGoodsRequest.ItemReceipt receipt = new ReceiveGoodsRequest.ItemReceipt();
         receipt.setItemId(confirmedItem.getId());
@@ -392,28 +392,28 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.receivedBy").value(warehouseUser.getId()))
                 .andExpect(jsonPath("$.totalActualQty").value(88));
 
-        // 验证数据库
+        // 婵°倗濮撮惌渚€鎯佹径鎰瀬闁绘鐗嗙粊锕傚箹?
         dbOrder = inboundOrderRepository.findById(orderId).orElseThrow();
         assertThat(dbOrder.getStatus()).isEqualTo(InboundOrderStatus.COMPLETED);
         assertThat(dbOrder.getTotalActualQty()).isEqualTo(88);
 
-        // 验证库存批次创建
+        // 婵°倗濮撮惌渚€鎯佹径瀣劅闁规儳纾幗鐘绘煙娴ｅ喚娼愭い鎰偢瀹曟艾鈽夊Ο鑲╁
         List<InventoryBatch> batches = inventoryBatchRepository.findByBatchCodeAndLocation(
                 confirmedItem.getBatchCode(), testLocation);
         assertThat(batches).hasSize(1);
         assertThat(batches.get(0).getQuantity()).isEqualTo(88);
 
-        // 验证库存流水创建
+        // 婵°倗濮撮惌渚€鎯佹径瀣劅闁规儳纾幗鐘崇箾缂堢姷鍔嶉柟绋款樀瀹曟艾鈽夊Ο鑲╁
         List<StockTransaction> transactions = stockTransactionRepository.findAll();
         assertThat(transactions).hasSize(1);
         assertThat(transactions.get(0).getQuantity()).isEqualTo(88);
         assertThat(transactions.get(0).getSourceOrderId()).isEqualTo(dbOrder.getOrderNo());
     }
 
-    // ==================== 创建入库单测试 ====================
+    // ==================== 闂佸憡甯楃粙鎴犵磽閹捐绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭缂佷礁顕幏?====================
 
     @Test
-    @DisplayName("创建入库单 - 成功")
+    @DisplayName("case-3")
     void createInboundOrder_Success() throws Exception {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
@@ -439,21 +439,21 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.supplierId").value(testSupplier.getId()))
                 .andExpect(jsonPath("$.totalPlanQty").value(100));
 
-        // 验证数据库
+        // 婵°倗濮撮惌渚€鎯佹径鎰瀬闁绘鐗嗙粊锕傚箹?
         List<InboundOrder> orders = inboundOrderRepository.findAll();
         assertThat(orders).hasSize(1);
         assertThat(orders.get(0).getStatus()).isEqualTo(InboundOrderStatus.PENDING_APPROVAL);
     }
 
     @Test
-    @DisplayName("创建入库单 - 供应商不存在")
+    @DisplayName("case-4")
     void createInboundOrder_SupplierNotFound() throws Exception {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
-        request.setSupplierId(999L);  // 不存在的供应商ID
+        request.setSupplierId(999L);  // 婵炴垶鎸哥粔鎾偤閵娾晛鎹堕柕濞у嫮鏆犳繛鎾寸缁嬫垹鑺遍弻銉ョ柈闁告粎鐦?
         request.setExpectedDate(LocalDate.now().plusDays(7));
 
-        // 添加一个有效的 item，避免验证错误
+        // 濠电儑缍€椤曆勬叏閻愬鈻旈柍褜鍓氱粙澶愵敂閸涱喚鐣抽梺杞扮閻楀繐鈻?item闂佹寧绋戦惌鍌涘閳哄懎绀傜€广儱顦卞畷锝夋偣閸ワ妇绐旈柡浣革功閹?
         CreateInboundOrderRequest.InboundOrderItemRequest itemReq = new CreateInboundOrderRequest.InboundOrderItemRequest();
         itemReq.setProductId(testProduct.getId());
         itemReq.setPlanQty(100);
@@ -471,12 +471,12 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.errorKey").value("SUPPLIER_NOT_FOUND"));
     }
 
-    // ==================== 查询测试 ====================
+    // ==================== 闂佸搫琚崕鎾敋濡も偓闇夐悗锝庡幘濡?====================
 
     @Test
-    @DisplayName("查询待审批的入库单")
+    @DisplayName("case-5")
     void getPendingApprovalOrders_Success() throws Exception {
-        // Given - 创建一个待审批的入库单
+        // Given - 闂佸憡甯楃粙鎴犵磽閹惧鈻旈柍褜鍓氱粙澶愵敂閸曨厾顎€闁诲骸鍘滈崜婵囩珶閹烘鍎嶉柛鏇ㄥ亜瀵娊骞栫€涙ɑ灏€?
         InboundOrder order = inboundOrderRepository.save(InboundOrder.builder()
                 .orderNo("IB202601260001")
                 .supplier(testSupplier)
@@ -497,7 +497,7 @@ class InboundOrderControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("根据ID查询入库单 - 成功")
+    @DisplayName("case-6")
     void getInboundOrderById_Success() throws Exception {
         // Given
         InboundOrder order = inboundOrderRepository.save(InboundOrder.builder()
@@ -519,7 +519,7 @@ class InboundOrderControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("根据ID查询入库单 - 不存在")
+    @DisplayName("case-7")
     void getInboundOrderById_NotFound() throws Exception {
         // When & Then
         mockMvc.perform(get("/api/inbound-orders/999")
@@ -529,10 +529,10 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.errorKey").value("INBOUND_ORDER_NOT_FOUND"));
     }
 
-    // ==================== 拒绝测试 ====================
+    // ==================== 闂佸綊鏀辩敮鐐靛垝瀹勬噴鍦偓锝庡幘濡?====================
 
     @Test
-    @DisplayName("拒绝入库单 - 成功")
+    @DisplayName("case-8")
     void rejectOrder_Success() throws Exception {
         // Given
         InboundOrder order = inboundOrderRepository.save(InboundOrder.builder()
@@ -556,7 +556,7 @@ class InboundOrderControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJECTED"));
 
-        // 验证数据库
+        // 婵°倗濮撮惌渚€鎯佹径鎰瀬闁绘鐗嗙粊锕傚箹?
         InboundOrder dbOrder = inboundOrderRepository.findById(order.getId()).orElseThrow();
         assertThat(dbOrder.getStatus()).isEqualTo(InboundOrderStatus.REJECTED);
     }

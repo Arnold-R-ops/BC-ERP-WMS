@@ -22,26 +22,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * WarehouseService 单元测试
+ * WarehouseService 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
  *
- * 测试仓库管理服务的核心功能
+ * 濠电偞娼欓鍫ユ儊椤栨稓顩烽柟鎯х－濮樸劎绱掗悪鍛？闁诡喖锕闈涱吋閸涱収娼抽梺姹囧妼鐎氼參鎮х€圭姷鐤€闁告劑鍔岄～鐘绘煠?
  *
- * 测试场景：
- * 1. 创建仓库（成功/编码重复）
- * 2. 根据ID查询仓库（成功/不存在）
- * 3. 根据编码查询仓库（成功/不存在）
- * 4. 查询所有激活的仓库
- * 5. 查询所有仓库
- * 6. 更新仓库信息
- * 7. 激活仓库
- * 8. 停用仓库
- * 9. 获取仓库的库位数量
+ * 濠电偞娼欓鍫ユ儊椤栫偛鎹堕柣鎴炆戦悵顖炴煥?
+ * 1. 闂佸憡甯楃粙鎴犵磽閹惧顩烽柟鎯х－濮樸劑鏌ㄥ☉妯煎闁搞劍宀稿畷?缂傚倸鍊归悧婊堟偉濠婂牊鐓傜€广儱鎷嬪Σ濠氭煥?
+ * 2. 闂佸搫绉烽～澶婄暤娑擃搳闂佸搫琚崕鎾敋濡や胶顩烽柟鎯х－濮樸劑鏌ㄥ☉妯煎闁搞劍宀稿畷?婵炴垶鎸哥粔鎾偤閵娾晛鎹舵い顓熷笧缁€?
+ * 3. 闂佸搫绉烽～澶婄暤娴ｈ櫣纾介柡宥庡亞閸ㄦ娊鏌＄仦璇插姤妞ゆ洘顨嗙粋鎺楀箻瀹曞洦鐨戦梺鎸庣☉閻楀﹪宕瑰璺虹?婵炴垶鎸哥粔鎾偤閵娾晛鎹舵い顓熷笧缁€?
+ * 4. 闂佸搫琚崕鎾敋濡ゅ懎绠ラ柍褜鍓熷鍨緞鐎ｎ剝绀嬪┑鐐跺蔼瀹曢潧鈻撻幋鐐殿浄闁规儳纾?
+ * 5. 闂佸搫琚崕鎾敋濡ゅ懎绠ラ柍褜鍓熷鍨緞婢跺本灏濋柟?
+ * 6. 闂佸搫娲ら悺銊╁蓟婵犲啰顩烽柟鎯х－濮樸劌菐閸ワ絽澧插ù?
+ * 7. 濠电姷顣介崑鎾寸箾閼奸鍞虹紒顔哄妽閹?
+ * 8. 闂佺顑嗙划搴ㄥ极閵堝棛顩烽柟鎯х－濮?
+ * 9. 闂佸吋鍎抽崲鑼躲亹閸ャ劎顩烽柟鎯х－濮樸劑鏌ｉ妸銉ヮ仼缂併劏椴搁幏鍛吋閸℃ɑ顔嶉梻?
  *
  * @author WMS Team
  * @since 2025-01-23 (Phase 3.4)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("WarehouseService 单元测试")
+@DisplayName("case-1")
 class WarehouseServiceTest {
 
     @Mock
@@ -65,7 +65,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("创建仓库 - 成功")
+    @DisplayName("case-2")
     void createWarehouse_Success() {
         // Given
         when(warehouseRepository.existsByCode("WH02")).thenReturn(false);
@@ -90,7 +90,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("创建仓库 - 编码已存在")
+    @DisplayName("case-3")
     void createWarehouse_CodeAlreadyExists() {
         // Given
         when(warehouseRepository.existsByCode("WH01")).thenReturn(true);
@@ -105,7 +105,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("根据ID查询仓库 - 成功")
+    @DisplayName("case-4")
     void getWarehouseById_Success() {
         // Given
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -121,7 +121,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("根据ID查询仓库 - 不存在")
+    @DisplayName("case-5")
     void getWarehouseById_NotFound() {
         // Given
         when(warehouseRepository.findById(999L)).thenReturn(Optional.empty());
@@ -133,7 +133,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("根据编码查询仓库 - 成功")
+    @DisplayName("case-6")
     void getWarehouseByCode_Success() {
         // Given
         when(warehouseRepository.findByCode("WH01")).thenReturn(Optional.of(testWarehouse));
@@ -147,7 +147,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("根据编码查询仓库 - 不存在")
+    @DisplayName("case-7")
     void getWarehouseByCode_NotFound() {
         // Given
         when(warehouseRepository.findByCode("INVALID")).thenReturn(Optional.empty());
@@ -159,7 +159,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("查询所有激活的仓库")
+    @DisplayName("case-8")
     void getAllActiveWarehouses() {
         // Given
         Warehouse warehouse2 = Warehouse.builder()
@@ -179,7 +179,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("查询所有仓库")
+    @DisplayName("case-9")
     void getAllWarehouses() {
         // Given
         Warehouse inactiveWarehouse = Warehouse.builder()
@@ -199,7 +199,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("更新仓库信息 - 成功")
+    @DisplayName("case-10")
     void updateWarehouse_Success() {
         // Given
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -217,7 +217,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("更新仓库信息 - 仓库不存在")
+    @DisplayName("case-11")
     void updateWarehouse_NotFound() {
         // Given
         when(warehouseRepository.findById(999L)).thenReturn(Optional.empty());
@@ -231,7 +231,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("激活仓库 - 成功")
+    @DisplayName("case-12")
     void activateWarehouse_Success() {
         // Given
         testWarehouse.setIsActive(false);
@@ -247,7 +247,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("停用仓库 - 成功")
+    @DisplayName("case-13")
     void deactivateWarehouse_Success() {
         // Given
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -262,7 +262,7 @@ class WarehouseServiceTest {
     }
 
     @Test
-    @DisplayName("获取仓库的库位数量")
+    @DisplayName("case-14")
     void getLocationCount() {
         // Given
         when(warehouseRepository.countLocationsByWarehouseId(1L)).thenReturn(10L);

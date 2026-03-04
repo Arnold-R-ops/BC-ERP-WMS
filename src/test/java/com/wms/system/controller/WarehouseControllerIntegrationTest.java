@@ -33,17 +33,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * WarehouseController 集成测试
+ * WarehouseController 闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨姗嗗劒閸︻厸鍋撻敐搴″箻婵?
  *
- * 使用 @SpringBootTest 启动完整的 Spring 容器
- * 使用 MockMvc 模拟 HTTP 请求
- * 使用真实的数据库进行测试
+ * 濠电偠鎻紞鈧繛澶嬫礋瀵?@SpringBootTest 闂備礁鎲￠崙褰掑垂閻楀牊鍙忛柍鍝勫暊閸嬫捇鎮烽悧鍫熸嫳闂佸搫妫寸紞渚€骞?Spring 闂佽楠稿﹢閬嶅箠閹炬枼鏋?
+ * 濠电偠鎻紞鈧繛澶嬫礋瀵?MockMvc 婵犵妲呴崹顏堝礈濠靛牃鍋?HTTP 闂佽崵濮村ú顓㈠绩闁秵鍎?
+ * 濠电偠鎻紞鈧繛澶嬫礋瀵偊濡舵径瀣壋闂佺粯妫冮ˉ鎾诲级娴犲鐓熼柕濞垮劚椤忣亪鏌￠崱娆忔灈妤犵偞鍨块、娆撴嚃閳哄倻娈ら梺鍝勵槴閺呮粎绮欓弽顓溾偓渚€骞嬪婵嗘贡閳ь剨缍嗛崢鎯?
  *
- * 测试覆盖：
- * 1. 完整的 HTTP 请求/响应流程
- * 2. 数据库持久化验证
- * 3. 业务逻辑验证
- * 4. 异常处理验证
+ * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍ㄧ矋閸熸椽鏌涢埄鍐噭缁惧彞鍗抽弻? * 1. 闂佽娴烽幊鎾诲嫉椤掑嫬姹查柨婵嗩槹閸?HTTP 闂佽崵濮村ú顓㈠绩闁秵鍎?闂備礁鎲＄换鍌滅矓鐎垫瓕濮抽柟缁樺础鐟欏嫭濯撮悶娑掑墲閻?
+ * 2. 闂備浇妗ㄩ懗鑸垫櫠濡も偓閻ｅ灚鎷呯憴鍕妳闂佸湱鍋撳娆撴儊椤斿皷妲堥柡鍌涘閸ｅ綊鎮楅棃娑樼骇妞ゃ劊鍎遍悾婵嬪礃椤忓拋娼?
+ * 3. 濠电偞鍨堕幐濠氭嚌閻愵剚鍙忛柣鏂垮悑閻掑鏌￠崟顐ょ閻㈩垰妫楄灃闁绘灏欓悞鐑芥煟?
+ * 4. 闁诲孩顔栭崰鏍磹閹间焦鍋夐柤鎼佹涧缁剁偤鏌涢弴銊ュ箺闁稿﹦鍋涜灃闁绘灏欓悞鐑芥煟?
  *
  * @author WMS Team
  * @since 2025-01-23 (Phase 3.4)
@@ -53,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Transactional
 @Import(TestSecurityConfig.class)
-@DisplayName("WarehouseController 集成测试")
+@DisplayName("case-1")
 class WarehouseControllerIntegrationTest {
 
     @Autowired
@@ -89,41 +88,41 @@ class WarehouseControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 清理数据
+        // 婵犵數鍋為幐鎼佸箠閹版澘绠栧┑鐘叉搐閺嬩線鏌ｅΔ鈧悧鍡欑矈?
         warehouseRepository.deleteAll();
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
 
-        // 确保角色存在 - 使用 SUPER_ADMIN 以绕过权限检查
+        // Ensure SUPER_ADMIN role exists for integration tests
         warehouseAdminRole = roleRepository.findByRoleCode("SUPER_ADMIN")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
                         .roleCode("SUPER_ADMIN")
-                        .roleName("超级管理员")
+                        .roleName("闂佺儵鍓濈敮鎺楀箠閹邦収娈介柛銉㈡櫇娑撳秹鏌ㄥ☉妯侯仾闁稿﹦鍋ら弻?")
                         .sortOrder(1)
                         .status("ACTIVE")
                         .build()));
 
-        // 创建测试用户
+        // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻锝夛綖椤掆偓婵′粙鏌?
         warehouseAdminUser = User.builder()
                 .username("warehouse_admin")
                 .password(passwordEncoder.encode(TEST_PASSWORD))
-                .displayName("仓库管理员")
+                .displayName("濠电偛顕慨鐢稿箰閸濄儴濮抽弶鍫氭櫇娑撳秹鏌ㄥ☉妯侯仾闁稿﹦鍋ら弻?")
                 .enabled(true)
                 .defaultRoleId(warehouseAdminRole.getId())
                 .build();
         warehouseAdminUser = userRepository.save(warehouseAdminUser);
 
-        // 分配角色
+        // 闂備礁鎲＄敮鎺懳涘┑瀣偍闁靛牆娲﹂崰鍡涙煙閻戞ɑ绀€妞?
         userRoleRepository.save(SysUserRole.builder()
                 .userId(warehouseAdminUser.getId())
                 .roleId(warehouseAdminRole.getId())
                 .assignedBy(warehouseAdminUser.getId())
                 .build());
 
-        // 生成 JWT Token
+        // 闂備焦鐪归崹濠氬窗閹版澘鍨?JWT Token
         warehouseAdminToken = jwtUtil.generateToken(warehouseAdminUser.getUsername(), "SUPER_ADMIN");
 
-        // 创建测试数据
+        // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻鈩冩媴閸濆嫷鏆悗?
         testWarehouse = Warehouse.builder()
                 .code("WH01")
                 .name("Main Warehouse")
@@ -142,7 +141,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("获取所有仓库 - 成功")
+    @DisplayName("case-2")
     void getAllWarehouses_Success() throws Exception {
         mockMvc.perform(get("/api/warehouses")
                         .header("Authorization", "Bearer " + warehouseAdminToken))
@@ -154,7 +153,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("获取所有激活的仓库 - 成功")
+    @DisplayName("case-3")
     void getAllActiveWarehouses_Success() throws Exception {
         mockMvc.perform(get("/api/warehouses/active")
                         .header("Authorization", "Bearer " + warehouseAdminToken))
@@ -165,7 +164,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("根据ID获取仓库 - 成功")
+    @DisplayName("case-4")
     void getWarehouseById_Success() throws Exception {
         mockMvc.perform(get("/api/warehouses/{id}", testWarehouse.getId())
                         .header("Authorization", "Bearer " + warehouseAdminToken))
@@ -175,7 +174,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("根据ID获取仓库 - 不存在")
+    @DisplayName("case-5")
     void getWarehouseById_NotFound() throws Exception {
         mockMvc.perform(get("/api/warehouses/{id}", 999L)
                         .header("Authorization", "Bearer " + warehouseAdminToken))
@@ -184,7 +183,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("根据编码获取仓库 - 成功")
+    @DisplayName("case-6")
     void getWarehouseByCode_Success() throws Exception {
         mockMvc.perform(get("/api/warehouses/code/{code}", "WH01")
                         .header("Authorization", "Bearer " + warehouseAdminToken))
@@ -193,7 +192,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("创建仓库 - 成功")
+    @DisplayName("case-7")
     void createWarehouse_Success() throws Exception {
         // Given
         CreateWarehouseRequest request = new CreateWarehouseRequest(
@@ -217,7 +216,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("创建仓库 - 编码已存在")
+    @DisplayName("case-8")
     void createWarehouse_CodeAlreadyExists() throws Exception {
         // Given
         CreateWarehouseRequest request = new CreateWarehouseRequest(
@@ -237,11 +236,11 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("创建仓库 - 验证失败（编码格式错误）")
+    @DisplayName("case-9")
     void createWarehouse_ValidationFailed() throws Exception {
         // Given
         CreateWarehouseRequest request = new CreateWarehouseRequest(
-                "invalid",  // 小写，不符合格式要求
+                "invalid",  // 闂佽绻愮换鎰崲閹版澘鐤柟鍓х帛閺咁剟鎮橀悙璺轰汗闁荤喐绻勭槐鎺懳旂€ｎ剛鏆犻梺璇″枛闁帮絽顕ｆ禒瀣亗閹艰揪绲块、鍛存煟閻斿憡纾婚柣鎺炵畵閹?
                 "Invalid Warehouse",
                 null,
                 null
@@ -256,7 +255,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("更新仓库 - 成功")
+    @DisplayName("case-10")
     void updateWarehouse_Success() throws Exception {
         // Given
         UpdateWarehouseRequest request = new UpdateWarehouseRequest(
@@ -281,10 +280,9 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("激活仓库 - 成功")
+    @DisplayName("case-11")
     void activateWarehouse_Success() throws Exception {
-        // Given - 先停用仓库
-        testWarehouse.setIsActive(false);
+        // Given - 闂備胶顭堢换鎰版偋閸℃顩烽柣妯肩帛閸嬨劑鏌曟繛鍨偓妤€鈻旈姀銈呯?        testWarehouse.setIsActive(false);
         warehouseRepository.save(testWarehouse);
 
         // When & Then
@@ -299,7 +297,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("停用仓库 - 成功")
+    @DisplayName("case-12")
     void deactivateWarehouse_Success() throws Exception {
         mockMvc.perform(put("/api/warehouses/{id}/deactivate", testWarehouse.getId())
                         .header("Authorization", "Bearer " + warehouseAdminToken))
@@ -312,7 +310,7 @@ class WarehouseControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("获取仓库的库位数量 - 成功")
+    @DisplayName("case-13")
     void getLocationCount_Success() throws Exception {
         mockMvc.perform(get("/api/warehouses/{id}/location-count", testWarehouse.getId())
                         .header("Authorization", "Bearer " + warehouseAdminToken))

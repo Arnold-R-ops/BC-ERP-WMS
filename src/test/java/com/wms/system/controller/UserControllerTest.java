@@ -29,24 +29,24 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * UserController 单元测试
+ * UserController 闂備礁鎲￠〃鍡椕洪弽顓炲偍闁规崘绉崷顓涘亾閿濆骸骞樻俊?
  *
- * 使用 Mockito 模拟所有依赖，专注于测试控制器逻辑。
+ * 濠电偠鎻紞鈧繛澶嬫礋瀵?Mockito 婵犵妲呴崹顏堝礈濠靛牃鍋撳顓犳噰妤犵偛绉归崺鈧い鎺戝鐎氬顭跨捄渚Ш閻犳劏鏅犻幃纭咁槼闁绘鍘惧Σ鎰攽閸モ斁鏋栭梺瑙勫劤閻°劑寮抽崼婢濈懓顭ㄩ崘顭戝妷缂備椒绀侀顓㈠箯閻樿鍗抽柣鏃囨腹缁垶姊洪崨濠傜婵炲绋戦埢宥夊箳濡や胶鍔甸梺鍝勫缁绘帞鏁崱娑欑厪?
  *
- * 测试覆盖：
- * 1. 获取所有用户
- * 2. 创建用户（成功/用户名重复/角色不存在）
- * 3. 更新用户（成功/用户不存在/默认角色无效）
- * 4. 删除用户（成功/用户不存在）
- * 5. 批量分配角色（成功/用户不存在/角色不存在）
- * 6. 移除单个角色（成功/最后一个角色/角色未分配）
+ * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍ㄧ矋閸熸椽鏌涢埄鍐噭缁惧彞鍗抽弻?
+ * 1. 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墮缁犮儵鏌嶈閸撶喎顕ｉ崹顐㈢窞閻忕偟鍋撳▓銏ゆ⒑?
+ * 2. 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻銊モ槈濡厧顤€闂佹悶鍔嶅畝绋跨暦?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴欏灩鐟欙妇鈧箍鍎遍ˇ顖氣枍閵忕媭鐔?闂佽崵鍠愰悷锔炬暜閻斿摜鐝跺┑鐘插暟閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓曢柨鏃囧吹閸樻粎绱?
+ * 3. 闂備礁鎼ú銈夋偤閵娾晛钃熷┑鐘叉处閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻銊モ槈濡厧顤€闂佹悶鍔嶅畝绋跨暦?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴炵懅閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓?濠殿喗甯楃粙鎺椻€﹂崼銉晣闁煎鍊栭崰鍡涙煙閻戞ɑ绀€妞ゃ儱绻橀弻锟犲礃椤忓嫅锝夋煛閸涱偄鍔﹂柡?
+ * 4. 闂備礁鎲＄敮鐐寸箾閳ь剚绻涢崨顓㈠弰闁诡喕绮欐俊鎼佹晝閳ь剟鎮￠弴銏＄叆婵炴垶顭囨晶娑㈡煕閵婏箑鍝虹€?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴炵懅閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓曢柨鏃囧吹閸樻粎绱?
+ * 5. 闂備礁缍婂褏绱炴繝鍥ч棷婵炲樊浜滅粈鍡涙煕閳╁啰鈽夐悽顖涘▕閹嘲鈻庨幇顒傤儎婵犮垻鎳撻敃顏堝极瀹ュ閱囬柣鏃堫棑娴滐綁姊?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴炵懅閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓?闂佽崵鍠愰悷锔炬暜閻斿摜鐝跺┑鐘插暟閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓曢柨鏃囧吹閸樻粎绱?
+ * 6. 缂傚倷绀侀ˇ顖炩€﹀畡鎵虫瀺閹兼番鍔岀涵鈧梺鍝勬处瀹€鎼佸吹鐎ｎ喗鍋℃繛鍡樺姇缁椻晛顭块悷甯含闁轰礁绉瑰畷濂告偄妞嬪簼娴烽梻?闂備礁鎼悧鍐磻閹剧粯鐓曟慨姗嗗墰閸戝湱绱掗弬璺ㄦ憼缂佸顦甸、鏃堝炊閼搁潧浠撮梻?闂佽崵鍠愰悷锔炬暜閻斿摜鐝跺┑鐘叉搐鐎氬銇勮箛鎾愁仼闁诲骸顭峰娲级鐠恒劉鏋岀紓?
  *
  * @author WMS Team
  * @since 2026-01-20
  * @version 3.3 (Multi-Role RBAC System)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UserController 单元测试")
+@DisplayName("case-1")
 @SuppressWarnings("unchecked")
 class UserControllerTest {
 
@@ -78,24 +78,24 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        // 创建测试用户
+        // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻锝夛綖椤掆偓婵′粙鏌?
         testUser = User.builder()
                 .id(1L)
                 .username("test_user")
                 .password("encoded_password")
-                .displayName("测试用户")
+                .displayName("Test User")
                 .enabled(true)
                 .defaultRoleId(3L)
-                .remark("测试备注")
+                .remark("Test user remark")
                 .build();
         testUser.setCreatedAt(LocalDateTime.now());
         testUser.setUpdatedAt(LocalDateTime.now());
 
-        // 创建测试角色
+        // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞幃宄扳枎閹邦剛顑勬繝?
         warehouseAdminRole = SysRole.builder()
                 .id(3L)
                 .roleCode("WAREHOUSE_ADMIN")
-                .roleName("仓库管理员")
+                .roleName("Warehouse Admin")
                 .sortOrder(10)
                 .status("ACTIVE")
                 .build();
@@ -103,7 +103,7 @@ class UserControllerTest {
         salespersonRole = SysRole.builder()
                 .id(5L)
                 .roleCode("SALESPERSON")
-                .roleName("销售员")
+                .roleName("Salesperson")
                 .sortOrder(20)
                 .status("ACTIVE")
                 .build();
@@ -111,16 +111,16 @@ class UserControllerTest {
         purchaserRole = SysRole.builder()
                 .id(7L)
                 .roleCode("PURCHASER")
-                .roleName("采购员")
+                .roleName("Purchaser")
                 .sortOrder(30)
                 .status("ACTIVE")
                 .build();
     }
 
-    // ========== 测试：获取所有用户 ==========
+    // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥΟ鍝勬毐缂佺媭鍨堕弻娑樷枎閹邦喖顫ф繝鈷€鍐х€殿喖鐏氬鍕沪閻愵剚顓归梻?==========
 
     @Test
-    @DisplayName("获取所有用户 - 成功")
+    @DisplayName("case-2")
     void getAllUsers_Success() {
         // Given
         List<User> users = Arrays.asList(testUser);
@@ -141,7 +141,7 @@ class UserControllerTest {
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getUsername()).isEqualTo("test_user");
         assertThat(dto.getRoleCodes()).containsExactly("WAREHOUSE_ADMIN", "SALESPERSON");
-        assertThat(dto.getRoleNames()).containsExactly("仓库管理员", "销售员");
+        assertThat(dto.getRoleNames()).containsExactly("Warehouse Admin", "Salesperson");
         assertThat(dto.getDefaultRoleCode()).isEqualTo("WAREHOUSE_ADMIN");
 
         verify(userRepository).findAll();
@@ -149,7 +149,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("获取所有用户 - 空列表")
+    @DisplayName("case-3")
     void getAllUsers_EmptyList() {
         // Given
         when(userRepository.findAll()).thenReturn(Collections.emptyList());
@@ -165,19 +165,19 @@ class UserControllerTest {
         verifyNoInteractions(userRoleService);
     }
 
-    // ========== 测试：创建用户 ==========
+    // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥ鍡楀闁诲骏绱曢埀顒傚仯閸婃稑鈻嶉敐澶婃瀬闁靛牆顦粻?==========
 
     @Test
-    @DisplayName("创建用户 - 成功")
+    @DisplayName("case-4")
     void createUser_Success() {
         // Given
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("new_user")
                 .password("Password@123")
-                .displayName("新用户")
+                .displayName("New User")
                 .roleIds(Arrays.asList(3L, 5L))
                 .enabled(true)
-                .remark("新创建的用户")
+                .remark("Created in unit test")
                 .build();
 
         when(userRepository.existsByUsername("new_user")).thenReturn(false);
@@ -206,11 +206,11 @@ class UserControllerTest {
         verify(userRepository).existsByUsername("new_user");
         verify(passwordEncoder).encode("Password@123");
         verify(userRepository).save(any(User.class));
-        verify(userRoleService).assignRolesToUser(eq(10L), any(HashSet.class), eq(10L));
+        verify(userRoleService).assignRolesToUser(eq(10L), anySet(), eq(10L));
     }
 
     @Test
-    @DisplayName("创建用户 - 用户名已存在")
+    @DisplayName("case-5")
     void createUser_UsernameExists() {
         // Given
         CreateUserRequest request = CreateUserRequest.builder()
@@ -231,7 +231,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("创建用户 - 角色不存在")
+    @DisplayName("case-6")
     void createUser_RoleNotFound() {
         // Given
         CreateUserRequest request = CreateUserRequest.builder()
@@ -251,16 +251,16 @@ class UserControllerTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
-    // ========== 测试：更新用户 ==========
+    // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥ鍡楀箺缂佺虎鍨堕弻锟犲磼濞戞﹩妫嗛梺杞伴檷閸婃繈鐛?==========
 
     @Test
-    @DisplayName("更新用户 - 成功")
+    @DisplayName("case-7")
     void updateUser_Success() {
         // Given
         UpdateUserRequest request = UpdateUserRequest.builder()
-                .displayName("更新后的名称")
+                .displayName("Updated User")
                 .enabled(false)
-                .remark("更新后的备注")
+                .remark("Updated in unit test")
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -274,9 +274,9 @@ class UserControllerTest {
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(testUser.getDisplayName()).isEqualTo("更新后的名称");
+        assertThat(testUser.getDisplayName()).isEqualTo("Updated User");
         assertThat(testUser.getEnabled()).isFalse();
-        assertThat(testUser.getRemark()).isEqualTo("更新后的备注");
+        assertThat(testUser.getRemark()).isEqualTo("Updated in unit test");
 
         verify(userRepository).findById(1L);
         verify(userRepository).save(testUser);
@@ -284,11 +284,11 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("更新用户 - 用户不存在")
+    @DisplayName("case-8")
     void updateUser_UserNotFound() {
         // Given
         UpdateUserRequest request = UpdateUserRequest.builder()
-                .displayName("更新后的名称")
+                .displayName("User Not Found")
                 .build();
 
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -303,7 +303,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("更新用户 - 默认角色不存在")
+    @DisplayName("case-9")
     void updateUser_DefaultRoleNotFound() {
         // Given
         UpdateUserRequest request = UpdateUserRequest.builder()
@@ -322,7 +322,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("更新用户 - 默认角色未分配给用户")
+    @DisplayName("case-10")
     void updateUser_DefaultRoleNotAssigned() {
         // Given
         UpdateUserRequest request = UpdateUserRequest.builder()
@@ -341,10 +341,10 @@ class UserControllerTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
-    // ========== 测试：删除用户 ==========
+    // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥ鍡楀闁诲繆鏅犲濠氬礋閳轰讲鍋撳Δ鍛瀬闁靛牆顦粻?==========
 
     @Test
-    @DisplayName("删除用户 - 成功")
+    @DisplayName("case-11")
     void deleteUser_Success() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -365,7 +365,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("删除用户 - 用户不存在")
+    @DisplayName("case-12")
     void deleteUser_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -379,10 +379,10 @@ class UserControllerTest {
         verify(userRepository, never()).delete(any(User.class));
     }
 
-    // ========== 测试：批量分配角色 ==========
+    // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥ鍡楀箹妞ゃ儲顨婂娲箵閹烘梻顔囬梺鎼炲妼闁帮綁寮绘繝鍌ゅ悑闁割偒鍋呴崑銉╂⒑?==========
 
     @Test
-    @DisplayName("批量分配角色 - 成功")
+    @DisplayName("case-13")
     void assignRoles_Success() {
         // Given
         AssignRolesRequest request = AssignRolesRequest.builder()
@@ -393,7 +393,7 @@ class UserControllerTest {
         when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
         when(roleRepository.findById(5L)).thenReturn(Optional.of(salespersonRole));
         when(roleRepository.findById(7L)).thenReturn(Optional.of(purchaserRole));
-        doNothing().when(userRoleService).assignRolesToUser(anyLong(), any(HashSet.class), anyLong());
+        doNothing().when(userRoleService).assignRolesToUser(anyLong(), anySet(), anyLong());
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole, purchaserRole));
         when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
@@ -406,12 +406,12 @@ class UserControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getRoleCodes()).hasSize(3);
 
-        verify(userRoleService).assignRolesToUser(eq(1L), any(HashSet.class), eq(1L));
+        verify(userRoleService).assignRolesToUser(eq(1L), anySet(), eq(1L));
         verify(cacheService).onUserRoleAssigned(1L);
     }
 
     @Test
-    @DisplayName("批量分配角色 - 用户不存在")
+    @DisplayName("case-14")
     void assignRoles_UserNotFound() {
         // Given
         AssignRolesRequest request = AssignRolesRequest.builder()
@@ -429,7 +429,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("批量分配角色 - 角色不存在")
+    @DisplayName("case-15")
     void assignRoles_RoleNotFound() {
         // Given
         AssignRolesRequest request = AssignRolesRequest.builder()
@@ -447,17 +447,17 @@ class UserControllerTest {
         verify(userRoleService, never()).assignRolesToUser(anyLong(), any(), anyLong());
     }
 
-    // ========== 测试：移除单个角色 ==========
+    // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥΟ鑽ゆ▊闁冲搫鎳忛埛鏃堟煏閸繃鍣圭紒鈧€ｎ亖妲堥柟鍨暕濞撮攱銇勯锝庢疁闁?==========
 
     @Test
-    @DisplayName("移除角色 - 成功")
+    @DisplayName("case-16")
     void removeRole_Success() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(roleRepository.findById(5L)).thenReturn(Optional.of(salespersonRole));
         when(userRoleService.userHasRole(1L, 5L)).thenReturn(true);
         when(userRoleService.getUserRoles(1L))
-                .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole)); // 有2个角色
+                .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole)); // 闂?濠电偞鍨堕幖鈺傜閿濆缍栨俊銈呮噺閸?
         doNothing().when(userRoleService).removeRoleFromUser(1L, 5L);
         doNothing().when(cacheService).onUserRoleRemoved(1L);
 
@@ -472,7 +472,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("移除角色 - 用户不存在")
+    @DisplayName("case-17")
     void removeRole_UserNotFound() {
         // Given
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
@@ -486,7 +486,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("移除角色 - 角色不存在")
+    @DisplayName("case-18")
     void removeRole_RoleNotFound() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -501,7 +501,7 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("移除角色 - 角色未分配给用户")
+    @DisplayName("case-19")
     void removeRole_RoleNotAssigned() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -517,14 +517,14 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("移除角色 - 不能移除最后一个角色")
+    @DisplayName("case-20")
     void removeRole_CannotRemoveLastRole() {
         // Given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
         when(userRoleService.userHasRole(1L, 3L)).thenReturn(true);
         when(userRoleService.getUserRoles(1L))
-                .thenReturn(Arrays.asList(warehouseAdminRole)); // 只有1个角色
+                .thenReturn(Arrays.asList(warehouseAdminRole)); // 闂備礁鎲￠悷顖涚濠靛棴鑰?濠电偞鍨堕幖鈺傜閿濆缍栨俊銈呮噺閸?
 
         // When & Then
         assertThatThrownBy(() -> userController.removeRole(1L, 3L))
@@ -534,3 +534,4 @@ class UserControllerTest {
         verify(userRoleService, never()).removeRoleFromUser(anyLong(), anyLong());
     }
 }
+

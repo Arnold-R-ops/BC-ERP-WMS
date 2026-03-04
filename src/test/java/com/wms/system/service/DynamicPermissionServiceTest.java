@@ -22,22 +22,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * DynamicPermissionService 单元测试
+ * DynamicPermissionService 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
  *
- * 重点测试角色继承和权限解析功能
+ * 闂備焦褰冪粔鍫曞磻閿濆悿鍦偓锝庡幘濡叉悂鎮峰▎鎰濠㈢懓锕︾槐鎺曨槼濠㈣鐟╁畷顏嗕沪閻愵剛绉梻鍌氬閸旀顣鹃梺鍝勵儐閸旀洘鎱ㄥ☉銏″殑?
  *
- * 测试场景：
- * 1. 单角色权限查询
- * 2. 董事长角色继承（多重继承）
- * 3. 多级角色继承（递归）
- * 4. 权限去重
- * 5. 空角色处理
+ * 濠电偞娼欓鍫ユ儊椤栫偛鎹堕柣鎴炆戦悵顖炴煥?
+ * 1. 闂佸憡顨嗗ú婵嬶綖濡ゅ懏鍤岄柛娆忣槹缂嶁偓闂傚倸瀚崝鏍偂閿涘嫭瀚?
+ * 2. 闂佹垝绶ょ徊鑲╄姳閵娾晜鈷愰柤鎰佸灱濞硷繝鏌ょ涵鍛毢闁瑰鍏橀獮宥夊礌閿涘嫮顦╂繝銏ｅ煐瀹€鎼佸闯閸濄儳纾肩憸搴㈢珶濞嗘挻鏅?
+ * 3. 婵犮垼鍩栧銊︻殽閸モ晜鍠嗛柟鐑樻礀椤ュ繒绱撴担鍫濆椤ョ偤鏌ㄥ☉妯煎ⅵ闁逞屽墯鐢帞绱炴繝鍥ㄦ櫖?
+ * 4. 闂佸搫顦崯鏉戭瀶濞差亜鍌ㄥ┑鐘宠壘濞?
+ * 5. 缂備礁鐭傜紓姘讹綖濡ゅ懏鍤岄柟缁樺俯濡查亶鏌?
  *
  * @author WMS Team
  * @since 2026-01-18
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("DynamicPermissionService 单元测试")
+@DisplayName("case-1")
 @SuppressWarnings("unchecked")
 class DynamicPermissionServiceTest {
 
@@ -71,40 +71,40 @@ class DynamicPermissionServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 初始化测试角色
+        // 闂佸憡甯楃换鍌烇綖閹版澘绀岄柡宥冨妿閵堟挳鎮归崶銊︾妞ゎ偅顨婇幊?
         chairmanRole = SysRole.builder()
                 .id(1L)
                 .roleCode("CHAIRMAN")
-                .roleName("董事长")
+                .roleName("闂佹垝绶ょ徊鑲╄姳閵娾晜鈷?")
                 .status("ACTIVE")
                 .build();
 
         warehouseAdminRole = SysRole.builder()
                 .id(2L)
                 .roleCode("WAREHOUSE_ADMIN")
-                .roleName("仓库管理员")
+                .roleName("婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌?")
                 .status("ACTIVE")
                 .build();
 
         buyerRole = SysRole.builder()
                 .id(3L)
                 .roleCode("BUYER")
-                .roleName("采购员")
+                .roleName("闂備焦褰冨ú鈺呭窗濮椻偓瀹?")
                 .status("ACTIVE")
                 .build();
 
         sellerRole = SysRole.builder()
                 .id(4L)
                 .roleCode("SELLER")
-                .roleName("销售员")
+                .roleName("闂備礁绨遍崑鎾绘煕閻戝棗鏋涢柟?")
                 .status("ACTIVE")
                 .build();
 
-        // 初始化测试权限
+        // 闂佸憡甯楃换鍌烇綖閹版澘绀岄柡宥冨妿閵堟挳鎮归崶銊︾婵炵厧鐗撳?
         inventoryViewPermission = SysPermission.builder()
                 .id(101L)
                 .permissionCode("inventory:view")
-                .permissionName("查看库存")
+                .permissionName("闂佸搫琚崕鍐诧耿閸涱喗鍎熼柟鎯х－閹?")
                 .permissionType("API")
                 .resourcePath("/api/inventory/**")
                 .httpMethod("GET")
@@ -115,7 +115,7 @@ class DynamicPermissionServiceTest {
         purchaseCreatePermission = SysPermission.builder()
                 .id(102L)
                 .permissionCode("purchase:create")
-                .permissionName("创建采购订单")
+                .permissionName("闂佸憡甯楃粙鎴犵磽閹剧粯鐓傞柛銉簻閺嬬娀鎮规担闈涚仼鐎?")
                 .permissionType("API")
                 .resourcePath("/api/purchase")
                 .httpMethod("POST")
@@ -126,7 +126,7 @@ class DynamicPermissionServiceTest {
         salesViewPermission = SysPermission.builder()
                 .id(103L)
                 .permissionCode("sales:view")
-                .permissionName("查看销售")
+                .permissionName("闂佸搫琚崕鍐诧耿閸涘瓨鐓ラ柍褜鍓熷畷?")
                 .permissionType("API")
                 .resourcePath("/api/sales/**")
                 .httpMethod("GET")
@@ -137,7 +137,7 @@ class DynamicPermissionServiceTest {
         globalViewPermission = SysPermission.builder()
                 .id(104L)
                 .permissionCode("global:view")
-                .permissionName("全局数据查看")
+                .permissionName("闂佺绻堥崝宀勬儑椤掑嫬鏋侀柣妤€鐗嗙粊锕傛煛鐏炶鍔ゆ繝鈧?")
                 .permissionType("API")
                 .resourcePath("/api/reports/**")
                 .httpMethod("GET")
@@ -147,18 +147,18 @@ class DynamicPermissionServiceTest {
     }
 
     @Test
-    @DisplayName("查询单角色用户权限 - 无继承")
+    @DisplayName("case-2")
     void getUserPermissions_SingleRole_NoInheritance() {
-        // Given: 用户只有仓库管理员角色
+        // Given: 闂佹椿娼块崝宥夊春濞戙垹鐭楁い蹇撴噺缁犳帒霉閻樿櫕灏紒銊ㄤ含缁鏁嶉崟顒€鈧偤鏌涘☉娆樼劸妞ゎ偅顨婇幊?
         Long userId = 1L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L)); // WAREHOUSE_ADMIN
 
-        // Given: 仓库管理员无父角色
+        // Given: 婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌涘☉娅虫垵螞閵堝鍋夐柟顖炲亰濞硷繝鏌?
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(2L))
                 .thenReturn(Set.of());
 
-        // Given: 仓库管理员有 1 个权限
+        // Given: 婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌涘☉娅虫垵锕?1 婵炴垶鎼╂禍婵嗩焽閸儲鈷?
         SysRolePermission rolePermission = new SysRolePermission();
         rolePermission.setRoleId(2L);
         rolePermission.setPermissionId(101L);
@@ -167,14 +167,14 @@ class DynamicPermissionServiceTest {
         when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(2L)))
                 .thenReturn(List.of(rolePermission));
 
-        // Given: 查询角色信息
+        // Given: 闂佸搫琚崕鎾敋濡ゅ啯鍠嗛柟鐑樻礀椤ュ繐菐閸ワ絽澧插ù?
         when(roleRepository.findByIdIn(Set.of(2L)))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When: 获取用户权限
+        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 验证结果
+        // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾奸柟鎯ь嚟娴?
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getRoleIds()).containsExactly(2L);
@@ -188,18 +188,18 @@ class DynamicPermissionServiceTest {
     }
 
     @Test
-    @DisplayName("查询董事长权限 - 多重角色继承")
+    @DisplayName("case-3")
     void getUserPermissions_ChairmanRole_MultipleInheritance() {
-        // Given: 用户是董事长
+        // Given: 闂佹椿娼块崝宥夊春濞戙垹鍙婃い鏍ㄧ箖閸ｏ絽霉濠婂喚鍎旈柡?
         Long userId = 2L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(1L)); // CHAIRMAN
 
-        // Given: 董事长继承 3 个角色
+        // Given: 闂佹垝绶ょ徊鑲╄姳閵娾晜鈷愰悹鎭掑妽閸╂盯鏌?3 婵炴垶鎼╂禍锝夛綖濡ゅ懏鍤?
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(1L))
                 .thenReturn(Set.of(2L, 3L, 4L)); // WAREHOUSE_ADMIN, BUYER, SELLER
 
-        // Given: 父角色无继承
+        // Given: 闂佺粯鐗楅崕濂革綖濡ゅ懏鍤岄柛娆忣槹閿熴儳绱撴担鍫濆椤?
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(2L))
                 .thenReturn(Set.of());
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(3L))
@@ -207,7 +207,7 @@ class DynamicPermissionServiceTest {
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(4L))
                 .thenReturn(Set.of());
 
-        // Given: 各角色的权限
+        // Given: 闂佸憡鑹剧€氼垶锝炲Δ鍛殞闁肩⒈鍓氶悾閬嶆煛婢跺﹤鏆ｆ俊?
         SysRolePermission rp1 = new SysRolePermission();
         rp1.setRoleId(1L);
         rp1.setPermissionId(104L);
@@ -231,38 +231,38 @@ class DynamicPermissionServiceTest {
         when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(1L, 2L, 3L, 4L)))
                 .thenReturn(List.of(rp1, rp2, rp3, rp4));
 
-        // Given: 查询角色信息
+        // Given: 闂佸搫琚崕鎾敋濡ゅ啯鍠嗛柟鐑樻礀椤ュ繐菐閸ワ絽澧插ù?
         when(roleRepository.findByIdIn(Set.of(1L)))
                 .thenReturn(List.of(chairmanRole));
 
-        // When: 获取董事长权限
+        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚濯奸柨婵嗗閻ㄦ垿姊婚埀顒勫箰鎼淬垻绉梻?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 验证结果
+        // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾奸柟鎯ь嚟娴?
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getRoleIds()).containsExactly(1L);
         assertThat(result.getRoleCodes()).containsExactly("CHAIRMAN");
         assertThat(result.getEffectiveRoleIds()).containsExactlyInAnyOrder(1L, 2L, 3L, 4L);
 
-        // Then: 验证权限汇总（应该有 4 个权限）
+        // Then: 婵°倗濮撮惌渚€鎯佹径鎰骇闁告劦鍠楅娆愭叏閻熺増澶勯柍褜鍏涚槐顔炬濞嗘劖鍎熼柡鍐ㄦ祩閸ゅ鏌?4 婵炴垶鎼╂禍婵嗩焽閸儲鈷旈柟鏉垮缁€?
         assertThat(result.getPermissions()).hasSize(4);
         assertThat(result.getPermissionCodes()).containsExactlyInAnyOrder(
                 "global:view", "inventory:view", "purchase:create", "sales:view"
         );
 
-        // Then: 验证继承的权限
-        assertThat(result.hasPermission("inventory:view")).isTrue(); // 继承自仓库管理员
-        assertThat(result.hasPermission("purchase:create")).isTrue(); // 继承自采购员
-        assertThat(result.hasPermission("sales:view")).isTrue(); // 继承自销售员
-        assertThat(result.hasPermission("global:view")).isTrue(); // 董事长专属
+        // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾肩憸搴㈢珶濞嗘挻鍎嶉柛鏇ㄥ墯缂嶁偓闂?
+        assertThat(result.hasPermission("inventory:view")).isTrue(); // 缂傚倷缍€閸曨偒妫￠梺鐓庮殠娴滄瑧鍒掗妸锔藉劅闁归箖顤傞崥鈧梺鑽ゅ仜濡骞?
+        assertThat(result.hasPermission("purchase:create")).isTrue(); // 缂傚倷缍€閸曨偒妫￠梺鐓庮殠娴滎亪宕抽幍顔藉妞ゆ挾鍋為崰?
+        assertThat(result.hasPermission("sales:view")).isTrue(); // 缂傚倷缍€閸曨偒妫￠梺鐓庮殠娴滎亪寮ㄩ姀銈呰埞妞ゆ柨鍚嬮崰?
+        assertThat(result.hasPermission("global:view")).isTrue(); // 闂佹垝绶ょ徊鑲╄姳閵娾晜鈷愬璺烘憸閻熲晠鎮?
     }
 
     @Test
-    @DisplayName("递归角色继承 - 3 层继承")
+    @DisplayName("case-4")
     void getInheritedRoleIds_ThreeLevelInheritance() {
-        // Given: A -> B -> C 三层继承
-        // 角色A继承角色B，角色B继承角色C
+        // Given: A -> B -> C 婵炴垶鎸搁ˇ顖炴儑閹殿喚纾肩憸搴㈢珶?
+        // 闁荤喐鐟︾敮鐔哥珶婢跺墽绱撴担鍫濆椤ョ偤鎮峰▎鎰濠㈢懓銇熼梺鎸庣☉閻線锝炲Δ鍛殞闁活偆鍠撶槐鎺曨槼濠㈣鐟ч幉鎾箳閺囩儐妫孋
         Long roleA = 10L;
         Long roleB = 20L;
         Long roleC = 30L;
@@ -274,22 +274,22 @@ class DynamicPermissionServiceTest {
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(roleC))
                 .thenReturn(Set.of());
 
-        // When: 查询角色A的所有继承角色
+        // When: 闂佸搫琚崕鎾敋濡ゅ啯鍠嗛柟鐑樻礀椤ュ粐闂佹眹鍔岀€氼厽鏅跺澶婂珘濠㈣泛鏈崺娑㈡煙娴ｅ啫鍔垫い顐ｎ殜閹?
         Set<Long> result = permissionService.getInheritedRoleIds(Set.of(roleA));
 
-        // Then: 应该包含 A, B, C
+        // Then: 闁圭厧鐡ㄥΛ渚€顢氬璺虹闁告侗鍘介崕?A, B, C
         assertThat(result).containsExactlyInAnyOrder(roleA, roleB, roleC);
 
-        // Then: 验证递归调用
+        // Then: 婵°倗濮撮惌渚€鎯佹径鎰劵闁圭儤鍨圭粔娲偣鐎ｎ亜鏆熼柡?
         verify(roleInheritRepository, times(1)).findParentRoleIdsByChildRoleId(roleA);
         verify(roleInheritRepository, times(1)).findParentRoleIdsByChildRoleId(roleB);
         verify(roleInheritRepository, times(1)).findParentRoleIdsByChildRoleId(roleC);
     }
 
     @Test
-    @DisplayName("权限去重 - 多个角色有相同权限")
+    @DisplayName("case-5")
     void getUserPermissions_DuplicatePermissions() {
-        // Given: 用户有 2 个角色，它们有重复权限
+        // Given: 闂佹椿娼块崝宥夊春濞戙垹瀚?2 婵炴垶鎼╂禍锝夛綖濡ゅ懏鍤岄悹鍥囧懐顦柣搴ｆ嚀閸熲晛顭ㄩ幋锕€瀚夊鑸靛姇濞呫垹顭跨捄铏剐ｆ繛鐓庣墦濮?
         Long userId = 3L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L, 3L)); // WAREHOUSE_ADMIN, BUYER
@@ -297,7 +297,7 @@ class DynamicPermissionServiceTest {
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(any()))
                 .thenReturn(Set.of());
 
-        // Given: 两个角色都有 inventory:view 权限
+        // Given: 婵炴垶鎸堕崐鎾绘煂濠婂懏鍠嗛柟鐑樻礀椤ュ繘姊洪鍨撴繝鈧?inventory:view 闂佸搫顦崯鏉戭瀶?
         SysRolePermission rp1 = new SysRolePermission();
         rp1.setRoleId(2L);
         rp1.setPermissionId(101L);
@@ -305,7 +305,7 @@ class DynamicPermissionServiceTest {
 
         SysRolePermission rp2 = new SysRolePermission();
         rp2.setRoleId(3L);
-        rp2.setPermissionId(101L); // 同一个权限ID
+        rp2.setPermissionId(101L); // 闂佸憡鑹炬總鏃傜博鐎涙鈻旀い蹇撴噺缂嶁偓闂傚倸瀚埀顒侇儚
         rp2.setPermission(inventoryViewPermission);
 
         SysRolePermission rp3 = new SysRolePermission();
@@ -319,10 +319,10 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(Set.of(2L, 3L)))
                 .thenReturn(List.of(warehouseAdminRole, buyerRole));
 
-        // When: 获取用户权限
+        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 权限应该去重，只有 2 个权限
+        // Then: 闂佸搫顦崯鏉戭瀶閻戞ɑ鍎熼柡鍐ㄦ祩閸ゅ鏌涘Ο渚吋闁革絾鎮傞弫宥囦沪閽樺閿梺?2 婵炴垶鎼╂禍婵嗩焽閸儲鈷?
         assertThat(result.getPermissions()).hasSize(2);
         assertThat(result.getPermissionCodes()).containsExactlyInAnyOrder(
                 "inventory:view", "purchase:create"
@@ -330,31 +330,31 @@ class DynamicPermissionServiceTest {
     }
 
     @Test
-    @DisplayName("用户无角色 - 返回空权限")
+    @DisplayName("case-6")
     void getUserPermissions_NoRoles() {
-        // Given: 用户没有角色
+        // Given: 闂佹椿娼块崝宥夊春濞戞ǚ鏌﹂柍鈺佸暞缁犳帡鎮峰▎鎰濠?
         Long userId = 4L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of());
 
-        // When: 获取用户权限
+        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 应该返回空权限
+        // Then: 闁圭厧鐡ㄥΛ渚€顢氬顓熶氦闁哄倹瀵х粈鈧紓浣哥灱閸庛倕顭囬崼銉︹挃?
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getRoleIds()).isEmpty();
         assertThat(result.getPermissions()).isEmpty();
         assertThat(result.hasPermission("any:permission")).isFalse();
 
-        // Then: 不应该查询权限
+        // Then: 婵炴垶鎸哥粔瀵歌姳閼碱剚瀚氶柕澶涘閸欌偓闁荤姴娲㈤崹鍝勵焽閸儲鈷?
         verify(rolePermissionRepository, never()).findByRoleIdInWithPermission(any());
     }
 
     @Test
-    @DisplayName("检查用户是否有特定权限")
+    @DisplayName("case-7")
     void hasPermission() {
-        // Given: 模拟用户权限
+        // Given: 濠碘槅鍨崜婵堚偓姘懇閹粙濡搁敃鈧悡鏇㈡煛婢跺﹤鏆ｆ俊?
         Long userId = 5L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L));
@@ -371,15 +371,15 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When & Then: 检查权限
+        // When & Then: 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵炵厧鐗撳?
         assertThat(permissionService.hasPermission(userId, "inventory:view")).isTrue();
         assertThat(permissionService.hasPermission(userId, "purchase:create")).isFalse();
     }
 
     @Test
-    @DisplayName("检查用户是否有任意权限")
+    @DisplayName("case-8")
     void hasAnyPermission() {
-        // Given: 模拟用户权限
+        // Given: 濠碘槅鍨崜婵堚偓姘懇閹粙濡搁敃鈧悡鏇㈡煛婢跺﹤鏆ｆ俊?
         Long userId = 6L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L));
@@ -396,15 +396,15 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When & Then: 检查是否有任意权限
+        // When & Then: 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵″弶鎮傚畷銉╂晜閼恒儳鐣虫繛瀵稿Х缁垶宕滄导鏉戠骇闁告劦鍠楅?
         assertThat(permissionService.hasAnyPermission(userId, "inventory:view", "purchase:create")).isTrue();
         assertThat(permissionService.hasAnyPermission(userId, "sales:view", "purchase:create")).isFalse();
     }
 
     @Test
-    @DisplayName("检查用户是否有所有权限")
+    @DisplayName("case-9")
     void hasAllPermissions() {
-        // Given: 模拟用户有 2 个权限
+        // Given: 濠碘槅鍨崜婵堚偓姘懇閹粙濡搁敃鈧悡鏇㈡煛?2 婵炴垶鎼╂禍婵嗩焽閸儲鈷?
         Long userId = 7L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L));
@@ -426,26 +426,26 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When & Then: 检查是否有所有权限
+        // When & Then: 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵″弶鎮傚畷銉╂晜閼恒儳鐣抽梺鍦暯閸嬫捇鏌￠崼婵愭Ч婵炵厧鐗撳?
         assertThat(permissionService.hasAllPermissions(userId, "inventory:view", "purchase:create")).isTrue();
         assertThat(permissionService.hasAllPermissions(userId, "inventory:view", "sales:view")).isFalse();
     }
 
     @Test
-    @DisplayName("权限按类型分类 - MENU, API, BUTTON")
+    @DisplayName("case-10")
     void getUserPermissions_PermissionTypeClassification() {
-        // Given: 用户有不同类型的权限
+        // Given: 闂佹椿娼块崝宥夊春濞戙垹瀚夊璺侯槺閻熸繈鏌涘顒傜伇閻炴凹鍋婂畷鍦偓锝庡墯閻ｉ亶鏌℃径濠傛殻婵?
         Long userId = 8L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(1L));
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(any()))
                 .thenReturn(Set.of());
 
-        // 创建不同类型的权限
+        // 闂佸憡甯楃粙鎴犵磽閹惧鈻旂€广儱鎳忛崐杈╃磼椤愩儺鍤欓柣搴ｅ厴閹啴宕熼浣虹К闂?
         SysPermission menuPermission = SysPermission.builder()
                 .id(201L)
                 .permissionCode("menu:inventory")
-                .permissionName("库存菜单")
+                .permissionName("闁圭厧鐡ㄩ幐鎼佹偤閵娾晜鍤曟繝濠傚暙缁€?")
                 .permissionType("MENU")
                 .status("ACTIVE")
                 .sortOrder(1)
@@ -454,7 +454,7 @@ class DynamicPermissionServiceTest {
         SysPermission buttonPermission = SysPermission.builder()
                 .id(202L)
                 .permissionCode("button:delete")
-                .permissionName("删除按钮")
+                .permissionName("闂佸憡甯炴繛鈧繛鍛叄楠炴劖寰勯幇顓炲攭")
                 .permissionType("BUTTON")
                 .status("ACTIVE")
                 .sortOrder(2)
@@ -474,10 +474,10 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(chairmanRole));
 
-        // When: 获取用户权限
+        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 验证权限分类
+        // Then: 婵°倗濮撮惌渚€鎯佹径鎰骇闁告劦鍠楅娆撴煕閹烘垶顥犻悶?
         assertThat(result.getMenuPermissions()).hasSize(1);
         assertThat(result.getApiPermissions()).hasSize(1);
         assertThat(result.getButtonPermissions()).hasSize(1);

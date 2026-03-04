@@ -37,21 +37,21 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * AuthController 单元测试（多角色系统）
+ * AuthController 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡叉悂鏌ㄥ☉妯煎妞わ箒娉曢幉鎾箳閺囩儐妫岀紓渚囧灥瀹曠數鍒掑ú顏呮櫖?
  *
- * 使用 Mockito 模拟所有依赖，专注于测试控制器逻辑。
+ * 婵炶揪缍€濞夋洟寮?Mockito 濠碘槅鍨崜婵堚偓姘懇楠炲秹鍩€椤掑嫬瀚夊璺侯槺鐠愨晠鎮硅閻楊厾妲愬┑鍥┾枖闁规儳鐡ㄩ弳鍫澝瑰鍐劉缂佷礁顕幏鐘诲即閻旇渹绮梺鍛婂笩濞夋稑鈻嶉幒妤佺劵闁哄嫬绻掔敮鍡涙煏?
  *
- * 测试覆盖：
- * 1. 多角色登录（成功/无角色/无活跃角色/凭证错误）
- * 2. 角色切换（成功/角色不存在/角色未分配/角色已禁用）
- * 3. 默认角色选择逻辑
+ * 濠电偞娼欓鍫ユ儊椤栨粍鍟洪柛鈩冪懄绾句即鏌?
+ * 1. 婵犮垼鍩栨穱娲綖濡ゅ懏鍤岄柤纰卞墯椤忋垻鎲搁悧鍫熺┛缂佽鲸鐟╅獮瀣箛椤掆偓椤?闂佸搫鍟版慨楣冿綖濡ゅ懏鍤?闂佸搫鍟版慨闈涱渻鐠恒劍宕夐柛鎰靛弾濞硷繝鏌?闂佸憡鍩堥崣鈧柣锕€顦甸弻銊モ枎閹烘繂娈╅梺?
+ * 2. 闁荤喐鐟︾敮鐔哥珶婵犲洤绀嗛柛銉ｅ妼鎼村﹪鏌ㄥ☉妯煎闁搞劍宀稿畷?闁荤喐鐟︾敮鐔哥珶婵犲啰鈻旂€广儱鎳愰幗鐘绘煕?闁荤喐鐟︾敮鐔哥珶婵犲洤瀚夋い蹇撳閻庡姊?闁荤喐鐟︾敮鐔哥珶婵犲偆鍟呴柤纰卞墻濞诧綁鏌ｉ姀鈺冨帨缂?
+ * 3. 婵帗绋掗…鍫ヮ敇閼姐倖鍠嗛柟鐑樻礀椤ュ繘姊洪銏╂Ч閻庢哎鍔戦弻鍛村及韫囨洖绔?
  *
  * @author WMS Team
  * @since 2026-01-20
  * @version 3.3 (Multi-Role RBAC System)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AuthController 单元测试 - 多角色系统")
+@DisplayName("case-1")
 @SuppressWarnings("unchecked")
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AuthControllerTest {
@@ -82,24 +82,24 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        // 设置 JWT 过期时间
+        // 闁荤姳绀佹晶浠嬫偪?JWT 闁哄鏅涘ú锕€锕㈤敓鐘茬睄闁割偅娲橀敍?
         ReflectionTestUtils.setField(authController, "jwtExpiration", 86400000L);
 
-        // 创建测试用户
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡叉悂鏌ｉ～顒€濡介柛?
         testUser = User.builder()
                 .id(1L)
                 .username("test_user")
                 .password("encoded_password")
-                .displayName("测试用户")
+                .displayName("濠电偞娼欓鍫ユ儊椤栫偞鍋ㄩ柕濠忕畱閻?")
                 .enabled(true)
                 .defaultRoleId(3L) // WAREHOUSE_ADMIN
                 .build();
 
-        // 创建测试角色
+        // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡叉悂鎮峰▎鎰濠?
         warehouseAdminRole = SysRole.builder()
                 .id(3L)
                 .roleCode("WAREHOUSE_ADMIN")
-                .roleName("仓库管理员")
+                .roleName("婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌?")
                 .sortOrder(10)
                 .status("ACTIVE")
                 .build();
@@ -107,7 +107,7 @@ class AuthControllerTest {
         salespersonRole = SysRole.builder()
                 .id(5L)
                 .roleCode("SALESPERSON")
-                .roleName("销售员")
+                .roleName("闂備礁绨遍崑鎾绘煕閻戝棗鏋涢柟?")
                 .sortOrder(20)
                 .status("ACTIVE")
                 .build();
@@ -115,7 +115,7 @@ class AuthControllerTest {
         purchaserRole = SysRole.builder()
                 .id(7L)
                 .roleCode("PURCHASER")
-                .roleName("采购员")
+                .roleName("闂備焦褰冨ú鈺呭窗濮椻偓瀹?")
                 .sortOrder(30)
                 .status("ACTIVE")
                 .build();
@@ -123,16 +123,16 @@ class AuthControllerTest {
         disabledRole = SysRole.builder()
                 .id(9L)
                 .roleCode("DISABLED_ROLE")
-                .roleName("已禁用角色")
+                .roleName("閻庤鐡曠亸娆撱€呴敃鍌涘仺闁靛鐓堝锟犳煠?")
                 .sortOrder(40)
-                .status("DISABLED") // 已禁用
+                .status("DISABLED") // 閻庤鐡曠亸娆撱€呴敃鍌涘仺?
                 .build();
     }
 
-    // ========== 测试：多角色登录 ==========
+    // ========== 濠电偞娼欓鍫ユ儊椤栫偞鏅慨姗嗗墻濡鎮峰▎鎰濠㈢懓锕幆鍌滄嫚閼碱剛协 ==========
 
     @Test
-    @DisplayName("登录成功 - 多角色用户")
+    @DisplayName("case-2")
     void login_Success_MultipleRoles() {
         // Given
         LoginRequest request = new LoginRequest("test_user", "password123");
@@ -170,13 +170,13 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("登录成功 - 使用默认角色")
+    @DisplayName("case-3")
     void login_Success_WithDefaultRole() {
         // Given
         LoginRequest request = new LoginRequest("test_user", "password123");
         Authentication authentication = mock(Authentication.class);
 
-        testUser.setDefaultRoleId(5L); // 设置默认角色为 SALESPERSON
+        testUser.setDefaultRoleId(5L); // 闁荤姳绀佹晶浠嬫偪閸℃﹩娓舵俊顖涱儥閸氬洭鎮峰▎鎰濠㈢懓锕ョ粙?SALESPERSON
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
@@ -197,19 +197,19 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("登录成功 - 选择最小 sortOrder 角色")
+    @DisplayName("case-4")
     void login_Success_SelectMinSortOrderRole() {
         // Given
         LoginRequest request = new LoginRequest("test_user", "password123");
         Authentication authentication = mock(Authentication.class);
 
-        testUser.setDefaultRoleId(null); // 无默认角色
+        testUser.setDefaultRoleId(null); // 闂佸搫鍟版繛鈧紒顕呭灣閹峰濡堕崼顐ｅ仴闂?
 
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
         when(userRoleService.getUserRoles(1L))
-                .thenReturn(Arrays.asList(purchaserRole, salespersonRole, warehouseAdminRole)); // 乱序
+                .thenReturn(Arrays.asList(purchaserRole, salespersonRole, warehouseAdminRole)); // 婵炴垶鏌ㄥ畷顒傝姳?
         when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList()))
                 .thenReturn("mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
@@ -218,14 +218,14 @@ class AuthControllerTest {
         ResponseEntity<LoginResponse> response = authController.login(request);
 
         // Then
-        // 应该选择 sortOrder 最小的 warehouseAdminRole (sortOrder=10)
+        // 闁圭厧鐡ㄥΛ渚€顢氬鑸电劵濠㈣泛顑呴?sortOrder 闂佸搫鐗冮崑鎾绘倶韫囨挾绠虫繛?warehouseAdminRole (sortOrder=10)
         assertThat(response.getBody().getCurrentRole()).isEqualTo("WAREHOUSE_ADMIN");
 
         verify(jwtUtil).generateTokenWithRoles(eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList());
     }
 
     @Test
-    @DisplayName("登录失败 - 用户无角色")
+    @DisplayName("case-5")
     void login_Fail_NoRoles() {
         // Given
         LoginRequest request = new LoginRequest("test_user", "password123");
@@ -246,7 +246,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("登录失败 - 用户无活跃角色")
+    @DisplayName("case-6")
     void login_Fail_NoActiveRoles() {
         // Given
         LoginRequest request = new LoginRequest("test_user", "password123");
@@ -256,7 +256,7 @@ class AuthControllerTest {
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
         when(userRoleService.getUserRoles(1L))
-                .thenReturn(Arrays.asList(disabledRole)); // 只有已禁用的角色
+                .thenReturn(Arrays.asList(disabledRole)); // 闂佸憡鐟禍婵嗭耿娴ｅ壊鍟呴柤纰卞墻濞诧綁鏌ｉ～顒€濡挎繛鍫熷灩閹叉挳骞掗弴鐑嗘
 
         // When & Then
         assertThatThrownBy(() -> authController.login(request))
@@ -267,7 +267,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("登录失败 - 凭证错误")
+    @DisplayName("case-7")
     void login_Fail_BadCredentials() {
         // Given
         LoginRequest request = new LoginRequest("test_user", "wrong_password");
@@ -285,7 +285,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("登录失败 - 账号已禁用")
+    @DisplayName("case-8")
     void login_Fail_AccountDisabled() {
         // Given
         LoginRequest request = new LoginRequest("disabled_user", "password123");
@@ -301,10 +301,10 @@ class AuthControllerTest {
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
 
-    // ========== 测试：角色切换 ==========
+    // ========== 濠电偞娼欓鍫ユ儊椤栫偞鏅慨妯诲墯濞硷繝鏌ょ憴鍕祷闁搞劌绻橀獮?==========
 
     @Test
-    @DisplayName("切换角色 - 成功")
+    @DisplayName("case-9")
     void switchRole_Success() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("SALESPERSON");
@@ -334,7 +334,7 @@ class AuthControllerTest {
         assertThat(body.getToken()).isEqualTo("new_mock_jwt_token");
         assertThat(body.getCurrentRole()).isEqualTo("SALESPERSON");
         assertThat(body.getMessage()).contains("SALESPERSON");
-        assertThat(body.getMessage()).contains("销售员");
+        assertThat(body.getMessage()).contains("闂備礁绨遍崑鎾绘煕閻戝棗鏋涢柟?");
         assertThat(testUser.getDefaultRoleId()).isEqualTo(5L);
 
         verify(roleRepository).findByRoleCode("SALESPERSON");
@@ -344,7 +344,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("切换角色 - 目标角色不存在")
+    @DisplayName("case-10")
     void switchRole_Fail_RoleNotFound() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("NONEXISTENT_ROLE");
@@ -365,7 +365,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("切换角色 - 角色未分配给用户")
+    @DisplayName("case-11")
     void switchRole_Fail_RoleNotAssigned() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("PURCHASER");
@@ -386,7 +386,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("切换角色 - 目标角色已禁用")
+    @DisplayName("case-12")
     void switchRole_Fail_RoleDisabled() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("DISABLED_ROLE");
@@ -407,7 +407,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("切换角色 - 用户不存在")
+    @DisplayName("case-13")
     void switchRole_Fail_UserNotFound() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("SALESPERSON");

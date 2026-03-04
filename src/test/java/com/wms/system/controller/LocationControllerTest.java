@@ -25,24 +25,21 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * LocationController 单元测试
+ * LocationController 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
  *
- * 使用 Mockito 模拟所有依赖，专注于测试控制器逻辑
+ * 婵炶揪缍€濞夋洟寮?Mockito 濠碘槅鍨崜婵堚偓姘懇楠炲秹鍩€椤掑嫬瀚夊璺侯槺鐠愨晠鎮硅閻楊厾妲愬┑鍥┾枖闁规儳鐡ㄩ弳鍫澝瑰鍐劉缂佷礁顕幏鐘诲即閻旇渹绮梺鍛婂笩濞夋稑鈻嶉幒妤佺劵闁哄嫬绻掔敮?
  *
- * 测试覆盖：
- * 1. 根据ID获取库位（成功/不存在）
- * 2. 根据仓库ID获取所有库位
- * 3. 获取指定仓库的空闲库位
- * 4. 创建库位（成功/仓库不存在/库位已存在）
- * 5. 更新库位（成功/不存在）
- * 6. 启用库位
- * 7. 禁用库位
+ * 濠电偞娼欓鍫ユ儊椤栨粍鍟洪柛鈩冪懄绾句即鏌? * 1. 闂佸搫绉烽～澶婄暤娑擃搳闂佸吋鍎抽崲鑼躲亹閸ャ劍鍎熼柟鎹愬皺缁夋挳鏌ㄥ☉妯煎闁搞劍宀稿畷?婵炴垶鎸哥粔鎾偤閵娾晛鎹舵い顓熷笧缁€?
+ * 2. 闂佸搫绉烽～澶婄暤娴ｅ湱顩烽柟鎯х－濮樷問D闂佸吋鍎抽崲鑼躲亹閸ヮ剙绠ラ柍褜鍓熷鍨緞婵犲嫭鐨戞繛? * 3. 闂佸吋鍎抽崲鑼躲亹閸ヮ剙绠伴柛銉戝懏姣庢繛瀵稿У閹稿摜鑺遍柆宥嗗剭闁告洦鍘搁弫鍕⒒閸屾稑绲荤紒銊ㄩ哺閹? * 4. 闂佸憡甯楃粙鎴犵磽閹惧瓨鍎熼柟鎹愬皺缁夋挳鏌ㄥ☉妯煎闁搞劍宀稿畷?婵炲濮甸幐鍝ヨ姳鏉堛劎鈻旂€广儱鎳愰幗鐘绘煕?闁圭厧鐡ㄩ幐椋庣礊閸涱収鍟呴柟缁樺笧閹界娀鏌涢敂鑽ゅ帨缂?
+ * 5. 闂佸搫娲ら悺銊╁蓟婵犲啯鍎熼柟鎹愬皺缁夋挳鏌ㄥ☉妯煎闁搞劍宀稿畷?婵炴垶鎸哥粔鎾偤閵娾晛鎹舵い顓熷笧缁€?
+ * 6. 闂佸憡鍑归崹鎶藉极閵堝棙鍎熼柟鎹愬皺缁?
+ * 7. 缂備礁鍊烽懗鍫曞极閵堝棙鍎熼柟鎹愬皺缁?
  *
  * @author WMS Team
  * @since 2025-01-23 (Phase 3.4)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("LocationController 单元测试")
+@DisplayName("case-1")
 class LocationControllerTest {
 
     @Mock
@@ -75,7 +72,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("根据ID获取库位 - 成功")
+    @DisplayName("case-2")
     void getLocationById_Success() {
         // Given
         when(locationService.getLocationById(1L)).thenReturn(testLocation);
@@ -91,7 +88,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("根据ID获取库位 - 不存在")
+    @DisplayName("case-3")
     void getLocationById_NotFound() {
         // Given
         when(locationService.getLocationById(999L))
@@ -104,7 +101,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("根据仓库ID获取所有库位 - 成功")
+    @DisplayName("case-4")
     void getLocationsByWarehouse_Success() {
         // Given
         Location location2 = Location.builder()
@@ -129,7 +126,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("获取指定仓库的空闲库位 - 成功")
+    @DisplayName("case-5")
     void getEmptyLocationsByWarehouse_Success() {
         // Given
         when(locationService.getEmptyLocationsByWarehouse(1L)).thenReturn(Arrays.asList(testLocation));
@@ -144,7 +141,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("创建库位 - 成功")
+    @DisplayName("case-6")
     void createLocation_Success() {
         // Given
         CreateLocationRequest request = new CreateLocationRequest(
@@ -168,7 +165,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("创建库位 - 仓库不存在")
+    @DisplayName("case-7")
     void createLocation_WarehouseNotFound() {
         // Given
         CreateLocationRequest request = new CreateLocationRequest(
@@ -188,7 +185,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("创建库位 - 库位已存在")
+    @DisplayName("case-8")
     void createLocation_LocationAlreadyExists() {
         // Given
         CreateLocationRequest request = new CreateLocationRequest(
@@ -208,7 +205,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("更新库位 - 成功")
+    @DisplayName("case-9")
     void updateLocation_Success() {
         // Given
         UpdateLocationRequest request = new UpdateLocationRequest("Updated remark");
@@ -224,7 +221,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("更新库位 - 不存在")
+    @DisplayName("case-10")
     void updateLocation_NotFound() {
         // Given
         UpdateLocationRequest request = new UpdateLocationRequest("New remark");
@@ -238,7 +235,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("启用库位 - 成功")
+    @DisplayName("case-11")
     void enableLocation_Success() {
         // Given
         when(locationService.enableLocation(1L)).thenReturn(testLocation);
@@ -253,7 +250,7 @@ class LocationControllerTest {
     }
 
     @Test
-    @DisplayName("禁用库位 - 成功")
+    @DisplayName("case-12")
     void disableLocation_Success() {
         // Given
         testLocation.setEnabled(false);

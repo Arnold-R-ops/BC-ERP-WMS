@@ -25,23 +25,23 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * InboundOrderService 单元测试
+ * InboundOrderService 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
  *
- * 测试入库单管理服务的核心功能
+ * 濠电偞娼欓鍫ユ儊椤栫偛绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭妞ゆ挻鎮傞幃鍫曞幢濡崵鐤€闂佸憡妫戠槐鏇炩枔閹达箑鍐€缂佸娉曟俊鍥煕閺冨倸鏋欓柛?
  *
- * 测试场景：
- * 1. 创建入库单（成功/供应商不存在/产品不存在）
- * 2. 总经理审批（成功/状态错误/权限不足）
- * 3. 采购员确认（成功/状态错误/生成批次码）
- * 4. 仓库收货（成功/状态错误/更新库存）
- * 5. 拒绝入库单（成功/状态错误）
- * 6. 查询入库单（按ID/按状态）
+ * 濠电偞娼欓鍫ユ儊椤栫偛鎹堕柣鎴炆戦悵顖炴煥?
+ * 1. 闂佸憡甯楃粙鎴犵磽閹捐绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭┛缂佽鲸鐟╅獮瀣箛椤掆偓椤?婵炴挻纰嶇粙鎴犺姳閺屻儱鐤柛鈩冩礈閻熸繈鎮楀☉娅亜锕?婵炲瓨绫傞崘鈺傚剬婵炴垶鎸哥粔鎾偤閵娾晛鎹舵い顓熷笧缁€?
+ * 2. 闂佽鍓濆畷鐢靛垝閿熺姵鍋犻柛鈩冾殢閸氣偓闂佸湱鏁稿▍銏㈡濞嗘挸绠ｉ柟閭﹀墮椤?闂佺粯顭堥崺鏍焵椤戣法绐旈柡浣革功閹?闂佸搫顦崯鏉戭瀶閻戞鈻旂€广儱鐗嗛崰鏇㈡煥?
+ * 3. 闂備焦褰冨ú鈺呭窗濮椻偓瀹曘劌螣鐏忔牑鍋撳Ο鍏煎闁靛牆绻掔粈鍕煙鐎涙ê濮囧┑?闂佺粯顭堥崺鏍焵椤戣法绐旈柡浣革功閹?闂佹眹鍨婚崰鎰板垂濮樿泛绠ラ悷娆忓閸嬔囨煟椤旇崵绛忕紒?
+ * 4. 婵炲濮甸幐鍝ヨ姳闁秴缁╅柟顖滃瑜版盯鏌ㄥ☉妯煎闁搞劍宀稿畷?闂佺粯顭堥崺鏍焵椤戣法绐旈柡浣革功閹?闂佸搫娲ら悺銊╁蓟婵犲啯鍎熼柟鎯х－閹界娀鏌?
+ * 5. 闂佸綊鏀辩敮鐐靛垝閻戣棄绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭┛缂佽鲸鐟╅獮瀣箛椤掆偓椤?闂佺粯顭堥崺鏍焵椤戣法绐旈柡浣革功閹风娀顢涢妶鍥╊槴
+ * 6. 闂佸搫琚崕鎾敋濡ゅ懎绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭┛缂佽鲸鐟╅獮鎰箙閸?闂佸湱顭堥ˇ杈ㄦ叏閹间礁绠戝〒姘功缁€?
  *
  * @author WMS Team
  * @since 2026-01-26 (Phase 3.5)
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("InboundOrderService 单元测试")
+@DisplayName("case-1")
 class InboundOrderServiceTest {
 
     @Mock
@@ -83,7 +83,7 @@ class InboundOrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 初始化测试数据
+        // 闂佸憡甯楃换鍌烇綖閹版澘绀岄柡宥冨妿閵堟挳鎮归崶銊︾闁哄棛鍠栭獮?
         testSupplier = Supplier.builder()
                 .id(1L)
                 .code("SUP001")
@@ -117,7 +117,7 @@ class InboundOrderServiceTest {
                 .planQty(100)
                 .confirmedQty(null)
                 .actualQty(0)
-                .expiryDate(LocalDate.now().plusMonths(6))  // 添加过期日期
+                .expiryDate(LocalDate.now().plusMonths(6))  // 濠电儑缍€椤曆勬叏閻愬瓨浜ら柛銉ｅ妽閸╁倿鏌￠崘锕€鍔滄繝鈧?
                 .build();
 
         testOrder = InboundOrder.builder()
@@ -134,10 +134,10 @@ class InboundOrderServiceTest {
         testItem.setInboundOrder(testOrder);
     }
 
-    // ==================== 创建入库单测试 ====================
+    // ==================== 闂佸憡甯楃粙鎴犵磽閹捐绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭缂佷礁顕幏?====================
 
     @Test
-    @DisplayName("创建入库单 - 成功")
+    @DisplayName("case-2")
     void createInboundOrder_Success() {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
@@ -175,7 +175,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("创建入库单 - 供应商不存在")
+    @DisplayName("case-3")
     void createInboundOrder_SupplierNotFound() {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
@@ -195,7 +195,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("创建入库单 - 供应商未激活")
+    @DisplayName("case-4")
     void createInboundOrder_SupplierNotActive() {
         // Given
         testSupplier.setIsActive(false);
@@ -213,7 +213,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("创建入库单 - 产品不存在")
+    @DisplayName("case-5")
     void createInboundOrder_ProductNotFound() {
         // Given
         CreateInboundOrderRequest request = new CreateInboundOrderRequest();
@@ -234,10 +234,10 @@ class InboundOrderServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", "PRODUCT_NOT_FOUND");
     }
 
-    // ==================== 总经理审批测试 ====================
+    // ==================== 闂佽鍓濆畷鐢靛垝閿熺姵鍋犻柛鈩冾殢閸氣偓闂侀€涚祷椤绮婄€靛憡瀚?====================
 
     @Test
-    @DisplayName("总经理审批 - 成功")
+    @DisplayName("case-6")
     void approvePlan_Success() {
         // Given
         String comment = "Approved";
@@ -263,7 +263,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("总经理审批 - 入库单不存在")
+    @DisplayName("case-7")
     void approvePlan_OrderNotFound() {
         // Given
         when(inboundOrderRepository.findById(999L)).thenReturn(Optional.empty());
@@ -276,7 +276,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("总经理审批 - 状态错误")
+    @DisplayName("case-8")
     void approvePlan_InvalidStatus() {
         // Given
         testOrder.setStatus(InboundOrderStatus.COMPLETED);
@@ -290,10 +290,10 @@ class InboundOrderServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", "INVALID_STATUS_FOR_APPROVAL");
     }
 
-    // ==================== 采购员确认测试 ====================
+    // ==================== 闂備焦褰冨ú鈺呭窗濮椻偓瀹曘劌螣鐏忔牑鍋撳Ο鍏煎闁靛牆妫涢妶鎾偣?====================
 
     @Test
-    @DisplayName("采购员确认 - 成功并生成批次码")
+    @DisplayName("case-9")
     void confirmOrder_Success() {
         // Given
         testOrder.setStatus(InboundOrderStatus.APPROVED_PLAN);
@@ -340,7 +340,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("采购员确认 - 状态错误")
+    @DisplayName("case-10")
     void confirmOrder_InvalidStatus() {
         // Given
         testOrder.setStatus(InboundOrderStatus.PENDING_APPROVAL);
@@ -356,10 +356,10 @@ class InboundOrderServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", "INVALID_STATUS_FOR_CONFIRMATION");
     }
 
-    // ==================== 仓库收货测试 ====================
+    // ==================== 婵炲濮甸幐鍝ヨ姳闁秴缁╅柟顖滃瑜版稒绻涢弶鎴創闁?====================
 
     @Test
-    @DisplayName("仓库收货 - 成功并更新库存")
+    @DisplayName("case-11")
     void receiveGoods_Success() {
         // Given
         testOrder.setStatus(InboundOrderStatus.AWAITING_RECEIVAL);
@@ -407,7 +407,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("仓库收货 - 实收数量超过确认数量")
+    @DisplayName("case-12")
     void receiveGoods_ActualQtyExceedsConfirmedQty() {
         // Given
         testOrder.setStatus(InboundOrderStatus.AWAITING_RECEIVAL);
@@ -430,7 +430,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("仓库收货 - 状态错误")
+    @DisplayName("case-13")
     void receiveGoods_InvalidStatus() {
         // Given
         testOrder.setStatus(InboundOrderStatus.PENDING_APPROVAL);
@@ -446,10 +446,10 @@ class InboundOrderServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", "INVALID_STATUS_FOR_RECEIVING");
     }
 
-    // ==================== 拒绝入库单测试 ====================
+    // ==================== 闂佸綊鏀辩敮鐐靛垝閻戣棄绀傞柕澶堝劤濮樸劑鏌涘Δ浣圭缂佷礁顕幏?====================
 
     @Test
-    @DisplayName("拒绝入库单 - 成功")
+    @DisplayName("case-14")
     void rejectOrder_Success() {
         // Given
         String reason = "Budget insufficient";
@@ -472,7 +472,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("拒绝入库单 - 状态错误")
+    @DisplayName("case-15")
     void rejectOrder_InvalidStatus() {
         // Given
         testOrder.setStatus(InboundOrderStatus.COMPLETED);
@@ -487,10 +487,10 @@ class InboundOrderServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", "INVALID_STATUS_FOR_REJECTION");
     }
 
-    // ==================== 查询测试 ====================
+    // ==================== 闂佸搫琚崕鎾敋濡も偓闇夐悗锝庡幘濡?====================
 
     @Test
-    @DisplayName("根据ID查询入库单 - 成功")
+    @DisplayName("case-16")
     void getInboundOrderById_Success() {
         // Given
         when(inboundOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
@@ -505,7 +505,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("根据ID查询入库单 - 不存在")
+    @DisplayName("case-17")
     void getInboundOrderById_NotFound() {
         // Given
         when(inboundOrderRepository.findById(999L)).thenReturn(Optional.empty());
@@ -517,7 +517,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("根据状态查询入库单 - 待审批")
+    @DisplayName("case-18")
     void getInboundOrdersByStatus_PendingApproval() {
         // Given
         when(inboundOrderRepository.findByStatusOrderByCreatedAtDesc(InboundOrderStatus.PENDING_APPROVAL))
@@ -533,7 +533,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("根据状态查询入库单 - 待确认")
+    @DisplayName("case-19")
     void getInboundOrdersByStatus_ApprovedPlan() {
         // Given
         testOrder.setStatus(InboundOrderStatus.APPROVED_PLAN);
@@ -550,7 +550,7 @@ class InboundOrderServiceTest {
     }
 
     @Test
-    @DisplayName("根据状态查询入库单 - 待收货")
+    @DisplayName("case-20")
     void getInboundOrdersByStatus_AwaitingReceival() {
         // Given
         testOrder.setStatus(InboundOrderStatus.AWAITING_RECEIVAL);
