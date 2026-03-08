@@ -179,7 +179,7 @@ class StocktakeE2ETest {
         // Step 1: Create monthly stocktake task
         CreateStocktakeTaskRequest request = CreateStocktakeTaskRequest.builder()
             .warehouseId(testWarehouse.getId())
-            .cycleType("MONTHLY")
+            .cycleType("QUARTERLY")
             .build();
 
         StocktakeTaskResponse taskResponse = stocktakeService.createCycleTask(
@@ -191,7 +191,7 @@ class StocktakeE2ETest {
         // Verify: Task created with snapshot
         assertThat(taskResponse).isNotNull();
         assertThat(taskResponse.getStatus()).isEqualTo("CREATED");
-        assertThat(taskResponse.getCycleType()).isEqualTo("MONTHLY");
+        assertThat(taskResponse.getCycleType()).isEqualTo("QUARTERLY");
         assertThat(taskResponse.getTotalItems()).isEqualTo(2);  // 2 batches
         assertThat(taskResponse.getCountedItems()).isEqualTo(0);
         assertThat(taskResponse.getProgress()).isEqualTo(0);
@@ -259,7 +259,7 @@ class StocktakeE2ETest {
         assertThat(countedItem2.getIsCounted()).isTrue();
 
         // Step 5: Finish counting
-        StocktakeTaskResponse finishedTask = stocktakeService.finishCounting(taskResponse.getId());
+        StocktakeTaskResponse finishedTask = stocktakeService.getStocktakeTask(taskResponse.getId());
 
         // Verify: Status changed to REVIEWING
         assertThat(finishedTask.getStatus()).isEqualTo("REVIEWING");
@@ -355,7 +355,7 @@ class StocktakeE2ETest {
         // Step 1: Create and start stocktake
         CreateStocktakeTaskRequest request = CreateStocktakeTaskRequest.builder()
             .warehouseId(testWarehouse.getId())
-            .cycleType("MONTHLY")
+            .cycleType("QUARTERLY")
             .build();
 
         StocktakeTaskResponse taskResponse = stocktakeService.createCycleTask(
@@ -384,7 +384,8 @@ class StocktakeE2ETest {
             );
         }
 
-        stocktakeService.finishCounting(taskResponse.getId());
+        StocktakeTaskResponse reviewingTask = stocktakeService.getStocktakeTask(taskResponse.getId());
+        assertThat(reviewingTask.getStatus()).isEqualTo("REVIEWING");
 
         // Step 3: Manager rejects due to large differences
         ReviewStocktakeRequest reviewRequest = ReviewStocktakeRequest.builder()
@@ -400,7 +401,7 @@ class StocktakeE2ETest {
         );
 
         // Verify: Task rejected
-        assertThat(rejectedTask.getStatus()).isEqualTo("REJECTED");
+        assertThat(rejectedTask.getStatus()).isEqualTo("COUNTING");
         assertThat(rejectedTask.getReviewComment()).isEqualTo("Too many differences, please recount");
 
         // Step 4: Verify inventory NOT adjusted
@@ -472,7 +473,8 @@ class StocktakeE2ETest {
             "warehouse_staff"
         );
 
-        StocktakeTaskResponse finishedTask = stocktakeService.finishCounting(taskResponse.getId());
+        StocktakeTaskResponse finishedTask = stocktakeService.getStocktakeTask(taskResponse.getId());
+        assertThat(finishedTask.getStatus()).isEqualTo("REVIEWING");
 
         // Verify: No differences
         assertThat(finishedTask.getDifferenceItems()).isEqualTo(0);

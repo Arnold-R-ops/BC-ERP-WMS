@@ -1,7 +1,7 @@
 package com.wms.system.controller;
 
 import com.wms.system.dto.stocktake.*;
-import com.wms.system.security.SecurityUser;
+import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.StocktakeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -63,14 +63,15 @@ public class StocktakeController {
         @Valid @RequestBody CreateStocktakeTaskRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: createStocktakeTask - 用户: {}, 仓库ID: {}, 周期类型: {}",
-            user.getUsername(), request.getWarehouseId(), request.getCycleType());
+            username, request.getWarehouseId(), request.getCycleType());
 
         StocktakeTaskResponse response = stocktakeService.createCycleTask(
             request,
-            user.getId(),
-            user.getUsername()
+            userId,
+            username
         );
 
         log.info("API响应: createStocktakeTask - 任务号: {}, 明细数: {}",
@@ -197,16 +198,17 @@ public class StocktakeController {
         @Valid @RequestBody SubmitCountRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: submitCount - taskId: {}, itemId: {}, countedQty: {}, 用户: {}",
-            taskId, itemId, request.getCountedQty(), user.getUsername());
+            taskId, itemId, request.getCountedQty(), username);
 
         StocktakeItemResponse response = stocktakeService.submitCount(
             taskId,
             itemId,
             request,
-            user.getId(),
-            user.getUsername()
+            userId,
+            username
         );
 
         log.info("API响应: submitCount - itemId: {}, countedQty: {}",
@@ -278,15 +280,16 @@ public class StocktakeController {
         @Valid @RequestBody ReviewStocktakeRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: reviewStocktake - id: {}, approved: {}, 审核人: {}",
-            id, request.getApproved(), user.getUsername());
+            id, request.getApproved(), username);
 
         StocktakeTaskResponse response = stocktakeService.reviewStocktake(
             id,
             request,
-            user.getId(),
-            user.getUsername()
+            userId,
+            username
         );
 
         log.info("API响应: reviewStocktake - 任务号: {}, 状态: {}",

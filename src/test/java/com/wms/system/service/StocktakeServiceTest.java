@@ -441,7 +441,6 @@ class StocktakeServiceTest {
         when(stocktakeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(stocktakeItemRepository.save(any(StocktakeItem.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(1L, 0)).thenReturn(0L);
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));

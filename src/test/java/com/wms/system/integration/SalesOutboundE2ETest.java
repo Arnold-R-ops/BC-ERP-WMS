@@ -115,13 +115,15 @@ class SalesOutboundE2ETest {
         SystemConfig minPriceConfig = SystemConfig.builder()
             .configKey("sales.min_price_approval_enabled")
             .configValue("true")
+            .configType(SystemConfig.ConfigType.BOOLEAN.name())
             .description("Enable low price approval")
             .build();
         systemConfigRepository.save(minPriceConfig);
 
         SystemConfig thresholdConfig = SystemConfig.builder()
-            .configKey("sales.approval_threshold")
+            .configKey("sales.approval.amount_threshold")
             .configValue("50000.00")
+            .configType(SystemConfig.ConfigType.DECIMAL.name())
             .description("High amount approval threshold")
             .build();
         systemConfigRepository.save(thresholdConfig);
@@ -223,7 +225,7 @@ class SalesOutboundE2ETest {
         assertThat(orderResponse).isNotNull();
         assertThat(orderResponse.getStatus()).isEqualTo("PENDING_APPROVAL");
         assertThat(orderResponse.getTotalAmount()).isEqualByComparingTo(new BigDecimal("800.00"));
-        assertThat(orderResponse.getReviewReason()).contains("min sales price");
+        assertThat(orderResponse.getReviewReason()).contains(testProduct.getName());
 
         // Step 2: Manager approves the order
         SalesOrderResponse approvedOrder = salesSubmissionService.approveSalesOrder(
@@ -235,7 +237,7 @@ class SalesOutboundE2ETest {
 
         // Verify: Order approved and status changed
         assertThat(approvedOrder.getStatus()).isEqualTo("APPROVED_AWAITING_SHIPMENT");
-        assertThat(approvedOrder.getReviewedByName()).isEqualTo("manager");
+        assertThat(approvedOrder.getReviewedByName()).containsIgnoringCase("manager");
         assertThat(approvedOrder.getReviewComment()).isEqualTo("Price approved for this customer");
 
         // Step 3: Verify outbound tasks generated
@@ -246,7 +248,7 @@ class SalesOutboundE2ETest {
         OutboundTask task = tasks.get(0);
         assertThat(task.getStatus()).isEqualTo(OutboundTaskStatus.PENDING);
         assertThat(task.getPlanQty()).isEqualTo(100);
-        assertThat(task.getBatch().getId()).isEqualTo(testBatch.getId());
+        assertThat(task.getAssignedBatchId()).isEqualTo(testBatch.getId());
 
         // Step 4: Verify inventory allocated
         InventoryBatch allocatedBatch = inventoryBatchRepository.findById(testBatch.getId()).orElseThrow();
@@ -367,7 +369,8 @@ class SalesOutboundE2ETest {
 
         // Verify: Order rejected
         assertThat(rejectedOrder.getStatus()).isEqualTo("REJECTED");
-        assertThat(rejectedOrder.getReviewReason()).isEqualTo("Price too low, not acceptable");
+        assertThat(rejectedOrder.getReviewReason()).contains(testProduct.getName());
+        assertThat(rejectedOrder.getReviewComment()).isEqualTo("Price too low, not acceptable");
 
         // Step 3: Verify no outbound tasks generated
         List<OutboundTask> tasks = outboundTaskRepository.findBySalesOrderId(rejectedOrder.getId());

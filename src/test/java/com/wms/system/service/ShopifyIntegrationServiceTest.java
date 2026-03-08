@@ -170,7 +170,7 @@ class ShopifyIntegrationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
         when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
 
-        doNothing().when(allocationService).allocateInventory(anyLong());
+        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         // When
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -258,7 +258,7 @@ class ShopifyIntegrationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
         when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
 
-        doNothing().when(allocationService).allocateInventory(anyLong());
+        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         // When
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -378,7 +378,7 @@ class ShopifyIntegrationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
         when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
 
-        doNothing().when(allocationService).allocateInventory(anyLong());
+        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         // When
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -409,8 +409,8 @@ class ShopifyIntegrationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
         when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
 
-        doThrow(new BusinessException(ErrorKeys.STOCK_INSUFFICIENT))
-                .when(allocationService).allocateInventory(anyLong());
+        when(allocationService.allocateInventory(anyLong()))
+                .thenThrow(new BusinessException(ErrorKeys.STOCK_INSUFFICIENT));
 
         // When
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -472,7 +472,7 @@ class ShopifyIntegrationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
         when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
 
-        doNothing().when(allocationService).allocateInventory(anyLong());
+        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         // When
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();

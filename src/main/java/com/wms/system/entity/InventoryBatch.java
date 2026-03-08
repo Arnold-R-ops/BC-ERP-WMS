@@ -311,6 +311,7 @@ public class InventoryBatch extends BaseEntity {
      */
     public void assignLocation(Location location) {
         this.location = location;
+        this.locationCode = location != null ? location.getLocationCode() : null;
         this.entryDate = LocalDateTime.now();  // 记录实物入库时间
     }
 

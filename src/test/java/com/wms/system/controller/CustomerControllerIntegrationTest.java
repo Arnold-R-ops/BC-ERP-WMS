@@ -30,17 +30,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * CustomerController 闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨姗嗗劒閸︻厸鍋撻敐搴″箻婵?
+ * CustomerController 闂傚倸鍊搁崐绋课涘Δ鈧灋婵炲棙鎸搁崹鍌涙叏濮楀棗鍔掗柛锔诲幐閸嬫捇鏁愭惔鈥崇濠?
  *
- * V4.1 闂備礁鎼鍫ュ春閺嶎厽鍊垫い鏍仦閺咁剚鎱ㄥ鍡楀⒒闁告艾鍊块弻鐔煎箻椤曞懏顥栧銈嗘尰閹倿骞冮崼鏇炲耿婵°倕鍟▓顕€姊烘潪鎵妽闁圭鍟块埢鏃堟晝閸屾氨顓洪梺褰掑亰閸橀箖濡堕幘顔藉仯闁搞儯鍔嶇粚璺ㄧ磼鏉堛劎鎳囩€规洜濞€瀹曘劑顢橀悢宄板闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簼閳锋洟鏌￠崘銊ヤ簽闁诲孩鐓￠弻娑橆煥閸愨晜鎷遍梺鍝勬閸犳牠鐛幋锔绘晩闁割煈鍠栭～鎾绘⒑鏉炴壆顦﹀Δ鐘茬箳濡?
+ * V4.1 闂傚倷绀侀幖顐︻敄閸儱鏄ラ柡宥庡幗閸婂灚銇勯弽顐沪闁哄拋鍓氶幈銊ヮ潨閸℃鈷掗梺鍛婅壘閸婂潡寮婚悢鐓庣妞ゆ洖鎳忛ˉ鏍ь渻閵堝棙灏伴柟顔煎€块獮鍐醇閺囩偛鑰垮┑掳鍊曢崯顖氣枔椤曗偓濮婄儤娼幍顔煎闂佸湱顭堥崯鍧楀煝閺冨牊鏅濋柛灞炬皑椤撴椽姊鸿ぐ鎺戜喊闁告﹢绠栨俊鍫曞箻椤旇棄浠梺鎼炲劘閸斿秶绮氱捄銊х＜閺夊牄鍔庨幊鍥┾偓瑙勬礈婵炩偓鐎规洏鍔戦、姗€鎮㈠畡鏉款棐闂傚倷绀侀幖顐λ囬鐐茬柈闁哄鍩堥悗鑸电箾瀹割喕绨奸柍閿嬫礋閺岋繝宕橀妸銉ょ敖闂佽瀛╅悡锟犲蓟濞戞﹩鐓ラ柛鎰ㄦ櫆閹烽亶姊洪崫鍕棤闁哥姵鐗犻悰顕€骞嬮敂缁樻櫓闂佸壊鐓堥崰鏍綖閹剧粯鈷戦弶鐐村椤︼箑螖閻樿尙绠虫俊?
  *
- * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍ㄧ矋閸熸椽鏌涢埄鍐噭缁惧彞鍗抽弻?
- * 1. 闂佽娴烽幊鎾诲嫉椤掑嫬姹查柨婵嗩槹閸庡秹鏌涢弴銊ヤ航闁告艾鍊块弻?CRUD 婵犵數鍋熺换婵嬫嚄閸洖鐓?
- * 2. 闂佽崵鍋炵粙鎴︽儔閸忕⒈娈介柛銉墯閳锋洟鏌￠崘銊ヤ簽闁诲孩褰冭灃闁绘灏欓悞鐑芥煟閿曗偓椤︾敻寮澶婃嵍闁绘稓鐔丒S 闂備礁鎲￠悷顖涚閿濆绀傛慨妞诲亾闁诡垰娲ㄩ埀顒婄秵閸樼厧鈻撻幍顔瑰亾鐟欏嫮鎽冨ù婊庡墮閳绘捇骞嬮悩顐壕妤犵偛鐏濋悘顏堟煕閳哄倻娲撮柡?
- * 3. 闂備礁鎲￠弻锝夊礉瀹ュ鐒垫い鎴炲缁佷即鏌涢弮鈧畝绋款嚕椤愩儳鐤€婵炴垶鑹鹃惌妤呮煟閻樺弶鐭楃紒韬插€楀Σ鎰潨閻看ES 闂備焦妞挎禍婊堫敄閸涙潙鏄ョ€光偓閸曨剙娈楅柡澶婄墑閸斿秴鈻嶅☉銏＄厸濞达絽鎼。鑲┾偓瑙勬尫缁舵岸寮?
- * 4. 濠电儑绲藉ù鍌炲窗濡ゅ懎鏋侀柛蹇氬亹閳瑰秵绻濋棃娑欐悙鐞氭ɑ淇婇妶鍥㈤柣顓濈窔閹焦寰勯幇顓熸珫闂佸壊鍋嗛崰搴ｆ嫻閻斿吋鐓熸い鏃囧吹椤︼箓鏌ｉ埊娆忓暊閺嬫棃鏌涜箛鎾存喐闁荤喐绻堥弻锟犲炊瑜忛幗鐘绘煛鐏炴枻韬柡?
- * 5. 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簻缁犲磭鎲稿澶婃槬婵°倓绶″▓鐣屸偓鍏夊亾闁告劦浜濋～?
- * 6. 闂備浇妗ㄩ懗鑸垫櫠濡も偓閻ｅ灚鎷呯憴鍕妳闂佸湱鍋撳娆撴儊椤斿皷妲堥柡鍌涘閸ｅ綊鎮楅棃娑樼骇妞ゃ劊鍎遍悾婵嬪礃椤忓拋娼?
+ * 濠电姷鏁搁崑鐐差焽濞嗘搩鏁勯柛顐犲劜閸庡﹥銇勯弽銊х煁闁哥喐妞介弻娑㈠焺閸愵亝鍣紒鎯у綖閸楁娊寮?
+ * 1. 闂備浇顕уù鐑藉箠閹捐瀚夋い鎺戝濮规煡鏌ㄥ┑鍡╂Ч闁稿骸绉归弻娑㈠即閵娿儰鑸梺鍛婅壘閸婂潡寮?CRUD 濠电姷鏁搁崑鐔烘崲濠靛鍤勯柛顐ｆ礀閻?
+ * 2. 闂備浇宕甸崑鐐电矙閹达附鍎旈柛蹇曗拡濞堜粙鏌涢妷顔煎闁抽攱娲熼弻锟犲礃閵娿儰绨介梺璇插瑜板啳鐏冮梺缁橆焾鐏忔瑩鎮為悜鑺ョ厽闁挎洍鍋撴い锔炬暬瀵偄顓兼径濠冨祶闂佺粯绋撻悢涓扴 闂傚倷绀侀幉锟犳偡椤栨稓顩查柨婵嗩槸缁€鍌涙叏濡炶浜鹃梺璇″灠濞层劑鍩€椤掑﹦绉甸柛妯煎帶閳绘捇骞嶉鐟颁壕閻熸瑥瀚幗鍐瑰搴″闁崇粯鎹囬獮瀣偐椤愵澀澹曞Δ鐘靛仜閻忔繈鎮橀鍫熺厱闁冲搫鍊诲ú鎾煛?
+ * 3. 闂傚倷绀侀幉锟犲蓟閿濆绀夌€广儱顦悞鍨亜閹寸偛顕滅紒浣峰嵆閺屾盯寮埀顒€鐣濈粙娆惧殨妞ゆ劑鍎抽悿鈧┑鐐村灦閼归箖鎯屽Δ鍛厽闁绘ê寮堕惌妤冪磼闊彃鈧危閹邦剦娼ㄩ柣顐ｇ湅ES 闂傚倷鐒﹀鎸庣濠婂牜鏁勯柛娑欐綑閺勩儳鈧厜鍋撻柛鏇ㄥ墮濞堟鏌℃径濠勫闁告柨绉撮埢宥呪槈閵忥紕鍘告繛杈剧到閹碱偊銆傞懖鈹惧亾鐟欏嫭灏紒鑸靛哺瀵?
+ * 4. 婵犵數鍎戠徊钘壝归崒鐐茬獥婵°倕鎳庨弸渚€鏌涜箛姘汗闁崇懓绉电换婵嬫濞戞瑦鎮欓悶姘戞穱濠囧Χ閸ヮ灝銏ゆ煟椤撴繄绐旈柟顖欑劍瀵板嫰骞囬鐔哥彨闂備礁澹婇崑鍡涘窗鎼达絾瀚婚柣鏂垮悑閻撶喐銇勯弮鍥у惞妞わ讣绠撻弻锝夊煀濞嗗繐鏆婇柡瀣閺屾稖绠涢幘瀛樺枑闂佽崵鍠愮换鍫ュ蓟閿熺姴鐐婄憸蹇涘箺閻樼粯鐓涢悘鐐存灮闊剟鏌?
+ * 5. 闂傚倷绀侀幖顐λ囬鐐茬柈闁哄鍩堥悗鑸电箾瀹割喕绨荤紒鐘茬－閹茬顓兼径濠冩К濠德板€撶欢鈥斥枔閻ｅ备鍋撻崗澶婁壕闂佸憡鍔︽禍婵嬶綖?
+ * 6. 闂傚倷娴囧銊╂嚄閼稿灚娅犳俊銈傚亾闁伙絽鐏氶幏鍛喆閸曨偄濡抽梻浣告贡閸嬫挸顭囧▎鎾村剨妞ゆ柨鐨峰Σ鍫ユ煛閸屾稑顕滈柛锝呯秺閹妫冨☉妯奸獓濡炪們鍔婇崕閬嶆偩濠靛绀冩い蹇撴媼濞?
  *
  * @author WMS Team
  * @since 2026-02-12
@@ -76,25 +76,28 @@ class CustomerControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 婵犵數鍋為幐鎼佸箠閹版澘绠栧┑鐘叉搐閺嬩線鏌ｅΔ鈧悧鍡欑矈?
+        // 濠电姷鏁搁崑鐐哄箰閹间礁绠犻柟鐗堟緲缁犳牕鈹戦悩鍙夋悙闁哄绶氶弻锝呂旈埀顒勬偋閸℃瑧鐭?
         customerRepository.deleteAll();
 
-        // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻锝夛綖椤掆偓婵′粙鏌?
+        // 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幑鎰滈柛锔诲幐閸嬫捇鏁愭惔鈥崇濠碘€冲级閹倿寮婚敐澶涚稏妞ゆ巻鍋撳┑鈥茬矙閺?
         salesUser1 = createUser("sales1", "SALESPERSON");
         salesUser2 = createUser("sales2", "SALESPERSON");
         adminUser = createUser("admin", "SUPER_ADMIN");
     }
 
     private User createUser(String username, String role) {
-        User user = User.builder()
-            .username(username)
-            .password(passwordEncoder.encode("password"))
-            .enabled(true)
-            .build();
-        return userRepository.save(user);
+        return userRepository.findByUsername(username)
+            .orElseGet(() -> {
+                User user = User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode("password"))
+                    .enabled(true)
+                    .build();
+                return userRepository.save(user);
+            });
     }
 
-    // ========== 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯х亪閸嬫捇鐛崹顔句痪闂佺硶鏅滅粙鎴︽箒闁诲函缍嗛崢鎯?==========
+    // ========== 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褏浜柛瀣崌閻涱噣宕归鍙ョ棯闂備胶纭堕弲婊呯矙閹达附绠掗梺璇插嚱缂嶅棝宕㈤幆顬?==========
 
     @Test
     @Order(1)
@@ -123,7 +126,7 @@ class CustomerControllerIntegrationTest {
             .andExpect(jsonPath("$.name").value("Customer A"))
             .andReturn();
 
-        // Then - 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顒佺€梺缁橆殔閻楀棛绮婇敃鍌氱?
+        // Then - 婵犲痉鏉库偓妤佹叏閹绢喗鍎楀〒姘ｅ亾闁诡垯鐒﹀鍕箛椤掍胶鈧剟姊虹紒姗嗘當闁绘妫涚划濠囨晝閸屾氨顔?
         String responseBody = result.getResponse().getContentAsString();
         CustomerResponse response = objectMapper.readValue(responseBody, CustomerResponse.class);
 
@@ -132,24 +135,24 @@ class CustomerControllerIntegrationTest {
         assertThat(savedCustomer.getCode()).isEqualTo("CUST001");
     }
 
-    // ========== 闂佽崵鍋炵粙鎴︽儔閸忕⒈娈介柛銉墯閳锋洟鏌￠崘銊ヤ簽闁诲骸寮剁换娑㈠级閹搭厼鍓甸梺?==========
+    // ========== 闂備浇宕甸崑鐐电矙閹达附鍎旈柛蹇曗拡濞堜粙鏌涢妷顔煎闁抽攱娲熼弻锟犲礃閵娿儰绨介梺璇查瀵墎鎹㈠☉銏犵骇闁规惌鍘奸崜鐢告⒑?==========
 
     @Test
     @Order(2)
     @WithMockUser(username = "sales1", authorities = {"customer:view", "SALESPERSON"})
     @DisplayName("case-3")
     void testRowLevelSecurity_SalesOnlySeesOwnCustomers() throws Exception {
-        // Given - 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯ь嚟閳绘棃鏌曢崼婵嗩伃闁搞倕顑夊鐑樻償閹惧厖澹曢梻浣告憸閸庢劙宕伴弽顓炵疅闁规儼濮ら崕宥夋煕閺囥劌浜介柛姘€块弻?
+        // Given - 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褜鍤熼柍缁樻閺屾洟宕煎┑鍡╀純闂佹悶鍊曢澶婎潖閻戞ɑ鍎熼柟鎯у帠婢规洟姊绘担鍛婃喐闁稿孩鍔欏畷浼村冀椤撶偟鐤呴梺瑙勫劶婵倝宕曞澶嬬厱闁哄洢鍔屾禍浠嬫煕濮橆剙鈧潡寮?
         Customer customer1 = createCustomer("CUST001", "Customer A", salesUser1.getId());
         Customer customer2 = createCustomer("CUST002", "Customer B", salesUser2.getId());
         customerRepository.saveAll(java.util.Arrays.asList(customer1, customer2));
 
-        // When - sales1 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暊閸嬫捇鐛崹顔句痪闂佺硶鏅滈惄顖氱暦濮橆儵鏃堝礋閳规儳浜?
+        // When - sales1 闂傚倷绀侀幖顐ゆ偖椤愶箑纾块柟缁㈠櫘閺佸淇婇妶鍛殜闁稿鎹囬悰顕€宕归鍙ョ棯闂備胶纭堕弲婊堟儎椤栨氨鏆︽慨姗嗗劦閺冨牆绀嬮柍瑙勫劤娴?
         mockMvc.perform(get("/api/customers")
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(1)))  // 闂備礁鎲￠悷顖涚閿濆绀傛慨妞诲亾闁诡垰娲ㄩ埀顒婄秵娴滄粓鎮￠崒鐐寸厾濠靛倸顦花鑽ょ磼鐠佸磭绐旈柟?濠电偞鍨堕幖鈺傜濠婂牜鏁囩憸鐗堝笒缁?
+            .andExpect(jsonPath("$", hasSize(1)))  // 闂傚倷绀侀幉锟犳偡椤栨稓顩查柨婵嗩槸缁€鍌涙叏濡炶浜鹃梺璇″灠濞层劑鍩€椤掑﹦绉靛ù婊勭矒閹繝宕掗悙瀵稿幘婵犻潧鍊搁ˇ顔捐姳閼姐倗纾奸悹浣哥－缁愭棃鏌?婵犵數鍋為崹鍫曞箹閳哄倻顩叉繝濠傜墱閺佸洨鎲搁悧鍫濈瑨缂?
             .andExpect(jsonPath("$[0].code").value("CUST001"));
     }
 
@@ -158,20 +161,20 @@ class CustomerControllerIntegrationTest {
     @WithMockUser(username = "admin", authorities = {"customer:view", "SUPER_ADMIN"})
     @DisplayName("case-4")
     void testRowLevelSecurity_AdminSeesAllCustomers() throws Exception {
-        // Given - 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯ь嚟閳绘棃鏌曢崼婵嗩伃闁搞倕顑夊鐑樻償閹惧厖澹曢梻浣告憸閸庢劙宕伴弽顓炵疅闁规儼濮ら崕宥夋煕閺囥劌浜介柛姘€块弻?
+        // Given - 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褜鍤熼柍缁樻閺屾洟宕煎┑鍡╀純闂佹悶鍊曢澶婎潖閻戞ɑ鍎熼柟鎯у帠婢规洟姊绘担鍛婃喐闁稿孩鍔欏畷浼村冀椤撶偟鐤呴梺瑙勫劶婵倝宕曞澶嬬厱闁哄洢鍔屾禍浠嬫煕濮橆剙鈧潡寮?
         Customer customer1 = createCustomer("CUST001", "Customer A", salesUser1.getId());
         Customer customer2 = createCustomer("CUST002", "Customer B", salesUser2.getId());
         customerRepository.saveAll(java.util.Arrays.asList(customer1, customer2));
 
-        // When - admin 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暊閸嬫捇鐛崹顔句痪闂佺硶鏅滈惄顖氱暦濮橆儵鏃堝礋閳规儳浜?
+        // When - admin 闂傚倷绀侀幖顐ゆ偖椤愶箑纾块柟缁㈠櫘閺佸淇婇妶鍛殜闁稿鎹囬悰顕€宕归鍙ョ棯闂備胶纭堕弲婊堟儎椤栨氨鏆︽慨姗嗗劦閺冨牆绀嬮柍瑙勫劤娴?
         mockMvc.perform(get("/api/customers")
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(2)));  // 闂備礁鎲￠悷顖炲垂椤栨稓顩查柟鐑橆殕閸庢垿鎮楅敐搴濈盎闁绘挸鍊块弻鐔哄枈濡桨澹曢梻?濠电偞鍨堕幖鈺傜濠婂牜鏁囩憸鐗堝笒缁?
+            .andExpect(jsonPath("$", hasSize(2)));  // 闂傚倷绀侀幉锟犳偡椤栫偛鍨傛い鏍ㄧ〒椤╂煡鏌熼悜姗嗘畷闁稿孩鍨块幃妤呮晲鎼存繄鐩庨梺缁樻尭閸婂潡寮婚悢鍝勬瀳婵☆垵妗ㄦ竟鏇㈡⒒?婵犵數鍋為崹鍫曞箹閳哄倻顩叉繝濠傜墱閺佸洨鎲搁悧鍫濈瑨缂?
     }
 
-    // ========== 闂備礁鎲￠弻锝夊礉瀹ュ鐒垫い鎴炲缁佷即鏌涢弮鈧畝绋款嚕椤愩儳鐤€闁哄啫鍊堕崑鐐烘煟?==========
+    // ========== 闂傚倷绀侀幉锟犲蓟閿濆绀夌€广儱顦悞鍨亜閹寸偛顕滅紒浣峰嵆閺屾盯寮埀顒€鐣濈粙娆惧殨妞ゆ劑鍎抽悿鈧梺鍝勫暙閸婂爼宕戦悙鐑樼厽?==========
 
     @Test
     @Order(4)
@@ -185,15 +188,15 @@ class CustomerControllerIntegrationTest {
         customer.setAddress("1234567890Address");
         customerRepository.save(customer);
 
-        // When - sales1 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暊閸嬫捇鐛崹顔句痪闂佺硶鏅滅粙鎾诲箯閻樼粯鏅滈柦妯侯槸婢?
+        // When - sales1 闂傚倷绀侀幖顐ゆ偖椤愶箑纾块柟缁㈠櫘閺佸淇婇妶鍛殜闁稿鎹囬悰顕€宕归鍙ョ棯闂備胶纭堕弲婊呯矙閹捐绠柣妯肩帛閺呮粓鏌﹀Ο渚Ц濠?
         mockMvc.perform(get("/api/customers/" + customer.getId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.name", containsString("*")))  // 闂備浇鍋愰ˉ鎰仈閹间礁鐤?
-            .andExpect(jsonPath("$.phone").value("139****5678"))  // 闂備浇鍋愰ˉ鎰仈閹间礁鐤?
-            .andExpect(jsonPath("$.email").value("z***@example.com"))  // 闂備浇鍋愰ˉ鎰仈閹间礁鐤?
-            .andExpect(jsonPath("$.address").value("123456789***"));  // 闂備浇鍋愰ˉ鎰仈閹间礁鐤?
+            .andExpect(jsonPath("$.name", containsString("*")))  // 闂傚倷娴囬崑鎰八夐幇顓滀粓闁归棿绀侀悿?
+            .andExpect(jsonPath("$.phone").value("139****5678"))  // 闂傚倷娴囬崑鎰八夐幇顓滀粓闁归棿绀侀悿?
+            .andExpect(jsonPath("$.email").value("z***@example.com"))  // 闂傚倷娴囬崑鎰八夐幇顓滀粓闁归棿绀侀悿?
+            .andExpect(jsonPath("$.address").value("123456789***"));  // 闂傚倷娴囬崑鎰八夐幇顓滀粓闁归棿绀侀悿?
     }
 
     @Test
@@ -208,39 +211,39 @@ class CustomerControllerIntegrationTest {
         customer.setAddress("1234567890Address");
         customerRepository.save(customer);
 
-        // When - admin 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暊閸嬫捇鐛崹顔句痪闂佺硶鏅滅粙鎾诲箯閻樼粯鏅滈柦妯侯槸婢?
+        // When - admin 闂傚倷绀侀幖顐ゆ偖椤愶箑纾块柟缁㈠櫘閺佸淇婇妶鍛殜闁稿鎹囬悰顕€宕归鍙ョ棯闂備胶纭堕弲婊呯矙閹捐绠柣妯肩帛閺呮粓鏌﹀Ο渚Ц濠?
         mockMvc.perform(get("/api/customers/" + customer.getId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.name").value("Customer A"))  // 闂備礁鎲￠…鍥窗鎼搭煉缍栭柟鐗堟緲閺嬩線鏌ｅΔ鈧悧鍡欑矈?
-            .andExpect(jsonPath("$.phone").value("13912345678"))  // 闂備礁鎲￠…鍥窗鎼搭煉缍栭柟鐗堟緲閺嬩線鏌ｅΔ鈧悧鍡欑矈?
-            .andExpect(jsonPath("$.email").value("zhangsan@example.com"))  // 闂備礁鎲￠…鍥窗鎼搭煉缍栭柟鐗堟緲閺嬩線鏌ｅΔ鈧悧鍡欑矈?
-            .andExpect(jsonPath("$.address").value("1234567890Address"));  // 闂備礁鎲￠…鍥窗鎼搭煉缍栭柟鐗堟緲閺嬩線鏌ｅΔ鈧悧鍡欑矈?
+            .andExpect(jsonPath("$.name").value("Customer A"))  // 闂傚倷绀侀幉锟犫€﹂崶顒€绐楅幖鎼厜缂嶆牠鏌熼悧鍫熺凡闁哄绶氶弻锝呂旈埀顒勬偋閸℃瑧鐭?
+            .andExpect(jsonPath("$.phone").value("13912345678"))  // 闂傚倷绀侀幉锟犫€﹂崶顒€绐楅幖鎼厜缂嶆牠鏌熼悧鍫熺凡闁哄绶氶弻锝呂旈埀顒勬偋閸℃瑧鐭?
+            .andExpect(jsonPath("$.email").value("zhangsan@example.com"))  // 闂傚倷绀侀幉锟犫€﹂崶顒€绐楅幖鎼厜缂嶆牠鏌熼悧鍫熺凡闁哄绶氶弻锝呂旈埀顒勬偋閸℃瑧鐭?
+            .andExpect(jsonPath("$.address").value("1234567890Address"));  // 闂傚倷绀侀幉锟犫€﹂崶顒€绐楅幖鎼厜缂嶆牠鏌熼悧鍫熺凡闁哄绶氶弻锝呂旈埀顒勬偋閸℃瑧鐭?
     }
 
-    // ========== 濠电儑绲藉ù鍌炲窗濡ゅ懎鏋侀柛蹇氬亹閳瑰秵绻濋棃娑欐悙鐞氭ê鈹戦悙瀛樼稇妞ゆ垵鐗撻幆?==========
+    // ========== 婵犵數鍎戠徊钘壝归崒鐐茬獥婵°倕鎳庨弸渚€鏌涜箛姘汗闁崇懓绉电换婵嬫濞戞瑦鎮欓悶姘埞鎴︽倷鐎涙绋囧銈嗗灥閻楁捇骞?==========
 
     @Test
     @Order(6)
     @WithMockUser(username = "sales1", authorities = {"customer:edit", "SALESPERSON"})
     @DisplayName("case-7")
     void testEditProtection_MaskedFieldsNotUpdated() throws Exception {
-        // Given - 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯х亪閸嬫捇鐛崹顔句痪闂?
+        // Given - 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褏浜柛瀣崌閻涱噣宕归鍙ョ棯闂?
         Customer customer = createCustomer("CUST001", "Customer A", salesUser1.getId());
         customer.setPhone("13912345678");
         customer.setEmail("zhangsan@example.com");
         customer.setAddress("1234567890Address");
         customer = customerRepository.save(customer);
 
-        // When - 闂備礁婀辩划顖炲礉閹烘埈娼╅柨鏇炲€哥粈宀勬煕濞戝崬骞楅柛搴㈡崌閺岀喓鎮伴埄鍐╃彇闂佺粯鐗楃划鎾诲箚閸愵喖绀嬫い鎺嶈兌閸戜粙姊洪崫鍕偓瑙勫垔娴犲鏁嬫い鎺嗗亾閺?
+        // When - 闂傚倷绀佸﹢杈╁垝椤栫偛绀夐柟鐑樺焾濞尖晠鏌ㄩ弴鐐测偓鍝ョ矆瀹€鍕厱婵炴垵宕獮妤呮煕鎼淬垺宕岄柡宀€鍠撻幃浼村焺閸愨晝褰囬梻浣虹帛閻楁鍒掗幘璇茬畾闁告劦鍠栫粈瀣亜閹哄秷鍏岄柛鎴滅矙濮婃椽宕崟顐熷亾鐟欏嫬鍨斿ù鐘差儛閺佸銇勯幒鍡椾壕闁?
         CreateCustomerRequest updateRequest = CreateCustomerRequest.builder()
             .code("CUST001")
-            .name("闁诲孩顔栭崰姘叏瀹曞洨绠斿〒姘ｅ亾鐎殿喖顕埀顒佺⊕钃遍柣鎾亾")
-            .contact("闂備礁鎼ˇ顖涱殽缁嬫５娲箻鐠囨彃宓嗛柣搴㈢⊕钃遍柣鎾亾")
-            .phone("139****5678")  // 闂備胶顢婇妴鈧柡鍛箞閹儱顭ㄩ崨顏勪壕婵炴垶鐟▓鏇熴亜?
-            .email("z***@example.com")  // 闂備胶顢婇妴鈧柡鍛箞閹儱顭ㄩ崨顏勪壕婵炴垶鐟▓鏇熴亜?
-            .address("闂備礁鎲￠悧妤呭Φ閻愬搫瑙︽い鎰╁€栭弳婊堟煕鐏炲墽鈯曠紒鈥冲€垮濠氬礃閵娿儲姣愰柣?**")  // 闂備胶顢婇妴鈧柡鍛箞閹儱顭ㄩ崨顏勪壕婵炴垶鐟▓鏇熴亜?
+            .name("Updated Customer A")
+            .contact("Updated Contact A")
+            .phone("139****5678")
+            .email("z***@example.com")
+            .address("123456789***")
             .creditLimit(new BigDecimal("200000.00"))
             .isActive(true)
             .build();
@@ -251,23 +254,23 @@ class CustomerControllerIntegrationTest {
             .andDo(print())
             .andExpect(status().isOk());
 
-        // Then - 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顒佺€梺缁橆殔閻楀棛绮婇敃鍌氱閻庢稒蓱閹牏绱掗崣妯哄祮妤犵偞甯￠崺锟犲礃椤忓嫮浠梺璇插缁嬫帡銆冮崱娑辨晩閻忕偛澧介埞宥嗙節闂堟稒鎼愰柣锔诲櫍閺屾稑螣閻撳孩鐎婚梺?
+        // Then - 婵犲痉鏉库偓妤佹叏閹绢喗鍎楀〒姘ｅ亾闁诡垯鐒﹀鍕箛椤掍胶鈧剟姊虹紒姗嗘當闁绘妫涚划濠囨晝閸屾氨顔愰柣搴㈢⊕钃遍柟顖氱墢缁辨帡宕ｅΟ鍝勭ギ濡ょ姷鍋炵敮锟犲春閿熺姴绀冩い蹇撳娴狀垶姊虹拠鎻掝劉缂佸甯￠妴鍐幢濞戣鲸鏅╅柣蹇曞仜婢т粙鍩炲鍡欑瘈闂傚牊绋掗幖鎰版煟閿旇娅嶉柡灞剧☉铻ｉ柣鎾冲閻庡姊?
         Customer updatedCustomer = customerRepository.findById(customer.getId()).orElseThrow();
-        assertThat(updatedCustomer.getName()).isEqualTo("闁诲孩顔栭崰姘叏瀹曞洨绠斿〒姘ｅ亾鐎殿喖顕埀顒佺⊕钃遍柣鎾亾");  // 闁诲骸婀遍…鍫濐嚕鐠哄ソ娲锤濡も偓濡?
-        assertThat(updatedCustomer.getContact()).isEqualTo("闂備礁鎼ˇ顖涱殽缁嬫５娲箻鐠囨彃宓嗛柣搴㈢⊕钃遍柣鎾亾");  // 闁诲骸婀遍…鍫濐嚕鐠哄ソ娲锤濡も偓濡?
-        assertThat(updatedCustomer.getPhone()).isEqualTo("13912345678");  // 濠电儑绲藉ú锔炬崲閸愵亖鍋撻崹顐ｎ棃鐎规洏鍨介幃銏焊娴ｉ晲澹?
-        assertThat(updatedCustomer.getEmail()).isEqualTo("zhangsan@example.com");  // 濠电儑绲藉ú锔炬崲閸愵亖鍋撻崹顐ｎ棃鐎规洏鍨介幃銏焊娴ｉ晲澹?
-        assertThat(updatedCustomer.getAddress()).isEqualTo("1234567890Address");  // 濠电儑绲藉ú锔炬崲閸愵亖鍋撻崹顐ｎ棃鐎规洏鍨介幃銏焊娴ｉ晲澹?
+        assertThat(updatedCustomer.getName()).isEqualTo("Updated Customer A");
+        assertThat(updatedCustomer.getContact()).isEqualTo("Updated Contact A");
+        assertThat(updatedCustomer.getPhone()).isEqualTo("13912345678");
+        assertThat(updatedCustomer.getEmail()).isEqualTo("zhangsan@example.com");
+        assertThat(updatedCustomer.getAddress()).isEqualTo("1234567890Address");
     }
 
-    // ========== 闂佽娴烽幊鎾诲嫉椤掑嫬姹?CRUD 婵犵數鍋熺换婵嬫嚄閸洖鐓濋柣鎾崇瘍閸︻厸鍋撻敐搴″箻婵?==========
+    // ========== 闂備浇顕уù鐑藉箠閹捐瀚夋い鎺戝濮?CRUD 濠电姷鏁搁崑鐔烘崲濠靛鍤勯柛顐ｆ礀閻撴繈鏌ｉ幘宕囩槏闁革富鍘搁崑鎾绘晲鎼粹€崇濠?==========
 
     @Test
     @Order(7)
     @WithMockUser(username = "sales1", authorities = {"customer:create", "customer:view", "customer:edit", "customer:delete", "SALESPERSON"})
     @DisplayName("case-8")
     void testCompleteCRUDFlow() throws Exception {
-        // 1. 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯х亪閸嬫捇鐛崹顔句痪闂?
+        // 1. 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褏浜柛瀣崌閻涱噣宕归鍙ョ棯闂?
         CreateCustomerRequest createRequest = CreateCustomerRequest.builder()
             .code("CUST999")
             .name("CRUD Customer")
@@ -291,12 +294,12 @@ class CustomerControllerIntegrationTest {
         );
         Long customerId = createdCustomer.getId();
 
-        // 2. 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暊閸嬫捇鐛崹顔句痪闂佺硶鏅滅粙鎾诲箯閻樼粯鏅滈柦妯侯槸婢?
+        // 2. 闂傚倷绀侀幖顐ゆ偖椤愶箑纾块柟缁㈠櫘閺佸淇婇妶鍛殜闁稿鎹囬悰顕€宕归鍙ョ棯闂備胶纭堕弲婊呯矙閹捐绠柣妯肩帛閺呮粓鏌﹀Ο渚Ц濠?
         mockMvc.perform(get("/api/customers/" + customerId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value("CUST999"));
 
-        // 3. 闂備礁鎼ú銈夋偤閵娾晛钃熷┑鐘插閸嬫捇鐛崹顔句痪闂?
+        // 3. 闂傚倷绀侀幖顐⒚洪妶澶嬪仱闁靛ň鏅涢拑鐔封攽閻樻彃顏ら柛瀣崌閻涱噣宕归鍙ョ棯闂?
         CreateCustomerRequest updateRequest = CreateCustomerRequest.builder()
             .code("CUST999")
             .name("CRUD Customer Updated")
@@ -312,18 +315,18 @@ class CustomerControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.name", containsString("*")));  // 闂備浇鍋愰ˉ鎰仈閹间礁鐤鹃梺顒€绉寸憴锕傚箹鏉堝墽绋婚柣锝変憾閺屾稑顫濋鍌傘倗鎮?
+            .andExpect(jsonPath("$.name", containsString("*")));  // 闂傚倷娴囬崑鎰八夐幇顓滀粓闁归棿绀侀悿楣冩⒑椤掆偓缁夊鎲撮敃鍌氱閺夊牆澧界粙濠氭煟閿濆鎲鹃柡灞剧☉椤繈顢楅崒鍌樺€楅幃?
 
-        // 4. 闂備礁鎲＄敮鐐寸箾閳ь剚绻涢崨顓熸崳闁逞屽墮缁犲秹宕瑰ú顏勬槬婵炴垯鍨洪弲顒勬煕椤愵剛绉柟濂夊亰閺屾盯骞掗弬搴撴瀰濠电偛鎳庨柊锝夊极?
+        // 4. 闂傚倷绀侀幉锛勬暜閻愬绠鹃柍褜鍓氱换娑㈠川椤撶喐宕抽梺閫炲苯澧紒鐘茬Ч瀹曠懓煤椤忓嫭妲┑鐐村灟閸ㄦ椽寮查鍕厱妞ゆ劦鍓涚粔顒勬煙婵傚浜伴柡灞剧洴楠炴帡寮惔鎾寸€版繝鐢靛仜閹冲酣鏌婇敐澶婃瀬?
         mockMvc.perform(delete("/api/customers/" + customerId))
             .andExpect(status().isNoContent());
 
-        // 5. 濠德板€楁慨鎾儗娓氣偓閹焦寰勭€ｎ偄顫″銈嗙墬閼归箖鎮橀埡鍛拻?
+        // 5. 婵犲痉鏉库偓妤佹叏閹绢喗鍎楀〒姘ｅ亾闁诡垯鐒﹀鍕偓锝庡亜椤€愁渻閵堝棛澧柤褰掔畺閹﹢鍩￠崨顔规嫽?
         Customer deletedCustomer = customerRepository.findById(customerId).orElseThrow();
         assertThat(deletedCustomer.getIsActive()).isFalse();
     }
 
-    // ========== 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簻缁犲磭鎲稿澶婃槬婵°倐鍋撻棁澶愭倵閿濆骸骞樻俊?==========
+    // ========== 闂傚倷绀侀幖顐λ囬鐐茬柈闁哄鍩堥悗鑸电箾瀹割喕绨荤紒鐘茬－閹茬顓兼径濠冩К濠德板€愰崑鎾绘婢舵劖鍊甸柨婵嗛楠炴ɑ淇?==========
 
     @Test
     @Order(8)
@@ -334,13 +337,13 @@ class CustomerControllerIntegrationTest {
         Customer customer = createCustomer("CUST001", "Customer A", salesUser1.getId());
         customerRepository.save(customer);
 
-        // When & Then - 婵犵數鍋涙径鍥礈濠靛棴鑰?customer:view 闂備礁鎼ˇ顖炲疮閺夋埈鐎?
+        // When & Then - 濠电姷鏁搁崑娑欏緞閸ヮ剙绀堟繝闈涙４閼?customer:view 闂傚倷绀侀幖顐λ囬鐐茬柈闁哄鍩堥悗?
         mockMvc.perform(get("/api/customers/" + customer.getId()))
             .andDo(print())
             .andExpect(status().isForbidden());
     }
 
-    // ========== 闂佸搫顦悧鍡涘箠鎼淬垺鍙忔い蹇撶墕濡﹢鎮峰▎蹇擃伀闁?==========
+    // ========== 闂備礁鎼ˇ顖炴偋閸℃稑绠犻幖娣灪閸欏繑銇勮箛鎾跺婵☆偅锕㈤幃宄扳枎韫囨搩浼€闂?==========
 
     private Customer createCustomer(String code, String name, Long ownerId) {
         return Customer.builder()

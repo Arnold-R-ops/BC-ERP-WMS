@@ -1,7 +1,7 @@
 package com.wms.system.controller;
 
 import com.wms.system.dto.sales.*;
-import com.wms.system.security.SecurityUser;
+import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.SalesEntryService;
 import com.wms.system.service.SalesSubmissionService;
 import jakarta.validation.Valid;
@@ -148,14 +148,15 @@ public class SalesOrderController {
         @Valid @RequestBody CreateSalesOrderRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: createSalesOrder - 用户: {}, 客户ID: {}, 明细数: {}",
-            user.getUsername(), request.getCustomerId(), request.getItems().size());
+            username, request.getCustomerId(), request.getItems().size());
 
         SalesOrderResponse response = salesSubmissionService.createSalesOrder(
             request,
-            user.getId(),
-            user.getUsername()
+            userId,
+            username
         );
 
         log.info("API响应: createSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
@@ -231,11 +232,12 @@ public class SalesOrderController {
         @Valid @RequestBody UpdateSalesOrderRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: updateSalesOrder - id: {}, 用户: {}, 明细数: {}",
-            id, user.getUsername(), request.getItems().size());
+            id, username, request.getItems().size());
 
-        SalesOrderResponse response = salesSubmissionService.updateSalesOrder(id, request, user.getId());
+        SalesOrderResponse response = salesSubmissionService.updateSalesOrder(id, request, userId);
 
         log.info("API响应: updateSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
 
@@ -260,14 +262,15 @@ public class SalesOrderController {
         @Valid @RequestBody ApprovalRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: approveSalesOrder - id: {}, 审批人: {}, 意见: {}",
-            id, user.getUsername(), request.getComment());
+            id, username, request.getComment());
 
         SalesOrderResponse response = salesSubmissionService.approveSalesOrder(
             id,
-            user.getId(),
-            user.getUsername(),
+            userId,
+            username,
             request.getComment()
         );
 
@@ -294,14 +297,15 @@ public class SalesOrderController {
         @Valid @RequestBody ApprovalRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: rejectSalesOrder - id: {}, 审批人: {}, 原因: {}",
-            id, user.getUsername(), request.getReason());
+            id, username, request.getReason());
 
         SalesOrderResponse response = salesSubmissionService.rejectSalesOrder(
             id,
-            user.getId(),
-            user.getUsername(),
+            userId,
+            username,
             request.getReason()
         );
 
@@ -328,14 +332,15 @@ public class SalesOrderController {
         @Valid @RequestBody CancelOrderRequest request,
         Authentication authentication
     ) {
-        SecurityUser user = (SecurityUser) authentication.getPrincipal();
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
         log.info("API调用: cancelSalesOrder - id: {}, 操作人: {}, 原因: {}",
-            id, user.getUsername(), request.getReason());
+            id, username, request.getReason());
 
         SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(
             id,
             request.getReason(),
-            user.getId()
+            userId
         );
 
         log.info("API响应: cancelSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());

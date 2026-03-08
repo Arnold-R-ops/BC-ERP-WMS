@@ -36,7 +36,8 @@ import lombok.*;
         @Index(name = "idx_transaction_type", columnList = "transactionType"),
         @Index(name = "idx_source_type", columnList = "sourceType"),
         @Index(name = "idx_source_order_id", columnList = "sourceOrderId"),
-        @Index(name = "idx_stock_tx_created_at", columnList = "created_at")  // 按时间查询流水（高频场景�?    }
+        @Index(name = "idx_stock_tx_created_at", columnList = "created_at")  // 按时间查询流水（高频场景）
+    }
 )
 public class StockTransaction extends BaseEntity {
 
@@ -116,8 +117,8 @@ public class StockTransaction extends BaseEntity {
      * 来源单据号（外部业务单据的唯一标识�?     * 用于关联外部系统的单据，便于追溯和对�?     *
      * 示例�?     * - 采购入库：采购单号（PO202501090001�?     * - 销售出库：销售订单号（SO202501090002�?     * - 调拨出库：调拨单号（TR202501090003�?     * - 盘点调整：盘点单号（ST202501090004�?     *
      * 格式建议�?     * - 采购单：PO + 年月�?+ 流水�?     * - 销售单：SO + 年月�?+ 流水�?     * - 调拨单：TR + 年月�?+ 流水�?     * - 盘点单：ST + 年月�?+ 流水�?     */
-    @NotBlank(message = "来源单据号不能为�?)
-    @Size(max = 50, message = "来源单据号长度不能超�?50 个字�?)
+    @NotBlank(message = "来源单据号不能为空")
+    @Size(max = 50, message = "来源单据号长度不能超过 50 个字符")
     @Column(nullable = false, length = 50)
     private String sourceOrderId;
 
@@ -206,7 +207,8 @@ public class StockTransaction extends BaseEntity {
         if (location != null) {
             this.locationCode = location.getLocationCode();
         }
-        // V4.2: �?reasonCode 未显式设置，默认填充�?sourceType 的名�?        if (this.reasonCode == null && this.sourceType != null) {
+        // V4.2: If reasonCode is not explicitly set, default to sourceType name.
+        if (this.reasonCode == null && this.sourceType != null) {
             this.reasonCode = this.sourceType.name();
         }
     }

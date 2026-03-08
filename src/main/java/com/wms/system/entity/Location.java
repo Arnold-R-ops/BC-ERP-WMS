@@ -34,7 +34,7 @@ import lombok.*;
         @Index(name = "idx_shelf_position", columnList = "shelfNumber, positionNumber")
     },
     uniqueConstraints = {
-        // 确保同一个仓库内，相同货架的相同位号不重�?        @UniqueConstraint(name = "uk_location", columnNames = {"warehouseCode", "zone", "shelfNumber", "positionNumber"})
+        @UniqueConstraint(name = "uk_location", columnNames = {"warehouseCode", "zone", "shelfNumber", "positionNumber"})
     }
 )
 public class Location extends BaseEntity {
@@ -69,7 +69,7 @@ public class Location extends BaseEntity {
      * 单仓库系统可固定�?"WH01"
      * 多仓库系统需要根据实际情况分配编�?     */
     @NotBlank(message = "仓库编码不能为空")
-    @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "仓库编码格式不正确（字母开头，可含字母、数字、短横线，长�?-20�?)
+    @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "仓库编码格式不正确（字母开头，可含字母、数字、短横线，长度2-20）")
     @Column(nullable = false, length = 20)
     private String warehouseCode;
 
@@ -90,8 +90,8 @@ public class Location extends BaseEntity {
      * 示例�?A-01", "B-12", "C-005"
      *
      * 建议命名规则�?     * - 同一区域内的货架按顺序编�?     * - 靠近出货口的货架号较小（便于优化拣货路径�?     */
-    @NotBlank(message = "货架号不能为�?)
-    @Size(max = 20, message = "货架号长度不能超�?20 个字�?)
+    @NotBlank(message = "货架号不能为空")
+    @Size(max = 20, message = "货架号长度不能超过 20 个字符")
     @Column(nullable = false, length = 20)
     private String shelfNumber;
 
@@ -101,7 +101,7 @@ public class Location extends BaseEntity {
      *
      * 建议命名规则�?     * - 从下到上、从左到右依次编�?     * - 常用商品放在腰部高度（减少弯腰和爬高次数�?     */
     @NotBlank(message = "位号不能为空")
-    @Size(max = 10, message = "位号长度不能超过 10 个字�?)
+    @Size(max = 10, message = "位号长度不能超过 10 个字符")
     @Column(nullable = false, length = 10)
     private String positionNumber;
 
@@ -141,7 +141,8 @@ public class Location extends BaseEntity {
             this.warehouseCode = warehouse.getCode();
         }
 
-        // Step 2: 生成 locationCode（现有逻辑�?        if (warehouseCode != null && zone != null &&
+        // Step 2: Generate locationCode.
+        if (warehouseCode != null && zone != null &&
             shelfNumber != null && positionNumber != null) {
             this.locationCode = String.format("%s-%s-%s-%s",
                 warehouseCode,

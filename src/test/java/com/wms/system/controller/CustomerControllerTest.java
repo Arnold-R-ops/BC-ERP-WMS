@@ -309,7 +309,7 @@ class CustomerControllerTest {
     @DisplayName("case-8")
     void testDeleteCustomer() throws Exception {
         // Given
-        doNothing().when(customerService).deleteCustomer(1L);
+        when(customerService.deleteCustomer(1L)).thenReturn(CustomerResponse.builder().id(1L).build());
 
         // When & Then
         mockMvc.perform(delete("/api/customers/{id}", 1L))

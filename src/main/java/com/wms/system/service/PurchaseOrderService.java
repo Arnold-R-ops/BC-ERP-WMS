@@ -266,6 +266,7 @@ public class PurchaseOrderService {
                 .purchaseOrderItem(item)
                 .product(item.getProduct())
                 .location(null)  // Stage 2: Not assigned yet
+                .locationCode("UNASSIGNED")
                 .quantity(item.getOrderedQuantity())  // Initial quantity
                 .initialQuantity(item.getOrderedQuantity())
                 .expiryDate(item.getExpiryDate())

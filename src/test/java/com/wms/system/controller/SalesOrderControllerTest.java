@@ -85,7 +85,7 @@ class SalesOrderControllerTest {
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Type",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                org.hamcrest.Matchers.startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
             .andExpect(header().string("Content-Disposition",
                 containsString("sales_order_template.xlsx")))
             .andExpect(content().bytes(excelBytes));

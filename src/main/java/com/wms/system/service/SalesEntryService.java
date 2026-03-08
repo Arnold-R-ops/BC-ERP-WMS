@@ -27,13 +27,10 @@ import java.util.stream.Collectors;
 /**
  * Sales Entry Service
  *
- * V3.7 架构：销售订单录入服务
- *
- * 核心功能：
- * 1. Excel 模板下载
- * 2. Excel 导入解析
- * 3. 库存预检查（批次选项查询）
- *
+ * V3.7 鏋舵瀯锛氶攢鍞鍗曞綍鍏ユ湇鍔? *
+ * 鏍稿績鍔熻兘锛? * 1. Excel 妯℃澘涓嬭浇
+ * 2. Excel 瀵煎叆瑙ｆ瀽
+ * 3. 搴撳瓨棰勬鏌ワ紙鎵规閫夐」鏌ヨ锛? *
  * @author WMS Team
  * @since 2026-01-29
  * @version 3.7 (Smart Sales and Outbound System)
@@ -49,14 +46,11 @@ public class SalesEntryService {
     // ========== Excel Template Download ==========
 
     /**
-     * 下载 Excel 导入模板
+     * 涓嬭浇 Excel 瀵煎叆妯℃澘
      *
-     * 功能：
-     * - 生成标准 Excel 模板文件
-     * - 包含表头和示例数据
-     * - 返回字节数组供前端下载
-     *
-     * @return Excel 文件字节数组
+     * 鍔熻兘锛?     * - 鐢熸垚鏍囧噯 Excel 妯℃澘鏂囦欢
+     * - 鍖呭惈琛ㄥご鍜岀ず渚嬫暟鎹?     * - 杩斿洖瀛楄妭鏁扮粍渚涘墠绔笅杞?     *
+     * @return Excel 鏂囦欢瀛楄妭鏁扮粍
      */
     public byte[] downloadExcelTemplate() {
         log.info("Generating Excel template for sales order import");
@@ -81,15 +75,13 @@ public class SalesEntryService {
     }
 
     /**
-     * 创建 Excel 模板工作簿
-     *
-     * @return Excel 工作簿
-     */
+     * 鍒涘缓 Excel 妯℃澘宸ヤ綔绨?     *
+     * @return Excel 宸ヤ綔绨?     */
     private Workbook createExcelTemplate() {
         Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("销售订单导入模板");
+        Sheet sheet = workbook.createSheet("Sales Order Import Template");
 
-        // 创建表头样式
+        // 鍒涘缓琛ㄥご鏍峰紡
         CellStyle headerStyle = workbook.createCellStyle();
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
@@ -101,16 +93,16 @@ public class SalesEntryService {
         headerStyle.setBorderLeft(BorderStyle.THIN);
         headerStyle.setBorderRight(BorderStyle.THIN);
 
-        // 创建表头行 (row 0)
+        // 鍒涘缓琛ㄥご琛?(row 0)
         Row headerRow = sheet.createRow(0);
         String[] headers = {
-            "customerId (客户ID)",
-            "productId (产品ID)",
-            "quantity (数量)",
-            "unitPrice (单价)",
-            "rejectNearExpiry (拒收临期品: true/false)",
-            "specifiedBatchIds (指定批次ID，逗号分隔)",
-            "remark (备注)"
+            "customerId (瀹㈡埛ID)",
+            "productId (浜у搧ID)",
+            "quantity (鏁伴噺)",
+            "unitPrice (鍗曚环)",
+            "rejectNearExpiry (鎷掓敹涓存湡鍝? true/false)",
+            "specifiedBatchIds (鎸囧畾鎵规ID锛岄€楀彿鍒嗛殧)",
+            "remark (澶囨敞)"
         };
 
         for (int i = 0; i < headers.length; i++) {
@@ -119,7 +111,7 @@ public class SalesEntryService {
             cell.setCellStyle(headerStyle);
         }
 
-        // 创建示例数据行 (row 1)
+        // 鍒涘缓绀轰緥鏁版嵁琛?(row 1)
         Row exampleRow = sheet.createRow(1);
         exampleRow.createCell(0).setCellValue(1);           // customerId
         exampleRow.createCell(1).setCellValue(100);         // productId
@@ -127,9 +119,9 @@ public class SalesEntryService {
         exampleRow.createCell(3).setCellValue(99.99);       // unitPrice
         exampleRow.createCell(4).setCellValue("false");     // rejectNearExpiry
         exampleRow.createCell(5).setCellValue("123,456");   // specifiedBatchIds
-        exampleRow.createCell(6).setCellValue("测试订单");   // remark
+        exampleRow.createCell(6).setCellValue("娴嬭瘯璁㈠崟");   // remark
 
-        // 设置列宽
+        // 璁剧疆鍒楀
         sheet.setColumnWidth(0, 5000);  // customerId
         sheet.setColumnWidth(1, 5000);  // productId
         sheet.setColumnWidth(2, 4000);  // quantity
@@ -144,21 +136,19 @@ public class SalesEntryService {
     // ========== Excel Import ==========
 
     /**
-     * 从 Excel 导入销售订单数据
+     * 浠?Excel 瀵煎叆閿€鍞鍗曟暟鎹?     *
+     * 鍔熻兘锛?     * - 瑙ｆ瀽 Excel 鏂囦欢
+     * - 楠岃瘉鏁版嵁鏍煎紡
+     * - 杩斿洖璁㈠崟鏄庣粏鍒楄〃
      *
-     * 功能：
-     * - 解析 Excel 文件
-     * - 验证数据格式
-     * - 返回订单明细列表
-     *
-     * @param file Excel 文件
-     * @return 订单明细列表
+     * @param file Excel 鏂囦欢
+     * @return 璁㈠崟鏄庣粏鍒楄〃
      */
     @Transactional(readOnly = true)
     public List<SalesOrderItemData> importSalesOrderFromExcel(MultipartFile file) {
         log.info("Importing sales order from Excel file: {}", file.getOriginalFilename());
 
-        // 验证文件
+        // 楠岃瘉鏂囦欢
         if (file == null || file.isEmpty()) {
             throw new BusinessException(
                 ErrorKeys.INVALID_FILE_FORMAT,
@@ -180,9 +170,9 @@ public class SalesEntryService {
 
         try {
             Workbook workbook = new XSSFWorkbook(file.getInputStream());
-            Sheet sheet = workbook.getSheet("销售订单导入模板");
+            Sheet sheet = workbook.getSheet("Sales Order Import Template");
 
-            // 如果找不到指定 sheet，使用第一个 sheet
+            // 濡傛灉鎵句笉鍒版寚瀹?sheet锛屼娇鐢ㄧ涓€涓?sheet
             if (sheet == null) {
                 sheet = workbook.getSheetAt(0);
             }
@@ -190,7 +180,7 @@ public class SalesEntryService {
             List<SalesOrderItemData> items = new ArrayList<>();
             int lastRowNum = sheet.getLastRowNum();
 
-            // 跳过表头行 (row 0)，从 row 1 开始读取
+            // 璺宠繃琛ㄥご琛?(row 0)锛屼粠 row 1 寮€濮嬭鍙?
             for (int rowIndex = 1; rowIndex <= lastRowNum; rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
                 if (row == null || isEmptyRow(row)) {
@@ -226,14 +216,12 @@ public class SalesEntryService {
     }
 
     /**
-     * 解析单行 Excel 数据
+     * 瑙ｆ瀽鍗曡 Excel 鏁版嵁
      *
-     * @param row Excel 行
-     * @param rowIndex 行索引（0-indexed）
-     * @return 订单明细数据
+     * @param row Excel 琛?     * @param rowIndex 琛岀储寮曪紙0-indexed锛?     * @return 璁㈠崟鏄庣粏鏁版嵁
      */
     private SalesOrderItemData parseExcelRow(Row row, int rowIndex) {
-        // 解析各列数据
+        // 瑙ｆ瀽鍚勫垪鏁版嵁
         Long customerId = readLongCell(row, 0, "customerId");
         Long productId = readLongCell(row, 1, "productId");
         Integer quantity = readIntegerCell(row, 2, "quantity");
@@ -242,24 +230,24 @@ public class SalesEntryService {
         String specifiedBatchIdsStr = readStringCell(row, 5, "specifiedBatchIds");
         String remark = readStringCell(row, 6, "remark");
 
-        // 验证必填字段
+        // 楠岃瘉蹇呭～瀛楁
         if (customerId == null) {
-            throw new IllegalArgumentException("客户ID不能为空");
+            throw new IllegalArgumentException("瀹㈡埛ID涓嶈兘涓虹┖");
         }
         if (productId == null) {
-            throw new IllegalArgumentException("产品ID不能为空");
+            throw new IllegalArgumentException("浜у搧ID涓嶈兘涓虹┖");
         }
         if (quantity == null || quantity <= 0) {
-            throw new IllegalArgumentException("数量必须大于 0");
+            throw new IllegalArgumentException("鏁伴噺蹇呴』澶т簬 0");
         }
         if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("单价不能为负数");
+            throw new IllegalArgumentException("Unit price cannot be negative");
         }
 
-        // 解析指定批次ID列表
+        // 瑙ｆ瀽鎸囧畾鎵规ID鍒楄〃
         List<Long> specifiedBatchIds = parseCommaSeparatedIds(specifiedBatchIdsStr);
 
-        // 构建订单明细对象
+        // 鏋勫缓璁㈠崟鏄庣粏瀵硅薄
         return SalesOrderItemData.builder()
             .productId(productId)
             .quantity(quantity)
@@ -271,11 +259,9 @@ public class SalesEntryService {
     }
 
     /**
-     * 检查行是否为空
+     * 妫€鏌ヨ鏄惁涓虹┖
      *
-     * @param row Excel 行
-     * @return true 如果行为空
-     */
+     * @param row Excel 琛?     * @return true 濡傛灉琛屼负绌?     */
     private boolean isEmptyRow(Row row) {
         for (int i = 0; i < 7; i++) {
             Cell cell = row.getCell(i);
@@ -292,41 +278,37 @@ public class SalesEntryService {
     // ========== Batch Options Pre-Check ==========
 
     /**
-     * 获取批次选项（库存预检查）
+     * 鑾峰彇鎵规閫夐」锛堝簱瀛橀妫€鏌ワ級
      *
-     * 功能：
-     * - 查询可用批次
-     * - 过滤临期批次（可选）
-     * - 计算新鲜度和包装状态
-     * - 按 FEFO 排序
+     * 鍔熻兘锛?     * - 鏌ヨ鍙敤鎵规
+     * - 杩囨护涓存湡鎵规锛堝彲閫夛級
+     * - 璁＄畻鏂伴矞搴﹀拰鍖呰鐘舵€?     * - 鎸?FEFO 鎺掑簭
      *
-     * @param productId 产品ID
-     * @param quantity 需求数量
-     * @param rejectNearExpiry 是否拒收临期品
-     * @return 批次选项列表
+     * @param productId 浜у搧ID
+     * @param quantity 闇€姹傛暟閲?     * @param rejectNearExpiry 鏄惁鎷掓敹涓存湡鍝?     * @return 鎵规閫夐」鍒楄〃
      */
     @Transactional(readOnly = true)
     public List<BatchOptionDto> getBatchOptions(Long productId, Integer quantity, Boolean rejectNearExpiry) {
         log.info("Getting batch options for productId={}, quantity={}, rejectNearExpiry={}",
             productId, quantity, rejectNearExpiry);
 
-        // 查询产品信息
+        // 鏌ヨ浜у搧淇℃伅
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.PRODUCT_NOT_FOUND,
                 Map.of("productId", productId)
             ));
 
-        // 查询可用批次（FEFO 排序）
+        // 鏌ヨ鍙敤鎵规锛團EFO 鎺掑簭锛?
         List<InventoryBatch> batches = inventoryBatchRepository
             .findByProductIdAndActiveOrderByExpiryDateAsc(productId, true);
 
         LocalDate today = LocalDate.now();
 
-        // 过滤和转换批次
+        // 杩囨护鍜岃浆鎹㈡壒娆?
         List<BatchOptionDto> options = batches.stream()
             .filter(batch -> {
-                // 过滤临期批次
+                // 杩囨护涓存湡鎵规
                 if (Boolean.TRUE.equals(rejectNearExpiry)) {
                     long daysUntilExpiry = ChronoUnit.DAYS.between(today, batch.getExpiryDate());
                     return daysUntilExpiry > product.getNearExpiryDays();
@@ -334,18 +316,18 @@ public class SalesEntryService {
                 return true;
             })
             .map(batch -> {
-                // 计算距离过期天数
+                // 璁＄畻璺濈杩囨湡澶╂暟
                 long daysUntilExpiry = ChronoUnit.DAYS.between(today, batch.getExpiryDate());
 
-                // 判断新鲜度状态
+                // 鍒ゆ柇鏂伴矞搴︾姸鎬?
                 String freshnessStatus = daysUntilExpiry > product.getNearExpiryDays()
                     ? "FRESH"
                     : "WARNING";
 
-                // 判断包装状态
+                // 鍒ゆ柇鍖呰鐘舵€?
                 String packageStatus = (batch.getQuantity() % product.getPerPackQty() == 0)
-                    ? "📦 整箱"
-                    : "📦 散货";
+                    ? "\uD83D\uDCE6 整箱"
+                    : "\uD83D\uDCE5 散货";
 
                 return BatchOptionDto.builder()
                     .batchId(batch.getId())
@@ -368,11 +350,9 @@ public class SalesEntryService {
     // ========== Helper Methods ==========
 
     /**
-     * 获取单元格值（字符串）
+     * 鑾峰彇鍗曞厓鏍煎€硷紙瀛楃涓诧級
      *
-     * @param cell Excel 单元格
-     * @return 字符串值
-     */
+     * @param cell Excel 鍗曞厓鏍?     * @return 瀛楃涓插€?     */
     private String getCellValueAsString(Cell cell) {
         if (cell == null) {
             return null;
@@ -385,7 +365,7 @@ public class SalesEntryService {
                 if (DateUtil.isCellDateFormatted(cell)) {
                     return cell.getLocalDateTimeCellValue().toString();
                 }
-                // 避免科学计数法
+                // 閬垮厤绉戝璁℃暟娉?
                 return String.valueOf((long) cell.getNumericCellValue());
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
@@ -399,11 +379,8 @@ public class SalesEntryService {
     }
 
     /**
-     * 获取单元格值（Long）
-     *
-     * @param cell Excel 单元格
-     * @return Long 值
-     */
+     * 鑾峰彇鍗曞厓鏍煎€硷紙Long锛?     *
+     * @param cell Excel 鍗曞厓鏍?     * @return Long 鍊?     */
     private Long getCellValueAsLong(Cell cell) {
         if (cell == null) {
             return null;
@@ -420,21 +397,18 @@ public class SalesEntryService {
                 try {
                     return Long.parseLong(value);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("无效的数字格式: " + value);
+                    throw new IllegalArgumentException("鏃犳晥鐨勬暟瀛楁牸寮? " + value);
                 }
             case BLANK:
                 return null;
             default:
-                throw new IllegalArgumentException("无法转换为 Long 类型");
+                throw new IllegalArgumentException("鏃犳硶杞崲涓?Long 绫诲瀷");
         }
     }
 
     /**
-     * 获取单元格值（Integer）
-     *
-     * @param cell Excel 单元格
-     * @return Integer 值
-     */
+     * 鑾峰彇鍗曞厓鏍煎€硷紙Integer锛?     *
+     * @param cell Excel 鍗曞厓鏍?     * @return Integer 鍊?     */
     private Integer getCellValueAsInteger(Cell cell) {
         if (cell == null) {
             return null;
@@ -451,21 +425,18 @@ public class SalesEntryService {
                 try {
                     return Integer.parseInt(value);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("无效的数字格式: " + value);
+                    throw new IllegalArgumentException("鏃犳晥鐨勬暟瀛楁牸寮? " + value);
                 }
             case BLANK:
                 return null;
             default:
-                throw new IllegalArgumentException("无法转换为 Integer 类型");
+                throw new IllegalArgumentException("鏃犳硶杞崲涓?Integer 绫诲瀷");
         }
     }
 
     /**
-     * 获取单元格值（BigDecimal）
-     *
-     * @param cell Excel 单元格
-     * @return BigDecimal 值
-     */
+     * 鑾峰彇鍗曞厓鏍煎€硷紙BigDecimal锛?     *
+     * @param cell Excel 鍗曞厓鏍?     * @return BigDecimal 鍊?     */
     private BigDecimal getCellValueAsBigDecimal(Cell cell) {
         if (cell == null) {
             return null;
@@ -482,21 +453,18 @@ public class SalesEntryService {
                 try {
                     return new BigDecimal(value);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("无效的数字格式: " + value);
+                    throw new IllegalArgumentException("鏃犳晥鐨勬暟瀛楁牸寮? " + value);
                 }
             case BLANK:
                 return null;
             default:
-                throw new IllegalArgumentException("无法转换为 BigDecimal 类型");
+                throw new IllegalArgumentException("鏃犳硶杞崲涓?BigDecimal 绫诲瀷");
         }
     }
 
     /**
-     * 获取单元格值（Boolean）
-     *
-     * @param cell Excel 单元格
-     * @return Boolean 值
-     */
+     * 鑾峰彇鍗曞厓鏍煎€硷紙Boolean锛?     *
+     * @param cell Excel 鍗曞厓鏍?     * @return Boolean 鍊?     */
     private Boolean getCellValueAsBoolean(Cell cell) {
         if (cell == null) {
             return null;
@@ -516,21 +484,20 @@ public class SalesEntryService {
                 if ("false".equals(value) || "no".equals(value) || "0".equals(value)) {
                     return false;
                 }
-                throw new IllegalArgumentException("无效的布尔值: " + value);
+                throw new IllegalArgumentException("鏃犳晥鐨勫竷灏斿€? " + value);
             case NUMERIC:
                 return cell.getNumericCellValue() != 0;
             case BLANK:
                 return null;
             default:
-                throw new IllegalArgumentException("无法转换为 Boolean 类型");
+                throw new IllegalArgumentException("鏃犳硶杞崲涓?Boolean 绫诲瀷");
         }
     }
 
     /**
-     * 解析逗号分隔的 ID 列表
+     * 瑙ｆ瀽閫楀彿鍒嗛殧鐨?ID 鍒楄〃
      *
-     * @param ids 逗号分隔的 ID 字符串（如 "123,456,789"）
-     * @return ID 列表
+     * @param ids 閫楀彿鍒嗛殧鐨?ID 瀛楃涓诧紙濡?"123,456,789"锛?     * @return ID 鍒楄〃
      */
     private List<Long> parseCommaSeparatedIds(String ids) {
         if (ids == null || ids.trim().isEmpty()) {
@@ -544,7 +511,7 @@ public class SalesEntryService {
                 .map(Long::parseLong)
                 .collect(Collectors.toList());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("无效的批次ID格式: " + ids);
+            throw new IllegalArgumentException("鏃犳晥鐨勬壒娆D鏍煎紡: " + ids);
         }
     }
 
@@ -609,3 +576,5 @@ public class SalesEntryService {
         return label.toString();
     }
 }
+
+

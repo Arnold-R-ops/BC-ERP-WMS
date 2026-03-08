@@ -57,7 +57,8 @@ class CompleteModuleIntegrationTestFixed {
         mockMvc.perform(get("/api/auth/health"))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(content().string("OK"));
+            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.service").value("AuthenticationService"));
     }
 
     // ========== Module 2: Warehouse Tests ==========
@@ -180,9 +181,10 @@ class CompleteModuleIntegrationTestFixed {
     @Order(11)
     @DisplayName("case-12")
     void testModule9_System_HealthCheck() throws Exception {
-        mockMvc.perform(get("/api/health"))
+        mockMvc.perform(get("/health/check"))
             .andDo(print())
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
     }
 
     // ========== End-to-End Integration Test ==========
@@ -211,7 +213,8 @@ class CompleteModuleIntegrationTestFixed {
             .andExpect(status().isOk());
 
         // Test system health
-        mockMvc.perform(get("/api/health"))
-            .andExpect(status().isOk());
+        mockMvc.perform(get("/health/check"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
     }
 }

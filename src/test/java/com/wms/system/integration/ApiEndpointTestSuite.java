@@ -1,51 +1,47 @@
 package com.wms.system.integration;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
+import com.wms.system.entity.*;
+import com.wms.system.entity.enums.OutboundTaskStatus;
+import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.Zone;
+import com.wms.system.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * WMS 缂備緡鍨靛畷鐢靛垝?API 闂佽浜介崕杈亹濞戞◤鍦偓锝庡幘濡茬鈹戦崒娑栦沪婵?
- *
- * 濠电偞娼欓鍫ユ儊椤栫偛绠ラ柍褜鍓熷鍨緞鐎ｅ棔绶氬畷绋课旈崘鈺冩殸 RESTful API 闂佽浜介崕杈亹濞戙垺鏅?
- * 1. 闁荤姳闄嶉崐娑㈡儊婢舵劕绠抽柕澶堝劚缂?(/api/auth/*)
- * 2. 闂佹椿娼块崝宥夊春濞戞氨涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟?(/api/users/*)
- * 3. 婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟?(/api/warehouses/*)
- * 4. 闁圭厧鐡ㄩ幐椋庣礊閸涱垳涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟?(/api/locations/*)
- * 5. 闂備焦褰冨ú鈺呭窗濡吋濯奸柕蹇曞Т缁€瀣煙閹帒鍔氱憸?(/api/purchase-orders/*)
- * 6. 闂佺绻堥崕杈╄姳闁秴纭€闁哄洨鍠庢径宥夋煕?(/api/inbound-orders/*)
- * 7. 闁圭厧鐡ㄩ幐鎼佹偤閵娧呬笉闁挎稑瀚崐鐐烘煙閹帒鍔氱憸?(/api/inventory/*)
- * 8. 闁圭厧鐡ㄩ幐鎼佹偤閵娾晛钃熼柕澶樼厛閸ゅ嫰鏌熼幁鎺戝姎鐟?(/api/inventory/*)
- * 9. 闁诲骸绠嶉崹娲春濞戞氨涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟?(/api/customers/*)
- * 10. 闂備礁绨遍崑鎾绘煕閻戝棗鏋︽い鎾崇秺瀹曪繝寮撮悢宄邦槻闂?(/api/sales-orders/*)
- * 11. 闂佸憡鍨甸幖顐よ姳鏉堛劎顩烽悹鍥ㄥ絻椤倝鏌熼幁鎺戝姎鐟?(/api/outbound-tasks/*)
- * 12. 闂佺儵鏅滈…鍥磻閿濆洨涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟?(/api/stocktake/*)
- * 13. 闂佺顑冮崕閬嶅箖瀹ュ憘娑㈠焵椤掑嫬钃熼柕澶涚畱婢跺秹鏌?(/api/health)
- *
- * @author WMS Team
- * @since 2026-02-12
- * @version 4.1 (Complete API Test Suite)
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
 @Transactional
-@DisplayName("case-1")
+@DisplayName("API Endpoint Test Suite")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ApiEndpointTestSuite {
 
@@ -55,22 +51,110 @@ class ApiEndpointTestSuite {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // ========== 1. 闁荤姳闄嶉崐娑㈡儊婢舵劕绠抽柕澶堝劚缂嶆挻绻涢弶鎴創闁?==========
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private SysRoleRepository sysRoleRepository;
+
+    @Autowired
+    private SysUserRoleRepository sysUserRoleRepository;
+
+    @Autowired
+    private WarehouseRepository warehouseRepository;
+
+    @Autowired
+    private LocationRepository locationRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private ProductSpuRepository productSpuRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private InventoryBatchRepository inventoryBatchRepository;
+
+    @Autowired
+    private PurchaseOrderRepository purchaseOrderRepository;
+
+    @Autowired
+    private PurchaseOrderItemRepository purchaseOrderItemRepository;
+
+    @Autowired
+    private SalesOrderRepository salesOrderRepository;
+
+    @Autowired
+    private SalesOrderItemRepository salesOrderItemRepository;
+
+    @Autowired
+    private OutboundTaskRepository outboundTaskRepository;
+
+    @Autowired
+    private StocktakeTaskRepository stocktakeTaskRepository;
+
+    @Autowired
+    private StocktakeItemRepository stocktakeItemRepository;
+
+    @Autowired
+    private SystemConfigRepository systemConfigRepository;
+
+    private static final AtomicLong SEQ = new AtomicLong(1);
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @BeforeEach
+    void ensureAdminHasRole() {
+        SysRole superAdmin = ensureSuperAdminRole();
+
+        User admin = userRepository.findByUsername("admin")
+            .orElseGet(() -> userRepository.save(User.builder()
+                .username("admin")
+                .password(passwordEncoder.encode("password123"))
+                .displayName("System Admin")
+                .enabled(true)
+                .remark("Created by test bootstrap")
+                .build()));
+
+        if (!sysUserRoleRepository.existsByUserIdAndRoleId(admin.getId(), superAdmin.getId())) {
+            sysUserRoleRepository.save(SysUserRole.builder()
+                .userId(admin.getId())
+                .roleId(superAdmin.getId())
+                .assignedBy(admin.getId())
+                .build());
+        }
+
+        if (admin.getDefaultRoleId() == null || !admin.getDefaultRoleId().equals(superAdmin.getId())) {
+            admin.setDefaultRoleId(superAdmin.getId());
+            userRepository.save(admin);
+        }
+
+        ensureSalesApprovalConfig();
+    }
+
+    private void ensureSalesApprovalConfig() {
+        systemConfigRepository.findByConfigKey("sales.approval.amount_threshold")
+            .orElseGet(() -> systemConfigRepository.save(SystemConfig.builder()
+                .configKey("sales.approval.amount_threshold")
+                .configValue("50000.00")
+                .configType(SystemConfig.ConfigType.DECIMAL.name())
+                .description("Sales order approval amount threshold")
+                .build()));
+    }
 
     @Nested
-    @DisplayName("case-2")
+    @DisplayName("Auth APIs")
     class AuthApiTests {
 
         @Test
         @Order(1)
-        @DisplayName("case-3")
         void testLogin() throws Exception {
-            String loginRequest = """
-                {
-                    "username": "admin",
-                    "password": "password"
-                }
-                """;
+            String loginRequest = json(Map.of(
+                "username", "admin",
+                "password", "password123"
+            ));
 
             mockMvc.perform(post("/api/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -83,14 +167,9 @@ class ApiEndpointTestSuite {
 
         @Test
         @Order(2)
-        @WithMockUser(username = "testuser", authorities = {"SALESPERSON"})
-        @DisplayName("case-4")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testSwitchRole() throws Exception {
-            String switchRequest = """
-                {
-                    "roleCode": "BUYER"
-                }
-                """;
+            String switchRequest = json(Map.of("targetRoleCode", "SUPER_ADMIN"));
 
             mockMvc.perform(post("/api/auth/switch-role")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -101,24 +180,21 @@ class ApiEndpointTestSuite {
 
         @Test
         @Order(3)
-        @DisplayName("case-5")
         void testHealthCheck() throws Exception {
             mockMvc.perform(get("/api/auth/health"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.service").value("AuthenticationService"));
         }
     }
 
-    // ========== 2. 闂佹椿娼块崝宥夊春濞戞氨涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟滅増绋戦湁閻庯綆鍘惧Σ?==========
-
     @Nested
-    @DisplayName("case-6")
+    @DisplayName("User APIs")
     class UserApiTests {
 
         @Test
-        @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-        @DisplayName("case-7")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testGetAllUsers() throws Exception {
             mockMvc.perform(get("/api/users"))
                 .andDo(print())
@@ -127,89 +203,102 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-        @DisplayName("case-8")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testCreateUser() throws Exception {
-            String createRequest = """
-                {
-                    "username": "newuser",
-                    "password": "password123",
-                    "enabled": true
-                }
-                """;
+            Long roleId = superAdminRoleId();
+            String username = "newuser" + nextId();
+            String createRequest = json(Map.of(
+                "username", username,
+                "password", "password123",
+                "displayName", "New User",
+                "roleIds", List.of(roleId),
+                "enabled", true
+            ));
 
             mockMvc.perform(post("/api/users")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value("newuser"));
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.roleCodes", hasItem("SUPER_ADMIN")));
         }
 
         @Test
-        @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-        @DisplayName("case-9")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testGetUserById() throws Exception {
-            mockMvc.perform(get("/api/users/1"))
+            mockMvc.perform(get("/api/users"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$[*].username", hasItem("admin")));
         }
 
         @Test
-        @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-        @DisplayName("case-10")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testUpdateUser() throws Exception {
-            String updateRequest = """
-                {
-                    "username": "updateduser",
-                    "enabled": true
-                }
-                """;
+            User user = userRepository.save(User.builder()
+                .username("upd" + nextId())
+                .password(passwordEncoder.encode("password123"))
+                .displayName("Before Update")
+                .enabled(true)
+                .build());
 
-            mockMvc.perform(put("/api/users/1")
+            String updateRequest = json(Map.of(
+                "displayName", "updateduser",
+                "enabled", true,
+                "remark", "updated by test"
+            ));
+
+            mockMvc.perform(put("/api/users/" + user.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(updateRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("updateduser"));
         }
 
         @Test
-        @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-        @DisplayName("case-11")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testDeleteUser() throws Exception {
-            mockMvc.perform(delete("/api/users/1"))
+            User user = userRepository.save(User.builder()
+                .username("del" + nextId())
+                .password(passwordEncoder.encode("password123"))
+                .displayName("Delete Me")
+                .enabled(true)
+                .build());
+
+            mockMvc.perform(delete("/api/users/" + user.getId()))
                 .andDo(print())
                 .andExpect(status().isNoContent());
         }
 
         @Test
-        @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-        @DisplayName("case-12")
+        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testAssignRoles() throws Exception {
-            String rolesRequest = """
-                {
-                    "roleIds": [1, 2]
-                }
-                """;
+            Long roleId = superAdminRoleId();
+            User user = userRepository.save(User.builder()
+                .username("assign" + nextId())
+                .password(passwordEncoder.encode("password123"))
+                .enabled(true)
+                .build());
 
-            mockMvc.perform(post("/api/users/1/roles")
+            String rolesRequest = json(Map.of("roleIds", List.of(roleId)));
+
+            mockMvc.perform(post("/api/users/" + user.getId() + "/roles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(rolesRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roleCodes", hasItem("SUPER_ADMIN")));
         }
     }
 
-    // ========== 3. 婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟滅増绋戦湁閻庯綆鍘惧Σ?==========
-
     @Nested
-    @DisplayName("case-13")
+    @DisplayName("Warehouse APIs")
     class WarehouseApiTests {
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:view"})
-        @DisplayName("case-14")
         void testGetAllWarehouses() throws Exception {
             mockMvc.perform(get("/api/warehouses"))
                 .andDo(print())
@@ -219,7 +308,6 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:view"})
-        @DisplayName("case-15")
         void testGetActiveWarehouses() throws Exception {
             mockMvc.perform(get("/api/warehouses/active"))
                 .andDo(print())
@@ -229,82 +317,86 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:create"})
-        @DisplayName("case-16")
         void testCreateWarehouse() throws Exception {
-            String createRequest = """
-                {
-                    "code": "WH01",
-                    "name": "婵炴垶鎹侀濠勫垝閵婏附鍎?,
-                    "address": "闂佸憡鐗楅妵鐐哄触椤愩倖鏆滈柛灞剧⊕缁″倿姊婚崘銊ユ毐閻?,
-                    "isActive": true
-                }
-                """;
+            String code = nextWarehouseCode();
+            String createRequest = json(Map.of(
+                "code", code,
+                "name", "Test Warehouse " + nextId(),
+                "address", "Beijing Test Road 100",
+                "contact", "test-contact"
+            ));
 
             mockMvc.perform(post("/api/warehouses")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code").value("WH01"));
+                .andExpect(jsonPath("$.code").value(code));
         }
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:view"})
-        @DisplayName("case-17")
         void testGetWarehouseById() throws Exception {
-            mockMvc.perform(get("/api/warehouses/1"))
+            Warehouse warehouse = createWarehouse();
+
+            mockMvc.perform(get("/api/warehouses/" + warehouse.getId()))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(warehouse.getId()));
         }
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:edit"})
-        @DisplayName("case-18")
         void testUpdateWarehouse() throws Exception {
-            String updateRequest = """
-                {
-                    "name": "闂佸搫娲ら悺銊╁蓟婵犲洤瑙﹂幖杈剧稻閻ｅ崬霉閻樿櫕灏紒?,
-                    "address": "婵炴垶鎸搁敃銉╁箲閿濆洦鏆滈柛灞剧洴閸忓繐鈽夐幘瀵哥煁闁哄苯锕畷?
-                }
-                """;
+            Warehouse warehouse = createWarehouse();
+            String updateRequest = json(Map.of(
+                "name", "Updated Warehouse",
+                "address", "Shanghai Example Road 200",
+                "contact", "updated-contact"
+            ));
 
-            mockMvc.perform(put("/api/warehouses/1")
+            mockMvc.perform(put("/api/warehouses/" + warehouse.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(updateRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Warehouse"));
         }
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:edit"})
-        @DisplayName("case-19")
         void testActivateWarehouse() throws Exception {
-            mockMvc.perform(put("/api/warehouses/1/activate"))
+            Warehouse warehouse = createWarehouse();
+            warehouse.setIsActive(false);
+            warehouseRepository.save(warehouse);
+
+            mockMvc.perform(put("/api/warehouses/" + warehouse.getId() + "/activate"))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isActive").value(true));
         }
 
         @Test
         @WithMockUser(username = "admin", authorities = {"warehouse:edit"})
-        @DisplayName("case-20")
         void testDeactivateWarehouse() throws Exception {
-            mockMvc.perform(put("/api/warehouses/1/deactivate"))
+            Warehouse warehouse = createWarehouse();
+
+            mockMvc.perform(put("/api/warehouses/" + warehouse.getId() + "/deactivate"))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isActive").value(false));
         }
     }
 
-    // ========== 4. 闁圭厧鐡ㄩ幐椋庣礊閸涱垳涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟滅増绋戦湁閻庯綆鍘惧Σ?==========
-
     @Nested
-    @DisplayName("case-21")
+    @DisplayName("Location APIs")
     class LocationApiTests {
 
         @Test
         @WithMockUser(username = "admin", authorities = {"location:view"})
-        @DisplayName("case-22")
         void testGetAllLocations() throws Exception {
-            mockMvc.perform(get("/api/locations"))
+            Warehouse warehouse = createWarehouse();
+            mockMvc.perform(get("/api/locations/warehouse/" + warehouse.getId()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -312,38 +404,35 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "admin", authorities = {"location:create"})
-        @DisplayName("case-23")
         void testCreateLocation() throws Exception {
-            String createRequest = """
-                {
-                    "code": "WH01-A-01-01-001",
-                    "warehouseId": 1,
-                    "zone": "A",
-                    "rack": "01",
-                    "level": "01",
-                    "position": "001",
-                    "isActive": true
-                }
-                """;
+            Warehouse warehouse = createWarehouse();
+            String createRequest = json(Map.of(
+                "warehouseId", warehouse.getId(),
+                "zone", "ZONE_A",
+                "shelfNumber", "A" + nextId(),
+                "positionNumber", "001",
+                "remark", "test location"
+            ));
 
             mockMvc.perform(post("/api/locations")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.locationCode").exists());
         }
     }
 
-    // ========== 5. 闁诲骸绠嶉崹娲春濞戞氨涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟滅増绋戦湁閻庯綆鍘惧Σ鎼佹煥濞戞澧曢柟顖氱墦瀵偊鎮ч崼婵堛偊闂佽偐顥愭ご鎼佸疾闁秵鏅?=========
-
     @Nested
-    @DisplayName("case-24")
+    @DisplayName("Customer APIs")
     class CustomerApiTests {
 
         @Test
         @WithMockUser(username = "sales", authorities = {"customer:view", "SALESPERSON"})
-        @DisplayName("case-25")
         void testGetCustomers_RowLevelSecurity() throws Exception {
+            User sales = ensureUser("sales");
+            createCustomer(sales);
+
             mockMvc.perform(get("/api/customers"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -352,9 +441,11 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "sales", authorities = {"customer:view", "SALESPERSON"})
-        @DisplayName("case-26")
         void testGetCustomer_DataMasking() throws Exception {
-            mockMvc.perform(get("/api/customers/1"))
+            User sales = ensureUser("sales");
+            Customer customer = createCustomer(sales);
+
+            mockMvc.perform(get("/api/customers/" + customer.getId()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phone").value(containsString("****")))
@@ -362,69 +453,74 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "sales", authorities = {"customer:create"})
-        @DisplayName("case-27")
+        @WithMockUser(username = "sales", authorities = {"customer:create", "SALESPERSON"})
         void testCreateCustomer_AutoSetOwner() throws Exception {
-            String createRequest = """
-                {
-                    "code": "CUST001",
-                    "name": "濠电偞娼欓鍫ユ儊椤栨壕鍋撻獮鍨仾闁?,
-                    "contact": "閻庢鍠氭慨宕囩箔?,
-                    "phone": "13912345678",
-                    "email": "test@example.com",
-                    "address": "闂佸憡鐗楅妵鐐哄触椤愩倖鏆滈柛灞剧⊕缁″倿姊婚崘銊ユ毐閻?,
-                    "creditLimit": 100000.00,
-                    "isActive": true
-                }
-                """;
+            User sales = ensureUser("sales");
+            String code = "CUST-" + nextId();
+            String createRequest = json(Map.of(
+                "code", code,
+                "name", "Test Customer",
+                "contact", "Zhang San",
+                "phone", "13912345678",
+                "email", "test@example.com",
+                "address", "Shenzhen Nanshan Example Ave 88",
+                "creditLimit", 100000.00,
+                "isActive", true
+            ));
 
             mockMvc.perform(post("/api/customers")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code").value("CUST001"));
+                .andExpect(jsonPath("$.code").value(code));
+
+            Customer saved = customerRepository.findByCode(code).orElseThrow();
+            assertEquals(sales.getId(), saved.getOwnerId());
         }
 
         @Test
         @WithMockUser(username = "sales", authorities = {"customer:edit"})
-        @DisplayName("case-28")
         void testUpdateCustomer_EditProtection() throws Exception {
-            String updateRequest = """
-                {
-                    "code": "CUST001",
-                    "name": "闂佸搫娲ら悺銊╁蓟婵犲洤瑙﹂幖杈剧稻閻ｉ亶鎮楅獮鍨仾闁?,
-                    "phone": "139****5678",
-                    "email": "test@example.com"
-                }
-                """;
+            User sales = ensureUser("sales");
+            Customer customer = createCustomer(sales);
 
-            mockMvc.perform(put("/api/customers/1")
+            String updateRequest = json(Map.of(
+                "code", customer.getCode(),
+                "name", "Updated Customer",
+                "contact", "Li Si",
+                "phone", "13888886666",
+                "email", "updated@example.com",
+                "address", "Updated address",
+                "creditLimit", 200000.00,
+                "isActive", true
+            ));
+
+            mockMvc.perform(put("/api/customers/" + customer.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(updateRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Customer"));
         }
 
         @Test
         @WithMockUser(username = "sales", authorities = {"customer:delete"})
-        @DisplayName("case-29")
         void testDeleteCustomer() throws Exception {
-            mockMvc.perform(delete("/api/customers/1"))
+            Customer customer = createCustomer(ensureUser("sales"));
+
+            mockMvc.perform(delete("/api/customers/" + customer.getId()))
                 .andDo(print())
                 .andExpect(status().isNoContent());
         }
     }
 
-    // ========== 6. 闂備焦褰冨ú鈺呭窗濡吋濯奸柕蹇曞Т缁€瀣煙閹帒鍔氱憸鐗堢☉闇夐悗锝庡幘濡?==========
-
     @Nested
-    @DisplayName("case-30")
+    @DisplayName("Purchase Order APIs")
     class PurchaseOrderApiTests {
 
         @Test
         @WithMockUser(username = "buyer", authorities = {"purchase:view"})
-        @DisplayName("case-31")
         void testGetPurchaseOrders() throws Exception {
             mockMvc.perform(get("/api/purchase-orders"))
                 .andDo(print())
@@ -434,113 +530,152 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "buyer", authorities = {"purchase:create"})
-        @DisplayName("case-32")
         void testCreatePurchaseOrder() throws Exception {
-            String createRequest = """
-                {
-                    "orderNumber": "PO001",
-                    "supplierId": 1,
-                    "items": [
-                        {
-                            "productId": 1,
-                            "quantity": 100,
-                            "unitPrice": 50.00
-                        }
-                    ]
-                }
-                """;
-
-            mockMvc.perform(post("/api/purchase-orders")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(createRequest))
-                .andDo(print())
-                .andExpect(status().isCreated());
+            Product product = createProduct(BigDecimal.ZERO);
+            JsonNode poJson = createPurchaseOrderApi(product.getId());
+            assertFalse(poJson.path("id").isMissingNode());
         }
 
         @Test
         @WithMockUser(username = "buyer", authorities = {"purchase:edit"})
-        @DisplayName("case-33")
         void testConfirmAsn() throws Exception {
-            mockMvc.perform(put("/api/purchase-orders/1/confirm"))
+            Product product = createProduct(BigDecimal.ZERO);
+            JsonNode createJson = createPurchaseOrderApi(product.getId());
+            long orderId = createJson.path("id").asLong();
+            long itemId = createJson.path("items").get(0).path("id").asLong();
+
+            String confirmRequest = json(Map.of(
+                "items", List.of(Map.of(
+                    "itemId", itemId,
+                    "expiryDate", LocalDate.now().plusDays(180).toString()
+                ))
+            ));
+
+            mockMvc.perform(put("/api/purchase-orders/" + orderId + "/confirm")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(confirmRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_TRANSIT"));
         }
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"purchase:receive"})
-        @DisplayName("case-34")
         void testReceiveGoods() throws Exception {
-            mockMvc.perform(put("/api/purchase-orders/1/receive"))
+            Product product = createProduct(BigDecimal.ZERO);
+            Location location = createLocation(createWarehouse());
+
+            JsonNode createJson = createPurchaseOrderApi(product.getId());
+            long orderId = createJson.path("id").asLong();
+            long itemId = createJson.path("items").get(0).path("id").asLong();
+
+            String confirmRequest = json(Map.of(
+                "items", List.of(Map.of(
+                    "itemId", itemId,
+                    "expiryDate", LocalDate.now().plusDays(180).toString()
+                ))
+            ));
+
+            MvcResult confirmResult = mockMvc.perform(put("/api/purchase-orders/" + orderId + "/confirm")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(confirmRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+
+            String batchCode = inventoryBatchRepository.findByPurchaseOrderItemId(itemId).stream()
+                .findFirst()
+                .map(InventoryBatch::getBatchCode)
+                .orElse("");
+            assertFalse(batchCode.isBlank());
+
+            String receiveRequest = json(Map.of(
+                "receiveItems", List.of(Map.of(
+                    "itemId", itemId,
+                    "batches", List.of(Map.of(
+                        "batchCode", batchCode,
+                        "locationId", location.getId()
+                    ))
+                )),
+                "operatorId", 1,
+                "operatorName", "warehouse"
+            ));
+
+            mockMvc.perform(put("/api/purchase-orders/" + orderId + "/receive")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(receiveRequest))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", anyOf(is("PARTIALLY_RECEIVED"), is("COMPLETED"))));
         }
     }
 
-    // ========== 7. 闁圭厧鐡ㄩ幐鎼佹偤閵娧呬笉闁挎稑瀚崐鐐烘煙閹帒鍔氱憸鐗堢☉闇夐悗锝庡幘濡?==========
-
     @Nested
-    @DisplayName("case-35")
+    @DisplayName("Inventory APIs")
     class InventoryApiTests {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"inventory:view"})
-        @DisplayName("case-36")
         void testGetInventorySummary() throws Exception {
             mockMvc.perform(get("/api/inventory/summary"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.content").isArray());
         }
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"inventory:view"})
-        @DisplayName("case-37")
         void testGetInventoryDetails() throws Exception {
-            mockMvc.perform(get("/api/inventory/details/SKU001"))
+            Product product = createProduct(BigDecimal.ZERO);
+            Location location = createLocation(createWarehouse());
+            createInventoryBatch(product, location, 30, 365);
+
+            mockMvc.perform(get("/api/inventory/details/" + product.getId()))
                 .andDo(print())
                 .andExpect(status().isOk());
         }
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"inventory:view"})
-        @DisplayName("case-38")
         void testGetInventoryByLocation() throws Exception {
-            mockMvc.perform(get("/api/inventory/location/WH01-A-01-01-001"))
+            Location location = createLocation(createWarehouse());
+
+            mockMvc.perform(get("/api/inventory/location/" + location.getLocationCode()))
                 .andDo(print())
                 .andExpect(status().isOk());
         }
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"inventory:adjust"})
-        @DisplayName("case-39")
         void testAdjustInventory() throws Exception {
-            String adjustRequest = """
-                {
-                    "productId": 1,
-                    "locationCode": "WH01-A-01-01-001",
-                    "quantity": 10,
-                    "transactionType": "IN",
-                    "reason": "闁圭厧鐡ㄩ幐鎼佹偤閵娧勫闁告劏鏅滃▓?
-                }
-                """;
+            Product product = createProduct(BigDecimal.ZERO);
+            Location location = createLocation(createWarehouse());
+
+            String adjustRequest = json(Map.of(
+                "productId", product.getId(),
+                "locationId", location.getId(),
+                "quantity", 10,
+                "transactionType", "ADJUST",
+                "sourceType", "MANUAL_ADJUST",
+                "sourceOrderId", "ADJ-" + nextId(),
+                "remark", "Inventory adjustment"
+            ));
 
             mockMvc.perform(post("/api/inventory/adjust")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(adjustRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(product.getId()));
         }
     }
 
-    // ========== 8. 闂備礁绨遍崑鎾绘煕閻戝棗鏋︽い鎾崇秺瀹曪繝寮撮悢宄邦槻闂佸憡鐟辩徊鍓х矈鐎靛憡瀚?==========
-
     @Nested
-    @DisplayName("case-40")
+    @DisplayName("Sales Order APIs")
     class SalesOrderApiTests {
 
         @Test
         @WithMockUser(username = "sales", authorities = {"sales:view"})
-        @DisplayName("case-41")
         void testGetSalesOrders() throws Exception {
             mockMvc.perform(get("/api/sales-orders"))
                 .andDo(print())
@@ -550,41 +685,50 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "sales", authorities = {"sales:create"})
-        @DisplayName("case-42")
         void testCreateSalesOrder() throws Exception {
-            String createRequest = """
-                {
-                    "orderNumber": "SO001",
-                    "customerId": 1,
-                    "items": [
-                        {
-                            "productId": 1,
-                            "quantity": 10,
-                            "unitPrice": 100.00
-                        }
-                    ]
-                }
-                """;
+            Customer customer = createCustomer(ensureUser("sales"));
+            Product product = createProduct(new BigDecimal("100.00"));
+
+            String createRequest = json(Map.of(
+                "customerId", customer.getId(),
+                "items", List.of(Map.of(
+                    "productId", product.getId(),
+                    "quantity", 10,
+                    "unitPrice", 6000.00
+                ))
+            ));
 
             mockMvc.perform(post("/api/sales-orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.customerId").value(customer.getId()));
         }
 
         @Test
-        @WithMockUser(username = "manager", authorities = {"sales:approve"})
-        @DisplayName("case-43")
+        @WithMockUser(username = "manager", authorities = {"sales:create", "sales:approve"})
         void testApproveSalesOrder() throws Exception {
-            mockMvc.perform(post("/api/sales-orders/1/approve"))
+            Customer customer = createCustomer(ensureUser("sales"));
+            Product product = createProduct(new BigDecimal("200.00"));
+            Location location = createLocation(createWarehouse());
+            createInventoryBatch(product, location, 200, 365);
+
+            JsonNode orderJson = createSalesOrderApi(customer.getId(), product.getId(), new BigDecimal("20000.00"), 5);
+            long orderId = orderJson.path("id").asLong();
+            assertEquals("PENDING_APPROVAL", orderJson.path("status").asText());
+
+            String approveRequest = json(Map.of("comment", "approved by test"));
+            mockMvc.perform(post("/api/sales-orders/" + orderId + "/approve")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(approveRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED_AWAITING_SHIPMENT"));
         }
 
         @Test
         @WithMockUser(username = "sales", authorities = {"sales:create"})
-        @DisplayName("case-44")
         void testDownloadTemplate() throws Exception {
             mockMvc.perform(get("/api/sales-orders/template"))
                 .andDo(print())
@@ -593,15 +737,12 @@ class ApiEndpointTestSuite {
         }
     }
 
-    // ========== 9. 闂佸憡鍨甸幖顐よ姳鏉堛劎顩烽悹鍥ㄥ絻椤倝鏌熼幁鎺戝姎鐟滅増绋戦湁閻庯綆鍘惧Σ?==========
-
     @Nested
-    @DisplayName("case-45")
+    @DisplayName("Outbound Task APIs")
     class OutboundTaskApiTests {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"outbound:view"})
-        @DisplayName("case-46")
         void testGetOutboundTasks() throws Exception {
             mockMvc.perform(get("/api/outbound-tasks"))
                 .andDo(print())
@@ -611,40 +752,41 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"outbound:pick"})
-        @DisplayName("case-47")
         void testConfirmPicking() throws Exception {
-            mockMvc.perform(post("/api/outbound-tasks/1/confirm"))
+            OutboundTask task = createPendingOutboundTask(5);
+            String req = json(Map.of("actualQty", 5));
+
+            mockMvc.perform(post("/api/outbound-tasks/" + task.getId() + "/confirm")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(req))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
         }
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"outbound:pick"})
-        @DisplayName("case-48")
         void testBatchConfirmPicking() throws Exception {
-            String batchRequest = """
-                {
-                    "taskIds": [1, 2, 3]
-                }
-                """;
+            OutboundTask task1 = createPendingOutboundTask(3);
+            OutboundTask task2 = createPendingOutboundTask(4);
+
+            String batchRequest = json(List.of(task1.getId(), task2.getId()));
 
             mockMvc.perform(post("/api/outbound-tasks/batch-confirm")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(batchRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
         }
     }
 
-    // ========== 10. 闂佺儵鏅滈…鍥磻閿濆洨涓嶉柨娑樺閸婄偤鏌熼幁鎺戝姎鐟滅増绋戦湁閻庯綆鍘惧Σ?==========
-
     @Nested
-    @DisplayName("case-49")
+    @DisplayName("Stocktake APIs")
     class StocktakeApiTests {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"stocktake:view"})
-        @DisplayName("case-50")
         void testGetStocktakeTasks() throws Exception {
             mockMvc.perform(get("/api/stocktake/tasks"))
                 .andDo(print())
@@ -654,97 +796,366 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"stocktake:create"})
-        @DisplayName("case-51")
         void testCreateStocktakeTask() throws Exception {
-            String createRequest = """
-                {
-                    "taskName": "闂佸搫鐗嗛悧鍡欌偓瑙勫▕閹嫬螣閻撳簼鍖?,
-                    "cycleType": "MONTHLY",
-                    "batchIds": [1, 2, 3]
-                }
-                """;
+            Warehouse warehouse = createWarehouse();
+
+            String createRequest = json(Map.of(
+                "warehouseId", warehouse.getId(),
+                "cycleType", "MONTHLY"
+            ));
 
             mockMvc.perform(post("/api/stocktake/tasks")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.taskNo").exists());
         }
 
         @Test
-        @WithMockUser(username = "warehouse", authorities = {"stocktake:count"})
-        @DisplayName("case-52")
+        @WithMockUser(username = "warehouse", authorities = {"stocktake:create", "stocktake:count"})
         void testStartStocktake() throws Exception {
-            mockMvc.perform(post("/api/stocktake/tasks/1/start"))
+            Warehouse warehouse = createWarehouse();
+            JsonNode task = createStocktakeTaskApi(warehouse.getId(), "ADHOC");
+            long taskId = task.path("id").asLong();
+
+            mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/start"))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COUNTING"));
         }
 
         @Test
-        @WithMockUser(username = "warehouse", authorities = {"stocktake:count"})
-        @DisplayName("case-53")
+        @WithMockUser(username = "warehouse", authorities = {"stocktake:create", "stocktake:count"})
         void testSubmitCount() throws Exception {
-            String countRequest = """
-                {
-                    "actualQuantity": 95
-                }
-                """;
+            Warehouse warehouse = createWarehouse();
+            Location location = createLocation(warehouse);
+            Product product = createProduct(BigDecimal.ZERO);
+            InventoryBatch batch = createInventoryBatch(product, location, 50, 365);
 
-            mockMvc.perform(post("/api/stocktake/tasks/1/items/1/count")
+            JsonNode task = createStocktakeTaskApi(warehouse.getId(), "QUARTERLY");
+            long taskId = task.path("id").asLong();
+
+            mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/start"))
+                .andExpect(status().isOk());
+
+            MvcResult itemsResult = mockMvc.perform(get("/api/stocktake/tasks/" + taskId + "/items"))
+                .andExpect(status().isOk())
+                .andReturn();
+            JsonNode items = readJson(itemsResult);
+            long itemId = items.get(0).path("id").asLong();
+
+            String countRequest = json(Map.of("countedQty", batch.getQuantity()));
+            mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/items/" + itemId + "/count")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(countRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isCounted").value(true));
         }
 
         @Test
-        @WithMockUser(username = "manager", authorities = {"stocktake:review"})
-        @DisplayName("case-54")
+        @WithMockUser(username = "manager", authorities = {"stocktake:create", "stocktake:count", "stocktake:review"})
         void testReviewStocktake() throws Exception {
-            String reviewRequest = """
-                {
-                    "approved": true,
-                    "comments": "闁诲骸鍘滈崜婵嬫偋閹惰姤鐒绘慨妯虹－缁?
-                }
-                """;
+            Warehouse warehouse = createWarehouse();
+            Location location = createLocation(warehouse);
+            Product product = createProduct(BigDecimal.ZERO);
+            createInventoryBatch(product, location, 20, 365);
 
-            mockMvc.perform(post("/api/stocktake/tasks/1/review")
+            JsonNode task = createStocktakeTaskApi(warehouse.getId(), "QUARTERLY");
+            long taskId = task.path("id").asLong();
+
+            mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/start"))
+                .andExpect(status().isOk());
+
+            MvcResult itemsResult = mockMvc.perform(get("/api/stocktake/tasks/" + taskId + "/items"))
+                .andExpect(status().isOk())
+                .andReturn();
+            JsonNode items = readJson(itemsResult);
+            long itemId = items.get(0).path("id").asLong();
+
+            String countRequest = json(Map.of("countedQty", 20));
+            mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/items/" + itemId + "/count")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(countRequest))
+                .andExpect(status().isOk());
+
+            String reviewRequest = json(Map.of(
+                "approved", true,
+                "comment", "Stocktake reviewed"
+            ));
+
+            mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/review")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(reviewRequest))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
         }
     }
 
-    // ========== 11. 缂備緡鍨靛畷鐢靛垝濞差亜纾婚柕澶堝劜閸婏絾淇婇鐔蜂壕闂佸搫琚崕鑼暜閹绢喖鐭楅柨婵嗘閵堟挳鎮?==========
-
     @Nested
-    @DisplayName("case-55")
+    @DisplayName("Health APIs")
     class HealthCheckApiTests {
 
         @Test
-        @DisplayName("case-56")
         void testSystemHealth() throws Exception {
-            mockMvc.perform(get("/api/health"))
+            mockMvc.perform(get("/health/check"))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
         }
 
         @Test
-        @DisplayName("case-57")
         void testAuthHealth() throws Exception {
             mockMvc.perform(get("/api/auth/health"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.service").value("AuthenticationService"));
         }
 
         @Test
-        @DisplayName("case-58")
         void testInventoryHealth() throws Exception {
             mockMvc.perform(get("/api/inventory/health"))
                 .andDo(print())
                 .andExpect(status().isOk());
         }
+    }
+
+    private JsonNode createPurchaseOrderApi(Long productId) throws Exception {
+        User buyer = ensureUser("buyer");
+        String request = json(Map.of(
+            "supplier", "Supplier-" + nextId(),
+            "items", List.of(Map.of(
+                "productId", productId,
+                "orderedQuantity", 10,
+                "unitCost", new BigDecimal("10.00")
+            )),
+            "expectedDate", LocalDate.now().plusDays(3),
+            "operatorId", buyer.getId(),
+            "operatorName", buyer.getUsername(),
+            "remark", "Created by ApiEndpointTestSuite"
+        ));
+
+        MvcResult result = mockMvc.perform(post("/api/purchase-orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request))
+            .andExpect(status().isCreated())
+            .andReturn();
+        return readJson(result);
+    }
+
+    private JsonNode createSalesOrderApi(Long customerId, Long productId, BigDecimal unitPrice, int quantity) throws Exception {
+        String request = json(Map.of(
+            "customerId", customerId,
+            "items", List.of(Map.of(
+                "productId", productId,
+                "quantity", quantity,
+                "unitPrice", unitPrice
+            ))
+        ));
+
+        MvcResult result = mockMvc.perform(post("/api/sales-orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request))
+            .andExpect(status().isCreated())
+            .andReturn();
+        return readJson(result);
+    }
+
+    private JsonNode createStocktakeTaskApi(Long warehouseId, String cycleType) throws Exception {
+        String request = json(Map.of(
+            "warehouseId", warehouseId,
+            "cycleType", cycleType
+        ));
+
+        MvcResult result = mockMvc.perform(post("/api/stocktake/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request))
+            .andExpect(status().isCreated())
+            .andReturn();
+        return readJson(result);
+    }
+
+    private OutboundTask createPendingOutboundTask(int planQty) {
+        User salesUser = ensureUser("sales");
+        Customer customer = createCustomer(salesUser);
+        Product product = createProduct(new BigDecimal("12.50"));
+        Warehouse warehouse = createWarehouse();
+        Location location = createLocation(warehouse);
+        InventoryBatch batch = createInventoryBatch(product, location, Math.max(planQty, 1) + 20, 365);
+
+        SalesOrder salesOrder = salesOrderRepository.save(SalesOrder.builder()
+            .orderNo(nextOrderNo())
+            .customerId(customer.getId())
+            .totalAmount(new BigDecimal(planQty).multiply(new BigDecimal("12.50")))
+            .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+            .applicantId(salesUser.getId())
+            .applicantName(salesUser.getUsername())
+            .channel("MANUAL")
+            .build());
+
+        SalesOrderItem item = salesOrderItemRepository.save(SalesOrderItem.builder()
+            .salesOrderId(salesOrder.getId())
+            .productId(product.getId())
+            .quantity(planQty)
+            .unitPrice(new BigDecimal("12.50"))
+            .subtotal(new BigDecimal(planQty).multiply(new BigDecimal("12.50")))
+            .rejectNearExpiry(false)
+            .build());
+
+        return outboundTaskRepository.save(OutboundTask.builder()
+            .salesOrderId(salesOrder.getId())
+            .salesOrderItemId(item.getId())
+            .assignedBatchId(batch.getId())
+            .locationId(location.getId())
+            .planQty(planQty)
+            .actualQty(0)
+            .status(OutboundTaskStatus.PENDING)
+            .build());
+    }
+
+    private User ensureUser(String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseGet(() -> userRepository.save(User.builder()
+                .username(username)
+                .password(passwordEncoder.encode("password123"))
+                .displayName(username)
+                .enabled(true)
+                .remark("Created by ApiEndpointTestSuite")
+                .build()));
+
+        SysRole superAdmin = ensureSuperAdminRole();
+        if (!sysUserRoleRepository.existsByUserIdAndRoleId(user.getId(), superAdmin.getId())) {
+            sysUserRoleRepository.save(SysUserRole.builder()
+                .userId(user.getId())
+                .roleId(superAdmin.getId())
+                .assignedBy(user.getId())
+                .build());
+        }
+
+        if (user.getDefaultRoleId() == null || !user.getDefaultRoleId().equals(superAdmin.getId())) {
+            user.setDefaultRoleId(superAdmin.getId());
+            user = userRepository.save(user);
+        }
+        return user;
+    }
+
+    private SysRole ensureSuperAdminRole() {
+        return sysRoleRepository.findByRoleCode("SUPER_ADMIN")
+            .orElseGet(() -> sysRoleRepository.save(SysRole.builder()
+                .roleCode("SUPER_ADMIN")
+                .roleName("Super Admin")
+                .description("Created by ApiEndpointTestSuite")
+                .roleType("SYSTEM")
+                .status("ACTIVE")
+                .sortOrder(0)
+                .build()));
+    }
+
+    private Long superAdminRoleId() {
+        return ensureSuperAdminRole().getId();
+    }
+
+    private Warehouse createWarehouse() {
+        return warehouseRepository.save(Warehouse.builder()
+            .code(nextWarehouseCode())
+            .name("Warehouse-" + nextId())
+            .address("Test Address")
+            .contact("13800000000")
+            .isActive(true)
+            .build());
+    }
+
+    private Location createLocation(Warehouse warehouse) {
+        return locationRepository.save(Location.builder()
+            .warehouse(warehouse)
+            .warehouseCode(warehouse.getCode())
+            .zone(Zone.ZONE_A)
+            .shelfNumber("S" + nextId())
+            .positionNumber("P" + nextId())
+            .enabled(true)
+            .remark("Created by ApiEndpointTestSuite")
+            .build());
+    }
+
+    private Customer createCustomer(User owner) {
+        return customerRepository.save(Customer.builder()
+            .code("CUST-" + nextId())
+            .name("Customer-" + nextId())
+            .contact("Tester")
+            .phone("13800000000")
+            .email("test" + nextId() + "@example.com")
+            .address("Test Address")
+            .creditLimit(new BigDecimal("100000.00"))
+            .isActive(true)
+            .ownerId(owner.getId())
+            .build());
+    }
+
+    private Product createProduct(BigDecimal unitPrice) {
+        ProductSpu spu = productSpuRepository.save(ProductSpu.builder()
+            .spuCode("SPU-" + nextId())
+            .spuName("SPU-" + nextId())
+            .category("TEST")
+            .description("Created by ApiEndpointTestSuite")
+            .enabled(true)
+            .brand("WMS")
+            .build());
+
+        return productRepository.save(Product.builder()
+            .spu(spu)
+            .skuName("SKU-" + nextId())
+            .specs("spec")
+            .barcode("BC-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now()) + "-" + nextId())
+            .name("Product-" + nextId())
+            .specification("unit")
+            .unitPrice(unitPrice)
+            .minStock(0)
+            .leadTime(7)
+            .safetyStock(0)
+            .description("Created by ApiEndpointTestSuite")
+            .enabled(true)
+            .category("TEST")
+            .supplier("TEST-SUPPLIER")
+            .packUnit("Box")
+            .conversionRate(1)
+            .build());
+    }
+
+    private InventoryBatch createInventoryBatch(Product product, Location location, int quantity, int expiryDays) {
+        return inventoryBatchRepository.save(InventoryBatch.builder()
+            .batchCode("BATCH-" + nextId())
+            .locationCode(location.getLocationCode() != null ? location.getLocationCode() : location.getWarehouseCode() + "-TEMP-" + nextId())
+            .product(product)
+            .location(location)
+            .quantity(quantity)
+            .initialQuantity(quantity)
+            .expiryDate(LocalDate.now().plusDays(expiryDays))
+            .entryDate(LocalDateTime.now())
+            .active(true)
+            .remark("Created by ApiEndpointTestSuite")
+            .build());
+    }
+
+    private String json(Object value) throws Exception {
+        return objectMapper.writeValueAsString(value);
+    }
+
+    private JsonNode readJson(MvcResult result) throws Exception {
+        return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private String nextOrderNo() {
+        return "SO" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + String.format("%05d", nextId());
+    }
+
+    private String nextWarehouseCode() {
+        return "WH-" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + "-" + nextId();
+    }
+
+    private long nextId() {
+        return SEQ.getAndIncrement();
     }
 }

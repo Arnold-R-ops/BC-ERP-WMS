@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -43,8 +44,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @version 3.7 (Smart Sales and Outbound System)
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
+@Import(RepositoryTestSupportConfig.class)
 @DisplayName("case-1")
 class OutboundTaskRepositoryTest {
 
@@ -179,6 +181,7 @@ class OutboundTaskRepositoryTest {
         testOrderItem1 = SalesOrderItem.builder()
                 .salesOrderId(testOrder1.getId())
                 .product(testProduct)
+                .productId(testProduct.getId())
                 .quantity(10)
                 .unitPrice(new BigDecimal("120.00"))
                 .subtotal(new BigDecimal("1200.00"))
@@ -188,6 +191,7 @@ class OutboundTaskRepositoryTest {
         testOrderItem2 = SalesOrderItem.builder()
                 .salesOrderId(testOrder2.getId())
                 .product(testProduct)
+                .productId(testProduct.getId())
                 .quantity(15)
                 .unitPrice(new BigDecimal("110.00"))
                 .subtotal(new BigDecimal("1650.00"))

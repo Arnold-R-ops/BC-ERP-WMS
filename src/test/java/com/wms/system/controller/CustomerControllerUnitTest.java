@@ -225,7 +225,7 @@ class CustomerControllerUnitTest {
         // When & Then
         mockMvc.perform(get("/api/customers"))
             .andDo(print())
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isForbidden());
 
         verify(customerService, never()).listCustomers();
     }
@@ -440,7 +440,7 @@ class CustomerControllerUnitTest {
     // ========== 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簻缁犲磭鎲稿澶婃槬婵°倐鍋撻棁澶愭倵閿濆骸骞樻俊?==========
 
     @Test
-    @WithMockUser(username = "sales", authorities = {"SALESPERSON"})
+    @WithMockUser(username = "sales", authorities = {"SALESPERSON", "customer:view"})
     @DisplayName("case-15")
     void testPermission_SalesCanView() throws Exception {
         // Given

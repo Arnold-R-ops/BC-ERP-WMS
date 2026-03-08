@@ -225,8 +225,16 @@ public class ShopifyIntegrationService {
         // 鍒涘缓鏂板鎴?
         log.info("鍒涘缓鏂板鎴? email={}", email);
 
-        String firstName = order.getCustomer() != null ? order.getCustomer().getFirstName() : "";
-        String lastName = order.getCustomer() != null ? order.getCustomer().getLastName() : "";
+        String firstName = "";
+        String lastName = "";
+        if (order.getCustomer() != null) {
+            if (StringUtils.hasText(order.getCustomer().getFirstName())) {
+                firstName = order.getCustomer().getFirstName().trim();
+            }
+            if (StringUtils.hasText(order.getCustomer().getLastName())) {
+                lastName = order.getCustomer().getLastName().trim();
+            }
+        }
         String phone = order.getCustomer() != null ? order.getCustomer().getPhone() : "";
         Long shopifyCustomerId = order.getCustomer() != null ? order.getCustomer().getId() : order.getId();
 

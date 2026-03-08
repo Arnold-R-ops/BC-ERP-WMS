@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -37,8 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @version 3.7 (Smart Sales and Outbound System)
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
+@Import(RepositoryTestSupportConfig.class)
 @DisplayName("case-1")
 class CustomerRepositoryTest {
 
@@ -166,10 +168,10 @@ class CustomerRepositoryTest {
         List<Customer> customers = customerRepository.findByNameContaining("Customer");
 
         // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠鸿櫣顓奸梺璇″瀻閸愵亜甯?2 濠电偞鍨堕幖鈺傜濠婂牜鏁囩憸鐗堝笒缁?
-        assertThat(customers).hasSize(2);
+        assertThat(customers).hasSize(3);
         assertThat(customers)
                 .extracting(Customer::getCode)
-                .containsExactlyInAnyOrder("CUST001", "CUST002");
+                .containsExactlyInAnyOrder("CUST001", "CUST002", "CUST003");
     }
 
     @Test

@@ -93,6 +93,9 @@ class ShopifyIntegrationE2ETest {
     @Autowired
     private OutboundTaskRepository outboundTaskRepository;
 
+    @Autowired
+    private SystemConfigRepository systemConfigRepository;
+
     private IntegrationConfig testConfig;
     private Product testProduct;
     private Warehouse testWarehouse;
@@ -160,6 +163,20 @@ class ShopifyIntegrationE2ETest {
                 .isActive(true)
                 .build();
         testConfig = integrationConfigRepository.save(testConfig);
+
+        // 7. Create risk-control system configs required by SalesSubmissionService
+        systemConfigRepository.save(SystemConfig.builder()
+                .configKey("sales.min_price_approval_enabled")
+                .configValue("true")
+                .configType(SystemConfig.ConfigType.BOOLEAN.name())
+                .description("Enable low price approval")
+                .build());
+        systemConfigRepository.save(SystemConfig.builder()
+                .configKey("sales.approval.amount_threshold")
+                .configValue("50000.00")
+                .configType(SystemConfig.ConfigType.DECIMAL.name())
+                .description("High amount approval threshold")
+                .build());
     }
 
     @Test

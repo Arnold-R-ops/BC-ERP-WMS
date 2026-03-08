@@ -22,16 +22,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * DynamicPermissionService 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
+ * DynamicPermissionService 闂備礁鎲￠〃鍡椕洪弽顓炲偍闁规崘绉崷顓涘亾閿濆骸骞樻俊?
  *
- * 闂備焦褰冪粔鍫曞磻閿濆悿鍦偓锝庡幘濡叉悂鎮峰▎鎰濠㈢懓锕︾槐鎺曨槼濠㈣鐟╁畷顏嗕沪閻愵剛绉梻鍌氬閸旀顣鹃梺鍝勵儐閸旀洘鎱ㄥ☉銏″殑?
+ * 闂傚倷鐒﹁ぐ鍐矓閸洖纾婚柨婵嗘偪閸︻厸鍋撻敐搴″箻婵″弶鎮傞幃宄扳枎閹邦剛顑勬繝銏㈡嚀閿曪妇妲愰幒鏇ㄦЪ婵犮垼顫夐悷鈺佺暦椤忓棔娌柣鎰靛墰缁夘剟姊婚崒姘仾闁告梹顭堥。楣冩⒑閸濆嫷鍎愰柛鏃€娲橀幈銊モ槈閵忊€虫畱?
  *
- * 濠电偞娼欓鍫ユ儊椤栫偛鎹堕柣鎴炆戦悵顖炴煥?
- * 1. 闂佸憡顨嗗ú婵嬶綖濡ゅ懏鍤岄柛娆忣槹缂嶁偓闂傚倸瀚崝鏍偂閿涘嫭瀚?
- * 2. 闂佹垝绶ょ徊鑲╄姳閵娾晜鈷愰柤鎰佸灱濞硷繝鏌ょ涵鍛毢闁瑰鍏橀獮宥夊礌閿涘嫮顦╂繝銏ｅ煐瀹€鎼佸闯閸濄儳纾肩憸搴㈢珶濞嗘挻鏅?
- * 3. 婵犮垼鍩栧銊︻殽閸モ晜鍠嗛柟鐑樻礀椤ュ繒绱撴担鍫濆椤ョ偤鏌ㄥ☉妯煎ⅵ闁逞屽墯鐢帞绱炴繝鍥ㄦ櫖?
- * 4. 闂佸搫顦崯鏉戭瀶濞差亜鍌ㄥ┑鐘宠壘濞?
- * 5. 缂備礁鐭傜紓姘讹綖濡ゅ懏鍤岄柟缁樺俯濡查亶鏌?
+ * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仜閹瑰爼鏌ｉ幋鐐嗘垿鎮甸鐐寸叆?
+ * 1. 闂備礁鎲￠〃鍡椕哄┑瀣剁稏婵°倕鎳忛崵宀勬煕濞嗗浚妲圭紓宥佸亾闂傚倸鍊哥€氼參宕濋弽顓熷亗闁挎稑瀚€?
+ * 2. 闂備焦鍨濈欢銈囧緤閼测晞濮抽柕濞炬櫆閳锋劙鏌ら幇浣哥伇婵炵》绻濋弻銈囨兜閸涱厾姣㈤梺鐟邦嚟閸忔﹢鐛澶婄闁挎稑瀚ˇ鈺傜節閵忥絽鐓愮€光偓閹间礁闂柛婵勫劤绾捐偐鎲告惔銏㈢彾婵炲棙鎸婚弲?
+ * 3. 濠电姰鍨奸崺鏍ь潩閵婏富娈介柛銉㈡櫆閸犲棝鏌熼悜妯荤妞ゃ儱绻掔槐鎾存媴閸繂顏╂い銉у仱閺屻劌鈽夊Ο鐓庘叺闂侀€炲苯澧悽顖涘笧缁辩偞绻濋崶銊︽珫?
+ * 4. 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簻閸屻劌鈹戦悩瀹犲婵?
+ * 5. 缂傚倷绀侀惌鍌滅磽濮樿缍栨俊銈呮噺閸ゅ矂鏌熺紒妯轰刊婵℃煡浜堕弻?
  *
  * @author WMS Team
  * @since 2026-01-18
@@ -71,40 +71,40 @@ class DynamicPermissionServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 闂佸憡甯楃换鍌烇綖閹版澘绀岄柡宥冨妿閵堟挳鎮归崶銊︾妞ゎ偅顨婇幊?
+        // 闂備礁鎲＄敮妤冩崲閸岀儑缍栭柟鐗堟緲缁€宀勬煛瀹ュ啫濡块柕鍫熸尦閹綊宕堕妸锔绢槷濡炪値鍋呴〃濠囧箠?
         chairmanRole = SysRole.builder()
                 .id(1L)
                 .roleCode("CHAIRMAN")
-                .roleName("闂佹垝绶ょ徊鑲╄姳閵娾晜鈷?")
+                .roleName("闂備焦鍨濈欢銈囧緤閼测晞濮抽柕濞炬櫆閳?")
                 .status("ACTIVE")
                 .build();
 
         warehouseAdminRole = SysRole.builder()
                 .id(2L)
                 .roleCode("WAREHOUSE_ADMIN")
-                .roleName("婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌?")
+                .roleName("濠电偛顕慨鐢稿箰閸濄儴濮抽弶鍫氭櫇娑撳秹鏌ㄥ☉妯侯仾闁稿﹦鍋ら弻?")
                 .status("ACTIVE")
                 .build();
 
         buyerRole = SysRole.builder()
                 .id(3L)
                 .roleCode("BUYER")
-                .roleName("闂備焦褰冨ú鈺呭窗濮椻偓瀹?")
+                .roleName("闂傚倷鐒﹁ぐ鍐洪埡鍛獥婵せ鍋撶€?")
                 .status("ACTIVE")
                 .build();
 
         sellerRole = SysRole.builder()
                 .id(4L)
                 .roleCode("SELLER")
-                .roleName("闂備礁绨遍崑鎾绘煕閻戝棗鏋涢柟?")
+                .roleName("闂傚倷绀佺花閬嶅磻閹剧粯鐓曢柣鎴濇閺嬫盯鏌?")
                 .status("ACTIVE")
                 .build();
 
-        // 闂佸憡甯楃换鍌烇綖閹版澘绀岄柡宥冨妿閵堟挳鎮归崶銊︾婵炵厧鐗撳?
+        // 闂備礁鎲＄敮妤冩崲閸岀儑缍栭柟鐗堟緲缁€宀勬煛瀹ュ啫濡块柕鍫熸尦閹綊宕堕妸锔绢槰濠电偟鍘ч悧鎾愁潖?
         inventoryViewPermission = SysPermission.builder()
                 .id(101L)
                 .permissionCode("inventory:view")
-                .permissionName("闂佸搫琚崕鍐诧耿閸涱喗鍎熼柟鎯х－閹?")
+                .permissionName("闂備礁鎼悮顐﹀磿閸愯鑰块柛娑卞枟閸庣喖鏌熼幆褏锛嶉柟?")
                 .permissionType("API")
                 .resourcePath("/api/inventory/**")
                 .httpMethod("GET")
@@ -115,7 +115,7 @@ class DynamicPermissionServiceTest {
         purchaseCreatePermission = SysPermission.builder()
                 .id(102L)
                 .permissionCode("purchase:create")
-                .permissionName("闂佸憡甯楃粙鎴犵磽閹剧粯鐓傞柛銉簻閺嬬娀鎮规担闈涚仼鐎?")
+                .permissionName("闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閻撳倿鏌涢妷顔荤盎闁哄濞€閹鎷呴棃娑氫患閻?")
                 .permissionType("API")
                 .resourcePath("/api/purchase")
                 .httpMethod("POST")
@@ -126,7 +126,7 @@ class DynamicPermissionServiceTest {
         salesViewPermission = SysPermission.builder()
                 .id(103L)
                 .permissionCode("sales:view")
-                .permissionName("闂佸搫琚崕鍐诧耿閸涘瓨鐓ラ柍褜鍓熷畷?")
+                .permissionName("闂備礁鎼悮顐﹀磿閸愯鑰块柛娑樼摠閻撱儵鏌嶈閸撶喎鐣?")
                 .permissionType("API")
                 .resourcePath("/api/sales/**")
                 .httpMethod("GET")
@@ -137,7 +137,7 @@ class DynamicPermissionServiceTest {
         globalViewPermission = SysPermission.builder()
                 .id(104L)
                 .permissionCode("global:view")
-                .permissionName("闂佺绻堥崝宀勬儑椤掑嫬鏋侀柣妤€鐗嗙粊锕傛煛鐏炶鍔ゆ繝鈧?")
+                .permissionName("闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚弸渚€鏌ｅΔ鈧悧鍡欑矈閿曞倹鐓涢悘鐐额嚙閸斻倖绻濋埀?")
                 .permissionType("API")
                 .resourcePath("/api/reports/**")
                 .httpMethod("GET")
@@ -149,16 +149,16 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-2")
     void getUserPermissions_SingleRole_NoInheritance() {
-        // Given: 闂佹椿娼块崝宥夊春濞戙垹鐭楁い蹇撴噺缁犳帒霉閻樿櫕灏紒銊ㄤ含缁鏁嶉崟顒€鈧偤鏌涘☉娆樼劸妞ゎ偅顨婇幊?
+        // Given: 闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴欏灩閻銇勮箛鎾村櫤缂佺姵甯掗湁闁绘娅曠亸顓犵磼閵娿劋鍚紒顔碱煼閺佸秹宕熼鈧埀顒傚仱閺屾稑鈽夊▎妯煎姼濡炪値鍋呴〃濠囧箠?
         Long userId = 1L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L)); // WAREHOUSE_ADMIN
 
-        // Given: 婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌涘☉娅虫垵螞閵堝鍋夐柟顖炲亰濞硷繝鏌?
+        // Given: 濠电偛顕慨鐢稿箰閸濄儴濮抽弶鍫氭櫇娑撳秹鏌ㄥ☉妯侯仾闁稿﹦鍋ら弻娑樷槈濞呰櫕鍨佃灋闁靛牆顦伴崑澶愭煙椤栫偛浜版繛纭风節閺?
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(2L))
                 .thenReturn(Set.of());
 
-        // Given: 婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌涘☉娅虫垵锕?1 婵炴垶鎼╂禍婵嗩焽閸儲鈷?
+        // Given: 濠电偛顕慨鐢稿箰閸濄儴濮抽弶鍫氭櫇娑撳秹鏌ㄥ☉妯侯仾闁稿﹦鍋ら弻娑樷槈濞呰櫕鍨甸敃?1 濠电偞鍨堕幖鈺傜濠靛棭鐒介柛顐犲劜閳?
         SysRolePermission rolePermission = new SysRolePermission();
         rolePermission.setRoleId(2L);
         rolePermission.setPermissionId(101L);
@@ -167,14 +167,14 @@ class DynamicPermissionServiceTest {
         when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(2L)))
                 .thenReturn(List.of(rolePermission));
 
-        // Given: 闂佸搫琚崕鎾敋濡ゅ啯鍠嗛柟鐑樻礀椤ュ繐菐閸ワ絽澧插ù?
+        // Given: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暞閸犲棝鏌熼悜妯荤妞ゃ儱绻愯彁闁搞儻绲芥晶鎻捗?
         when(roleRepository.findByIdIn(Set.of(2L)))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
+        // When: 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墯閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻鈩冨緞婵犲倹娈诲┑?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾奸柟鎯ь嚟娴?
+        // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勫畝鈧壕濂告煙閹屽殶濞?
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getRoleIds()).containsExactly(2L);
@@ -190,16 +190,16 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-3")
     void getUserPermissions_ChairmanRole_MultipleInheritance() {
-        // Given: 闂佹椿娼块崝宥夊春濞戙垹鍙婃い鏍ㄧ箖閸ｏ絽霉濠婂喚鍎旈柡?
+        // Given: 闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴欏灩閸欏﹥銇勯弽銊х畺闁革綇绲介湁婵犲﹤鍠氶崕鏃堟煛?
         Long userId = 2L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(1L)); // CHAIRMAN
 
-        // Given: 闂佹垝绶ょ徊鑲╄姳閵娾晜鈷愰悹鎭掑妽閸╂盯鏌?3 婵炴垶鎼╂禍锝夛綖濡ゅ懏鍤?
+        // Given: 闂備焦鍨濈欢銈囧緤閼测晞濮抽柕濞炬櫆閳锋劙鎮归幁鎺戝闁糕晜鐩弻?3 濠电偞鍨堕幖鈺傜閿濆缍栨俊銈呮噺閸?
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(1L))
                 .thenReturn(Set.of(2L, 3L, 4L)); // WAREHOUSE_ADMIN, BUYER, SELLER
 
-        // Given: 闂佺粯鐗楅崕濂革綖濡ゅ懏鍤岄柛娆忣槹閿熴儳绱撴担鍫濆椤?
+        // Given: 闂備胶绮悧妤呭磿婵傞潻缍栨俊銈呮噺閸ゅ矂鏌涘▎蹇ｆЧ闁跨喆鍎崇槐鎾存媴閸繂顏╂い?
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(2L))
                 .thenReturn(Set.of());
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(3L))
@@ -207,7 +207,7 @@ class DynamicPermissionServiceTest {
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(4L))
                 .thenReturn(Set.of());
 
-        // Given: 闂佸憡鑹剧€氼垶锝炲Δ鍛殞闁肩⒈鍓氶悾閬嶆煛婢跺﹤鏆ｆ俊?
+        // Given: 闂備礁鎲￠懝鍓р偓姘煎灦閿濈偛螖閸涱喖娈為梺鑲┾拡閸撴岸鎮鹃柆宥嗙厸濠㈣泛锕ら弳锝嗕繆?
         SysRolePermission rp1 = new SysRolePermission();
         rp1.setRoleId(1L);
         rp1.setPermissionId(104L);
@@ -231,38 +231,38 @@ class DynamicPermissionServiceTest {
         when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(1L, 2L, 3L, 4L)))
                 .thenReturn(List.of(rp1, rp2, rp3, rp4));
 
-        // Given: 闂佸搫琚崕鎾敋濡ゅ啯鍠嗛柟鐑樻礀椤ュ繐菐閸ワ絽澧插ù?
+        // Given: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暞閸犲棝鏌熼悜妯荤妞ゃ儱绻愯彁闁搞儻绲芥晶鎻捗?
         when(roleRepository.findByIdIn(Set.of(1L)))
                 .thenReturn(List.of(chairmanRole));
 
-        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚濯奸柨婵嗗閻ㄦ垿姊婚埀顒勫箰鎼淬垻绉梻?
+        // When: 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墯婵ジ鏌ㄥ┑鍡楊伀闁汇劍鍨垮濠氬焵椤掑嫬绠伴幖娣灮缁夘剟姊?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾奸柟鎯ь嚟娴?
+        // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勫畝鈧壕濂告煙閹屽殶濞?
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getRoleIds()).containsExactly(1L);
         assertThat(result.getRoleCodes()).containsExactly("CHAIRMAN");
         assertThat(result.getEffectiveRoleIds()).containsExactlyInAnyOrder(1L, 2L, 3L, 4L);
 
-        // Then: 婵°倗濮撮惌渚€鎯佹径鎰骇闁告劦鍠楅娆愭叏閻熺増澶勯柍褜鍏涚槐顔炬濞嗘劖鍎熼柡鍐ㄦ祩閸ゅ鏌?4 婵炴垶鎼╂禍婵嗩焽閸儲鈷旈柟鏉垮缁€?
+        // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顒傞獓闂佸憡鍔﹂崰妤咁敁濞嗘劖鍙忛柣鐔哄婢跺嫰鏌嶈閸忔稓妲愰鐐潟婵炲棙鍔栭崕鐔兼煛閸愩劍绁╅柛銈咁樀閺?4 濠电偞鍨堕幖鈺傜濠靛棭鐒介柛顐犲劜閳锋棃鏌熼弶鍨暢缂佲偓?
         assertThat(result.getPermissions()).hasSize(4);
         assertThat(result.getPermissionCodes()).containsExactlyInAnyOrder(
                 "global:view", "inventory:view", "purchase:create", "sales:view"
         );
 
-        // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾肩憸搴㈢珶濞嗘挻鍎嶉柛鏇ㄥ墯缂嶁偓闂?
-        assertThat(result.hasPermission("inventory:view")).isTrue(); // 缂傚倷缍€閸曨偒妫￠梺鐓庮殠娴滄瑧鍒掗妸锔藉劅闁归箖顤傞崥鈧梺鑽ゅ仜濡骞?
-        assertThat(result.hasPermission("purchase:create")).isTrue(); // 缂傚倷缍€閸曨偒妫￠梺鐓庮殠娴滎亪宕抽幍顔藉妞ゆ挾鍋為崰?
-        assertThat(result.hasPermission("sales:view")).isTrue(); // 缂傚倷缍€閸曨偒妫￠梺鐓庮殠娴滎亪寮ㄩ姀銈呰埞妞ゆ柨鍚嬮崰?
-        assertThat(result.hasPermission("global:view")).isTrue(); // 闂佹垝绶ょ徊鑲╄姳閵娾晜鈷愬璺烘憸閻熲晠鎮?
+        // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勫畝鈧壕鑲╂喐鎼淬垻鐝舵繛鍡樻尰閸庡秹鏌涢弴銊ュ缂傚秮鍋撻梻?
+        assertThat(result.hasPermission("inventory:view")).isTrue(); // 缂傚倸鍊风紞鈧柛鏇ㄥ亽濡繝姊洪悡搴疇濞存粍鐟ч崚鎺楀Ω閿旇棄鍔呴梺褰掔畺椤ゅ倿宕ラ埀顒勬⒑閼姐倕浠滄俊顐ｎ殜楠?
+        assertThat(result.hasPermission("purchase:create")).isTrue(); // 缂傚倸鍊风紞鈧柛鏇ㄥ亽濡繝姊洪悡搴疇濞存粠浜畷鎶藉箥椤旇棄顏稿銈嗘尵閸嬬偤宕?
+        assertThat(result.hasPermission("sales:view")).isTrue(); // 缂傚倸鍊风紞鈧柛鏇ㄥ亽濡繝姊洪悡搴疇濞存粠浜銊╁閵堝懓鍩炲銈嗘煥閸氬宕?
+        assertThat(result.hasPermission("global:view")).isTrue(); // 闂備焦鍨濈欢銈囧緤閼测晞濮抽柕濞炬櫆閳锋劕顭跨捄鐑樻喐闁荤啿鏅犻幃?
     }
 
     @Test
     @DisplayName("case-4")
     void getInheritedRoleIds_ThreeLevelInheritance() {
-        // Given: A -> B -> C 婵炴垶鎸搁ˇ顖炴儑閹殿喚纾肩憸搴㈢珶?
-        // 闁荤喐鐟︾敮鐔哥珶婢跺墽绱撴担鍫濆椤ョ偤鎮峰▎鎰濠㈢懓銇熼梺鎸庣☉閻線锝炲Δ鍛殞闁活偆鍠撶槐鎺曨槼濠㈣鐟ч幉鎾箳閺囩儐妫孋
+        // Given: A -> B -> C 濠电偞鍨堕幐鎼佀囬鐐村剳闁规鍠氱壕鑲╂喐鎼淬垻鐝?
+        // 闂佽崵鍠愰悷锔炬暜閻斿摜鐝跺璺哄⒔缁辨挻鎷呴崼婵嗩仼妞ゃ儳鍋ら幃宄扳枎閹邦剛顑勬繝銏㈡嚀閵囩喖姊洪幐搴ｂ槈闁活厺绶氶敐鐐参旈崨顔兼疄闂佹椿鍋嗛崰鎾舵閹烘洦妲兼繝銏ｎ潐閻熝囧箟閹绢喖绠抽柡鍥╁剱濡瓔
         Long roleA = 10L;
         Long roleB = 20L;
         Long roleC = 30L;
@@ -274,13 +274,13 @@ class DynamicPermissionServiceTest {
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(roleC))
                 .thenReturn(Set.of());
 
-        // When: 闂佸搫琚崕鎾敋濡ゅ啯鍠嗛柟鐑樻礀椤ュ粐闂佹眹鍔岀€氼厽鏅跺澶婂珘濠㈣泛鏈崺娑㈡煙娴ｅ啫鍔垫い顐ｎ殜閹?
+        // When: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暞閸犲棝鏌熼悜妯荤妞ゃ儱绮愰梻浣圭湽閸斿瞼鈧凹鍘介弲璺侯吋婢跺﹤鐝樻繝銏ｆ硾閺堫剟宕哄☉銏＄厵濞达絽鍟崝鍨亜椤愶綆娈滈柟?
         Set<Long> result = permissionService.getInheritedRoleIds(Set.of(roleA));
 
-        // Then: 闁圭厧鐡ㄥΛ渚€顢氬璺虹闁告侗鍘介崕?A, B, C
+        // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠鸿櫣顦遍梺鍛婁緱閸樹粙宕?A, B, C
         assertThat(result).containsExactlyInAnyOrder(roleA, roleB, roleC);
 
-        // Then: 婵°倗濮撮惌渚€鎯佹径鎰劵闁圭儤鍨圭粔娲偣鐎ｎ亜鏆熼柡?
+        // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顓犲姷闂佸湱鍎ら崹鍦矓濞差亝鍋ｉ悗锝庝簻閺嗙喖鏌?
         verify(roleInheritRepository, times(1)).findParentRoleIdsByChildRoleId(roleA);
         verify(roleInheritRepository, times(1)).findParentRoleIdsByChildRoleId(roleB);
         verify(roleInheritRepository, times(1)).findParentRoleIdsByChildRoleId(roleC);
@@ -289,7 +289,7 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-5")
     void getUserPermissions_DuplicatePermissions() {
-        // Given: 闂佹椿娼块崝宥夊春濞戙垹瀚?2 婵炴垶鎼╂禍锝夛綖濡ゅ懏鍤岄悹鍥囧懐顦柣搴ｆ嚀閸熲晛顭ㄩ幋锕€瀚夊鑸靛姇濞呫垹顭跨捄铏剐ｆ繛鐓庣墦濮?
+        // Given: 闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴欏灩鐎?2 濠电偞鍨堕幖鈺傜閿濆缍栨俊銈呮噺閸ゅ矂鎮归崶鍥ф噽椤︻噣鏌ｆ惔锝嗗殌闁哥啿鏅涢…銊╁箣閿曗偓鐎氬顭块懜闈涘婵炲懌鍨归…璺ㄦ崉閾忓墣锝嗙箾閻撳海澧︽慨?
         Long userId = 3L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L, 3L)); // WAREHOUSE_ADMIN, BUYER
@@ -297,7 +297,7 @@ class DynamicPermissionServiceTest {
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(any()))
                 .thenReturn(Set.of());
 
-        // Given: 婵炴垶鎸堕崐鎾绘煂濠婂懏鍠嗛柟鐑樻礀椤ュ繘姊洪鍨撴繝鈧?inventory:view 闂佸搫顦崯鏉戭瀶?
+        // Given: 濠电偞鍨堕幐鍫曞磹閹剧粯鐓傛繝濠傛噺閸犲棝鏌熼悜妯荤妞ゃ儱绻樺娲敊閸啩鎾寸節閳?inventory:view 闂備礁鎼ˇ顖炲疮閺夋埈鐎?
         SysRolePermission rp1 = new SysRolePermission();
         rp1.setRoleId(2L);
         rp1.setPermissionId(101L);
@@ -305,7 +305,7 @@ class DynamicPermissionServiceTest {
 
         SysRolePermission rp2 = new SysRolePermission();
         rp2.setRoleId(3L);
-        rp2.setPermissionId(101L); // 闂佸憡鑹炬總鏃傜博鐎涙鈻旀い蹇撴噺缂嶁偓闂傚倸瀚埀顒侇儚
+        rp2.setPermissionId(101L); // 闂備礁鎲￠懝鐐附閺冨倻鍗氶悗娑欘焽閳绘梹銇勮箛鎾村櫤缂傚秮鍋撻梻鍌氬€哥€氼參鍩€椤掍緡鍎?
         rp2.setPermission(inventoryViewPermission);
 
         SysRolePermission rp3 = new SysRolePermission();
@@ -319,10 +319,10 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(Set.of(2L, 3L)))
                 .thenReturn(List.of(warehouseAdminRole, buyerRole));
 
-        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
+        // When: 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墯閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻鈩冨緞婵犲倹娈诲┑?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 闂佸搫顦崯鏉戭瀶閻戞ɑ鍎熼柡鍐ㄦ祩閸ゅ鏌涘Ο渚吋闁革絾鎮傞弫宥囦沪閽樺閿梺?2 婵炴垶鎼╂禍婵嗩焽閸儲鈷?
+        // Then: 闂備礁鎼ˇ顖炲疮閺夋埈鐎堕柣鎴炆戦崕鐔兼煛閸愩劍绁╅柛銈咁樀閺屾稑螣娓氼垳鍚嬮梺闈╃稻閹倿寮鍥︽勃闁芥ê顦伴柨顓㈡⒑?2 濠电偞鍨堕幖鈺傜濠靛棭鐒介柛顐犲劜閳?
         assertThat(result.getPermissions()).hasSize(2);
         assertThat(result.getPermissionCodes()).containsExactlyInAnyOrder(
                 "inventory:view", "purchase:create"
@@ -332,29 +332,29 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-6")
     void getUserPermissions_NoRoles() {
-        // Given: 闂佹椿娼块崝宥夊春濞戞ǚ鏌﹂柍鈺佸暞缁犳帡鎮峰▎鎰濠?
+        // Given: 闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴炃氶弻锕傛煃閳轰礁鏆炵紒鐘冲浮閹嘲鈻庨幇顒傤儎婵?
         Long userId = 4L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of());
 
-        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
+        // When: 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墯閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻鈩冨緞婵犲倹娈诲┑?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 闁圭厧鐡ㄥΛ渚€顢氬顓熶氦闁哄倹瀵х粈鈧紓浣哥灱閸庛倕顭囬崼銉︹挃?
+        // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩椤撶喍姘﹂梺鍝勫€圭€笛呯矆閳ь剛绱撴担鍝ョ伇闁稿簺鍊曢…鍥醇閵夛腹鎸?
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getRoleIds()).isEmpty();
         assertThat(result.getPermissions()).isEmpty();
         assertThat(result.hasPermission("any:permission")).isFalse();
 
-        // Then: 婵炴垶鎸哥粔瀵歌姳閼碱剚瀚氶柕澶涘閸欌偓闁荤姴娲㈤崹鍝勵焽閸儲鈷?
+        // Then: 濠电偞鍨堕幐鍝ョ矓鐎垫瓕濮抽柤纰卞墯鐎氭岸鏌曟径娑橆洭闁告瑢鍋撻梺鑽ゅТ濞层垽宕归崫鍕电劷闁割偁鍎查埛?
         verify(rolePermissionRepository, never()).findByRoleIdInWithPermission(any());
     }
 
     @Test
     @DisplayName("case-7")
     void hasPermission() {
-        // Given: 濠碘槅鍨崜婵堚偓姘懇閹粙濡搁敃鈧悡鏇㈡煛婢跺﹤鏆ｆ俊?
+        // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋撳顓犳噰闁诡喕绮欐俊鎼佹晝閳ь剟鎮￠弴銏＄厸濠㈣泛锕ら弳锝嗕繆?
         Long userId = 5L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L));
@@ -371,7 +371,7 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When & Then: 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵炵厧鐗撳?
+        // When & Then: 婵犵妲呴崑鈧柛瀣崌閺岋紕浠︾拠鎻掑濠电偟鍘ч悧鎾愁潖?
         assertThat(permissionService.hasPermission(userId, "inventory:view")).isTrue();
         assertThat(permissionService.hasPermission(userId, "purchase:create")).isFalse();
     }
@@ -379,7 +379,7 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-8")
     void hasAnyPermission() {
-        // Given: 濠碘槅鍨崜婵堚偓姘懇閹粙濡搁敃鈧悡鏇㈡煛婢跺﹤鏆ｆ俊?
+        // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋撳顓犳噰闁诡喕绮欐俊鎼佹晝閳ь剟鎮￠弴銏＄厸濠㈣泛锕ら弳锝嗕繆?
         Long userId = 6L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L));
@@ -396,7 +396,7 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When & Then: 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵″弶鎮傚畷銉╂晜閼恒儳鐣虫繛瀵稿Х缁垶宕滄导鏉戠骇闁告劦鍠楅?
+        // When & Then: 婵犵妲呴崑鈧柛瀣崌閺岋紕浠︾拠鎻掑濠碘€冲级閹倸鐣烽妷鈺傛櫆闁兼亽鍎抽悾铏箾鐎电啸缂侇噮鍨跺畷婊勫閺夋垹楠囬梺鍛婂姦閸犳顢?
         assertThat(permissionService.hasAnyPermission(userId, "inventory:view", "purchase:create")).isTrue();
         assertThat(permissionService.hasAnyPermission(userId, "sales:view", "purchase:create")).isFalse();
     }
@@ -404,7 +404,7 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-9")
     void hasAllPermissions() {
-        // Given: 濠碘槅鍨崜婵堚偓姘懇閹粙濡搁敃鈧悡鏇㈡煛?2 婵炴垶鎼╂禍婵嗩焽閸儲鈷?
+        // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋撳顓犳噰闁诡喕绮欐俊鎼佹晝閳ь剟鎮￠弴銏＄厸?2 濠电偞鍨堕幖鈺傜濠靛棭鐒介柛顐犲劜閳?
         Long userId = 7L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(2L));
@@ -426,7 +426,7 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(warehouseAdminRole));
 
-        // When & Then: 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕婵″弶鎮傚畷銉╂晜閼恒儳鐣抽梺鍦暯閸嬫捇鏌￠崼婵愭Ч婵炵厧鐗撳?
+        // When & Then: 婵犵妲呴崑鈧柛瀣崌閺岋紕浠︾拠鎻掑濠碘€冲级閹倸鐣烽妷鈺傛櫆闁兼亽鍎抽悾鎶芥⒑閸︻収鏆柛瀣崌閺岋繝宕煎┑鎰у┑鐐靛帶閻楁挸顫?
         assertThat(permissionService.hasAllPermissions(userId, "inventory:view", "purchase:create")).isTrue();
         assertThat(permissionService.hasAllPermissions(userId, "inventory:view", "sales:view")).isFalse();
     }
@@ -434,18 +434,18 @@ class DynamicPermissionServiceTest {
     @Test
     @DisplayName("case-10")
     void getUserPermissions_PermissionTypeClassification() {
-        // Given: 闂佹椿娼块崝宥夊春濞戙垹瀚夊璺侯槺閻熸繈鏌涘顒傜伇閻炴凹鍋婂畷鍦偓锝庡墯閻ｉ亶鏌℃径濠傛殻婵?
+        // Given: 闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴欏灩鐎氬顭跨捄渚Ш闁荤喐绻堥弻娑橆潩椤掑倻浼囬柣鐐村嚬閸嬪﹤鐣烽崷顓涘亾閿濆骸澧柣锝変憾閺屸剝寰勬繝鍌涙濠?
         Long userId = 8L;
         when(userRoleRepository.findRoleIdsByUserId(userId))
                 .thenReturn(Set.of(1L));
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(any()))
                 .thenReturn(Set.of());
 
-        // 闂佸憡甯楃粙鎴犵磽閹惧鈻旂€广儱鎳忛崐杈╃磼椤愩儺鍤欓柣搴ｅ厴閹啴宕熼浣虹К闂?
+        // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯ь嚟閳绘梻鈧箍鍎遍幊蹇涘磹鏉堚晝纾兼い鎰╁労閸ゆ瑩鏌ｆ惔锝呭幋闁诡垰鍟村畷鐔碱敆娴ｈ櫣袣闂?
         SysPermission menuPermission = SysPermission.builder()
                 .id(201L)
                 .permissionCode("menu:inventory")
-                .permissionName("闁圭厧鐡ㄩ幐鎼佹偤閵娾晜鍤曟繝濠傚暙缁€?")
+                .permissionName("闂佸湱鍘ч悺銊╁箰閹间焦鍋ら柕濞炬櫆閸ゆ洘绻濇繝鍌氭殭缂佲偓?")
                 .permissionType("MENU")
                 .status("ACTIVE")
                 .sortOrder(1)
@@ -454,7 +454,7 @@ class DynamicPermissionServiceTest {
         SysPermission buttonPermission = SysPermission.builder()
                 .id(202L)
                 .permissionCode("button:delete")
-                .permissionName("闂佸憡甯炴繛鈧繛鍛叄楠炴劖寰勯幇顓炲攭")
+                .permissionName("删除按钮权限")
                 .permissionType("BUTTON")
                 .status("ACTIVE")
                 .sortOrder(2)
@@ -474,10 +474,10 @@ class DynamicPermissionServiceTest {
         when(roleRepository.findByIdIn(any()))
                 .thenReturn(List.of(chairmanRole));
 
-        // When: 闂佸吋鍎抽崲鑼躲亹閸ヮ剚鍋ㄩ柕濠忕畱閻撴洟鏌℃径濠傛殻婵?
+        // When: 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墯閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻鈩冨緞婵犲倹娈诲┑?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
 
-        // Then: 婵°倗濮撮惌渚€鎯佹径鎰骇闁告劦鍠楅娆撴煕閹烘垶顥犻悶?
+        // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顒傞獓闂佸憡鍔﹂崰妤咁敁濞嗘挻鐓曢柟鐑樺灦椤ョ娀鎮?
         assertThat(result.getMenuPermissions()).hasSize(1);
         assertThat(result.getApiPermissions()).hasSize(1);
         assertThat(result.getButtonPermissions()).hasSize(1);

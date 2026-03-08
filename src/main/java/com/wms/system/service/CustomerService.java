@@ -3,9 +3,11 @@ package com.wms.system.service;
 import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
 import com.wms.system.entity.Customer;
+import com.wms.system.entity.User;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CustomerRepository;
+import com.wms.system.repository.UserRepository;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.util.MaskingUtils;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +64,7 @@ import java.util.stream.Collectors;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
 
     /**
      * 创建客户
@@ -471,11 +475,33 @@ public class CustomerService {
      */
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof SecurityUser) {
-            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-            return securityUser.getId();
+        if (authentication == null) {
+            return null;
         }
-        return null;
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof SecurityUser) {
+            return ((SecurityUser) principal).getId();
+        }
+
+        String username = null;
+        if (principal instanceof UserDetails) {
+            username = ((UserDetails) principal).getUsername();
+        } else if (principal instanceof String) {
+            String value = (String) principal;
+            if (!value.isBlank() && !"anonymousUser".equalsIgnoreCase(value)) {
+                username = value;
+            }
+        }
+
+        if (username == null || username.isBlank()) {
+            username = authentication.getName();
+        }
+        if (username == null || username.isBlank() || "anonymousUser".equalsIgnoreCase(username)) {
+            return null;
+        }
+
+        return userRepository.findByUsername(username).map(User::getId).orElse(null);
     }
 
     /**

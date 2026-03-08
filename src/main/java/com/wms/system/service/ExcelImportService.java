@@ -108,12 +108,14 @@ public class ExcelImportService {
             // Read first sheet
             Sheet sheet = workbook.getSheetAt(0);
             int totalRows = sheet.getPhysicalNumberOfRows();
+            int lastRowNum = sheet.getLastRowNum();
 
             log.info("Excel file opened: sheetName={}, totalRows={}",
                 sheet.getSheetName(), totalRows);
 
-            // Iterate through rows (skip header row 0)
-            for (int rowIndex = 1; rowIndex < totalRows; rowIndex++) {
+            // Iterate through logical row range (skip header row 0).
+            // Using lastRowNum avoids missing valid rows after sparse/empty rows.
+            for (int rowIndex = 1; rowIndex <= lastRowNum; rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
 
                 if (row == null || isRowEmpty(row)) {
