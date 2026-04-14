@@ -47,7 +47,28 @@ public enum StocktakeStatus {
      * - 审核通过，已平账
      * - 库存已调整
      */
-    COMPLETED("已完成");
+    COMPLETED("已完成"),
+
+    /**
+     * 已取消：盘点任务取消（业务失败，AI 学习）
+     *
+     * 说明：
+     * - 真实的业务失败（如盘点中断、数据异常）
+     * - 必须关联 reason_code 或填写 remarks
+     * - 数据保留供 AI 学习
+     */
+    CANCELLED("已取消"),
+
+    /**
+     * 已作废：系统作废（数据噪音，AI 过滤）
+     *
+     * 说明：
+     * - 数据噪音（如员工录入错误、测试任务）
+     * - 财务审计中保留流水号
+     * - AI 提取和业务统计中彻底过滤
+     * - 不参与常规状态流转
+     */
+    VOIDED("已作废");
 
     private final String description;
 
@@ -93,5 +114,41 @@ public enum StocktakeStatus {
      */
     public boolean canStartCounting() {
         return this == CREATED;
+    }
+
+    /**
+     * 判断是否为终态
+     *
+     * @return true 如果状态为 COMPLETED, CANCELLED, 或 VOIDED
+     */
+    public boolean isFinalState() {
+        return this == COMPLETED || this == CANCELLED || this == VOIDED;
+    }
+
+    /**
+     * 判断是否可以物理删除（仅草稿期）
+     *
+     * @return true 如果状态为 CREATED
+     */
+    public boolean canPhysicallyDelete() {
+        return this == CREATED;
+    }
+
+    /**
+     * 判断是否可以取消（业务取消）
+     *
+     * @return true 如果状态为 CREATED 或 COUNTING
+     */
+    public boolean canCancel() {
+        return this == CREATED || this == COUNTING;
+    }
+
+    /**
+     * 判断是否可以作废（系统作废）
+     *
+     * @return true 如果状态为 CREATED 或 COUNTING
+     */
+    public boolean canVoid() {
+        return this == CREATED || this == COUNTING;
     }
 }

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -301,6 +302,82 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle DataIntegrityViolationException (V4.4 幂等性防御)
+     *
+     * 拦截数据库唯一约束违反异常，用于实现物理级接口幂等性。
+     *
+     * 触发场景：
+     * - Shopify 网络抖动导致订单重发
+     * - 前端业务员疯狂连击提交按钮
+     * - 并发请求导致的订单号重复
+     *
+     * 处理策略：
+     * - 检测异常消息中是否包含唯一约束关键字（unique, duplicate）
+     * - 提取违反的字段名（order_no, po_number 等）
+     * - 返回 HTTP 409 Conflict 和友好提示
+     *
+     * @param ex DataIntegrityViolationException
+     * @param request HTTP request
+     * @return ResponseEntity with ErrorResponse
+     * @since V4.4 (Idempotency Defense)
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+        DataIntegrityViolationException ex,
+        HttpServletRequest request
+    ) {
+        String message = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        String rootCauseMessage = ex.getRootCause() != null ? ex.getRootCause().getMessage().toLowerCase() : "";
+        String fullMessage = message + " " + rootCauseMessage;
+
+        // 检测是否为唯一约束违反
+        if (fullMessage.contains("unique") || fullMessage.contains("duplicate")) {
+            log.warn("Unique constraint violation detected: {}", ex.getMessage());
+
+            // 提取订单类型和订单号
+            String orderType = "UNKNOWN";
+            String fieldName = "order_number";
+
+            if (fullMessage.contains("sales_orders") || fullMessage.contains("idx_sales_order_no")) {
+                orderType = "SALES";
+                fieldName = "order_no";
+            } else if (fullMessage.contains("purchase_order") || fullMessage.contains("idx_po_number")) {
+                orderType = "PURCHASE";
+                fieldName = "po_number";
+            } else if (fullMessage.contains("inbound_orders") || fullMessage.contains("idx_inbound_order_no")) {
+                orderType = "INBOUND";
+                fieldName = "order_no";
+            }
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("orderType", orderType);
+            params.put("fieldName", fieldName);
+            params.put("message", "该订单号已存在，请勿重复提交");
+
+            ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorKey(ErrorKeys.ORDER_NUMBER_DUPLICATE)
+                .params(params)
+                .path(request.getRequestURI())
+                .status(HttpStatus.CONFLICT.value())
+                .build();
+
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        }
+
+        // 其他数据完整性异常，返回 400 Bad Request
+        log.error("Data integrity violation: {}", ex.getMessage(), ex);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.VALIDATION_FAILED)
+            .params(Map.of("message", "数据完整性约束违反"))
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
      * Handle Generic Exceptions (Unexpected Errors)
      *
      * Catches all other exceptions not handled by specific handlers.
@@ -423,7 +500,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.USER_ALREADY_EXISTS,  // v3.3 Multi-Role System
                  ErrorKeys.BATCH_CODE_GENERATION_FAILED,
                  ErrorKeys.WAREHOUSE_ALREADY_EXISTS,  // Phase 3.4
-                 ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED -> HttpStatus.CONFLICT;  // V3.9 Shopify Integration
+                 ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,  // V3.9 Shopify Integration
+                 ErrorKeys.ORDER_NUMBER_DUPLICATE -> HttpStatus.CONFLICT;  // V4.4 Idempotency Defense
 
             // 500 Internal Server Error
             case ErrorKeys.ROLE_SWITCH_FAILED,  // v3.3 Multi-Role System

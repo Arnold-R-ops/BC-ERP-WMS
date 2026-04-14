@@ -439,17 +439,52 @@ public class SalesSubmissionService {
     }
 
     /**
-     * Cancel sales order and release inventory
+     * Delete sales order (physical delete, DRAFT only)
      *
-     * Business Flow:
-     * 1. Validate order can be cancelled
-     * 2. If status = APPROVED_AWAITING_SHIPMENT, delete all outbound tasks (releases inventory)
-     * 3. Set status = CANCELLED
-     * 4. Add audit log entry
-     * 5. Return SalesOrderResponse
+     * Business Rule:
+     * - DRAFT status: physical DELETE from database
+     * - Any other status: throws exception, use cancelSalesOrder or voidSalesOrder instead
      *
      * @param orderId Sales order ID
-     * @param reason Cancellation reason
+     * @param operatorId Operator user ID
+     * @throws BusinessException if order not found or not in DRAFT status
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteSalesOrder(Long orderId, Long operatorId) {
+        log.info("🗑️ Deleting sales order (physical): orderId={}, operatorId={}", orderId, operatorId);
+
+        SalesOrder salesOrder = salesOrderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.SALES_ORDER_NOT_FOUND,
+                Map.of("salesOrderId", orderId)
+            ));
+
+        if (!salesOrder.getStatus().canPhysicallyDelete()) {
+            throw new BusinessException(
+                ErrorKeys.SALES_ORDER_CANNOT_CANCEL,
+                Map.of(
+                    "salesOrderId", orderId,
+                    "currentStatus", salesOrder.getStatus().name(),
+                    "reason", "只有草稿状态的订单可以物理删除，已生效的订单请使用取消或作废"
+                )
+            );
+        }
+
+        salesOrderRepository.deleteById(orderId);
+        log.info("✅ Sales order physically deleted: orderId={}, orderNo={}", orderId, salesOrder.getOrderNo());
+    }
+
+    /**
+     * Cancel sales order (business failure, kept for AI learning)
+     *
+     * Business Flow:
+     * 1. DRAFT status → physical delete (redirect to deleteSalesOrder)
+     * 2. PENDING_APPROVAL / APPROVED_AWAITING_SHIPMENT → set status = CANCELLED
+     * 3. If APPROVED_AWAITING_SHIPMENT, release inventory (delete outbound tasks)
+     * 4. reason or remarks is required
+     *
+     * @param orderId Sales order ID
+     * @param reason Cancellation reason (required)
      * @param operatorId Operator user ID
      * @return SalesOrderResponse
      * @throws BusinessException if order not found or cannot be cancelled
@@ -463,46 +498,109 @@ public class SalesSubmissionService {
         log.info("🚫 Cancelling sales order: orderId={}, operatorId={}, reason={}",
             orderId, operatorId, reason);
 
-        // 1. Validate order exists
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.SALES_ORDER_CANNOT_CANCEL,
+                Map.of("salesOrderId", orderId, "reason", "业务取消必须填写取消原因")
+            );
+        }
+
         SalesOrder salesOrder = salesOrderRepository.findById(orderId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.SALES_ORDER_NOT_FOUND,
                 Map.of("salesOrderId", orderId)
             ));
 
-        // 2. Validate order can be cancelled
-        if (!salesOrder.canCancel()) {
-            log.error("❌ Sales order cannot be cancelled: orderId={}, currentStatus={}",
-                orderId, salesOrder.getStatus());
+        // DRAFT → physical delete
+        if (salesOrder.getStatus() == SalesOrderStatus.DRAFT) {
+            salesOrderRepository.deleteById(orderId);
+            log.info("✅ DRAFT order physically deleted during cancel: orderId={}", orderId);
+            return null;
+        }
+
+        if (!salesOrder.getStatus().canCancel()) {
             throw new BusinessException(
                 ErrorKeys.SALES_ORDER_CANNOT_CANCEL,
                 Map.of(
                     "salesOrderId", orderId,
                     "currentStatus", salesOrder.getStatus().name(),
-                    "reason", "Order status does not allow cancellation"
+                    "reason", "当前状态不允许取消"
                 )
             );
         }
 
-        // 3. If status = APPROVED_AWAITING_SHIPMENT, delete outbound tasks
         if (salesOrder.getStatus() == SalesOrderStatus.APPROVED_AWAITING_SHIPMENT) {
             log.info("🗑️ Deleting outbound tasks to release inventory: orderId={}", orderId);
             outboundTaskRepository.deleteBySalesOrderId(orderId);
-            log.info("✅ Outbound tasks deleted, inventory released");
         }
 
-        // 4. Set status = CANCELLED
         salesOrder.setStatus(SalesOrderStatus.CANCELLED);
-
-        // 5. Save order
         salesOrder = salesOrderRepository.save(salesOrder);
+        addAuditLog(salesOrder, "CANCEL", "User-" + operatorId, "业务取消: " + reason);
 
-        // 6. Add audit log
-        addAuditLog(salesOrder, "CANCEL", "User-" + operatorId, "取消订单: " + reason);
+        log.info("✅ Sales order cancelled: orderId={}, orderNo={}", orderId, salesOrder.getOrderNo());
+        return convertToResponse(salesOrder);
+    }
 
-        log.info("✅ Sales order cancelled successfully: orderId={}, orderNo={}",
-            orderId, salesOrder.getOrderNo());
+    /**
+     * Void sales order (data noise, filtered from AI and statistics)
+     *
+     * Business Rule:
+     * - DRAFT status → physical delete
+     * - PENDING_APPROVAL / APPROVED_AWAITING_SHIPMENT → set status = VOIDED
+     * - VOIDED orders are excluded from AI training and business statistics
+     * - Financial audit trail is preserved (order number retained)
+     *
+     * @param orderId Sales order ID
+     * @param reason Void reason (required)
+     * @param operatorId Operator user ID
+     * @return SalesOrderResponse
+     * @throws BusinessException if order not found or cannot be voided
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SalesOrderResponse voidSalesOrder(Long orderId, String reason, Long operatorId) {
+        log.info("🚫 Voiding sales order: orderId={}, operatorId={}, reason={}", orderId, operatorId, reason);
 
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.SALES_ORDER_CANNOT_CANCEL,
+                Map.of("salesOrderId", orderId, "reason", "系统作废必须填写作废原因")
+            );
+        }
+
+        SalesOrder salesOrder = salesOrderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.SALES_ORDER_NOT_FOUND,
+                Map.of("salesOrderId", orderId)
+            ));
+
+        // DRAFT → physical delete
+        if (salesOrder.getStatus() == SalesOrderStatus.DRAFT) {
+            salesOrderRepository.deleteById(orderId);
+            log.info("✅ DRAFT order physically deleted during void: orderId={}", orderId);
+            return null;
+        }
+
+        if (!salesOrder.getStatus().canVoid()) {
+            throw new BusinessException(
+                ErrorKeys.SALES_ORDER_CANNOT_CANCEL,
+                Map.of(
+                    "salesOrderId", orderId,
+                    "currentStatus", salesOrder.getStatus().name(),
+                    "reason", "当前状态不允许作废"
+                )
+            );
+        }
+
+        if (salesOrder.getStatus() == SalesOrderStatus.APPROVED_AWAITING_SHIPMENT) {
+            outboundTaskRepository.deleteBySalesOrderId(orderId);
+        }
+
+        salesOrder.setStatus(SalesOrderStatus.VOIDED);
+        salesOrder = salesOrderRepository.save(salesOrder);
+        addAuditLog(salesOrder, "VOID", "User-" + operatorId, "系统作废: " + reason);
+
+        log.info("✅ Sales order voided: orderId={}, orderNo={}", orderId, salesOrder.getOrderNo());
         return convertToResponse(salesOrder);
     }
 

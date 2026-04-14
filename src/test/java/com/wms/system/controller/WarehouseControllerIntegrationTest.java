@@ -199,7 +199,8 @@ class WarehouseControllerIntegrationTest {
                 "WH02",
                 "New Warehouse",
                 "456 New St",
-                "Jane Doe"
+                "Jane Doe",
+                "13900139000"
         );
 
         // When & Then
@@ -223,6 +224,7 @@ class WarehouseControllerIntegrationTest {
                 "WH01",
                 "Duplicate Warehouse",
                 null,
+                null,
                 null
         );
 
@@ -242,6 +244,7 @@ class WarehouseControllerIntegrationTest {
         CreateWarehouseRequest request = new CreateWarehouseRequest(
                 "invalid",  // 闂佽绻愮换鎰崲閹版澘鐤柟鍓х帛閺咁剟鎮橀悙璺轰汗闁荤喐绻勭槐鎺懳旂€ｎ剛鏆犻梺璇″枛闁帮絽顕ｆ禒瀣亗閹艰揪绲块、鍛存煟閻斿憡纾婚柣鎺炵畵閹?
                 "Invalid Warehouse",
+                null,
                 null,
                 null
         );

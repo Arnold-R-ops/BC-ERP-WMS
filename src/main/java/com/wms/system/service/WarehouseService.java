@@ -60,7 +60,7 @@ public class WarehouseService {
      * @throws BusinessException 如果仓库编码已存在
      */
     @Transactional(rollbackFor = Exception.class)
-    public Warehouse createWarehouse(String code, String name, String address, String contact) {
+    public Warehouse createWarehouse(String code, String name, String address, String contact, String phone) {
         log.info("Creating warehouse: code={}, name={}", code, name);
 
         // 验证仓库编码唯一性
@@ -78,6 +78,7 @@ public class WarehouseService {
             .name(name)
             .address(address)
             .contact(contact)
+            .phone(phone)
             .isActive(true)
             .build();
 

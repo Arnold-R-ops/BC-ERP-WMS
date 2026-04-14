@@ -1,0 +1,614 @@
+### ============================================================
+### WMS 核心业务闭环测试脚本 - The Golden Path Test
+### 验证链路：货能进 → 系统能算 → 货能出
+### 版本：V3.7  日期：2026-02-26
+### ============================================================
+###
+### 使用说明：
+###   1. 在 IntelliJ IDEA 中直接点击每个请求左侧的绿色三角运行
+###   2. 按顺序执行，每步执行后记录返回的 ID 填入下方变量
+###   3. 首次运行前请先执行 Step 0 获取真实 JWT Token
+###
+### 执行顺序：
+###   Step 0  → 登录获取 Token
+###   Step 1  → 创建仓库（如已有仓库可跳过，记录 warehouseId）
+###   Step 2  → 创建库位 A-01（整箱区）
+###   Step 3  → 创建库位 B-01（散货区）
+###   Step 4  → 创建商品 TEA-500
+###   Step 5  → 创建测试客户
+###   Step 6  → 创建入库单
+###   Step 7  → 总经理审批入库计划
+###   Step 8  → 采购员确认订单（填入批次日期，生成批次码）
+###   Step 9  → 仓库收货（库存落库，生成 inventory_batch 记录）
+###   Step 10 → 售前批次预检查（查看临期/新鲜红绿灯）
+###   Step 11 → 提交销售订单（触发智能分配）
+###   Step 12 → 审批销售订单（如需要）
+###   Step 13 → 查询待办出库任务
+###   Step 14 → 确认拣货出库
+### ============================================================
+
+# ── 全局变量（运行前请按实际情况修改）──────────────────────────
+@host = http://localhost:8080
+
+# Step 0 登录后，将返回的 token 填入此处
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.REPLACE_WITH_REAL_TOKEN
+
+# 运行过程中记录各步骤返回的 ID
+@warehouseId   = 1
+@locationIdA   = 1
+@locationIdB   = 2
+@productId     = 1
+@customerId    = 1
+@inboundOrderId = 1
+@inboundItemId1 = 1
+@inboundItemId2 = 2
+@salesOrderId  = 1
+@outboundTaskId1 = 1
+@outboundTaskId2 = 2
+
+
+### ============================================================
+### STEP 0：登录获取 JWT Token
+### ============================================================
+### 执行后：复制 response.token 的值，填入顶部 @token 变量
+### 数据库验证：SELECT username, current_role FROM users WHERE username = 'admin'
+
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+
+### ============================================================
+### 阶段 1：基础数据准备 (Master Data)
+### ============================================================
+
+### STEP 1：创建仓库（如系统已有仓库可跳过）
+### 执行后：记录 response.id → 填入 @warehouseId
+### 数据库验证：SELECT id, code, name FROM warehouses WHERE code = 'WH-MAIN'
+
+# @name createWarehouse
+POST {{host}}/api/warehouses
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "code": "WH-MAIN",
+  "name": "主仓库",
+  "address": "广州市天河区XX路1号",
+  "contact": "仓库管理员"
+}
+
+
+### STEP 2：创建整箱库位 A-01
+### 执行后：记录 response.id → 填入 @locationIdA
+### 数据库验证：SELECT id, code, zone FROM locations WHERE shelf_number = 'A' AND position_number = '01'
+### 注意：zone 使用枚举值 ZONE_A（高频商品区，靠近出货口，适合整箱存储）
+
+# @name createLocationA
+POST {{host}}/api/locations
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "warehouseId": {{warehouseId}},
+  "zone": "ZONE_A",
+  "shelfNumber": "A",
+  "positionNumber": "01",
+  "remark": "整箱存储区 - TEA-500 专用"
+}
+
+
+### STEP 3：创建散货库位 B-01
+### 执行后：记录 response.id → 填入 @locationIdB
+### 数据库验证：SELECT id, code, zone FROM locations WHERE shelf_number = 'B' AND position_number = '01'
+
+# @name createLocationB
+POST {{host}}/api/locations
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "warehouseId": {{warehouseId}},
+  "zone": "ZONE_B",
+  "shelfNumber": "B",
+  "positionNumber": "01",
+  "remark": "散货存储区 - 拆箱零散商品"
+}
+
+
+### STEP 4：创建商品 TEA-500（绿茶 SKU）
+### 执行后：记录 response.id → 填入 @productId
+### 数据库验证：
+###   SELECT id, barcode, name, per_pack_qty, near_expiry_days FROM products WHERE barcode = 'TEA-500'
+###   预期：per_pack_qty = 20，near_expiry_days = 90
+### 注意：spuId 需要系统中已存在的 SPU ID，默认填 1（Default SPU）
+
+# @name createProduct
+POST {{host}}/api/inventory/products
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "barcode": "TEA-500",
+  "name": "绿茶-500g-箱装",
+  "skuName": "绿茶-箱装",
+  "specs": "500g/袋, 20袋/箱",
+  "spuId": 1,
+  "packUnit": "箱",
+  "conversionRate": 20,
+  "perPackQty": 20,
+  "nearExpiryDays": 90,
+  "minStock": 10,
+  "maxStock": 500,
+  "minSalesPrice": 15.00
+}
+
+
+### STEP 5：创建测试客户（门店客户）
+### 执行后：记录 response.id → 填入 @customerId
+### 数据库验证：SELECT id, code, name, credit_limit, is_active FROM customers WHERE code = 'CUST-STORE-001'
+
+# @name createCustomer
+POST {{host}}/api/customers
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "code": "CUST-STORE-001",
+  "name": "幸福里便利店",
+  "contact": "张老板",
+  "phone": "13800138001",
+  "email": "store001@example.com",
+  "address": "广州市越秀区幸福里12号",
+  "creditLimit": 50000.00,
+  "isActive": true
+}
+
+
+### ============================================================
+### 阶段 2：采购入库与批次生成 (Inbound)
+### ============================================================
+### 业务流程：创建入库单 → 总经理审批 → 采购员确认（填批次日期）→ 仓库收货
+### 收货完成后系统自动生成 inventory_batch 记录
+
+### STEP 6：创建入库单（包含两个明细行，对应两个批次）
+### 执行后：
+###   记录 response.id              → 填入 @inboundOrderId
+###   记录 response.items[0].id     → 填入 @inboundItemId1（批次A，临期货）
+###   记录 response.items[1].id     → 填入 @inboundItemId2（批次B，新鲜货）
+### 数据库验证：
+###   SELECT id, order_no, status FROM inbound_orders WHERE id = ?
+###   SELECT id, product_id, plan_qty FROM inbound_order_items WHERE inbound_order_id = ?
+###   预期状态：PENDING_APPROVAL
+
+# @name createInboundOrder
+POST {{host}}/api/inbound-orders
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "supplierId": 1,
+  "expectedDate": "2026-03-01",
+  "remark": "Golden Path 测试入库 - TEA-500 两批次",
+  "items": [
+    {
+      "productId": {{productId}},
+      "planQty": 20,
+      "unitCost": 12.50,
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{locationIdA}},
+      "remark": "批次A - 临期货（约1个月后到期）"
+    },
+    {
+      "productId": {{productId}},
+      "planQty": 40,
+      "unitCost": 12.50,
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{locationIdA}},
+      "remark": "批次B - 新鲜货（明年到期）"
+    }
+  ]
+}
+
+
+### STEP 7：总经理审批入库计划
+### 前置条件：使用具有 inbound:approve 权限的账号 Token（CHAIRMAN 或 SUPER_ADMIN）
+### 执行后：
+###   response.status 应变为 APPROVED_PLAN
+### 数据库验证：
+###   SELECT status, reviewed_by FROM inbound_orders WHERE id = {{inboundOrderId}}
+
+# @name approvePlan
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/approve-plan
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "comment": "Golden Path 测试，批准采购计划"
+}
+
+
+### STEP 8：采购员确认订单（关键步骤：填入批次日期，系统生成批次码）
+###
+### ⚠️  批次日期设计说明：
+###   批次A（itemId1）：expiryDate 设为约1个月后 → 2026-03-26
+###     - nearExpiryDays = 90，距今 < 90天 → 系统标记为 NEAR_EXPIRY（临期）
+###     - 预期 freshnessStatus = "NEAR_EXPIRY"（红灯）
+###
+###   批次B（itemId2）：expiryDate 设为明年 → 2027-06-30
+###     - 距今 > 90天 → 系统标记为 FRESH（新鲜）
+###     - 预期 freshnessStatus = "FRESH"（绿灯）
+###
+### 执行后：
+###   response.status 应变为 AWAITING_RECEIVAL
+###   response.items[*].batchCode 应已生成（格式如 BC-20260226-XXXX）
+### 数据库验证：
+###   SELECT status FROM inbound_orders WHERE id = {{inboundOrderId}}
+###   预期状态：AWAITING_RECEIVAL
+
+# @name confirmOrder
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/confirm-order
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "comment": "已与供应商核实，确认两批次数量和日期",
+  "confirmations": [
+    {
+      "itemId": {{inboundItemId1}},
+      "confirmedQty": 20,
+      "expiryDate": "2026-03-26",
+      "productionDate": "2025-09-26",
+      "externalBatchCode": "SUP-BATCH-A-2025",
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{locationIdA}}
+    },
+    {
+      "itemId": {{inboundItemId2}},
+      "confirmedQty": 40,
+      "expiryDate": "2027-06-30",
+      "productionDate": "2026-06-30",
+      "externalBatchCode": "SUP-BATCH-B-2026",
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{locationIdA}}
+    }
+  ]
+}
+
+
+### STEP 9：仓库收货（库存正式落库，生成 inventory_batch 记录）
+###
+### ⚠️  整散分离说明：
+###   批次A：20袋 → 整箱（20袋 = 1箱，perPackQty=20）→ 存入整箱库位 A-01
+###   批次B：40袋 → 整箱（40袋 = 2箱）→ 存入整箱库位 A-01
+###   如需散货，可将部分数量指定到 B-01（散货库位）
+###
+### 执行后（关键验证）：
+###   ✅ inventory_batch 表新增 2 条记录
+###   ✅ 批次A：quantity=20, expiry_date='2026-03-26', package_status='SEALED'
+###   ✅ 批次B：quantity=40, expiry_date='2027-06-30', package_status='SEALED'
+###
+### 数据库验证：
+###   SELECT id, batch_code, quantity, expiry_date, package_status, freshness_status
+###   FROM inventory_batches
+###   WHERE product_id = {{productId}}
+###   ORDER BY expiry_date ASC;
+###
+###   预期结果：
+###   批次A → package_status='SEALED', freshness_status='NEAR_EXPIRY'（或由系统计算）
+###   批次B → package_status='SEALED', freshness_status='FRESH'
+
+# @name receiveGoods
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/receive-goods
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "receipts": [
+    {
+      "itemId": {{inboundItemId1}},
+      "actualQty": 20,
+      "locationId": {{locationIdA}}
+    },
+    {
+      "itemId": {{inboundItemId2}},
+      "actualQty": 40,
+      "locationId": {{locationIdA}}
+    }
+  ]
+}
+
+
+### ============================================================
+### 阶段 3：销售风控与智能分配 (Sales & Allocation)
+### ============================================================
+
+### STEP 10：售前批次预检查（查看临期/新鲜红绿灯状态）
+###
+### 业务说明：
+###   在正式下单前，销售员可以调用此接口查看当前可用批次的"新鲜度红绿灯"
+###   系统会按 FEFO（先到期先出）顺序返回批次列表
+###
+### 预期响应（response 数组）：
+###   [
+###     {
+###       "batchId": <批次A的ID>,
+###       "batchCode": "BC-20260226-XXXX",
+###       "quantity": 20,
+###       "expiryDate": "2026-03-26",
+###       "freshnessStatus": "NEAR_EXPIRY",   ← 🔴 红灯：距今28天 < nearExpiryDays(90)
+###       "packageStatus": "SEALED",
+###       "daysUntilExpiry": 28
+###     },
+###     {
+###       "batchId": <批次B的ID>,
+###       "batchCode": "BC-20260226-YYYY",
+###       "quantity": 40,
+###       "expiryDate": "2027-06-30",
+###       "freshnessStatus": "FRESH",          ← 🟢 绿灯：距今>90天
+###       "packageStatus": "SEALED",
+###       "daysUntilExpiry": 489
+###     }
+###   ]
+###
+### 数据库验证：
+###   SELECT batch_code, quantity, expiry_date, package_status
+###   FROM inventory_batches
+###   WHERE product_id = {{productId}} AND active = true
+###   ORDER BY expiry_date ASC;
+
+# @name batchOptionsCheck
+POST {{host}}/api/sales-orders/batch-options?productId={{productId}}&quantity=25&rejectNearExpiry=false
+Content-Type: application/json
+Authorization: {{token}}
+
+
+### STEP 11：提交销售订单（触发整散分离智能分配）
+###
+### ⚠️  核心业务逻辑说明：
+###   客户购买 25袋 TEA-500，perPackQty = 20
+###   智能分配算法（FEFO + 整散分离）：
+###     1. 优先消耗临期批次（批次A，20袋）→ 整箱出库
+###     2. 剩余 5袋 从新鲜批次（批次B）拆箱补足
+###     3. 批次B 拆箱后：package_status 将从 SEALED → OPENED
+###
+###   rejectNearExpiry = false：客户接受临期货（不拒收）
+###
+### 执行后：
+###   记录 response.id → 填入 @salesOrderId
+###   response.status 可能为：
+###     - APPROVED_AWAITING_SHIPMENT（无需审批，直接分配）
+###     - PENDING_APPROVAL（触发风控，需经理审批）
+###
+### 数据库验证（执行后立即检查）：
+###   -- 查看销售订单状态
+###   SELECT id, order_no, status, total_amount FROM sales_orders WHERE id = {{salesOrderId}};
+###
+###   -- 如已分配，查看出库任务（应生成2条）
+###   SELECT id, batch_id, plan_qty, status FROM outbound_tasks WHERE sales_order_id = {{salesOrderId}};
+
+# @name createSalesOrder
+POST {{host}}/api/sales-orders
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "customerId": {{customerId}},
+  "items": [
+    {
+      "productId": {{productId}},
+      "quantity": 25,
+      "unitPrice": 25.00,
+      "rejectNearExpiry": false,
+      "remark": "Golden Path 测试 - 触发整散分离分配（1箱临期+5袋新鲜）"
+    }
+  ]
+}
+
+
+### STEP 12：审批销售订单（如 Step 11 返回 PENDING_APPROVAL 则执行此步）
+###
+### 说明：
+###   若销售订单触发风控（如超出信用额度、含临期品等），需经理审批
+###   审批通过后系统自动执行库存分配，生成出库任务
+###
+### 执行后：
+###   response.status 应变为 APPROVED_AWAITING_SHIPMENT
+###   系统自动生成 outbound_tasks 记录
+###
+### 数据库验证：
+###   SELECT id, assigned_batch_id, plan_qty, status
+###   FROM outbound_tasks
+###   WHERE sales_order_id = {{salesOrderId}};
+###   预期：2条记录（批次A 20袋 + 批次B 5袋）
+
+# @name approveSalesOrder
+POST {{host}}/api/sales-orders/{{salesOrderId}}/approve
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "comment": "Golden Path 测试，审批通过，允许临期品出库"
+}
+
+
+### ============================================================
+### 阶段 4：仓库出库扣减 (Outbound)
+### ============================================================
+
+### STEP 13：查询待办出库任务
+###
+### 说明：
+###   销售订单审批通过后，系统自动生成出库任务
+###   本接口查询该订单下所有待拣货任务
+###   预期返回 2 条任务：
+###     任务1：批次A（临期），plan_qty=20，location=A-01，status=PENDING
+###     任务2：批次B（新鲜），plan_qty=5， location=A-01，status=PENDING
+###
+### 执行后：
+###   记录 response[0].id → 填入 @outboundTaskId1（批次A任务）
+###   记录 response[1].id → 填入 @outboundTaskId2（批次B任务）
+###
+### 数据库验证：
+###   SELECT id, assigned_batch_id, batch_code, location_code, plan_qty, actual_qty, status
+###   FROM outbound_tasks
+###   WHERE sales_order_id = {{salesOrderId}}
+###   ORDER BY id ASC;
+
+# @name getPendingTasks
+GET {{host}}/api/outbound-tasks?salesOrderId={{salesOrderId}}&status=PENDING
+Authorization: {{token}}
+
+
+### STEP 14a：确认拣货出库 - 任务1（批次A，临期货，整箱20袋）
+###
+### ⚠️  关键验证点：
+###   批次A 是整箱（20袋 = 1箱），出库后：
+###     - inventory_batches.quantity: 20 → 0
+###     - inventory_batches.active: true → false（库存清零自动停用）
+###     - package_status 保持 SEALED（整箱完整出库，无需拆箱）
+###
+### 执行后：
+###   response.status 应变为 COMPLETED
+###   response.actualQty = 20
+###
+### 数据库验证：
+###   -- 批次A 库存应清零
+###   SELECT id, batch_code, quantity, active, package_status
+###   FROM inventory_batches
+###   WHERE id = <批次A的ID>;
+###   预期：quantity=0, active=false
+###
+###   -- 库存流水应新增一条 OUT 记录
+###   SELECT transaction_type, quantity, source_type, source_order_id
+###   FROM stock_transactions
+###   WHERE source_order_id = (SELECT order_no FROM sales_orders WHERE id = {{salesOrderId}})
+###   ORDER BY created_at DESC LIMIT 5;
+
+# @name confirmPickingTask1
+POST {{host}}/api/outbound-tasks/{{outboundTaskId1}}/confirm
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "actualQty": 20,
+  "remark": "Golden Path 测试 - 批次A整箱出库，临期货清零"
+}
+
+
+### STEP 14b：确认拣货出库 - 任务2（批次B，新鲜货，拆箱5袋）
+###
+### ⚠️  核心验证点（整散分离的关键结果）：
+###   批次B 原有 40袋（2箱，SEALED），本次出库 5袋（拆箱）
+###   出库后预期状态变化：
+###     - inventory_batches.quantity: 40 → 35
+###     - inventory_batches.package_status: SEALED → OPENED  ← 🔑 关键变化！
+###     - inventory_batches.active: 保持 true（还有剩余库存）
+###
+### 执行后：
+###   response.status 应变为 COMPLETED
+###   response.actualQty = 5
+###
+### 数据库验证（最终闭环验证）：
+###   -- ✅ 验证批次B 拆箱状态
+###   SELECT id, batch_code, quantity, package_status, active
+###   FROM inventory_batches
+###   WHERE id = <批次B的ID>;
+###   预期：quantity=35, package_status='OPENED', active=true
+###
+###   -- ✅ 验证销售订单最终状态（所有任务完成后自动变为 SHIPPED）
+###   SELECT id, order_no, status
+###   FROM sales_orders
+###   WHERE id = {{salesOrderId}};
+###   预期：status='SHIPPED'
+###
+###   -- ✅ 全链路库存汇总验证
+###   SELECT
+###     ib.batch_code,
+###     ib.quantity        AS remaining_qty,
+###     ib.package_status,
+###     ib.active,
+###     TO_CHAR(ib.expiry_date, 'YYYY-MM-DD') AS expiry_date,
+###     CASE
+###       WHEN ib.expiry_date - CURRENT_DATE <= p.near_expiry_days
+###       THEN '🔴 临期'
+###       ELSE '🟢 新鲜'
+###     END AS freshness
+###   FROM inventory_batches ib
+###   JOIN products p ON ib.product_id = p.id
+###   WHERE ib.product_id = {{productId}}
+###   ORDER BY ib.expiry_date ASC;
+
+# @name confirmPickingTask2
+POST {{host}}/api/outbound-tasks/{{outboundTaskId2}}/confirm
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "actualQty": 5,
+  "remark": "Golden Path 测试 - 批次B拆箱出库5袋，剩余35袋变为OPENED状态"
+}
+
+
+### ============================================================
+### 附录：辅助查询接口
+### ============================================================
+
+### 查询商品所有库存批次（全链路结果一览）
+# @name queryInventoryBatches
+GET {{host}}/api/inventory/batches/product/{{productId}}
+Authorization: {{token}}
+
+
+### 查询销售订单详情（确认最终状态为 SHIPPED）
+# @name getSalesOrderDetail
+GET {{host}}/api/sales-orders/{{salesOrderId}}
+Authorization: {{token}}
+
+
+### 查询出库任务列表（确认所有任务 COMPLETED）
+# @name getAllOutboundTasks
+GET {{host}}/api/outbound-tasks?salesOrderId={{salesOrderId}}
+Authorization: {{token}}
+
+
+### ============================================================
+### 闭环验证 SQL 汇总（在数据库客户端执行）
+### ============================================================
+###
+### -- 1. 全链路状态总览
+### SELECT
+###   'inbound_order'  AS entity, id::text, order_no AS ref, status FROM inbound_orders  WHERE id = <inboundOrderId>
+###   UNION ALL
+###   SELECT 'sales_order', id::text, order_no, status FROM sales_orders WHERE id = <salesOrderId>
+###   UNION ALL
+###   SELECT 'outbound_task', id::text, sales_order_no, status FROM outbound_tasks WHERE sales_order_id = <salesOrderId>;
+###
+### -- 2. 库存批次最终状态
+### SELECT batch_code, quantity, package_status, active,
+###        expiry_date, location_code
+### FROM inventory_batches
+### WHERE product_id = <productId>
+### ORDER BY expiry_date;
+###
+### -- 3. 库存流水（完整进出记录）
+### SELECT transaction_type, quantity, source_type, created_at
+### FROM stock_transactions
+### WHERE product_id = <productId>
+### ORDER BY created_at;
+###
+### ============================================================
+### 预期最终状态汇总
+### ============================================================
+### ✅ inbound_order    → COMPLETED
+### ✅ sales_order      → SHIPPED
+### ✅ outbound_task x2 → COMPLETED
+### ✅ 批次A (临期)     → quantity=0,  package_status=SEALED, active=false
+### ✅ 批次B (新鲜)     → quantity=35, package_status=OPENED, active=true
+### ============================================================
+

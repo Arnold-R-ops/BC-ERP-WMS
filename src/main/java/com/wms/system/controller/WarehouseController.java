@@ -98,7 +98,8 @@ public class WarehouseController {
                 request.code,
                 request.name,
                 request.address,
-                request.contact
+                request.contact,
+                request.phone
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(warehouse);
     }
@@ -179,7 +180,10 @@ public class WarehouseController {
             String address,
 
             @Size(max = 50, message = "联系方式长度不能超过50个字符")
-            String contact
+            String contact,
+
+            @Size(max = 20, message = "联系电话长度不能超过20个字符")
+            String phone
     ) {}
 
     /**

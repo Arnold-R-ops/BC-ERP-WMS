@@ -492,6 +492,174 @@ public class InboundOrderService {
         return convertToResponse(savedOrder);
     }
 
+    // ========== Delete/Cancel/Void Operations ==========
+
+    /**
+     * Delete inbound order (physical delete, PENDING_APPROVAL only)
+     *
+     * Business Rule:
+     * - PENDING_APPROVAL status: physical DELETE from database
+     * - Any other status: throws exception, use cancelInboundOrder or voidInboundOrder instead
+     *
+     * @param orderId 入库单ID
+     * @param operatorId 操作人ID
+     * @throws BusinessException if order not found or not in PENDING_APPROVAL status
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteInboundOrder(Long orderId, Long operatorId) {
+        log.info("🗑️ Deleting inbound order (physical): orderId={}, operatorId={}", orderId, operatorId);
+
+        InboundOrder order = inboundOrderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException(
+                "INBOUND_ORDER_NOT_FOUND",
+                Map.of("orderId", orderId)
+            ));
+
+        if (!order.getStatus().canPhysicallyDelete()) {
+            throw new BusinessException(
+                "INVALID_STATUS_FOR_DELETION",
+                Map.of(
+                    "orderId", orderId,
+                    "currentStatus", order.getStatus().name(),
+                    "reason", "只有待审批状态的入库单可以物理删除，已生效的入库单请使用取消或作废"
+                )
+            );
+        }
+
+        inboundOrderRepository.deleteById(orderId);
+        log.info("✅ Inbound order physically deleted: orderId={}, orderNo={}", orderId, order.getOrderNo());
+    }
+
+    /**
+     * Cancel inbound order (business failure, kept for AI learning)
+     *
+     * Business Rule:
+     * - PENDING_APPROVAL status → physical delete
+     * - APPROVED_PLAN / AWAITING_RECEIVAL → set status = CANCELLED
+     * - reason is required
+     * - Data preserved for AI learning
+     *
+     * @param orderId 入库单ID
+     * @param reason 取消原因 (required)
+     * @param operatorId 操作人ID
+     * @param operatorName 操作人姓名
+     * @return 入库单响应
+     * @throws BusinessException if order not found or cannot be cancelled
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public InboundOrderResponse cancelInboundOrder(
+        Long orderId,
+        String reason,
+        Long operatorId,
+        String operatorName
+    ) {
+        log.info("🚫 Cancelling inbound order: orderId={}, operator={}, reason={}", orderId, operatorName, reason);
+
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                "INVALID_CANCELLATION_REASON",
+                Map.of("orderId", orderId, "reason", "业务取消必须填写取消原因")
+            );
+        }
+
+        InboundOrder order = inboundOrderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException(
+                "INBOUND_ORDER_NOT_FOUND",
+                Map.of("orderId", orderId)
+            ));
+
+        // PENDING_APPROVAL → physical delete
+        if (order.getStatus() == InboundOrderStatus.PENDING_APPROVAL) {
+            inboundOrderRepository.deleteById(orderId);
+            log.info("✅ PENDING_APPROVAL inbound order physically deleted during cancel: orderId={}", orderId);
+            return null;
+        }
+
+        if (!order.getStatus().canCancel()) {
+            throw new BusinessException(
+                "INVALID_STATUS_FOR_CANCELLATION",
+                Map.of(
+                    "orderId", orderId,
+                    "currentStatus", order.getStatus().name(),
+                    "reason", "当前状态不允许取消"
+                )
+            );
+        }
+
+        order.setStatus(InboundOrderStatus.CANCELLED);
+        String auditEntry = createAuditLog("业务取消: " + reason, operatorName);
+        order.setAuditLog(appendAuditLog(order.getAuditLog(), auditEntry));
+        InboundOrder savedOrder = inboundOrderRepository.save(order);
+
+        log.info("✅ Inbound order cancelled: orderId={}, orderNo={}", orderId, savedOrder.getOrderNo());
+        return convertToResponse(savedOrder);
+    }
+
+    /**
+     * Void inbound order (data noise, filtered from AI and statistics)
+     *
+     * Business Rule:
+     * - PENDING_APPROVAL status → physical delete
+     * - APPROVED_PLAN / AWAITING_RECEIVAL → set status = VOIDED
+     * - VOIDED orders are excluded from AI training and business statistics
+     * - Financial audit trail is preserved (order number retained)
+     *
+     * @param orderId 入库单ID
+     * @param reason 作废原因 (required)
+     * @param operatorId 操作人ID
+     * @param operatorName 操作人姓名
+     * @return 入库单响应
+     * @throws BusinessException if order not found or cannot be voided
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public InboundOrderResponse voidInboundOrder(
+        Long orderId,
+        String reason,
+        Long operatorId,
+        String operatorName
+    ) {
+        log.info("🚫 Voiding inbound order: orderId={}, operator={}, reason={}", orderId, operatorName, reason);
+
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                "INVALID_VOID_REASON",
+                Map.of("orderId", orderId, "reason", "系统作废必须填写作废原因")
+            );
+        }
+
+        InboundOrder order = inboundOrderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException(
+                "INBOUND_ORDER_NOT_FOUND",
+                Map.of("orderId", orderId)
+            ));
+
+        // PENDING_APPROVAL → physical delete
+        if (order.getStatus() == InboundOrderStatus.PENDING_APPROVAL) {
+            inboundOrderRepository.deleteById(orderId);
+            log.info("✅ PENDING_APPROVAL inbound order physically deleted during void: orderId={}", orderId);
+            return null;
+        }
+
+        if (!order.getStatus().canVoid()) {
+            throw new BusinessException(
+                "INVALID_STATUS_FOR_VOID",
+                Map.of(
+                    "orderId", orderId,
+                    "currentStatus", order.getStatus().name(),
+                    "reason", "当前状态不允许作废"
+                )
+            );
+        }
+
+        order.setStatus(InboundOrderStatus.VOIDED);
+        String auditEntry = createAuditLog("系统作废（数据噪音）: " + reason, operatorName);
+        order.setAuditLog(appendAuditLog(order.getAuditLog(), auditEntry));
+        InboundOrder savedOrder = inboundOrderRepository.save(order);
+
+        log.info("✅ Inbound order voided: orderId={}, orderNo={}", orderId, savedOrder.getOrderNo());
+        return convertToResponse(savedOrder);
+    }
+
     /**
      * 根据ID查询入库单
      */

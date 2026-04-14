@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -180,5 +181,142 @@ class PurchaseOrderControllerTest {
         mockMvc.perform(put("/api/purchase-orders/1/rollback")
                         .param("reason", "Wrong"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ========== V4.4 幂等性防御：重复采购单号 ==========
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("createPurchaseOrder - 重复 po_number -> 409 ORDER_NUMBER_DUPLICATE")
+    void testCreatePurchaseOrder_DuplicatePoNumber_Returns409() throws Exception {
+        when(purchaseOrderService.createPurchaseOrder(any(), any(), any(), any(), any(), any()))
+                .thenThrow(new DataIntegrityViolationException(
+                        "constraint violation: unique constraint [idx_po_number] on purchase_order; " +
+                        "detail: duplicate key value violates unique constraint \"idx_po_number\""));
+
+        String requestJson = """
+                {
+                  "supplier": "Test Supplier",
+                  "items": [{"productId": 1, "orderedQuantity": 100}],
+                  "expectedDate": "2026-06-01",
+                  "operatorId": 1,
+                  "operatorName": "admin"
+                }
+                """;
+
+        mockMvc.perform(post("/api/purchase-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.ORDER_NUMBER_DUPLICATE))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.params.orderType").value("PURCHASE"))
+                .andExpect(jsonPath("$.params.fieldName").value("po_number"))
+                .andExpect(jsonPath("$.params.message").value("该订单号已存在，请勿重复提交"));
+    }
+
+    // ========== PUT /api/purchase-orders/{id}/confirm ==========
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("confirmAndGenerateBatchCodes - returns 200 when successful")
+    void testConfirmAndGenerateBatchCodes_Success() throws Exception {
+        PurchaseOrder order = buildPurchaseOrder();
+        order.setStatus(PurchaseOrderStatus.IN_TRANSIT);
+        when(purchaseOrderService.confirmAndGenerateBatchCodes(eq(1L), any())).thenReturn(order);
+
+        String requestJson = """
+                {
+                  "items": [
+                    {
+                      "itemId": 1,
+                      "expiryDate": "2027-01-01",
+                      "productionDate": "2026-01-01"
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(put("/api/purchase-orders/1/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_TRANSIT"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("confirmAndGenerateBatchCodes - returns 400 when status invalid")
+    void testConfirmAndGenerateBatchCodes_InvalidStatus() throws Exception {
+        when(purchaseOrderService.confirmAndGenerateBatchCodes(eq(1L), any()))
+                .thenThrow(new BusinessException(ErrorKeys.PO_INVALID_STATUS,
+                        Map.of("currentStatus", "COMPLETED")));
+
+        String requestJson = """
+                {"items": [{"itemId": 1, "expiryDate": "2027-01-01"}]}
+                """;
+
+        mockMvc.perform(put("/api/purchase-orders/1/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ========== PUT /api/purchase-orders/{id}/receive ==========
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("receiveGoods - returns 200 when successful (partial)")
+    void testReceiveGoods_Success() throws Exception {
+        PurchaseOrder order = buildPurchaseOrder();
+        order.setStatus(PurchaseOrderStatus.PARTIALLY_RECEIVED);
+        when(purchaseOrderService.receiveGoods(eq(1L), any(), any(), any())).thenReturn(order);
+
+        String requestJson = """
+                {
+                  "receiveItems": [
+                    {
+                      "itemId": 1,
+                      "batches": [{"batchCode": "R7M4K9", "locationId": 101}]
+                    }
+                  ],
+                  "operatorId": 1,
+                  "operatorName": "warehouse_staff"
+                }
+                """;
+
+        mockMvc.perform(put("/api/purchase-orders/1/receive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PARTIALLY_RECEIVED"));
+    }
+
+    // ========== GET /api/purchase-orders ==========
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("getPurchaseOrders - returns 200 with list")
+    void testGetPurchaseOrders_Success() throws Exception {
+        PurchaseOrder order = buildPurchaseOrder();
+        when(purchaseOrderService.findByStatus(isNull(), any())).thenReturn(List.of(order));
+
+        mockMvc.perform(get("/api/purchase-orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].poNumber").value("PO-20260101-001"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("getPurchaseOrders - filter by status returns 200")
+    void testGetPurchaseOrders_FilterByStatus() throws Exception {
+        PurchaseOrder order = buildPurchaseOrder();
+        when(purchaseOrderService.findByStatus(eq(PurchaseOrderStatus.ORDERING), any()))
+                .thenReturn(List.of(order));
+
+        mockMvc.perform(get("/api/purchase-orders").param("status", "ORDERING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("ORDERING"));
     }
 }

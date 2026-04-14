@@ -101,6 +101,13 @@ public class Warehouse extends BaseEntity {
     private String contact;
 
     /**
+     * 联系电话（可选）
+     * 仓库负责人或值班电话
+     */
+    @Column(length = 20)
+    private String phone;
+
+    /**
      * 激活状态
      * - true: 仓库正常使用
      * - false: 仓库停用（不影响历史数据，但不能创建新库位）

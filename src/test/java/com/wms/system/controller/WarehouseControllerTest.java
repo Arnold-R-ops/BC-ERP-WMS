@@ -165,9 +165,10 @@ class WarehouseControllerTest {
                 "WH02",
                 "New Warehouse",
                 "456 New St",
-                "Jane Doe"
+                "Jane Doe",
+                "13900139000"
         );
-        when(warehouseService.createWarehouse(anyString(), anyString(), anyString(), anyString()))
+        when(warehouseService.createWarehouse(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(testWarehouse);
 
         // When
@@ -177,7 +178,7 @@ class WarehouseControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).isNotNull();
-        verify(warehouseService).createWarehouse("WH02", "New Warehouse", "456 New St", "Jane Doe");
+        verify(warehouseService).createWarehouse("WH02", "New Warehouse", "456 New St", "Jane Doe", "13900139000");
     }
 
     @Test
@@ -188,9 +189,10 @@ class WarehouseControllerTest {
                 "WH01",
                 "Duplicate Warehouse",
                 null,
+                null,
                 null
         );
-        when(warehouseService.createWarehouse(anyString(), anyString(), any(), any()))
+        when(warehouseService.createWarehouse(anyString(), anyString(), any(), any(), any()))
                 .thenThrow(new BusinessException(ErrorKeys.WAREHOUSE_ALREADY_EXISTS));
 
         // When & Then

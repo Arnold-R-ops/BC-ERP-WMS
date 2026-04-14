@@ -26,14 +26,14 @@ import java.util.List;
  * @version 1.0 (Purchase Order Management + Batch Management)
  */
 @Entity
+@SQLDelete(sql = "UPDATE purchase_order SET is_deleted = true WHERE id = ?")
+@SQLRestriction("is_deleted = false")
 @Table(name = "purchase_order", indexes = {
     @Index(name = "idx_po_number", columnList = "po_number", unique = true),
     @Index(name = "idx_status", columnList = "status"),
     @Index(name = "idx_supplier", columnList = "supplier"),
     @Index(name = "idx_purchase_order_created_at", columnList = "created_at")
 })
-@SQLDelete(sql = "UPDATE purchase_order SET is_deleted = true WHERE id = ?")
-@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -124,20 +124,6 @@ public class PurchaseOrder extends BaseEntity {
     @Column(name = "audit_log", nullable = true, columnDefinition = "TEXT")
     private String auditLog;
 
-    // ========== V4.2 逻辑删除 (Soft Delete) ==========
-
-    /**
-     * 逻辑删除标记（V4.2 新增�?     *
-     * 说明�?     * - true: 采购单已逻辑删除（不出现在任何查询结果中�?     * - false: 正常状�?     *
-     * 技术实现：
-     * - @SQLDelete 拦截 JPA delete 操作，改写为 UPDATE SET is_deleted = true
-     * - @SQLRestriction 自动在所有查询中追加 WHERE is_deleted = false
-     *
-     * @since V4.2 (AI Foundation Patch)
-     */
-    @Column(name = "is_deleted", nullable = false)
-    @Builder.Default
-    private Boolean isDeleted = false;
 
     /**
      * 采购单明细（一对多关系�?     *
@@ -153,6 +139,13 @@ public class PurchaseOrder extends BaseEntity {
     )
     @Builder.Default
     private List<PurchaseOrderItem> items = new ArrayList<>();
+
+    /**
+     * Soft delete flag.
+     */
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
 
     // ========== 便利方法 (Helper Methods) ==========
 
@@ -254,4 +247,3 @@ public class PurchaseOrder extends BaseEntity {
             .anyMatch(item -> item.getReceivedQuantity() > 0);
     }
 }
-

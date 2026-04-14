@@ -95,7 +95,7 @@ class WarehouseServiceCompleteTest {
 
         // When
         Warehouse result = warehouseService.createWarehouse(
-            "WH04", "Warehouse Four", "Address Four", "13600136000"
+            "WH04", "Warehouse Four", "Address Four", "John Doe", "13600136000"
         );
         // Then
         assertThat(result).isNotNull();
@@ -108,7 +108,8 @@ class WarehouseServiceCompleteTest {
         assertThat(savedWarehouse.getCode()).isEqualTo("WH04");
         assertThat(savedWarehouse.getName()).isEqualTo("Warehouse Four");
         assertThat(savedWarehouse.getAddress()).isEqualTo("Address Four");
-        assertThat(savedWarehouse.getContact()).isEqualTo("13600136000");
+        assertThat(savedWarehouse.getContact()).isEqualTo("John Doe");
+        assertThat(savedWarehouse.getPhone()).isEqualTo("13600136000");
         assertThat(savedWarehouse.getIsActive()).isTrue();
     }
 
@@ -120,7 +121,7 @@ class WarehouseServiceCompleteTest {
 
         // When & Then
         assertThatThrownBy(() -> warehouseService.createWarehouse(
-            "WH01", "Existing Warehouse", null, null
+            "WH01", "Existing Warehouse", null, null, null
         ))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.WAREHOUSE_ALREADY_EXISTS);
@@ -140,17 +141,19 @@ class WarehouseServiceCompleteTest {
             .name("Warehouse Five")
             .address(null)
             .contact(null)
+            .phone(null)
             .isActive(true)
             .build();
         when(warehouseRepository.save(any(Warehouse.class))).thenReturn(savedWarehouse);
 
         // When
-        Warehouse result = warehouseService.createWarehouse("WH05", "Warehouse Five", null, null);
+        Warehouse result = warehouseService.createWarehouse("WH05", "Warehouse Five", null, null, null);
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getAddress()).isNull();
         assertThat(result.getContact()).isNull();
+        assertThat(result.getPhone()).isNull();
     }
 
     // ========== 闂傚倸鍊风粈渚€骞栭銈嗗仏妞ゆ劧绠戠壕鍧楁煙缂併垹娅橀柡浣割儐娣囧﹪濡堕崟顔煎帯濡炪倐鏅濋崗姗€寮婚悢鐓庣畾鐟滃繘鏁嶅鍡樺弿婵☆垳顭堟俊鐣岀磼缂佹娲寸€殿喖鐖奸獮瀣敇閻愭彃顥掗梻?==========
@@ -407,7 +410,7 @@ class WarehouseServiceCompleteTest {
         // When & Then
         // 婵犵數濮烽弫鎼佸磻濞戔懞鍥敇閵忕姷顦悗骞垮劚椤︻垳绮堥崼婢濆綊鎮℃惔锝嗘喖闂佸搫鎷嬮崜姘跺箞閵娿儺娼ㄩ柛鈩冾殔椤偊姊洪崫鍕垫Х缂侇喗鐟ラ～蹇旂節濮橆剛顦板銈嗗姧缁茶棄鈻嶉敐鍥╃＝濞达綁娼ф慨鈧柣蹇撶箲閻熲晠鐛箛娑欏亹閻犲洤寮妸鈺傜厪濠㈣埖绋撻悾鎶芥煕?Controller 闂傚倷娴囬褏鎹㈤幒妤€纾绘繛鎴欏灩绾惧綊鎮归崶銊с偞闁哄妫冮弻鐔衡偓鐢殿焾閸撹鲸绻涢崼銏℃珪闁逞屽墮閸樻粓宕戦幘缁樼厱闁规澘鍚€缁ㄥ吋銇勯銏⑿ｇ紒缁樼洴楠炲鎮欑€涙ê鍓梻浣告啞椤洭寮查锕€鐒垫い鎺嶇閹兼悂鏌涙繝鍐疄闁绘侗鍠氶埀顒婄秵閸ｎ噣寮崒鐐茬閺夊牆澧介幃鍏笺亜閿旇娅嶉柡灞稿墲瀵板嫰宕卞Ο鑽ゅ絾闂備浇宕甸崯鍧楀疾閻樿尙鏆﹂柛鎰皺閺嗗鏌熼崘璇у伐婵犫偓闁秴鐒垫い鎺戯功缁夌敻鏌涘Ο璇插姢閸?Service 闂傚倷娴囬褏鎹㈤幒妤€纾绘繛鎴欏灩绾剧懓霉閻樺樊鍎嶉柍褜鍏涚欢姘剁嵁鐎ｎ喗鍊风痪鐗埳戦悘?
         assertThatThrownBy(() -> warehouseService.createWarehouse(
-            "", "Warehouse Name", "Address", "13600123000"
+            "", "Warehouse Name", "Address", "Test Contact", "13600123000"
         )).isInstanceOf(Exception.class);
     }
 

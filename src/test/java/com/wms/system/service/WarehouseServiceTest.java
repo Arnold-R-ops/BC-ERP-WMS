@@ -60,6 +60,7 @@ class WarehouseServiceTest {
                 .name("Main Warehouse")
                 .address("123 Main St")
                 .contact("John Doe")
+                .phone("13800138000")
                 .isActive(true)
                 .build();
     }
@@ -72,7 +73,7 @@ class WarehouseServiceTest {
         when(warehouseRepository.save(any(Warehouse.class))).thenReturn(testWarehouse);
 
         // When
-        Warehouse result = warehouseService.createWarehouse("WH02", "New Warehouse", "456 New St", "Jane Doe");
+        Warehouse result = warehouseService.createWarehouse("WH02", "New Warehouse", "456 New St", "Jane Doe", "13900139000");
 
         // Then
         assertThat(result).isNotNull();
@@ -86,6 +87,7 @@ class WarehouseServiceTest {
         assertThat(savedWarehouse.getName()).isEqualTo("New Warehouse");
         assertThat(savedWarehouse.getAddress()).isEqualTo("456 New St");
         assertThat(savedWarehouse.getContact()).isEqualTo("Jane Doe");
+        assertThat(savedWarehouse.getPhone()).isEqualTo("13900139000");
         assertThat(savedWarehouse.getIsActive()).isTrue();
     }
 
@@ -96,7 +98,7 @@ class WarehouseServiceTest {
         when(warehouseRepository.existsByCode("WH01")).thenReturn(true);
 
         // When & Then
-        assertThatThrownBy(() -> warehouseService.createWarehouse("WH01", "Duplicate Warehouse", null, null))
+        assertThatThrownBy(() -> warehouseService.createWarehouse("WH01", "Duplicate Warehouse", null, null, null))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.WAREHOUSE_ALREADY_EXISTS);
 

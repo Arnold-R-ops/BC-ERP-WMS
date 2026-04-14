@@ -126,7 +126,7 @@ class InventoryBatchServiceTest {
             .initialQuantity(12)
             .expiryDate(LocalDate.now().plusMonths(3))
             .active(true)
-            .version(0L)
+            .version(0)
             .build();
 
         // 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幑鎰靛殭闁哄绶氶幃妤呮濞戞﹩妫岄梺鍝ュ仦閹倿寮婚悢鍛婂闁告劗鍋撶紞鍫濐渻閵堝棗濮囬柕鍫熸倐瀵?4闂?= 2缂傚倸鍊烽懗鑸垫叏閻㈢鑸归柤濮愬€栭～?
@@ -140,7 +140,7 @@ class InventoryBatchServiceTest {
             .initialQuantity(24)
             .expiryDate(LocalDate.now().plusMonths(6))
             .active(true)
-            .version(0L)
+            .version(0)
             .build();
 
         // 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褏鎽犲ù婧垮€濋弻娑㈠Ψ閿濆懎顬夐梺绯曟櫅閸婂潡寮婚悢鍛婂闁告劗鍋撶紞鍫濐渻?
@@ -154,7 +154,7 @@ class InventoryBatchServiceTest {
             .initialQuantity(12)
             .expiryDate(LocalDate.now().minusDays(1))  // 闂佽姘﹂～澶愭偤閺囩姳鐒婃い蹇撴瀹曟煡鏌涢幇闈涙灈閻?
             .active(true)
-            .version(0L)
+            .version(0)
             .build();
     }
 

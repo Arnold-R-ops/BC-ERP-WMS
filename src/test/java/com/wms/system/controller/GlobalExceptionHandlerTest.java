@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -135,5 +136,80 @@ class GlobalExceptionHandlerTest {
                   "sourceOrderId": "PO001"
                 }
                 """;
+    }
+
+    // ========== V4.4 Idempotency: DataIntegrityViolationException ==========
+
+    @Test
+    @WithMockUser
+    @DisplayName("DataIntegrityViolationException (unique sales_orders) -> 409 ORDER_NUMBER_DUPLICATE")
+    void testDataIntegrityViolation_SalesOrderDuplicate_Returns409() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new DataIntegrityViolationException(
+                        "could not execute statement; SQL [n/a]; constraint [idx_sales_order_no]; " +
+                        "detail: Key (order_no)=(SO20260315001) already exists in sales_orders")
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.ORDER_NUMBER_DUPLICATE))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.params.message").value("该订单号已存在，请勿重复提交"))
+                .andExpect(jsonPath("$.params.orderType").value("SALES"))
+                .andExpect(jsonPath("$.params.fieldName").value("order_no"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("DataIntegrityViolationException (unique purchase_order) -> 409 ORDER_NUMBER_DUPLICATE")
+    void testDataIntegrityViolation_PurchaseOrderDuplicate_Returns409() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new DataIntegrityViolationException(
+                        "constraint violation: unique constraint [idx_po_number] on table purchase_order; " +
+                        "detail: duplicate key value violates unique constraint")
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.ORDER_NUMBER_DUPLICATE))
+                .andExpect(jsonPath("$.params.orderType").value("PURCHASE"))
+                .andExpect(jsonPath("$.params.fieldName").value("po_number"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("DataIntegrityViolationException (unique inbound_orders) -> 409 ORDER_NUMBER_DUPLICATE")
+    void testDataIntegrityViolation_InboundOrderDuplicate_Returns409() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new DataIntegrityViolationException(
+                        "constraint [idx_inbound_order_no] on inbound_orders; duplicate key value")
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.ORDER_NUMBER_DUPLICATE))
+                .andExpect(jsonPath("$.params.orderType").value("INBOUND"))
+                .andExpect(jsonPath("$.params.fieldName").value("order_no"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("DataIntegrityViolationException (non-unique violation) -> 400 VALIDATION_FAILED")
+    void testDataIntegrityViolation_NonUnique_Returns400() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new DataIntegrityViolationException("foreign key constraint violated")
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.VALIDATION_FAILED));
     }
 }

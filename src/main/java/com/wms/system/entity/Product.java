@@ -67,6 +67,25 @@ public class Product extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * 乐观锁版本号（V4.4 架构加固）
+     *
+     * 说明：
+     * - JPA 自动管理版本号，每次更新自动递增
+     * - 并发更新时，如果版本号不匹配，抛出 OptimisticLockException
+     * - 防止高并发场景下的价格、库存阈值等字段的并发冲突
+     *
+     * 使用场景：
+     * - 商品价格更新（unitPrice, minSalesPrice）
+     * - 库存阈值调整（minStock, maxStock, safetyStock）
+     * - 商品状态变更（enabled, isDeleted）
+     *
+     * @since V4.4 (Optimistic Locking)
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version;
+
     // ========== V3.3 SPU-SKU 层级关联 (SPU-SKU Hierarchy) ==========
 
     /**

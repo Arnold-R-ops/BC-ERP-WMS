@@ -53,13 +53,25 @@ public enum PurchaseOrderStatus {
     COMPLETED("已入库"),
 
     /**
-     * 已取消：采购单取消（业务流程终止）
+     * 已取消：采购单取消（业务失败，AI 学习）
      *
      * 说明：
-     * - 用于采购单异常终止场景
+     * - 真实的业务失败（如供应商断货、价格谈崩）
+     * - 必须关联 reason_code 或填写 remarks
+     * - 数据保留供 AI 学习
+     */
+    CANCELLED("已取消"),
+
+    /**
+     * 已作废：系统作废（数据噪音，AI 过滤）
+     *
+     * 说明：
+     * - 数据噪音（如员工录入错误、测试单）
+     * - 财务审计中保留流水号
+     * - AI 提取和业务统计中彻底过滤
      * - 不参与常规状态流转
      */
-    CANCELLED("已取消");
+    VOIDED("已作废");
 
     private final String description;
 
@@ -101,10 +113,37 @@ public enum PurchaseOrderStatus {
     /**
      * 判断是否已完成（不可修改）
      *
-     * @return true 如果状态为 COMPLETED 或 CANCELLED
+     * @return true 如果状态为 COMPLETED, CANCELLED, 或 VOIDED
      */
     public boolean isFinalized() {
-        return this == COMPLETED || this == CANCELLED;
+        return this == COMPLETED || this == CANCELLED || this == VOIDED;
+    }
+
+    /**
+     * 判断是否可以物理删除（仅草稿期）
+     *
+     * @return true 如果状态为 ORDERING
+     */
+    public boolean canPhysicallyDelete() {
+        return this == ORDERING;
+    }
+
+    /**
+     * 判断是否可以取消（业务取消）
+     *
+     * @return true 如果状态为 ORDERING 或 IN_TRANSIT
+     */
+    public boolean canCancel() {
+        return this == ORDERING || this == IN_TRANSIT;
+    }
+
+    /**
+     * 判断是否可以作废（系统作废）
+     *
+     * @return true 如果状态为 ORDERING 或 IN_TRANSIT
+     */
+    public boolean canVoid() {
+        return this == ORDERING || this == IN_TRANSIT;
     }
 
     /**

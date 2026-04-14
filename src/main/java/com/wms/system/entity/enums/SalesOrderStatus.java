@@ -72,14 +72,26 @@ public enum SalesOrderStatus {
     REJECTED("已拒绝"),
 
     /**
-     * 已取消：订单取消（业务流程终止）
+     * 已取消：订单取消（业务失败，AI 学习）
      *
      * 说明：
-     * - 用于订单异常终止场景
+     * - 真实的业务失败（如客户嫌贵不要了）
+     * - 必须关联 reason_code 或填写 remarks
      * - 释放已预占的库存
+     * - 数据保留供 AI 学习
+     */
+    CANCELLED("已取消"),
+
+    /**
+     * 已作废：系统作废（数据噪音，AI 过滤）
+     *
+     * 说明：
+     * - 数据噪音（如员工录入错误、测试单）
+     * - 财务审计中保留流水号
+     * - AI 提取和业务统计中彻底过滤
      * - 不参与常规状态流转
      */
-    CANCELLED("已取消");
+    VOIDED("已作废");
 
     private final String description;
 
@@ -101,12 +113,30 @@ public enum SalesOrderStatus {
     }
 
     /**
-     * 判断是否可以取消订单
+     * 判断是否可以取消订单（业务取消）
      *
-     * @return true 如果状态为 DRAFT, PENDING_APPROVAL, 或 APPROVED_AWAITING_SHIPMENT
+     * @return true 如果状态为 PENDING_APPROVAL 或 APPROVED_AWAITING_SHIPMENT
      */
     public boolean canCancel() {
-        return this == DRAFT || this == PENDING_APPROVAL || this == APPROVED_AWAITING_SHIPMENT;
+        return this == PENDING_APPROVAL || this == APPROVED_AWAITING_SHIPMENT;
+    }
+
+    /**
+     * 判断是否可以作废订单（系统作废）
+     *
+     * @return true 如果状态为 PENDING_APPROVAL 或 APPROVED_AWAITING_SHIPMENT
+     */
+    public boolean canVoid() {
+        return this == PENDING_APPROVAL || this == APPROVED_AWAITING_SHIPMENT;
+    }
+
+    /**
+     * 判断是否可以物理删除（仅草稿期）
+     *
+     * @return true 如果状态为 DRAFT
+     */
+    public boolean canPhysicallyDelete() {
+        return this == DRAFT;
     }
 
     /**
@@ -121,10 +151,10 @@ public enum SalesOrderStatus {
     /**
      * 判断是否已完成（不可修改）
      *
-     * @return true 如果状态为 SHIPPED, REJECTED, 或 CANCELLED
+     * @return true 如果状态为 SHIPPED, REJECTED, CANCELLED, 或 VOIDED
      */
     public boolean isFinalized() {
-        return this == SHIPPED || this == REJECTED || this == CANCELLED;
+        return this == SHIPPED || this == REJECTED || this == CANCELLED || this == VOIDED;
     }
 
     /**

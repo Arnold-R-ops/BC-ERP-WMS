@@ -42,6 +42,14 @@ public final class ErrorKeys {
      */
     public static final String PRODUCT_ALREADY_EXISTS = "PRODUCT_ALREADY_EXISTS";
 
+    /**
+     * SPU not found by ID
+     *
+     * Parameters:
+     * - spuId (Long): SPU ID
+     */
+    public static final String PRODUCT_SPU_NOT_FOUND = "PRODUCT_SPU_NOT_FOUND";
+
     // ========== Location Related Errors ==========
 
     /**
@@ -323,6 +331,11 @@ public final class ErrorKeys {
      * - requiredStatus (String): Required status for operation (optional)
      */
     public static final String PO_INVALID_STATUS = "PO_INVALID_STATUS";
+
+    /**
+     * Backward-compatible alias for legacy service references.
+     */
+    public static final String PURCHASE_ORDER_INVALID_STATUS = PO_INVALID_STATUS;
 
     /**
      * Purchase order is already completed, cannot be modified
@@ -716,6 +729,11 @@ public final class ErrorKeys {
     public static final String STOCKTAKE_TASK_INVALID_STATUS = "STOCKTAKE_TASK_INVALID_STATUS";
 
     /**
+     * Backward-compatible alias for legacy service references.
+     */
+    public static final String STOCKTAKE_INVALID_STATUS = STOCKTAKE_TASK_INVALID_STATUS;
+
+    /**
      * Stocktake task cannot start (invalid status)
      *
      * Parameters:
@@ -801,4 +819,21 @@ public final class ErrorKeys {
      * - configId (Long): Configuration ID (optional)
      */
     public static final String INTEGRATION_CONFIG_NOT_FOUND = "INTEGRATION_CONFIG_NOT_FOUND";
+
+    // ========== V4.4 Idempotency Related Errors ==========
+
+    /**
+     * Duplicate order number (idempotency violation)
+     *
+     * V4.4 架构加固：物理级接口幂等性
+     * - 触发场景：Shopify 网络抖动重发、前端连击
+     * - 数据库层面：唯一索引约束违反
+     * - HTTP 状态码：409 Conflict
+     *
+     * Parameters:
+     * - orderNumber (String): 重复的订单号
+     * - orderType (String): 订单类型（SALES/PURCHASE/INBOUND）
+     * - existingOrderId (Long): 已存在的订单ID（可选）
+     */
+    public static final String ORDER_NUMBER_DUPLICATE = "ORDER_NUMBER_DUPLICATE";
 }

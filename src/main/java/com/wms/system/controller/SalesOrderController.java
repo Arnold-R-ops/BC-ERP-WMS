@@ -347,4 +347,38 @@ public class SalesOrderController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Void sales order (AI data cleaning - mark as data noise)
+     *
+     * POST /api/sales-orders/{id}/void
+     *
+     * Permission: sales:cancel
+     *
+     * Path Variable: id (Sales order ID)
+     * Request Body: CancelOrderRequest
+     * Returns: SalesOrderResponse
+     */
+    @PostMapping("/{id}/void")
+    @PreAuthorize("hasAnyAuthority('sales:cancel', 'SUPER_ADMIN')")
+    public ResponseEntity<SalesOrderResponse> voidSalesOrder(
+        @PathVariable Long id,
+        @Valid @RequestBody CancelOrderRequest request,
+        Authentication authentication
+    ) {
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
+        log.info("API调用: voidSalesOrder - id: {}, 操作人: {}, 原因: {}",
+            id, username, request.getReason());
+
+        SalesOrderResponse response = salesSubmissionService.voidSalesOrder(
+            id,
+            request.getReason(),
+            userId
+        );
+
+        log.info("API响应: voidSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+
+        return ResponseEntity.ok(response);
+    }
 }

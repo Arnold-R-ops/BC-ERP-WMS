@@ -274,7 +274,7 @@ public class PurchaseOrderService {
                 .externalBatchCode(item.getExternalBatchCode())
                 .entryDate(null)  // Stage 2: Not received yet
                 .active(true)
-                .version(0L)
+                .version(0)
                 .build();
 
             inventoryBatchRepository.save(batch);
@@ -631,6 +631,160 @@ public class PurchaseOrderService {
     @Transactional(readOnly = true)
     public List<PurchaseOrder> findAll(Pageable pageable) {
         return purchaseOrderRepository.findAll(pageable).getContent();
+    }
+
+    // ========== Delete/Cancel/Void Operations ==========
+
+    /**
+     * Delete purchase order (physical delete, ORDERING only)
+     *
+     * Business Rule:
+     * - ORDERING status: physical DELETE from database
+     * - Any other status: throws exception, use cancelPurchaseOrder or voidPurchaseOrder instead
+     *
+     * @param poId Purchase order ID
+     * @param operatorId Operator user ID
+     * @throws BusinessException if order not found or not in ORDERING status
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deletePurchaseOrder(Long poId, Long operatorId) {
+        log.info("🗑️ Deleting purchase order (physical): poId={}, operatorId={}", poId, operatorId);
+
+        PurchaseOrder po = purchaseOrderRepository.findById(poId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
+                Map.of("purchaseOrderId", poId)
+            ));
+
+        if (!po.getStatus().canPhysicallyDelete()) {
+            throw new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
+                Map.of(
+                    "purchaseOrderId", poId,
+                    "currentStatus", po.getStatus().name(),
+                    "reason", "只有下单中状态的采购单可以物理删除，已生效的采购单请使用取消或作废"
+                )
+            );
+        }
+
+        purchaseOrderRepository.deleteById(poId);
+        log.info("✅ Purchase order physically deleted: poId={}, poNumber={}", poId, po.getPoNumber());
+    }
+
+    /**
+     * Cancel purchase order (business failure, kept for AI learning)
+     *
+     * Business Rule:
+     * - ORDERING status → physical delete
+     * - IN_TRANSIT / PARTIALLY_RECEIVED → set status = CANCELLED
+     * - reason is required
+     * - Data preserved for AI learning
+     *
+     * @param poId Purchase order ID
+     * @param reason Cancellation reason (required)
+     * @param operatorId Operator user ID
+     * @return Updated PurchaseOrder
+     * @throws BusinessException if order not found or cannot be cancelled
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder cancelPurchaseOrder(Long poId, String reason, Long operatorId) {
+        log.info("🚫 Cancelling purchase order: poId={}, operatorId={}, reason={}", poId, operatorId, reason);
+
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
+                Map.of("purchaseOrderId", poId, "reason", "业务取消必须填写取消原因")
+            );
+        }
+
+        PurchaseOrder po = purchaseOrderRepository.findById(poId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
+                Map.of("purchaseOrderId", poId)
+            ));
+
+        // ORDERING → physical delete
+        if (po.getStatus() == PurchaseOrderStatus.ORDERING) {
+            purchaseOrderRepository.deleteById(poId);
+            log.info("✅ ORDERING purchase order physically deleted during cancel: poId={}", poId);
+            return null;
+        }
+
+        if (!po.getStatus().canCancel()) {
+            throw new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
+                Map.of(
+                    "purchaseOrderId", poId,
+                    "currentStatus", po.getStatus().name(),
+                    "reason", "当前状态不允许取消"
+                )
+            );
+        }
+
+        po.setStatus(PurchaseOrderStatus.CANCELLED);
+        po.appendAuditLog("业务取消 by User-" + operatorId + ": " + reason);
+        po = purchaseOrderRepository.save(po);
+
+        log.info("✅ Purchase order cancelled: poId={}, poNumber={}", poId, po.getPoNumber());
+        return po;
+    }
+
+    /**
+     * Void purchase order (data noise, filtered from AI and statistics)
+     *
+     * Business Rule:
+     * - ORDERING status → physical delete
+     * - IN_TRANSIT / PARTIALLY_RECEIVED → set status = VOIDED
+     * - VOIDED orders are excluded from AI training and business statistics
+     * - Financial audit trail is preserved (PO number retained)
+     *
+     * @param poId Purchase order ID
+     * @param reason Void reason (required)
+     * @param operatorId Operator user ID
+     * @return Updated PurchaseOrder
+     * @throws BusinessException if order not found or cannot be voided
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder voidPurchaseOrder(Long poId, String reason, Long operatorId) {
+        log.info("🚫 Voiding purchase order: poId={}, operatorId={}, reason={}", poId, operatorId, reason);
+
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
+                Map.of("purchaseOrderId", poId, "reason", "系统作废必须填写作废原因")
+            );
+        }
+
+        PurchaseOrder po = purchaseOrderRepository.findById(poId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
+                Map.of("purchaseOrderId", poId)
+            ));
+
+        // ORDERING → physical delete
+        if (po.getStatus() == PurchaseOrderStatus.ORDERING) {
+            purchaseOrderRepository.deleteById(poId);
+            log.info("✅ ORDERING purchase order physically deleted during void: poId={}", poId);
+            return null;
+        }
+
+        if (!po.getStatus().canVoid()) {
+            throw new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
+                Map.of(
+                    "purchaseOrderId", poId,
+                    "currentStatus", po.getStatus().name(),
+                    "reason", "当前状态不允许作废"
+                )
+            );
+        }
+
+        po.setStatus(PurchaseOrderStatus.VOIDED);
+        po.appendAuditLog("系统作废 by User-" + operatorId + ": " + reason);
+        po = purchaseOrderRepository.save(po);
+
+        log.info("✅ Purchase order voided: poId={}, poNumber={}", poId, po.getPoNumber());
+        return po;
     }
 
     // ========== Inner Classes (Data Transfer Objects) ==========

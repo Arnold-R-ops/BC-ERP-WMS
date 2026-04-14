@@ -36,7 +36,28 @@ public enum InboundOrderStatus {
     /**
      * 拒绝
      */
-    REJECTED("拒绝");
+    REJECTED("拒绝"),
+
+    /**
+     * 已取消：入库单取消（业务失败，AI 学习）
+     *
+     * 说明：
+     * - 真实的业务失败（如供应商延期、计划变更）
+     * - 必须关联 reason_code 或填写 remarks
+     * - 数据保留供 AI 学习
+     */
+    CANCELLED("已取消"),
+
+    /**
+     * 已作废：系统作废（数据噪音，AI 过滤）
+     *
+     * 说明：
+     * - 数据噪音（如员工录入错误、测试单）
+     * - 财务审计中保留流水号
+     * - AI 提取和业务统计中彻底过滤
+     * - 不参与常规状态流转
+     */
+    VOIDED("已作废");
 
     private final String description;
 
@@ -80,6 +101,33 @@ public enum InboundOrderStatus {
      * 判断是否为终态
      */
     public boolean isFinalState() {
-        return this == COMPLETED || this == REJECTED;
+        return this == COMPLETED || this == REJECTED || this == CANCELLED || this == VOIDED;
+    }
+
+    /**
+     * 判断是否可以物理删除（仅草稿期）
+     *
+     * @return true 如果状态为 PENDING_APPROVAL
+     */
+    public boolean canPhysicallyDelete() {
+        return this == PENDING_APPROVAL;
+    }
+
+    /**
+     * 判断是否可以取消（业务取消）
+     *
+     * @return true 如果状态为 PENDING_APPROVAL 或 APPROVED_PLAN
+     */
+    public boolean canCancel() {
+        return this == PENDING_APPROVAL || this == APPROVED_PLAN;
+    }
+
+    /**
+     * 判断是否可以作废（系统作废）
+     *
+     * @return true 如果状态为 PENDING_APPROVAL 或 APPROVED_PLAN
+     */
+    public boolean canVoid() {
+        return this == PENDING_APPROVAL || this == APPROVED_PLAN;
     }
 }

@@ -3,6 +3,7 @@ package com.wms.system.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.sales.*;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.service.SalesEntryService;
 import com.wms.system.service.SalesSubmissionService;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -483,6 +485,38 @@ class SalesOrderControllerTest {
             .andExpect(jsonPath("$.status").value("CANCELLED"));
 
         verify(salesSubmissionService).cancelSalesOrder(eq(1L), anyString(), anyLong());
+    }
+
+    // ========== V4.4 幂等性防御：重复订单号 ==========
+
+    @Test
+    @WithMockUser(username = "testuser", authorities = {"sales:create"})
+    @DisplayName("case-14 createSalesOrder - 重复 order_no -> 409 ORDER_NUMBER_DUPLICATE")
+    void testCreateSalesOrder_DuplicateOrderNo_Returns409() throws Exception {
+        // Given: 数据库层唯一约束抛出
+        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
+            .thenThrow(new DataIntegrityViolationException(
+                "could not execute statement; constraint [idx_sales_order_no]; " +
+                "detail: Key (order_no)=(SO20260315001) already exists in sales_orders"));
+
+        CreateSalesOrderRequest request = CreateSalesOrderRequest.builder()
+            .customerId(1L)
+            .items(Arrays.asList(
+                CreateSalesOrderRequest.SalesOrderItemData.builder()
+                    .productId(1L).quantity(10).unitPrice(new BigDecimal("10.00"))
+                    .rejectNearExpiry(false).build()
+            ))
+            .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/sales-orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andDo(print())
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.errorKey").value(ErrorKeys.ORDER_NUMBER_DUPLICATE))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.params.message").value("该订单号已存在，请勿重复提交"));
     }
 
     @Test

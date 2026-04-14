@@ -48,8 +48,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@SQLDelete(sql = "UPDATE sales_orders SET is_deleted = true WHERE id = ?")
-@SQLRestriction("is_deleted = false")
 @Table(
     name = "sales_orders",
     indexes = {
@@ -237,23 +235,6 @@ public class SalesOrder extends BaseEntity {
     private String auditLog;
 
     // ========== V4.2 AI 基建升级 ==========
-
-    /**
-     * 逻辑删除标记（V4.2 新增）
-     *
-     * 说明：
-     * - true: 已逻辑删除（不出现在任何查询结果中）
-     * - false: 正常状态
-     *
-     * 技术实现：
-     * - @SQLDelete 拦截 JPA delete 操作，改写为 UPDATE SET is_deleted = true
-     * - @SQLRestriction 自动在所有查询中追加 WHERE is_deleted = false
-     *
-     * @since V4.2 (AI Foundation Patch)
-     */
-    @Column(name = "is_deleted", nullable = false)
-    @Builder.Default
-    private Boolean isDeleted = false;
 
     /**
      * 审批通过时间（V4.2 新增）

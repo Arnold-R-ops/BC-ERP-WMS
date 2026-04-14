@@ -607,6 +607,13 @@ public class StocktakeService {
     }
 
     /**
+     * Backward-compatible alias for legacy method calls.
+     */
+    private StocktakeTaskResponse convertToResponse(StocktakeTask task) {
+        return convertToTaskResponse(task);
+    }
+
+    /**
      * Convert StocktakeItem to StocktakeItemResponse (blind count - no snapshot qty)
      */
     private StocktakeItemResponse convertToItemResponse(StocktakeItem item) {
@@ -660,5 +667,159 @@ public class StocktakeService {
             .snapshotQty(item.getSnapshotQty())
             .differenceQty(item.getDifferenceQty())
             .build();
+    }
+
+    // ========== Delete/Cancel/Void Operations ==========
+
+    /**
+     * Delete stocktake task (physical delete, CREATED only)
+     *
+     * Business Rule:
+     * - CREATED status: physical DELETE from database
+     * - Any other status: throws exception, use cancelStocktakeTask or voidStocktakeTask instead
+     *
+     * @param taskId 盘点任务ID
+     * @param operatorId 操作人ID
+     * @throws BusinessException if task not found or not in CREATED status
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteStocktakeTask(Long taskId, Long operatorId) {
+        log.info("🗑️ Deleting stocktake task (physical): taskId={}, operatorId={}", taskId, operatorId);
+
+        StocktakeTask task = stocktakeTaskRepository.findById(taskId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.STOCKTAKE_TASK_NOT_FOUND,
+                Map.of("taskId", taskId)
+            ));
+
+        if (!task.getStatus().canPhysicallyDelete()) {
+            throw new BusinessException(
+                ErrorKeys.STOCKTAKE_INVALID_STATUS,
+                Map.of(
+                    "taskId", taskId,
+                    "currentStatus", task.getStatus().name(),
+                    "reason", "只有已创建状态的盘点任务可以物理删除，已开始的任务请使用取消或作废"
+                )
+            );
+        }
+
+        stocktakeTaskRepository.deleteById(taskId);
+        log.info("✅ Stocktake task physically deleted: taskId={}, taskNo={}", taskId, task.getTaskNo());
+    }
+
+    /**
+     * Cancel stocktake task (business failure, kept for AI learning)
+     *
+     * Business Rule:
+     * - CREATED status → physical delete
+     * - COUNTING / REVIEWING → set status = CANCELLED
+     * - reason is required
+     * - Data preserved for AI learning
+     *
+     * @param taskId 盘点任务ID
+     * @param reason 取消原因 (required)
+     * @param operatorId 操作人ID
+     * @return StocktakeTaskResponse
+     * @throws BusinessException if task not found or cannot be cancelled
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public StocktakeTaskResponse cancelStocktakeTask(Long taskId, String reason, Long operatorId) {
+        log.info("🚫 Cancelling stocktake task: taskId={}, operatorId={}, reason={}", taskId, operatorId, reason);
+
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.STOCKTAKE_INVALID_STATUS,
+                Map.of("taskId", taskId, "reason", "业务取消必须填写取消原因")
+            );
+        }
+
+        StocktakeTask task = stocktakeTaskRepository.findById(taskId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.STOCKTAKE_TASK_NOT_FOUND,
+                Map.of("taskId", taskId)
+            ));
+
+        // CREATED → physical delete
+        if (task.getStatus() == StocktakeStatus.CREATED) {
+            stocktakeTaskRepository.deleteById(taskId);
+            log.info("✅ CREATED stocktake task physically deleted during cancel: taskId={}", taskId);
+            return null;
+        }
+
+        if (!task.getStatus().canCancel()) {
+            throw new BusinessException(
+                ErrorKeys.STOCKTAKE_INVALID_STATUS,
+                Map.of(
+                    "taskId", taskId,
+                    "currentStatus", task.getStatus().name(),
+                    "reason", "当前状态不允许取消"
+                )
+            );
+        }
+
+        task.setStatus(StocktakeStatus.CANCELLED);
+        task.setReviewComment("业务取消: " + reason);
+        task = stocktakeTaskRepository.save(task);
+
+        log.info("✅ Stocktake task cancelled: taskId={}, taskNo={}", taskId, task.getTaskNo());
+        return convertToResponse(task);
+    }
+
+    /**
+     * Void stocktake task (data noise, filtered from AI and statistics)
+     *
+     * Business Rule:
+     * - CREATED status → physical delete
+     * - COUNTING / REVIEWING → set status = VOIDED
+     * - VOIDED tasks are excluded from AI training and business statistics
+     * - Financial audit trail is preserved (task number retained)
+     *
+     * @param taskId 盘点任务ID
+     * @param reason 作废原因 (required)
+     * @param operatorId 操作人ID
+     * @return StocktakeTaskResponse
+     * @throws BusinessException if task not found or cannot be voided
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public StocktakeTaskResponse voidStocktakeTask(Long taskId, String reason, Long operatorId) {
+        log.info("🚫 Voiding stocktake task: taskId={}, operatorId={}, reason={}", taskId, operatorId, reason);
+
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.STOCKTAKE_INVALID_STATUS,
+                Map.of("taskId", taskId, "reason", "系统作废必须填写作废原因")
+            );
+        }
+
+        StocktakeTask task = stocktakeTaskRepository.findById(taskId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.STOCKTAKE_TASK_NOT_FOUND,
+                Map.of("taskId", taskId)
+            ));
+
+        // CREATED → physical delete
+        if (task.getStatus() == StocktakeStatus.CREATED) {
+            stocktakeTaskRepository.deleteById(taskId);
+            log.info("✅ CREATED stocktake task physically deleted during void: taskId={}", taskId);
+            return null;
+        }
+
+        if (!task.getStatus().canVoid()) {
+            throw new BusinessException(
+                ErrorKeys.STOCKTAKE_INVALID_STATUS,
+                Map.of(
+                    "taskId", taskId,
+                    "currentStatus", task.getStatus().name(),
+                    "reason", "当前状态不允许作废"
+                )
+            );
+        }
+
+        task.setStatus(StocktakeStatus.VOIDED);
+        task.setReviewComment("系统作废: " + reason);
+        task = stocktakeTaskRepository.save(task);
+
+        log.info("✅ Stocktake task voided: taskId={}, taskNo={}", taskId, task.getTaskNo());
+        return convertToResponse(task);
     }
 }
