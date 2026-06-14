@@ -224,7 +224,9 @@ class LocationControllerIntegrationTest {
                 .andExpect(jsonPath("$.zone").value("ZONE_B"))
                 .andExpect(jsonPath("$.shelfNumber").value("B-01"))
                 .andExpect(jsonPath("$.positionNumber").value("001"))
-                .andExpect(jsonPath("$.warehouseCode").value("WH01"));
+                .andExpect(jsonPath("$.warehouseCode").value("WH01"))
+                .andExpect(jsonPath("$.warehouseId").value(testWarehouse.getId()))
+                .andExpect(jsonPath("$.warehouse").doesNotExist());
 
         // Verify database
         assertThat(locationRepository.findByWarehouseId(testWarehouse.getId())).hasSize(2);

@@ -8,7 +8,9 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.PermissionCacheService;
+import com.wms.system.service.UserManagementService;
 import com.wms.system.service.UserRoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,6 +69,7 @@ public class UserController {
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final PermissionCacheService cacheService;
+    private final UserManagementService userManagementService;
 
     /**
      * ⭐ Get All Users
@@ -316,31 +320,19 @@ public class UserController {
      * @return No content
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(
+        @PathVariable Long id,
+        Authentication authentication
+    ) {
         log.info("Deleting user: userId={}", id);
-
-        // 1. Verify user exists
-        User user = userRepository.findById(id)
-            .orElseThrow(() -> {
-                log.warn("User not found: userId={}", id);
-                throw new BusinessException(
-                    ErrorKeys.USER_NOT_FOUND,
-                    Map.of("userId", id)
-                );
-            });
-
-        // 2. Delete user role assignments (cascaded automatically via ON DELETE CASCADE)
-        // But we'll do it explicitly for cache invalidation
-        userRoleRepository.deleteByUserId(id);
-
-        // 3. Delete user
-        userRepository.delete(user);
-
-        log.info("User deleted: userId={}, username={}", id, user.getUsername());
-
-        // 4. Clear permission cache
-        cacheService.onUserDeleted(id);
-
+        Long operatorId = AuthUserResolver.resolveUserId(authentication);
+        if (operatorId == null || operatorId == 0L) {
+            String operatorUsername = AuthUserResolver.resolveUsername(authentication);
+            operatorId = userRepository.findByUsername(operatorUsername)
+                .map(User::getId)
+                .orElse(0L);
+        }
+        userManagementService.deleteUser(id, operatorId);
         return ResponseEntity.noContent().build();
     }
 

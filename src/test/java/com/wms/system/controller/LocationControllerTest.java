@@ -2,6 +2,7 @@ package com.wms.system.controller;
 
 import com.wms.system.controller.LocationController.CreateLocationRequest;
 import com.wms.system.controller.LocationController.UpdateLocationRequest;
+import com.wms.system.dto.LocationResponse;
 import com.wms.system.entity.Location;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.Zone;
@@ -121,7 +122,7 @@ class LocationControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).hasSize(2);
-        assertThat(response.getBody()).extracting(Location::getZone)
+        assertThat(response.getBody()).extracting(LocationResponse::getZone)
                 .containsExactly(Zone.ZONE_A, Zone.ZONE_B);
     }
 

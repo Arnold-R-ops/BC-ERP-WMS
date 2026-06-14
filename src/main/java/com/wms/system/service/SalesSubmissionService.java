@@ -761,15 +761,15 @@ public class SalesSubmissionService {
             })
             .collect(Collectors.toList());
 
-        // Get customer name
-        String customerName = "Unknown";
+        String customerName;
         try {
-            Customer customer = order.getCustomer();
-            if (customer != null) {
-                customerName = customer.getName();
+            customerName = customerService.getCustomerName(order.getCustomerId());
+            if (customerName == null || customerName.isBlank()) {
+                customerName = "Unknown";
             }
         } catch (Exception e) {
             log.debug("Failed to load customer name: {}", e.getMessage());
+            customerName = "Unknown";
         }
 
         return SalesOrderResponse.builder()

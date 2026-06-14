@@ -1,5 +1,6 @@
 package com.wms.system.dto.inbound;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +45,7 @@ public class CreateInboundOrderRequest {
      * 入库单明细列表
      */
     @NotEmpty(message = "入库单明细不能为空")
+    @Valid
     private List<InboundOrderItemRequest> items;
 
     /**
@@ -77,11 +79,13 @@ public class CreateInboundOrderRequest {
         /**
          * 目标仓库 ID
          */
+        @NotNull(message = "目标仓库ID不能为空")
         private Long targetWarehouseId;
 
         /**
          * 目标库位 ID
          */
+        @NotNull(message = "目标库位ID不能为空")
         private Long targetLocationId;
 
         /**

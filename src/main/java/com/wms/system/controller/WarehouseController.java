@@ -169,7 +169,7 @@ public class WarehouseController {
      */
     public record CreateWarehouseRequest(
             @NotBlank(message = "仓库编码不能为空")
-            @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,49}$", message = "仓库编码格式不正确")
+            @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "仓库编码格式不正确（长度2-20）")
             String code,
 
             @NotBlank(message = "仓库名称不能为空")

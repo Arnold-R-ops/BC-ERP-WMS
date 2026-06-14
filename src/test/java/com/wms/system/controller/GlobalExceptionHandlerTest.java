@@ -88,6 +88,44 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    @WithMockUser
+    @DisplayName("BusinessException OUTBOUND_TASK_ALREADY_COMPLETED -> 409")
+    void testBusinessException_OutboundTaskAlreadyCompleted_Returns409() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new BusinessException(ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED, Map.of("taskId", 7L))
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("BusinessException SALES_ORDER_INVALID_STATUS -> 409")
+    void testBusinessException_SalesOrderInvalidStatus_Returns409() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new BusinessException(
+                        ErrorKeys.SALES_ORDER_INVALID_STATUS,
+                        Map.of(
+                                "salesOrderId", 26L,
+                                "currentStatus", "APPROVED_AWAITING_SHIPMENT",
+                                "requiredStatus", "PENDING_APPROVAL"
+                        )
+                )
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.SALES_ORDER_INVALID_STATUS))
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
     // ========== Validation exceptions ==========
 
     @Test

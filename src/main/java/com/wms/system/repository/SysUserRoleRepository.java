@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -61,6 +62,7 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @param roleId Role ID
      */
     @Modifying
+    @Transactional
     @Query("DELETE FROM SysUserRole sur WHERE sur.userId = :userId AND sur.roleId = :roleId")
     void deleteByUserIdAndRoleId(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
@@ -70,6 +72,7 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @param userId User ID
      */
     @Modifying
+    @Transactional
     @Query("DELETE FROM SysUserRole sur WHERE sur.userId = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 
@@ -79,6 +82,7 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @param roleId Role ID
      */
     @Modifying
+    @Transactional
     @Query("DELETE FROM SysUserRole sur WHERE sur.roleId = :roleId")
     void deleteByRoleId(@Param("roleId") Long roleId);
 
@@ -115,6 +119,19 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @return Number of roles
      */
     long countByUserId(Long userId);
+
+    /**
+     * Count active, non-deleted users assigned to a role code.
+     */
+    @Query("""
+        SELECT COUNT(DISTINCT sur.userId)
+        FROM SysUserRole sur
+        JOIN SysRole role ON role.id = sur.roleId
+        JOIN User user ON user.id = sur.userId
+        WHERE role.roleCode = :roleCode
+          AND user.isDeleted = false
+        """)
+    long countActiveUsersByRoleCode(@Param("roleCode") String roleCode);
 
     /**
      * Find users with multiple roles (batch query)

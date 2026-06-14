@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.TimeZone;
@@ -32,6 +33,7 @@ import java.util.TimeZone;
 @Slf4j
 @SpringBootApplication
 @EnableRetry  // Enable retry mechanism for @Retryable in InventoryService
+@EnableTransactionManagement
 public class WmsSystemApplication {
 
     public static void main(String[] args) {

@@ -502,6 +502,54 @@ class AllocationServiceTest {
         assertThat(tasks.get(2).getPlanQty()).isEqualTo(10);
     }
 
+    @Test
+    @DisplayName("pack-aware allocation merges loose and full portions by batch")
+    void testAllocateInventory_PackAwareBatchAllocation() {
+        SalesOrderItem item = createOrderItem(1L, 1L, 65);
+
+        InventoryBatch oldBatch = createBatch(1L, "BATCH-OLD", 50, LocalDate.now().plusMonths(1));
+        InventoryBatch freshBatch = createBatch(2L, "BATCH-FRESH", 100, LocalDate.now().plusMonths(6));
+
+        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+            .thenReturn(List.of(oldBatch, freshBatch));
+        when(outboundTaskRepository.save(any(OutboundTask.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<OutboundTask> tasks = allocationService.allocateInventory(1L);
+
+        assertThat(tasks).hasSize(2);
+        assertThat(tasks.get(0).getAssignedBatchId()).isEqualTo(1L);
+        assertThat(tasks.get(0).getPlanQty()).isEqualTo(50);
+        assertThat(tasks.get(1).getAssignedBatchId()).isEqualTo(2L);
+        assertThat(tasks.get(1).getPlanQty()).isEqualTo(15);
+    }
+
+    @Test
+    @DisplayName("full-pack orders can use the full-pack portion of a mixed batch")
+    void testAllocateInventory_FullPackPortionFromMixedBatch() {
+        SalesOrderItem item = createOrderItem(1L, 1L, 48);
+        InventoryBatch mixedBatch = createBatch(1L, "BATCH-MIXED", 50, LocalDate.now().plusMonths(1));
+
+        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+            .thenReturn(List.of(mixedBatch));
+        when(outboundTaskRepository.save(any(OutboundTask.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<OutboundTask> tasks = allocationService.allocateInventory(1L);
+
+        assertThat(tasks).singleElement()
+            .satisfies(task -> {
+                assertThat(task.getAssignedBatchId()).isEqualTo(1L);
+                assertThat(task.getPlanQty()).isEqualTo(48);
+            });
+    }
+
     // ========== Test 15: Near-Expiry with Fresh Batches ==========
 
     @Test

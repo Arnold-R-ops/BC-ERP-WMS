@@ -1,6 +1,8 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.InventoryBatch;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,6 +33,114 @@ import java.util.Optional;
  */
 @Repository
 public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, Long> {
+
+    interface InventorySummaryRow {
+        Long getProductId();
+        String getProductName();
+        String getSkuCode();
+        String getSpecs();
+        String getPackUnit();
+        Number getConversionRate();
+        Number getSafetyStock();
+        Number getTotalQuantity();
+        LocalDate getFurthestExpiryDate();
+        String getWarehouseNames();
+    }
+
+    interface InventoryDetailRow {
+        String getBatchCode();
+        String getWarehouseName();
+        String getLocationCode();
+        Number getQuantity();
+        LocalDate getExpiryDate();
+        Number getConversionRate();
+    }
+
+    @Query(
+        value = """
+            SELECT
+                p.id AS "productId",
+                p.name AS "productName",
+                p.barcode AS "skuCode",
+                p.specs AS "specs",
+                p.pack_unit AS "packUnit",
+                p.conversion_rate AS "conversionRate",
+                p.safety_stock AS "safetyStock",
+                COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity ELSE 0 END), 0) AS "totalQuantity",
+                MAX(b.expiry_date) AS "furthestExpiryDate",
+                COALESCE(string_agg(DISTINCT w.name, ','), '') AS "warehouseNames"
+            FROM products p
+            LEFT JOIN inventory_batch b
+                ON b.product_id = p.id
+                AND b.active = true
+                AND b.quantity > 0
+            LEFT JOIN locations l ON l.id = b.location_id
+            LEFT JOIN warehouses w ON w.id = l.warehouse_id
+            WHERE p.is_deleted = false
+              AND (
+                :search IS NULL
+                OR :search = ''
+                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(p.barcode) LIKE LOWER(CONCAT('%', :search, '%'))
+              )
+            GROUP BY p.id, p.name, p.barcode, p.specs, p.pack_unit, p.conversion_rate, p.safety_stock
+            ORDER BY p.id
+            """,
+        countQuery = """
+            SELECT COUNT(*)
+            FROM products p
+            WHERE p.is_deleted = false
+              AND (
+                :search IS NULL
+                OR :search = ''
+                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(p.barcode) LIKE LOWER(CONCAT('%', :search, '%'))
+              )
+            """,
+        nativeQuery = true
+    )
+    Page<InventorySummaryRow> findInventorySummaryRows(
+        @Param("search") String search,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT
+            b.batchCode AS batchCode,
+            COALESCE(w.name, 'Unknown Warehouse') AS warehouseName,
+            b.locationCode AS locationCode,
+            b.quantity AS quantity,
+            b.expiryDate AS expiryDate,
+            p.conversionRate AS conversionRate
+        FROM InventoryBatch b
+        JOIN b.product p
+        LEFT JOIN b.location l
+        LEFT JOIN l.warehouse w
+        WHERE b.product.id = :productId
+          AND b.active = true
+          AND b.quantity > 0
+        ORDER BY b.expiryDate DESC
+        """)
+    List<InventoryDetailRow> findActiveDetailRowsByProductId(@Param("productId") Long productId);
+
+    @Query("""
+        SELECT
+            b.batchCode AS batchCode,
+            COALESCE(w.name, 'Unknown Warehouse') AS warehouseName,
+            b.locationCode AS locationCode,
+            b.quantity AS quantity,
+            b.expiryDate AS expiryDate,
+            p.conversionRate AS conversionRate
+        FROM InventoryBatch b
+        JOIN b.product p
+        LEFT JOIN b.location l
+        LEFT JOIN l.warehouse w
+        WHERE b.locationCode = :locationCode
+          AND b.active = true
+          AND b.quantity > 0
+        ORDER BY b.expiryDate DESC
+        """)
+    List<InventoryDetailRow> findActiveDetailRowsByLocationCode(@Param("locationCode") String locationCode);
 
     /**
      * Check if batch code exists (for collision detection)

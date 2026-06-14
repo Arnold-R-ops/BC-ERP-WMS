@@ -501,6 +501,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.BATCH_CODE_GENERATION_FAILED,
                  ErrorKeys.WAREHOUSE_ALREADY_EXISTS,  // Phase 3.4
                  ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,  // V3.9 Shopify Integration
+                 ErrorKeys.SALES_ORDER_INVALID_STATUS,
+                 ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED,
                  ErrorKeys.ORDER_NUMBER_DUPLICATE -> HttpStatus.CONFLICT;  // V4.4 Idempotency Defense
 
             // 500 Internal Server Error

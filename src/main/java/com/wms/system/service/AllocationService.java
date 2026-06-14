@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -186,57 +188,185 @@ public class AllocationService {
             );
         }
 
-        // 5. Apply strict box strategy if needed
-        List<InventoryBatch> sortedBatches;
-        if (isFullBox(item.getQuantity(), product.getPerPackQty())) {
-            log.info("📦 Strict box strategy: Requested quantity is full box, filtering for full box batches only");
-            sortedBatches = availableBatches.stream()
-                .filter(batch -> isFullBox(batch.getQuantity(), product.getPerPackQty()))
-                .sorted((b1, b2) -> b1.getExpiryDate().compareTo(b2.getExpiryDate()))
-                .collect(Collectors.toList());
+        List<BatchAllocation> allocationPlan = planPackAwareAllocation(item, product, availableBatches);
+        return createOutboundTasks(item, allocationPlan);
+    }
 
-            // Check if full box batches are sufficient
-            int fullBoxAvailable = sortedBatches.stream()
-                .mapToInt(InventoryBatch::getQuantity)
-                .sum();
+    /**
+     * Split each batch into its loose remainder and full-pack portion. This
+     * avoids classifying the entire batch from its current quantity modulo.
+     */
+    private List<BatchAllocation> planPackAwareAllocation(
+        SalesOrderItem item,
+        Product product,
+        List<InventoryBatch> availableBatches
+    ) {
+        int packSize = product.getPerPackQty() == null || product.getPerPackQty() <= 0
+            ? 1
+            : product.getPerPackQty();
 
-            if (fullBoxAvailable < item.getQuantity()) {
-                log.error("❌ Insufficient full box stock: productId={}, requested={}, fullBoxAvailable={}, shortage={}",
-                    item.getProductId(), item.getQuantity(), fullBoxAvailable, item.getQuantity() - fullBoxAvailable);
+        List<InventoryBatch> fefoBatches = availableBatches.stream()
+            .sorted(Comparator.comparing(
+                InventoryBatch::getExpiryDate,
+                Comparator.nullsLast(Comparator.naturalOrder())
+            ))
+            .collect(Collectors.toList());
 
-                throw new BusinessException(
-                    ErrorKeys.BATCH_STOCK_INSUFFICIENT,
-                    Map.of(
-                        "productId", item.getProductId(),
-                        "productName", product.getName(),
-                        "requestedQuantity", item.getQuantity(),
-                        "availableQuantity", fullBoxAvailable,
-                        "shortage", item.getQuantity() - fullBoxAvailable
-                    )
-                );
-            }
-        } else {
-            // 6. Box/piece separation: Prefer loose stock first, then break boxes
-            log.info("📦 Box/piece separation: Prefer loose stock first");
-            List<InventoryBatch> looseBatches = availableBatches.stream()
-                .filter(batch -> !isFullBox(batch.getQuantity(), product.getPerPackQty()))
-                .sorted((b1, b2) -> b1.getExpiryDate().compareTo(b2.getExpiryDate()))
-                .collect(Collectors.toList());
-
-            List<InventoryBatch> fullBoxBatches = availableBatches.stream()
-                .filter(batch -> isFullBox(batch.getQuantity(), product.getPerPackQty()))
-                .sorted((b1, b2) -> b1.getExpiryDate().compareTo(b2.getExpiryDate()))
-                .collect(Collectors.toList());
-
-            sortedBatches = new ArrayList<>();
-            sortedBatches.addAll(looseBatches);
-            sortedBatches.addAll(fullBoxBatches);
-
-            log.debug("📊 Batch separation: looseBatches={}, fullBoxBatches={}", looseBatches.size(), fullBoxBatches.size());
+        Map<Long, Integer> remainingByBatch = new LinkedHashMap<>();
+        for (InventoryBatch batch : fefoBatches) {
+            remainingByBatch.put(batch.getId(), batch.getQuantity());
         }
 
-        // 7. FEFO allocation: Deduct batch by batch
-        return allocateFromBatches(item, product, sortedBatches);
+        Map<Long, BatchAllocation> allocations = new LinkedHashMap<>();
+        int remainingRequest = item.getQuantity();
+        boolean fullPackRequest = remainingRequest % packSize == 0;
+
+        if (!fullPackRequest) {
+            remainingRequest = allocateLooseRemainders(
+                fefoBatches,
+                remainingByBatch,
+                allocations,
+                remainingRequest,
+                packSize
+            );
+        }
+
+        remainingRequest = allocateFullPackPortions(
+            fefoBatches,
+            remainingByBatch,
+            allocations,
+            remainingRequest,
+            packSize
+        );
+
+        if (!fullPackRequest && remainingRequest > 0) {
+            remainingRequest = allocateByBreakingPack(
+                fefoBatches,
+                remainingByBatch,
+                allocations,
+                remainingRequest
+            );
+        }
+
+        if (remainingRequest > 0) {
+            int eligibleQuantity = allocations.values().stream()
+                .mapToInt(BatchAllocation::quantity)
+                .sum();
+            throw new BusinessException(
+                ErrorKeys.BATCH_STOCK_INSUFFICIENT,
+                Map.of(
+                    "productId", item.getProductId(),
+                    "productName", product.getName(),
+                    "requestedQuantity", item.getQuantity(),
+                    "availableQuantity", eligibleQuantity,
+                    "shortage", remainingRequest
+                )
+            );
+        }
+
+        return new ArrayList<>(allocations.values());
+    }
+
+    private int allocateLooseRemainders(
+        List<InventoryBatch> batches,
+        Map<Long, Integer> remainingByBatch,
+        Map<Long, BatchAllocation> allocations,
+        int remainingRequest,
+        int packSize
+    ) {
+        for (InventoryBatch batch : batches) {
+            if (remainingRequest == 0) {
+                break;
+            }
+
+            int looseQuantity = remainingByBatch.get(batch.getId()) % packSize;
+            int allocated = Math.min(remainingRequest, looseQuantity);
+            remainingRequest -= addAllocation(batch, allocated, remainingByBatch, allocations);
+        }
+        return remainingRequest;
+    }
+
+    private int allocateFullPackPortions(
+        List<InventoryBatch> batches,
+        Map<Long, Integer> remainingByBatch,
+        Map<Long, BatchAllocation> allocations,
+        int remainingRequest,
+        int packSize
+    ) {
+        int fullPackDemand = (remainingRequest / packSize) * packSize;
+        for (InventoryBatch batch : batches) {
+            if (fullPackDemand == 0) {
+                break;
+            }
+
+            int batchQuantity = remainingByBatch.get(batch.getId());
+            int fullPackQuantity = (batchQuantity / packSize) * packSize;
+            int allocated = Math.min(fullPackDemand, fullPackQuantity);
+            int actualAllocated = addAllocation(batch, allocated, remainingByBatch, allocations);
+            fullPackDemand -= actualAllocated;
+            remainingRequest -= actualAllocated;
+        }
+        return remainingRequest;
+    }
+
+    private int allocateByBreakingPack(
+        List<InventoryBatch> batches,
+        Map<Long, Integer> remainingByBatch,
+        Map<Long, BatchAllocation> allocations,
+        int remainingRequest
+    ) {
+        for (InventoryBatch batch : batches) {
+            if (remainingRequest == 0) {
+                break;
+            }
+
+            int allocated = Math.min(remainingRequest, remainingByBatch.get(batch.getId()));
+            remainingRequest -= addAllocation(batch, allocated, remainingByBatch, allocations);
+        }
+        return remainingRequest;
+    }
+
+    private int addAllocation(
+        InventoryBatch batch,
+        int quantity,
+        Map<Long, Integer> remainingByBatch,
+        Map<Long, BatchAllocation> allocations
+    ) {
+        if (quantity <= 0) {
+            return 0;
+        }
+
+        BatchAllocation allocation = allocations.computeIfAbsent(
+            batch.getId(),
+            ignored -> new BatchAllocation(batch, 0)
+        );
+        allocation.add(quantity);
+        remainingByBatch.compute(batch.getId(), (ignored, remaining) -> remaining - quantity);
+        return quantity;
+    }
+
+    private List<OutboundTask> createOutboundTasks(
+        SalesOrderItem item,
+        List<BatchAllocation> allocationPlan
+    ) {
+        List<OutboundTask> tasks = new ArrayList<>();
+        for (BatchAllocation allocation : allocationPlan) {
+            InventoryBatch batch = allocation.batch();
+            OutboundTask task = OutboundTask.builder()
+                .salesOrderId(item.getSalesOrderId())
+                .salesOrderItemId(item.getId())
+                .assignedBatchId(batch.getId())
+                .locationId(batch.getLocation().getId())
+                .planQty(allocation.quantity())
+                .actualQty(0)
+                .status(OutboundTaskStatus.PENDING)
+                .remark(String.format("Allocated from batch %s (expiry: %s)",
+                    batch.getBatchCode(), batch.getExpiryDate()))
+                .build();
+
+            tasks.add(outboundTaskRepository.save(task));
+        }
+        return tasks;
     }
 
     /**
@@ -493,21 +623,26 @@ public class AllocationService {
         return !threshold.isBefore(expiryDate);
     }
 
-    /**
-     * Check if quantity is full box
-     *
-     * Formula: quantity % per_pack_qty == 0
-     *
-     * @param quantity Quantity to check
-     * @param perPackQty Box size
-     * @return true if full box
-     */
-    private boolean isFullBox(Integer quantity, Integer perPackQty) {
-        if (quantity == null || perPackQty == null || perPackQty <= 0) {
-            return false;
+    private static final class BatchAllocation {
+        private final InventoryBatch batch;
+        private int quantity;
+
+        private BatchAllocation(InventoryBatch batch, int quantity) {
+            this.batch = batch;
+            this.quantity = quantity;
         }
 
-        return quantity % perPackQty == 0;
+        private InventoryBatch batch() {
+            return batch;
+        }
+
+        private int quantity() {
+            return quantity;
+        }
+
+        private void add(int allocatedQuantity) {
+            quantity += allocatedQuantity;
+        }
     }
 
     /**

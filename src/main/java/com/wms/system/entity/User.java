@@ -5,11 +5,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * User Entity
@@ -44,6 +47,8 @@ import java.util.List;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Entity
+@SQLDelete(sql = "UPDATE users SET is_deleted = true, enabled = false, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("is_deleted = false")
 @Table(
     name = "users",
     indexes = {
@@ -93,6 +98,14 @@ public class User extends BaseEntity implements UserDetails {
     private Long defaultRoleId;
 
     /**
+     * Legacy single-role field retained only for compatibility with historical data.
+     * Authorization must use sys_user_role as the single source of truth.
+     */
+    @Deprecated
+    @Column(name = "role", insertable = false, updatable = false)
+    private String legacyRole;
+
+    /**
      * Default Role Relationship (Lazy-loaded)
      *
      * Provides access to the full SysRole entity for the default role.
@@ -124,6 +137,25 @@ public class User extends BaseEntity implements UserDetails {
      */
     @Column(length = 500)
     private String remark;
+
+    /**
+     * Soft-delete marker. Deleted users are automatically excluded from ORM queries.
+     */
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    /**
+     * Audit timestamp for logical deletion.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    /**
+     * User ID of the administrator who performed the logical deletion.
+     */
+    @Column(name = "deleted_by")
+    private Long deletedBy;
 
     // ========== UserDetails Interface Implementation (Spring Security) ==========
 

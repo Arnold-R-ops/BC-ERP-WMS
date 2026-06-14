@@ -72,8 +72,8 @@ public class Warehouse extends BaseEntity {
      * - Location.warehouseCode 会自动同步此字段的值
      */
     @NotBlank(message = "仓库编码不能为空")
-    @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,49}$", message = "仓库编码格式不正确（大写字母开头，可含字母、数字、短横线，长度2-50）")
-    @Column(nullable = false, unique = true, length = 50)
+    @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "仓库编码格式不正确（大写字母开头，可含字母、数字、短横线，长度2-20）")
+    @Column(nullable = false, unique = true, length = 20)
     private String code;
 
     /**

@@ -8,6 +8,7 @@ import com.wms.system.entity.StockTransaction;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryRepository;
+import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
 import com.wms.system.repository.ProductRepository;
 import com.wms.system.repository.StockTransactionRepository;
@@ -46,6 +47,7 @@ import java.util.Map;
 public class InventoryService {
 
     private final InventoryRepository inventoryRepository;
+    private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
@@ -254,7 +256,7 @@ public class InventoryService {
      */
     @Transactional(readOnly = true)
     public Integer getTotalStock(Long productId) {
-        Integer totalStock = inventoryRepository.sumTotalQuantityByProduct(productId);
+        Integer totalStock = inventoryBatchRepository.sumQuantityByProduct(productId);
         return totalStock != null ? totalStock : 0;
     }
 

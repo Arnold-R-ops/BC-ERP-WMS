@@ -8,6 +8,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.ProductRepository;
+import com.wms.system.util.PackageStatusFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -325,9 +326,10 @@ public class SalesEntryService {
                     : "WARNING";
 
                 // 鍒ゆ柇鍖呰鐘舵€?
-                String packageStatus = (batch.getQuantity() % product.getPerPackQty() == 0)
-                    ? "\uD83D\uDCE6 整箱"
-                    : "\uD83D\uDCE5 散货";
+                String packageStatus = PackageStatusFormatter.withIcon(
+                    batch.getQuantity(),
+                    product.getPerPackQty()
+                );
 
                 return BatchOptionDto.builder()
                     .batchId(batch.getId())

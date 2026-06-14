@@ -1,5 +1,6 @@
 package com.wms.system.dto.inbound;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +26,7 @@ public class ReceiveGoodsRequest {
      * 收货明细列表
      */
     @NotEmpty(message = "收货明细列表不能为空")
+    @Valid
     private List<ItemReceipt> receipts;
 
     /**

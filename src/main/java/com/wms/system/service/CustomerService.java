@@ -383,6 +383,11 @@ public class CustomerService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public String getCustomerName(Long customerId) {
+        return getCustomerEntityById(customerId).getName();
+    }
+
     /**
      * 根据ID查询客户实体（内部方法）
      *

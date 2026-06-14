@@ -145,9 +145,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // Multi-Role System: Authorization is based on current_role in token, not all user roles
                     List<GrantedAuthority> authorities = new ArrayList<>();
                     if (currentRole != null && !currentRole.isEmpty()) {
-                        // Add ROLE_ prefix (Spring Security convention)
+                        // Add both forms because controllers use both hasRole("...")
+                        // and hasAnyAuthority("SUPER_ADMIN", "...") during API tests.
                         authorities.add(new SimpleGrantedAuthority("ROLE_" + currentRole));
-                        log.debug("Authority granted: ROLE_{}", currentRole);
+                        authorities.add(new SimpleGrantedAuthority(currentRole));
+                        log.debug("Authorities granted: ROLE_{}, {}", currentRole, currentRole);
                     } else {
                         log.warn("No current_role found in JWT token for user: {}", username);
                     }

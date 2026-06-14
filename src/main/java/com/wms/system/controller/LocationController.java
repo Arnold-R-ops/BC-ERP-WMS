@@ -1,5 +1,6 @@
 package com.wms.system.controller;
 
+import com.wms.system.dto.LocationResponse;
 import com.wms.system.entity.Location;
 import com.wms.system.entity.enums.Zone;
 import com.wms.system.service.LocationService;
@@ -43,10 +44,10 @@ public class LocationController {
      * @return 库位信息
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Location> getLocationById(@PathVariable Long id) {
+    public ResponseEntity<LocationResponse> getLocationById(@PathVariable Long id) {
         log.info("Getting location by id: {}", id);
         Location location = locationService.getLocationById(id);
-        return ResponseEntity.ok(location);
+        return ResponseEntity.ok(LocationResponse.from(location));
     }
 
     /**
@@ -56,9 +57,11 @@ public class LocationController {
      * @return 库位列表
      */
     @GetMapping("/warehouse/{warehouseId}")
-    public ResponseEntity<List<Location>> getLocationsByWarehouse(@PathVariable Long warehouseId) {
+    public ResponseEntity<List<LocationResponse>> getLocationsByWarehouse(@PathVariable Long warehouseId) {
         log.info("Getting locations by warehouse id: {}", warehouseId);
-        List<Location> locations = locationService.getLocationsByWarehouse(warehouseId);
+        List<LocationResponse> locations = locationService.getLocationsByWarehouse(warehouseId).stream()
+                .map(LocationResponse::from)
+                .toList();
         return ResponseEntity.ok(locations);
     }
 
@@ -69,9 +72,11 @@ public class LocationController {
      * @return 空闲库位列表
      */
     @GetMapping("/warehouse/{warehouseId}/empty")
-    public ResponseEntity<List<Location>> getEmptyLocationsByWarehouse(@PathVariable Long warehouseId) {
+    public ResponseEntity<List<LocationResponse>> getEmptyLocationsByWarehouse(@PathVariable Long warehouseId) {
         log.info("Getting empty locations by warehouse id: {}", warehouseId);
-        List<Location> locations = locationService.getEmptyLocationsByWarehouse(warehouseId);
+        List<LocationResponse> locations = locationService.getEmptyLocationsByWarehouse(warehouseId).stream()
+                .map(LocationResponse::from)
+                .toList();
         return ResponseEntity.ok(locations);
     }
 
@@ -82,7 +87,7 @@ public class LocationController {
      * @return 创建的库位信息
      */
     @PostMapping
-    public ResponseEntity<Location> createLocation(@RequestBody @Validated CreateLocationRequest request) {
+    public ResponseEntity<LocationResponse> createLocation(@RequestBody @Validated CreateLocationRequest request) {
         log.info("Creating location: warehouseId={}, zone={}, shelf={}, position={}",
                 request.warehouseId, request.zone, request.shelfNumber, request.positionNumber);
         Location location = locationService.createLocation(
@@ -92,7 +97,7 @@ public class LocationController {
                 request.positionNumber,
                 request.remark
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(location);
+        return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(location));
     }
 
     /**
@@ -103,12 +108,12 @@ public class LocationController {
      * @return 更新后的库位信息
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Location> updateLocation(
+    public ResponseEntity<LocationResponse> updateLocation(
             @PathVariable Long id,
             @RequestBody @Validated UpdateLocationRequest request) {
         log.info("Updating location: id={}", id);
         Location location = locationService.updateLocation(id, request.remark);
-        return ResponseEntity.ok(location);
+        return ResponseEntity.ok(LocationResponse.from(location));
     }
 
     /**
@@ -118,10 +123,10 @@ public class LocationController {
      * @return 更新后的库位信息
      */
     @PutMapping("/{id}/enable")
-    public ResponseEntity<Location> enableLocation(@PathVariable Long id) {
+    public ResponseEntity<LocationResponse> enableLocation(@PathVariable Long id) {
         log.info("Enabling location: id={}", id);
         Location location = locationService.enableLocation(id);
-        return ResponseEntity.ok(location);
+        return ResponseEntity.ok(LocationResponse.from(location));
     }
 
     /**
@@ -131,10 +136,10 @@ public class LocationController {
      * @return 更新后的库位信息
      */
     @PutMapping("/{id}/disable")
-    public ResponseEntity<Location> disableLocation(@PathVariable Long id) {
+    public ResponseEntity<LocationResponse> disableLocation(@PathVariable Long id) {
         log.info("Disabling location: id={}", id);
         Location location = locationService.disableLocation(id);
-        return ResponseEntity.ok(location);
+        return ResponseEntity.ok(LocationResponse.from(location));
     }
 
     /**

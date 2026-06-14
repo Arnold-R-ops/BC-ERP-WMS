@@ -114,6 +114,7 @@ class SalesSubmissionServiceTest {
         request.setItems(List.of(itemData));
 
         doNothing().when(customerService).validateCustomerActive(1L);
+        when(customerService.getCustomerName(1L)).thenReturn("Test Customer");
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> {
@@ -134,6 +135,7 @@ class SalesSubmissionServiceTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(response.getApplicantName()).isEqualTo("Test User");
+        assertThat(response.getCustomerName()).isEqualTo("Test Customer");
 
         verify(salesOrderRepository, atLeastOnce()).save(any(SalesOrder.class));
         verify(salesOrderItemRepository).saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList());

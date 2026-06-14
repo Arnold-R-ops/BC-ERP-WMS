@@ -9,6 +9,7 @@ import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.service.PermissionCacheService;
+import com.wms.system.service.UserManagementService;
 import com.wms.system.service.UserRoleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,6 +68,9 @@ class UserControllerTest {
 
     @Mock
     private PermissionCacheService cacheService;
+
+    @Mock
+    private UserManagementService userManagementService;
 
     @InjectMocks
     private UserController userController;
@@ -347,36 +351,32 @@ class UserControllerTest {
     @DisplayName("case-11")
     void deleteUser_Success() {
         // Given
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        doNothing().when(userRoleRepository).deleteByUserId(1L);
-        doNothing().when(userRepository).delete(testUser);
-        doNothing().when(cacheService).onUserDeleted(1L);
+        doNothing().when(userManagementService).deleteUser(1L, 0L);
 
         // When
-        ResponseEntity<Void> response = userController.deleteUser(1L);
+        ResponseEntity<Void> response = userController.deleteUser(1L, null);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        verify(userRepository).findById(1L);
-        verify(userRoleRepository).deleteByUserId(1L);
-        verify(userRepository).delete(testUser);
-        verify(cacheService).onUserDeleted(1L);
+        verify(userManagementService).deleteUser(1L, 0L);
     }
 
     @Test
     @DisplayName("case-12")
     void deleteUser_UserNotFound() {
         // Given
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        doThrow(new BusinessException(
+                ErrorKeys.USER_NOT_FOUND,
+                Map.of("userId", 999L)
+        )).when(userManagementService).deleteUser(999L, 0L);
 
         // When & Then
-        assertThatThrownBy(() -> userController.deleteUser(999L))
+        assertThatThrownBy(() -> userController.deleteUser(999L, null))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NOT_FOUND);
 
-        verify(userRepository).findById(999L);
-        verify(userRepository, never()).delete(any(User.class));
+        verify(userManagementService).deleteUser(999L, 0L);
     }
 
     // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥ鍡楀箹妞ゃ儲顨婂娲箵閹烘梻顔囬梺鎼炲妼闁帮綁寮绘繝鍌ゅ悑闁割偒鍋呴崑銉╂⒑?==========
