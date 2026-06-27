@@ -76,4 +76,16 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
            "WHERE item.purchaseOrder.id = :purchaseOrderId " +
            "AND item.receivedQuantity = 0")
     List<PurchaseOrderItem> findUnreceivedItems(@Param("purchaseOrderId") Long purchaseOrderId);
+
+    @Query("""
+        SELECT item
+        FROM PurchaseOrderItem item
+        JOIN item.purchaseOrder po
+        WHERE item.product.id = :productId
+          AND po.status IN (com.wms.system.entity.enums.PurchaseOrderStatus.IN_TRANSIT,
+                            com.wms.system.entity.enums.PurchaseOrderStatus.PARTIALLY_RECEIVED)
+          AND item.orderedQuantity > item.receivedQuantity
+        ORDER BY po.expectedDate ASC, po.id ASC, item.id ASC
+        """)
+    List<PurchaseOrderItem> findAtpSupplyByProduct(@Param("productId") Long productId);
 }

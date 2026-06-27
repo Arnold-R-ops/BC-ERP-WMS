@@ -3,6 +3,8 @@ package com.wms.system.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.entity.*;
+import com.wms.system.entity.enums.AllocationPolicy;
+import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -65,6 +67,8 @@ public class AllocationService {
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductRepository productRepository;
     private final OutboundTaskRepository outboundTaskRepository;
+    private final InventoryReservationRepository inventoryReservationRepository;
+    private final BackorderService backorderService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -95,6 +99,13 @@ public class AllocationService {
         log.info("📋 Sales order found: orderNo={}, customerId={}, status={}",
             salesOrder.getOrderNo(), salesOrder.getCustomerId(), salesOrder.getStatus());
 
+        List<OutboundTask> existingTasks = outboundTaskRepository.findBySalesOrderId(salesOrderId);
+        if (!existingTasks.isEmpty()) {
+            log.info("Allocation already exists for sales order: salesOrderId={}, taskCount={}",
+                salesOrderId, existingTasks.size());
+            return existingTasks;
+        }
+
         // 2. Query all order items
         List<SalesOrderItem> orderItems = salesOrderItemRepository.findBySalesOrderId(salesOrderId);
 
@@ -112,13 +123,32 @@ public class AllocationService {
             log.info("🔄 Allocating order item: itemId={}, productId={}, quantity={}",
                 item.getId(), item.getProductId(), item.getQuantity());
 
-            List<OutboundTask> itemTasks = allocateOrderItem(item);
+            List<OutboundTask> itemTasks = allocateOrderItem(item, salesOrder);
             allTasks.addAll(itemTasks);
+
+            int allocatedQty = itemTasks.stream().mapToInt(OutboundTask::getPlanQty).sum();
+            item.setRequestedQty(item.getQuantity());
+            item.setAllocatedQty(allocatedQty);
+            item.setBackorderQty(Math.max(0, item.getQuantity() - allocatedQty));
+            item.setFulfillmentStatus(resolveItemFulfillmentStatus(allocatedQty, item.getBackorderQty()));
+            salesOrderItemRepository.save(item);
 
             log.info("✅ Order item allocated: itemId={}, tasksGenerated={}", item.getId(), itemTasks.size());
         }
 
         log.info("✅ Intelligent allocation completed: salesOrderId={}, totalTasks={}", salesOrderId, allTasks.size());
+
+        boolean hasBackorder = orderItems.stream()
+            .anyMatch(item -> item.getBackorderQty() != null && item.getBackorderQty() > 0);
+        boolean hasAllocation = allTasks.stream().anyMatch(task -> task.getPlanQty() != null && task.getPlanQty() > 0);
+        salesOrder.setFulfillmentStatus(hasBackorder
+            ? (hasAllocation ? FulfillmentStatus.PARTIALLY_ALLOCATED : FulfillmentStatus.WAITING_INBOUND)
+            : FulfillmentStatus.RESERVED);
+        salesOrder.setShortageReason(hasBackorder ? "Some quantities are waiting for inventory." : null);
+        salesOrder.setFulfillmentVersion(
+            salesOrder.getFulfillmentVersion() == null ? 1L : salesOrder.getFulfillmentVersion() + 1
+        );
+        salesOrderRepository.save(salesOrder);
 
         return allTasks;
     }
@@ -138,7 +168,7 @@ public class AllocationService {
      * @return List<OutboundTask> Generated outbound tasks
      * @throws BusinessException if product not found or insufficient stock
      */
-    private List<OutboundTask> allocateOrderItem(SalesOrderItem item) {
+    private List<OutboundTask> allocateOrderItem(SalesOrderItem item, SalesOrder salesOrder) {
         log.debug("📊 Starting allocation for item: itemId={}, productId={}, quantity={}",
             item.getId(), item.getProductId(), item.getQuantity());
 
@@ -169,10 +199,14 @@ public class AllocationService {
 
         // 4. Check stock sufficiency
         int totalAvailable = availableBatches.stream()
-            .mapToInt(InventoryBatch::getQuantity)
+            .mapToInt(InventoryBatch::getAvailableQuantity)
             .sum();
 
-        if (totalAvailable < item.getQuantity()) {
+        AllocationPolicy policy = salesOrder.getAllocationPolicy() == null
+            ? AllocationPolicy.FULL_ONLY
+            : salesOrder.getAllocationPolicy();
+
+        if (totalAvailable < item.getQuantity() && policy == AllocationPolicy.FULL_ONLY) {
             log.error("❌ Insufficient stock: productId={}, requested={}, available={}, shortage={}",
                 item.getProductId(), item.getQuantity(), totalAvailable, item.getQuantity() - totalAvailable);
 
@@ -188,8 +222,32 @@ public class AllocationService {
             );
         }
 
+        if (totalAvailable < item.getQuantity() && policy == AllocationPolicy.WAIT_FOR_COMPLETE) {
+            backorderService.createBackorder(item, item.getQuantity(), 100, salesOrder.getPromisedShipDate());
+            return new ArrayList<>();
+        }
+
+        if (totalAvailable < item.getQuantity() && policy == AllocationPolicy.PARTIAL_BACKORDER) {
+            int allocatableQty = Math.max(0, totalAvailable);
+            List<OutboundTask> tasks = allocatableQty == 0
+                ? new ArrayList<>()
+                : allocateFromBatchesUpTo(item, availableBatches, allocatableQty);
+            backorderService.createBackorder(item, item.getQuantity() - allocatableQty, 100, salesOrder.getPromisedShipDate());
+            return tasks;
+        }
+
         List<BatchAllocation> allocationPlan = planPackAwareAllocation(item, product, availableBatches);
         return createOutboundTasks(item, allocationPlan);
+    }
+
+    private FulfillmentStatus resolveItemFulfillmentStatus(int allocatedQty, int backorderQty) {
+        if (backorderQty > 0 && allocatedQty > 0) {
+            return FulfillmentStatus.PARTIALLY_ALLOCATED;
+        }
+        if (backorderQty > 0) {
+            return FulfillmentStatus.WAITING_INBOUND;
+        }
+        return FulfillmentStatus.RESERVED;
     }
 
     /**
@@ -214,7 +272,7 @@ public class AllocationService {
 
         Map<Long, Integer> remainingByBatch = new LinkedHashMap<>();
         for (InventoryBatch batch : fefoBatches) {
-            remainingByBatch.put(batch.getId(), batch.getQuantity());
+            remainingByBatch.put(batch.getId(), batch.getAvailableQuantity());
         }
 
         Map<Long, BatchAllocation> allocations = new LinkedHashMap<>();
@@ -352,21 +410,43 @@ public class AllocationService {
         List<OutboundTask> tasks = new ArrayList<>();
         for (BatchAllocation allocation : allocationPlan) {
             InventoryBatch batch = allocation.batch();
-            OutboundTask task = OutboundTask.builder()
-                .salesOrderId(item.getSalesOrderId())
-                .salesOrderItemId(item.getId())
-                .assignedBatchId(batch.getId())
-                .locationId(batch.getLocation().getId())
-                .planQty(allocation.quantity())
-                .actualQty(0)
-                .status(OutboundTaskStatus.PENDING)
-                .remark(String.format("Allocated from batch %s (expiry: %s)",
-                    batch.getBatchCode(), batch.getExpiryDate()))
-                .build();
-
-            tasks.add(outboundTaskRepository.save(task));
+            tasks.add(reserveAndCreateTask(item, batch, allocation.quantity()));
         }
         return tasks;
+    }
+
+    private OutboundTask reserveAndCreateTask(SalesOrderItem item, InventoryBatch batch, int quantity) {
+        batch.reserveQuantity(quantity);
+        InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
+
+        InventoryReservation reservation = InventoryReservation.builder()
+            .salesOrderId(item.getSalesOrderId())
+            .salesOrderItemId(item.getId())
+            .inventoryBatchId(savedBatch.getId())
+            .productId(item.getProductId())
+            .locationId(savedBatch.getLocation().getId())
+            .reservedQty(quantity)
+            .sourceType("SALES_ORDER")
+            .build();
+        reservation = inventoryReservationRepository.save(reservation);
+
+        OutboundTask task = OutboundTask.builder()
+            .salesOrderId(item.getSalesOrderId())
+            .salesOrderItemId(item.getId())
+            .assignedBatchId(savedBatch.getId())
+            .reservationId(reservation.getId())
+            .locationId(savedBatch.getLocation().getId())
+            .planQty(quantity)
+            .actualQty(0)
+            .status(OutboundTaskStatus.PENDING)
+            .remark(String.format("Reserved from batch %s (expiry: %s)",
+                savedBatch.getBatchCode(), savedBatch.getExpiryDate()))
+            .build();
+
+        OutboundTask savedTask = outboundTaskRepository.save(task);
+        log.info("Outbound task and reservation created: taskId={}, reservationId={}, batchCode={}, planQty={}",
+            savedTask.getId(), reservation.getId(), savedBatch.getBatchCode(), quantity);
+        return savedTask;
     }
 
     /**
@@ -418,15 +498,15 @@ public class AllocationService {
                 );
             }
 
-            if (batch.getQuantity() <= 0) {
+            if (batch.getAvailableQuantity() <= 0) {
                 log.error("❌ Specified batch has no stock: batchId={}, batchCode={}, quantity={}",
-                    batchId, batch.getBatchCode(), batch.getQuantity());
+                    batchId, batch.getBatchCode(), batch.getAvailableQuantity());
                 throw new BusinessException(
                     ErrorKeys.BATCH_STOCK_INSUFFICIENT,
                     Map.of(
                         "batchId", batchId,
                         "batchCode", batch.getBatchCode(),
-                        "availableQuantity", batch.getQuantity()
+                        "availableQuantity", batch.getAvailableQuantity()
                     )
                 );
             }
@@ -450,7 +530,7 @@ public class AllocationService {
 
         // 3. Check stock sufficiency
         int totalAvailable = specifiedBatches.stream()
-            .mapToInt(InventoryBatch::getQuantity)
+            .mapToInt(InventoryBatch::getAvailableQuantity)
             .sum();
 
         if (totalAvailable < item.getQuantity()) {
@@ -508,25 +588,12 @@ public class AllocationService {
             }
 
             // Calculate allocation for this batch
-            int toAllocate = Math.min(remaining, batch.getQuantity());
+            int toAllocate = Math.min(remaining, batch.getAvailableQuantity());
 
             log.debug("📦 Allocating from batch: batchCode={}, batchQty={}, toAllocate={}, expiryDate={}",
                 batch.getBatchCode(), batch.getQuantity(), toAllocate, batch.getExpiryDate());
 
-            // Generate outbound task
-            OutboundTask task = OutboundTask.builder()
-                .salesOrderId(item.getSalesOrderId())
-                .salesOrderItemId(item.getId())
-                .assignedBatchId(batch.getId())
-                .locationId(batch.getLocation().getId())
-                .planQty(toAllocate)
-                .actualQty(0)
-                .status(OutboundTaskStatus.PENDING)
-                .remark(String.format("Allocated from batch %s (expiry: %s)",
-                    batch.getBatchCode(), batch.getExpiryDate()))
-                .build();
-
-            OutboundTask savedTask = outboundTaskRepository.save(task);
+            OutboundTask savedTask = reserveAndCreateTask(item, batch, toAllocate);
             tasks.add(savedTask);
 
             log.info("✅ Outbound task created: taskId={}, batchCode={}, planQty={}, locationId={}",
@@ -551,6 +618,33 @@ public class AllocationService {
         }
 
         log.info("✅ FEFO allocation completed: itemId={}, tasksGenerated={}", item.getId(), tasks.size());
+
+        return tasks;
+    }
+
+    private List<OutboundTask> allocateFromBatchesUpTo(
+        SalesOrderItem item,
+        List<InventoryBatch> sortedBatches,
+        int requestedQty
+    ) {
+        List<OutboundTask> tasks = new ArrayList<>();
+        int remaining = requestedQty;
+
+        List<InventoryBatch> fefoBatches = sortedBatches.stream()
+            .sorted(Comparator.comparing(InventoryBatch::getExpiryDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .collect(Collectors.toList());
+
+        for (InventoryBatch batch : fefoBatches) {
+            if (remaining <= 0) {
+                break;
+            }
+            int toAllocate = Math.min(remaining, batch.getAvailableQuantity());
+            if (toAllocate <= 0) {
+                continue;
+            }
+            tasks.add(reserveAndCreateTask(item, batch, toAllocate));
+            remaining -= toAllocate;
+        }
 
         return tasks;
     }
@@ -583,7 +677,7 @@ public class AllocationService {
 
         // Filter out batches with quantity = 0
         batches = batches.stream()
-            .filter(batch -> batch.getQuantity() > 0)
+            .filter(batch -> batch.getAvailableQuantity() > 0)
             .collect(Collectors.toList());
 
         // Filter out near-expiry batches if needed

@@ -46,9 +46,12 @@ import java.util.List;
 @Table(
     name = "product_spu",
     indexes = {
-        @Index(name = "idx_spu_code", columnList = "spu_code", unique = true),
+        @Index(name = "idx_spu_code", columnList = "spu_code"),
         @Index(name = "idx_spu_name", columnList = "spu_name"),
         @Index(name = "idx_spu_category", columnList = "category")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_product_spu_company_code", columnNames = {"company_id", "spu_code"})
     }
 )
 @Getter
@@ -77,7 +80,7 @@ public class ProductSpu extends BaseEntity {
      */
     @NotBlank(message = "SPU 编码不能为空")
     @Size(max = 50, message = "SPU 编码长度不能超过 50 个字符")
-    @Column(name = "spu_code", nullable = false, unique = true, length = 50)
+    @Column(name = "spu_code", nullable = false, length = 50)
     private String spuCode;
 
     /**

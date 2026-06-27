@@ -49,7 +49,7 @@ import lombok.*;
     },
     uniqueConstraints = {
         // 确保同一个库位只能存储一个商品的一个批次（当前不考虑批次，所以一个库位一个商品）
-        @UniqueConstraint(name = "uk_product_location", columnNames = {"product_id", "location_id"})
+        @UniqueConstraint(name = "uk_inventory_company_product_location", columnNames = {"company_id", "product_id", "location_id"})
     }
 )
 public class Inventory extends BaseEntity {

@@ -87,7 +87,7 @@ public class StockPredictionController {
      */
     @GetMapping("/reorder/{productId}")
     public ResponseEntity<ReorderSuggestion> getReorderSuggestion(
-        @PathVariable Long productId,
+        @PathVariable("productId") Long productId,
         @RequestParam(name = "days", defaultValue = "30") Integer days
     ) {
         log.info("API: Get reorder suggestion - productId={}, calculationPeriod={} days",

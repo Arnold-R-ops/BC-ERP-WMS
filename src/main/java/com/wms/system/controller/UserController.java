@@ -72,7 +72,7 @@ public class UserController {
     private final UserManagementService userManagementService;
 
     /**
-     * ⭐ Get All Users
+     * 猸?Get All Users
      *
      * Returns list of all users with their assigned roles.
      *
@@ -88,7 +88,7 @@ public class UserController {
      *     "displayName": "System Administrator",
      *     "enabled": true,
      *     "roleCodes": ["SUPER_ADMIN"],
-     *     "roleNames": ["超级管理员"],
+     *     "roleNames": ["瓒呯骇绠＄悊鍛?],
      *     "defaultRoleCode": "SUPER_ADMIN",
      *     "createdAt": "2026-01-10T10:00:00",
      *     "updatedAt": "2026-01-20T10:00:00",
@@ -115,7 +115,7 @@ public class UserController {
     }
 
     /**
-     * ⭐ Create New User
+     * 猸?Create New User
      *
      * Creates a new user account with initial role assignments.
      *
@@ -201,7 +201,7 @@ public class UserController {
     }
 
     /**
-     * ⭐ Update User
+     * 猸?Update User
      *
      * Updates user information (display name, enabled status, default role, remark).
      *
@@ -232,7 +232,7 @@ public class UserController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<UserWithRolesDTO> updateUser(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody UpdateUserRequest request
     ) {
         log.info("Updating user: userId={}", id);
@@ -304,7 +304,7 @@ public class UserController {
     }
 
     /**
-     * ⭐ Delete User
+     * 猸?Delete User
      *
      * Deletes a user account and all role assignments.
      *
@@ -321,7 +321,7 @@ public class UserController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         Authentication authentication
     ) {
         log.info("Deleting user: userId={}", id);
@@ -337,7 +337,7 @@ public class UserController {
     }
 
     /**
-     * ⭐ Assign Roles to User (Batch)
+     * 猸?Assign Roles to User (Batch)
      *
      * Replaces all existing role assignments with new ones.
      *
@@ -364,7 +364,7 @@ public class UserController {
      */
     @PostMapping("/{id}/roles")
     public ResponseEntity<UserWithRolesDTO> assignRoles(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody AssignRolesRequest request
     ) {
         log.info("Assigning roles to user: userId={}, roleCount={}", id, request.getRoleIds().size());
@@ -416,7 +416,7 @@ public class UserController {
     }
 
     /**
-     * ⭐ Remove Role from User
+     * 猸?Remove Role from User
      *
      * Removes a single role assignment from user.
      *
@@ -437,8 +437,8 @@ public class UserController {
      */
     @DeleteMapping("/{id}/roles/{roleId}")
     public ResponseEntity<Void> removeRole(
-        @PathVariable Long id,
-        @PathVariable Long roleId
+        @PathVariable("id") Long id,
+        @PathVariable("roleId") Long roleId
     ) {
         log.info("Removing role from user: userId={}, roleId={}", id, roleId);
 
@@ -522,7 +522,11 @@ public class UserController {
         // Load user roles
         List<SysRole> userRoles = userRoleService.getUserRoles(user.getId());
 
-        // Extract role codes and names
+        // Extract role IDs, codes and names
+        List<Long> roleIds = userRoles.stream()
+            .map(SysRole::getId)
+            .collect(Collectors.toList());
+
         List<String> roleCodes = userRoles.stream()
             .map(SysRole::getRoleCode)
             .collect(Collectors.toList());
@@ -544,6 +548,7 @@ public class UserController {
             .username(user.getUsername())
             .displayName(user.getDisplayName())
             .enabled(user.getEnabled())
+            .roleIds(roleIds)
             .roleCodes(roleCodes)
             .roleNames(roleNames)
             .defaultRoleCode(defaultRoleCode)

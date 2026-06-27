@@ -49,7 +49,7 @@ public class InventoryQueryController {
     @GetMapping("/summary")
     public ResponseEntity<Page<InventorySummaryDto>> getSummary(
         @PageableDefault(size = 20, page = 0) Pageable pageable,
-        @RequestParam(required = false) String search
+        @RequestParam(value = "search", required = false) String search
     ) {
         Page<InventorySummaryDto> result = inventoryQueryService.getSummary(pageable, search);
         return ResponseEntity.ok(result);
@@ -68,7 +68,7 @@ public class InventoryQueryController {
      */
     @GetMapping("/details/{skuId}")
     public ResponseEntity<List<InventoryDetailDto>> getDetails(
-        @PathVariable Long skuId
+        @PathVariable("skuId") Long skuId
     ) {
         List<InventoryDetailDto> result = inventoryQueryService.getDetailsBySkuId(skuId);
         return ResponseEntity.ok(result);
@@ -86,7 +86,7 @@ public class InventoryQueryController {
      */
     @GetMapping("/location/{locationCode}")
     public ResponseEntity<LocationViewDto> getLocationView(
-        @PathVariable String locationCode
+        @PathVariable("locationCode") String locationCode
     ) {
         LocationViewDto result = inventoryQueryService.getLocationView(locationCode);
         return ResponseEntity.ok(result);

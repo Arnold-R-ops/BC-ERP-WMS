@@ -38,7 +38,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_user_role_role", columnList = "role_id")
     },
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_user_role", columnNames = {"user_id", "role_id"})
+        @UniqueConstraint(name = "uk_sys_user_role_company_user_role", columnNames = {"company_id", "user_id", "role_id"})
     }
 )
 public class SysUserRole {
@@ -49,6 +49,13 @@ public class SysUserRole {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * SaaS tenant placeholder. Current single-company deployment always uses 1.
+     */
+    @Column(name = "company_id", nullable = false)
+    @Builder.Default
+    private Long companyId = 1L;
 
     /**
      * User ID (foreign key to users table)

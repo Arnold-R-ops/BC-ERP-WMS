@@ -34,7 +34,8 @@ import lombok.*;
         @Index(name = "idx_shelf_position", columnList = "shelfNumber, positionNumber")
     },
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_location", columnNames = {"warehouseCode", "zone", "shelfNumber", "positionNumber"})
+        @UniqueConstraint(name = "uk_location", columnNames = {"company_id", "warehouseCode", "zone", "shelfNumber", "positionNumber"}),
+        @UniqueConstraint(name = "uk_locations_company_location_code", columnNames = {"company_id", "locationCode"})
     }
 )
 public class Location extends BaseEntity {
@@ -112,7 +113,7 @@ public class Location extends BaseEntity {
      * 技术实现：
      * - 在保存实体前自动生成（通过 @PrePersist / @PreUpdate�?     * - 或者通过数据库触发器生成
      */
-    @Column(unique = true, length = 100)
+    @Column(length = 100)
     private String locationCode;
 
     /**

@@ -42,6 +42,9 @@ import java.util.List;
         @Index(name = "idx_inbound_supplier", columnList = "supplier_id"),
         @Index(name = "idx_inbound_applicant", columnList = "applicant_id"),
         @Index(name = "idx_inbound_created_at", columnList = "created_at")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_inbound_orders_company_order_no", columnNames = {"company_id", "order_no"})
     }
 )
 public class InboundOrder extends BaseEntity {
@@ -55,7 +58,7 @@ public class InboundOrder extends BaseEntity {
      */
     @NotBlank(message = "入库单号不能为空")
     @Size(max = 30, message = "入库单号长度不能超过30")
-    @Column(name = "order_no", nullable = false, unique = true, length = 30)
+    @Column(name = "order_no", nullable = false, length = 30)
     private String orderNo;
 
     /**

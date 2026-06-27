@@ -39,7 +39,10 @@ import java.util.Set;
     name = "sys_role",
     indexes = {
         @Index(name = "idx_role_type_status", columnList = "role_type,status"),
-        @Index(name = "idx_role_code", columnList = "role_code", unique = true)
+        @Index(name = "idx_role_code", columnList = "role_code")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_sys_role_company_code", columnNames = {"company_id", "role_code"})
     }
 )
 public class SysRole extends BaseEntity {
@@ -57,7 +60,7 @@ public class SysRole extends BaseEntity {
      */
     @NotBlank(message = "Role code cannot be blank")
     @Size(max = 50, message = "Role code must not exceed 50 characters")
-    @Column(name = "role_code", nullable = false, unique = true, length = 50)
+    @Column(name = "role_code", nullable = false, length = 50)
     private String roleCode;
 
     /**

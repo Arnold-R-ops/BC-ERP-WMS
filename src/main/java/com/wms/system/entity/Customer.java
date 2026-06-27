@@ -44,9 +44,12 @@ import java.math.BigDecimal;
 @Table(
     name = "customers",
     indexes = {
-        @Index(name = "idx_customer_code", columnList = "code", unique = true),
+        @Index(name = "idx_customer_code", columnList = "code"),
         @Index(name = "idx_customer_active", columnList = "is_active"),
         @Index(name = "idx_customer_owner", columnList = "owner_id")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_customers_company_code", columnNames = {"company_id", "code"})
     }
 )
 public class Customer extends BaseEntity {
@@ -71,7 +74,7 @@ public class Customer extends BaseEntity {
      */
     @NotBlank(message = "客户编码不能为空")
     @Size(max = 50, message = "客户编码长度不能超过 50 个字符")
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, length = 50)
     private String code;
 
     /**

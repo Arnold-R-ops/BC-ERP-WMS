@@ -10,22 +10,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 仓库管理控制器
- *
- * 提供仓库的 CRUD 操作接口
- *
- * Phase 3.4 新增：
- * - 支持多仓库管理
- * - 提供仓库主数据维护功能
- *
- * @author WMS Team
- * @since 2025-01-23 (Phase 3.4)
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/warehouses")
@@ -35,64 +30,36 @@ public class WarehouseController {
 
     private final WarehouseService warehouseService;
 
-    /**
-     * 获取所有仓库
-     *
-     * @return 仓库列表
-     */
     @GetMapping
-    public ResponseEntity<List<Warehouse>> getAllWarehouses() {
+    public ResponseEntity<List<WarehouseResponse>> getAllWarehouses() {
         log.info("Getting all warehouses");
         List<Warehouse> warehouses = warehouseService.getAllWarehouses();
-        return ResponseEntity.ok(warehouses);
+        return ResponseEntity.ok(warehouses.stream().map(this::toResponse).toList());
     }
 
-    /**
-     * 获取所有激活的仓库
-     *
-     * @return 激活的仓库列表
-     */
     @GetMapping("/active")
-    public ResponseEntity<List<Warehouse>> getAllActiveWarehouses() {
+    public ResponseEntity<List<WarehouseResponse>> getAllActiveWarehouses() {
         log.info("Getting all active warehouses");
         List<Warehouse> warehouses = warehouseService.getAllActiveWarehouses();
-        return ResponseEntity.ok(warehouses);
+        return ResponseEntity.ok(warehouses.stream().map(this::toResponse).toList());
     }
 
-    /**
-     * 根据ID获取仓库
-     *
-     * @param id 仓库ID
-     * @return 仓库信息
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<Warehouse> getWarehouseById(@PathVariable Long id) {
+    public ResponseEntity<WarehouseResponse> getWarehouseById(@PathVariable("id") Long id) {
         log.info("Getting warehouse by id: {}", id);
         Warehouse warehouse = warehouseService.getWarehouseById(id);
-        return ResponseEntity.ok(warehouse);
+        return ResponseEntity.ok(toResponse(warehouse));
     }
 
-    /**
-     * 根据编码获取仓库
-     *
-     * @param code 仓库编码
-     * @return 仓库信息
-     */
     @GetMapping("/code/{code}")
-    public ResponseEntity<Warehouse> getWarehouseByCode(@PathVariable String code) {
+    public ResponseEntity<WarehouseResponse> getWarehouseByCode(@PathVariable("code") String code) {
         log.info("Getting warehouse by code: {}", code);
         Warehouse warehouse = warehouseService.getWarehouseByCode(code);
-        return ResponseEntity.ok(warehouse);
+        return ResponseEntity.ok(toResponse(warehouse));
     }
 
-    /**
-     * 创建仓库
-     *
-     * @param request 创建仓库请求
-     * @return 创建的仓库信息
-     */
     @PostMapping
-    public ResponseEntity<Warehouse> createWarehouse(@RequestBody @Validated CreateWarehouseRequest request) {
+    public ResponseEntity<WarehouseResponse> createWarehouse(@RequestBody @Validated CreateWarehouseRequest request) {
         log.info("Creating warehouse: code={}, name={}", request.code, request.name);
         Warehouse warehouse = warehouseService.createWarehouse(
                 request.code,
@@ -101,19 +68,12 @@ public class WarehouseController {
                 request.contact,
                 request.phone
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(warehouse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(warehouse));
     }
 
-    /**
-     * 更新仓库信息
-     *
-     * @param id 仓库ID
-     * @param request 更新仓库请求
-     * @return 更新后的仓库信息
-     */
     @PutMapping("/{id}")
-    public ResponseEntity<Warehouse> updateWarehouse(
-            @PathVariable Long id,
+    public ResponseEntity<WarehouseResponse> updateWarehouse(
+            @PathVariable("id") Long id,
             @RequestBody @Validated UpdateWarehouseRequest request) {
         log.info("Updating warehouse: id={}", id);
         Warehouse warehouse = warehouseService.updateWarehouse(
@@ -122,81 +82,88 @@ public class WarehouseController {
                 request.address,
                 request.contact
         );
-        return ResponseEntity.ok(warehouse);
+        return ResponseEntity.ok(toResponse(warehouse));
     }
 
-    /**
-     * 激活仓库
-     *
-     * @param id 仓库ID
-     * @return 更新后的仓库信息
-     */
     @PutMapping("/{id}/activate")
-    public ResponseEntity<Warehouse> activateWarehouse(@PathVariable Long id) {
+    public ResponseEntity<WarehouseResponse> activateWarehouse(@PathVariable("id") Long id) {
         log.info("Activating warehouse: id={}", id);
         Warehouse warehouse = warehouseService.activateWarehouse(id);
-        return ResponseEntity.ok(warehouse);
+        return ResponseEntity.ok(toResponse(warehouse));
     }
 
-    /**
-     * 停用仓库
-     *
-     * @param id 仓库ID
-     * @return 更新后的仓库信息
-     */
     @PutMapping("/{id}/deactivate")
-    public ResponseEntity<Warehouse> deactivateWarehouse(@PathVariable Long id) {
+    public ResponseEntity<WarehouseResponse> deactivateWarehouse(@PathVariable("id") Long id) {
         log.info("Deactivating warehouse: id={}", id);
         Warehouse warehouse = warehouseService.deactivateWarehouse(id);
-        return ResponseEntity.ok(warehouse);
+        return ResponseEntity.ok(toResponse(warehouse));
     }
 
-    /**
-     * 获取仓库的库位数量
-     *
-     * @param id 仓库ID
-     * @return 库位数量
-     */
     @GetMapping("/{id}/location-count")
-    public ResponseEntity<Long> getLocationCount(@PathVariable Long id) {
+    public ResponseEntity<Long> getLocationCount(@PathVariable("id") Long id) {
         log.info("Getting location count for warehouse: id={}", id);
         long count = warehouseService.getLocationCount(id);
         return ResponseEntity.ok(count);
     }
 
-    /**
-     * 创建仓库请求 DTO
-     */
+    private WarehouseResponse toResponse(Warehouse warehouse) {
+        Long locationCount = warehouse.getId() == null ? 0L : warehouseService.getLocationCount(warehouse.getId());
+        return new WarehouseResponse(
+                warehouse.getCompanyId(),
+                warehouse.getCreatedAt(),
+                warehouse.getUpdatedAt(),
+                warehouse.getId(),
+                warehouse.getCode(),
+                warehouse.getName(),
+                warehouse.getAddress(),
+                warehouse.getContact(),
+                warehouse.getPhone(),
+                warehouse.getIsActive(),
+                locationCount
+        );
+    }
+
+    public record WarehouseResponse(
+            Long companyId,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            Long id,
+            String code,
+            String name,
+            String address,
+            String contact,
+            String phone,
+            Boolean isActive,
+            Long locationCount
+    ) {}
+
     public record CreateWarehouseRequest(
-            @NotBlank(message = "仓库编码不能为空")
-            @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "仓库编码格式不正确（长度2-20）")
+            @NotBlank(message = "warehouse code is required")
+            @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "warehouse code format is invalid")
             String code,
 
-            @NotBlank(message = "仓库名称不能为空")
-            @Size(max = 100, message = "仓库名称长度不能超过100个字符")
+            @NotBlank(message = "warehouse name is required")
+            @Size(max = 100, message = "warehouse name must be at most 100 characters")
             String name,
 
-            @Size(max = 255, message = "仓库地址长度不能超过255个字符")
+            @Size(max = 255, message = "warehouse address must be at most 255 characters")
             String address,
 
-            @Size(max = 50, message = "联系方式长度不能超过50个字符")
+            @Size(max = 50, message = "warehouse contact must be at most 50 characters")
             String contact,
 
-            @Size(max = 20, message = "联系电话长度不能超过20个字符")
+            @Size(max = 20, message = "warehouse phone must be at most 20 characters")
             String phone
     ) {}
 
-    /**
-     * 更新仓库请求 DTO
-     */
     public record UpdateWarehouseRequest(
-            @Size(max = 100, message = "仓库名称长度不能超过100个字符")
+            @Size(max = 100, message = "warehouse name must be at most 100 characters")
             String name,
 
-            @Size(max = 255, message = "仓库地址长度不能超过255个字符")
+            @Size(max = 255, message = "warehouse address must be at most 255 characters")
             String address,
 
-            @Size(max = 50, message = "联系方式长度不能超过50个字符")
+            @Size(max = 50, message = "warehouse contact must be at most 50 characters")
             String contact
     ) {}
 }

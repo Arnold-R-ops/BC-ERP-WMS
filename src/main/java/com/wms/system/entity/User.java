@@ -52,7 +52,10 @@ import java.time.LocalDateTime;
 @Table(
     name = "users",
     indexes = {
-        @Index(name = "idx_username", columnList = "username", unique = true)
+        @Index(name = "idx_username", columnList = "username")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_users_company_username", columnNames = {"company_id", "username"})
     }
 )
 public class User extends BaseEntity implements UserDetails {
@@ -70,7 +73,7 @@ public class User extends BaseEntity implements UserDetails {
      */
     @NotBlank(message = "Username cannot be blank")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, length = 50)
     private String username;
 
     /**

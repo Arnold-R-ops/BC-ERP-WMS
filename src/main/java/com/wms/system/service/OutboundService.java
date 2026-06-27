@@ -2,6 +2,7 @@ package com.wms.system.service;
 
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.entity.*;
+import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.entity.enums.SourceType;
@@ -63,6 +64,8 @@ public class OutboundService {
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final SalesOrderRepository salesOrderRepository;
+    private final SalesOrderItemRepository salesOrderItemRepository;
+    private final InventoryReservationRepository inventoryReservationRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
 
@@ -179,11 +182,17 @@ public class OutboundService {
             savedTask.getId(), savedTask.getStatus(), savedTask.getActualQty(),
             savedTask.getPickedBy(), savedTask.getPickedAt());
 
-        // 5. Deduct inventory
-        deductInventory(task.getAssignedBatchId(), actualQty);
+        // 5. Deduct inventory or consume the V4.5 reservation
+        if (task.getReservationId() != null) {
+            consumeReservation(task, actualQty);
+        } else {
+            deductInventory(task.getAssignedBatchId(), actualQty);
+        }
 
         // 6. Record stock transaction
         recordStockTransaction(task, actualQty, operatorId, operatorName);
+
+        updateSalesOrderItemShipment(task.getSalesOrderItemId(), actualQty);
 
         // 7. Check order completion
         checkOrderCompletion(task.getSalesOrderId());
@@ -319,6 +328,68 @@ public class OutboundService {
             savedBatch.getQuantity(), quantity, savedBatch.getActive());
     }
 
+    private void consumeReservation(OutboundTask task, Integer actualQty) {
+        InventoryReservation reservation = inventoryReservationRepository.findById(task.getReservationId())
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.INVENTORY_RESERVATION_NOT_FOUND,
+                Map.of("reservationId", task.getReservationId())
+            ));
+
+        if (!reservation.hasOpenQuantity() || reservation.getOpenQty() < actualQty) {
+            throw new BusinessException(
+                ErrorKeys.INVENTORY_RESERVATION_INVALID_STATUS,
+                Map.of(
+                    "reservationId", reservation.getId(),
+                    "status", reservation.getStatus().name(),
+                    "openQty", reservation.getOpenQty(),
+                    "requestedQty", actualQty
+                )
+            );
+        }
+
+        InventoryBatch batch = inventoryBatchRepository.findById(reservation.getInventoryBatchId())
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.BATCH_NOT_FOUND,
+                Map.of("batchId", reservation.getInventoryBatchId())
+            ));
+
+        if (!batch.getActive()) {
+            throw new BusinessException(
+                ErrorKeys.BATCH_INACTIVE,
+                Map.of("batchId", batch.getId(), "batchCode", batch.getBatchCode())
+            );
+        }
+
+        Integer quantityBefore = batch.getQuantity();
+        batch.consumeReservedQuantity(actualQty);
+        if (batch.getQuantity() == 0) {
+            batch.setActive(false);
+        }
+
+        reservation.consume(actualQty);
+        inventoryBatchRepository.save(batch);
+        inventoryReservationRepository.save(reservation);
+
+        log.info("Reservation consumed: reservationId={}, batchId={}, before={}, after={}, consumed={}, status={}",
+            reservation.getId(), batch.getId(), quantityBefore, batch.getQuantity(), actualQty,
+            reservation.getStatus());
+    }
+
+    private void updateSalesOrderItemShipment(Long salesOrderItemId, Integer actualQty) {
+        SalesOrderItem item = salesOrderItemRepository.findById(salesOrderItemId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.SALES_ORDER_ITEM_NOT_FOUND,
+                Map.of("itemId", salesOrderItemId)
+            ));
+
+        int shippedQty = (item.getShippedQty() == null ? 0 : item.getShippedQty()) + actualQty;
+        item.setShippedQty(shippedQty);
+        item.setFulfillmentStatus(shippedQty >= item.getQuantity()
+            ? FulfillmentStatus.SHIPPED
+            : FulfillmentStatus.PARTIALLY_SHIPPED);
+        salesOrderItemRepository.save(item);
+    }
+
     /**
      * Record Stock Transaction (记录库存流水)
      *
@@ -414,11 +485,23 @@ public class OutboundService {
         // 3. If all tasks completed, update order status to SHIPPED
         if (totalTasks > 0 && completedTasks == totalTasks) {
             salesOrder.setStatus(SalesOrderStatus.SHIPPED);
+            salesOrder.setFulfillmentStatus(FulfillmentStatus.SHIPPED);
+            salesOrder.setShippedAt(LocalDateTime.now());
+            salesOrder.setFulfillmentVersion(
+                salesOrder.getFulfillmentVersion() == null ? 1L : salesOrder.getFulfillmentVersion() + 1
+            );
             SalesOrder savedOrder = salesOrderRepository.save(salesOrder);
 
             log.info("Order completed and shipped: salesOrderId={}, orderNo={}, status={}",
                 savedOrder.getId(), savedOrder.getOrderNo(), savedOrder.getStatus());
         } else {
+            if (completedTasks > 0) {
+                salesOrder.setFulfillmentStatus(FulfillmentStatus.PARTIALLY_SHIPPED);
+                salesOrder.setFulfillmentVersion(
+                    salesOrder.getFulfillmentVersion() == null ? 1L : salesOrder.getFulfillmentVersion() + 1
+                );
+                salesOrderRepository.save(salesOrder);
+            }
             log.info("Order not yet completed: salesOrderId={}, remaining tasks={}",
                 salesOrderId, totalTasks - completedTasks);
         }
@@ -453,6 +536,7 @@ public class OutboundService {
             .salesOrderNo(salesOrder.getOrderNo())
             .salesOrderItemId(task.getSalesOrderItemId())
             .assignedBatchId(task.getAssignedBatchId())
+            .reservationId(task.getReservationId())
             .batchCode(batch.getBatchCode())
             .locationId(task.getLocationId())
             .locationCode(location.getLocationCode())

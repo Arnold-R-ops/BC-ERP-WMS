@@ -48,6 +48,8 @@ public class InboundOrderService {
     private final StockTransactionRepository stockTransactionRepository;
     private final SpuSkuDateBatchCodeGenerator batchCodeGenerator;
     private final UserRepository userRepository;
+    private final DomainOutboxService domainOutboxService;
+    private final BackorderService backorderService;
 
     private static final String ORDER_NO_PREFIX = "IB";
     private static final DateTimeFormatter ORDER_NO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -365,6 +367,7 @@ public class InboundOrderService {
         }
 
         // 3. 更新明细项并创建库存记录
+        Set<Long> receivedProductIds = new HashSet<>();
         for (ReceiveGoodsRequest.ItemReceipt receipt : request.getReceipts()) {
             InboundOrderItem item = order.getItems().stream()
                 .filter(i -> i.getId().equals(receipt.getItemId()))
@@ -416,6 +419,7 @@ public class InboundOrderService {
                 // 生成库存流水记录
                 createStockTransaction(item, location, receipt.getActualQty(), order.getOrderNo(),
                     quantityBefore, quantityAfter);
+                receivedProductIds.add(item.getProduct().getId());
             }
 
             log.info("Received goods for item {}: {} units to location {}",
@@ -439,6 +443,15 @@ public class InboundOrderService {
 
         log.info("Inbound order completed: {}, total actual qty: {}",
             savedOrder.getOrderNo(), savedOrder.getTotalActualQty());
+
+        for (Long productId : receivedProductIds) {
+            domainOutboxService.append("INVENTORY_AVAILABLE", "Product", productId, Map.of(
+                "productId", productId,
+                "source", "INBOUND_ORDER",
+                "orderId", savedOrder.getId()
+            ));
+            backorderService.wakeProduct(productId);
+        }
 
         return convertToResponse(savedOrder);
     }

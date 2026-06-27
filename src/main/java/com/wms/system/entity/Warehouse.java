@@ -46,6 +46,9 @@ import java.util.List;
     indexes = {
         @Index(name = "idx_warehouse_code", columnList = "code"),
         @Index(name = "idx_warehouse_active", columnList = "isActive")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_warehouses_company_code", columnNames = {"company_id", "code"})
     }
 )
 public class Warehouse extends BaseEntity {
@@ -73,7 +76,7 @@ public class Warehouse extends BaseEntity {
      */
     @NotBlank(message = "仓库编码不能为空")
     @Pattern(regexp = "^[A-Z][A-Z0-9-]{1,19}$", message = "仓库编码格式不正确（大写字母开头，可含字母、数字、短横线，长度2-20）")
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = false, length = 20)
     private String code;
 
     /**

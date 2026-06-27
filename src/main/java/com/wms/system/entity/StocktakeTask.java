@@ -40,11 +40,14 @@ import java.time.LocalDateTime;
 @Table(
     name = "stocktake_tasks",
     indexes = {
-        @Index(name = "idx_stocktake_task_no", columnList = "task_no", unique = true),
+        @Index(name = "idx_stocktake_task_no", columnList = "task_no"),
         @Index(name = "idx_stocktake_warehouse", columnList = "warehouse_id"),
         @Index(name = "idx_stocktake_status", columnList = "status"),
         @Index(name = "idx_stocktake_cycle_type", columnList = "cycle_type"),
         @Index(name = "idx_stocktake_created_at", columnList = "created_at")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_stocktake_tasks_company_task_no", columnNames = {"company_id", "task_no"})
     }
 )
 public class StocktakeTask extends BaseEntity {
@@ -66,7 +69,7 @@ public class StocktakeTask extends BaseEntity {
      */
     @NotBlank(message = "盘点任务编号不能为空")
     @Size(max = 30, message = "盘点任务编号长度不能超过 30 个字符")
-    @Column(name = "task_no", nullable = false, unique = true, length = 30)
+    @Column(name = "task_no", nullable = false, length = 30)
     private String taskNo;
 
     /**

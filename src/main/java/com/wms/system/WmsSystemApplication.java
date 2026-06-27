@@ -36,6 +36,10 @@ import java.util.TimeZone;
 @EnableTransactionManagement
 public class WmsSystemApplication {
 
+    static {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(WmsSystemApplication.class, args);
     }

@@ -6,6 +6,9 @@ import com.wms.system.dto.sales.CreateSalesOrderRequest;
 import com.wms.system.dto.sales.SalesOrderResponse;
 import com.wms.system.dto.sales.UpdateSalesOrderRequest;
 import com.wms.system.entity.*;
+import com.wms.system.entity.enums.AllocationPolicy;
+import com.wms.system.entity.enums.CommercialStatus;
+import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -67,6 +71,7 @@ public class SalesSubmissionService {
     private final ProductRepository productRepository;
     private final SystemConfigService systemConfigService;
     private final AllocationService allocationService;
+    private final InventoryReservationService inventoryReservationService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -140,6 +145,12 @@ public class SalesSubmissionService {
                 .salesOrderId(salesOrder.getId())
                 .productId(itemData.getProductId())
                 .quantity(itemData.getQuantity())
+                .requestedQty(itemData.getQuantity())
+                .allocatedQty(0)
+                .shippedQty(0)
+                .backorderQty(0)
+                .cancelledQty(0)
+                .fulfillmentStatus(FulfillmentStatus.UNALLOCATED)
                 .unitPrice(itemData.getUnitPrice())
                 .productPriceSnapshot(product.getUnitPrice())  // V4.2: 固化下单时的商品标价快照
                 .subtotal(subtotal)
@@ -204,7 +215,10 @@ public class SalesSubmissionService {
         Long orderId,
         Long managerId,
         String managerName,
-        String comment
+        String comment,
+        AllocationPolicy allocationPolicy,
+        LocalDate requestedShipDate,
+        LocalDate promisedShipDate
     ) {
         log.info("✅ Approving sales order: orderId={}, managerId={}, managerName={}",
             orderId, managerId, managerName);
@@ -235,6 +249,17 @@ public class SalesSubmissionService {
         salesOrder.setReviewedAt(LocalDateTime.now());
         salesOrder.setReviewComment(comment);
         salesOrder.setStatus(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT);
+        salesOrder.setCommercialStatus(CommercialStatus.APPROVED);
+        salesOrder.setFulfillmentStatus(FulfillmentStatus.UNALLOCATED);
+        if (allocationPolicy != null) {
+            salesOrder.setAllocationPolicy(allocationPolicy);
+        }
+        if (requestedShipDate != null) {
+            salesOrder.setRequestedShipDate(requestedShipDate);
+        }
+        if (promisedShipDate != null) {
+            salesOrder.setPromisedShipDate(promisedShipDate);
+        }
         salesOrder.setApprovedAt(LocalDateTime.now());  // V4.2: 记录经理审批通过时间
 
         // 4. Save order
@@ -306,6 +331,8 @@ public class SalesSubmissionService {
         salesOrder.setReviewedAt(LocalDateTime.now());
         salesOrder.setReviewComment(reason);
         salesOrder.setStatus(SalesOrderStatus.REJECTED);
+        salesOrder.setCommercialStatus(CommercialStatus.REJECTED);
+        salesOrder.setFulfillmentStatus(FulfillmentStatus.CANCELLED);
 
         // 4. Save order
         salesOrder = salesOrderRepository.save(salesOrder);
@@ -397,6 +424,12 @@ public class SalesSubmissionService {
                 .salesOrderId(orderId)
                 .productId(itemData.getProductId())
                 .quantity(itemData.getQuantity())
+                .requestedQty(itemData.getQuantity())
+                .allocatedQty(0)
+                .shippedQty(0)
+                .backorderQty(0)
+                .cancelledQty(0)
+                .fulfillmentStatus(FulfillmentStatus.UNALLOCATED)
                 .unitPrice(itemData.getUnitPrice())
                 .productPriceSnapshot(product.getUnitPrice())  // V4.2: 固化下单时的商品标价快照
                 .subtotal(subtotal)
@@ -530,11 +563,15 @@ public class SalesSubmissionService {
         }
 
         if (salesOrder.getStatus() == SalesOrderStatus.APPROVED_AWAITING_SHIPMENT) {
+            rejectTerminationWhenAnyTaskCompleted(orderId, "CANCEL");
             log.info("🗑️ Deleting outbound tasks to release inventory: orderId={}", orderId);
+            inventoryReservationService.releaseOpenReservationsForOrder(orderId);
             outboundTaskRepository.deleteBySalesOrderId(orderId);
         }
 
         salesOrder.setStatus(SalesOrderStatus.CANCELLED);
+        salesOrder.setCommercialStatus(CommercialStatus.CANCELLED);
+        salesOrder.setFulfillmentStatus(FulfillmentStatus.CANCELLED);
         salesOrder = salesOrderRepository.save(salesOrder);
         addAuditLog(salesOrder, "CANCEL", "User-" + operatorId, "业务取消: " + reason);
 
@@ -593,10 +630,14 @@ public class SalesSubmissionService {
         }
 
         if (salesOrder.getStatus() == SalesOrderStatus.APPROVED_AWAITING_SHIPMENT) {
+            rejectTerminationWhenAnyTaskCompleted(orderId, "VOID");
+            inventoryReservationService.releaseOpenReservationsForOrder(orderId);
             outboundTaskRepository.deleteBySalesOrderId(orderId);
         }
 
         salesOrder.setStatus(SalesOrderStatus.VOIDED);
+        salesOrder.setCommercialStatus(CommercialStatus.VOIDED);
+        salesOrder.setFulfillmentStatus(FulfillmentStatus.VOIDED);
         salesOrder = salesOrderRepository.save(salesOrder);
         addAuditLog(salesOrder, "VOID", "User-" + operatorId, "系统作废: " + reason);
 
@@ -605,6 +646,21 @@ public class SalesSubmissionService {
     }
 
     // ========== Helper Methods ==========
+
+    private void rejectTerminationWhenAnyTaskCompleted(Long orderId, String operation) {
+        long completedTasks = outboundTaskRepository.countCompletedTasksBySalesOrderId(orderId);
+        if (completedTasks > 0) {
+            throw new BusinessException(
+                ErrorKeys.SALES_ORDER_CANNOT_CANCEL,
+                Map.of(
+                    "salesOrderId", orderId,
+                    "operation", operation,
+                    "completedOutboundTasks", completedTasks,
+                    "reason", "Order already has completed outbound tasks; use return/reversal flow instead"
+                )
+            );
+        }
+    }
 
     /**
      * Generate unique order number
@@ -709,11 +765,15 @@ public class SalesSubmissionService {
         // Set status based on risk control
         if (!reviewReasons.isEmpty()) {
             order.setStatus(SalesOrderStatus.PENDING_APPROVAL);
+            order.setCommercialStatus(CommercialStatus.PENDING_APPROVAL);
+            order.setFulfillmentStatus(FulfillmentStatus.UNALLOCATED);
             order.setReviewReason(String.join("; ", reviewReasons));
             log.info("⚠️ Risk control triggered, order requires approval: orderId={}, reasons={}",
                 order.getId(), order.getReviewReason());
         } else {
             order.setStatus(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT);
+            order.setCommercialStatus(CommercialStatus.APPROVED);
+            order.setFulfillmentStatus(FulfillmentStatus.UNALLOCATED);
             order.setApprovedAt(LocalDateTime.now());  // V4.2: 记录自动审批通过时间
             log.info("✅ Risk control passed, order auto-approved: orderId={}", order.getId());
         }
@@ -752,6 +812,13 @@ public class SalesSubmissionService {
                     .productName(product != null ? product.getName() : "Unknown")
                     .productBarcode(product != null ? product.getBarcode() : "")
                     .quantity(item.getQuantity())
+                    .requestedQty(item.getRequestedQty())
+                    .allocatedQty(item.getAllocatedQty())
+                    .shippedQty(item.getShippedQty())
+                    .backorderQty(item.getBackorderQty())
+                    .cancelledQty(item.getCancelledQty())
+                    .fulfillmentStatus(item.getFulfillmentStatus() != null ? item.getFulfillmentStatus().name() : null)
+                    .fulfillmentStatusDescription(item.getFulfillmentStatus() != null ? item.getFulfillmentStatus().getDescription() : null)
                     .unitPrice(item.getUnitPrice())
                     .subtotal(item.getSubtotal())
                     .rejectNearExpiry(item.getRejectNearExpiry())
@@ -780,6 +847,15 @@ public class SalesSubmissionService {
             .totalAmount(order.getTotalAmount())
             .status(order.getStatus().name())
             .statusDescription(order.getStatus().getDescription())
+            .commercialStatus(order.getCommercialStatus() != null ? order.getCommercialStatus().name() : null)
+            .commercialStatusDescription(order.getCommercialStatus() != null ? order.getCommercialStatus().getDescription() : null)
+            .fulfillmentStatus(order.getFulfillmentStatus() != null ? order.getFulfillmentStatus().name() : null)
+            .fulfillmentStatusDescription(order.getFulfillmentStatus() != null ? order.getFulfillmentStatus().getDescription() : null)
+            .allocationPolicy(order.getAllocationPolicy() != null ? order.getAllocationPolicy().name() : null)
+            .requestedShipDate(order.getRequestedShipDate())
+            .promisedShipDate(order.getPromisedShipDate())
+            .shortageReason(order.getShortageReason())
+            .fulfillmentVersion(order.getFulfillmentVersion())
             .reviewReason(order.getReviewReason())
             .reviewedBy(order.getReviewedBy())
             .reviewedByName(order.getReviewedBy() != null ? "Manager-" + order.getReviewedBy() : null)

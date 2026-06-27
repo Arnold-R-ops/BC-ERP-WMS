@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -321,6 +323,49 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with ErrorResponse
      * @since V4.4 (Idempotency Defense)
      */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleMessageNotReadable(
+        HttpMessageNotReadableException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.VALIDATION_FAILED)
+            .params(Map.of(
+                "message", ex.getMostSpecificCause() != null
+                    ? ex.getMostSpecificCause().getMessage()
+                    : "Request body is not readable",
+                "exceptionType", ex.getClass().getSimpleName()
+            ))
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        log.warn("Request body is not readable: path={}, message={}",
+            request.getRequestURI(), ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipartException(
+        MultipartException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.VALIDATION_FAILED)
+            .params(Map.of(
+                "message", ex.getMessage() != null ? ex.getMessage() : "Invalid multipart request",
+                "exceptionType", ex.getClass().getSimpleName()
+            ))
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        log.warn("Multipart request error: path={}, message={}", request.getRequestURI(), ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
         DataIntegrityViolationException ex,
@@ -435,6 +480,7 @@ public class GlobalExceptionHandler {
             case ErrorKeys.PRODUCT_NOT_FOUND,
                  ErrorKeys.LOCATION_NOT_FOUND,
                  ErrorKeys.INVENTORY_NOT_FOUND,
+                 ErrorKeys.INVENTORY_RESERVATION_NOT_FOUND,
                  ErrorKeys.TRANSACTION_NOT_FOUND,
                  ErrorKeys.USER_NOT_FOUND,
                  ErrorKeys.SOURCE_ORDER_NOT_FOUND,
@@ -503,6 +549,11 @@ public class GlobalExceptionHandler {
                  ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,  // V3.9 Shopify Integration
                  ErrorKeys.SALES_ORDER_INVALID_STATUS,
                  ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED,
+                 ErrorKeys.INVENTORY_RESERVATION_INVALID_STATUS,
+                 ErrorKeys.STOCKTAKE_TASK_INVALID_STATUS,
+                 ErrorKeys.STOCKTAKE_TASK_CANNOT_START,
+                 ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT,
+                 ErrorKeys.STOCKTAKE_TASK_CANNOT_REVIEW,
                  ErrorKeys.ORDER_NUMBER_DUPLICATE -> HttpStatus.CONFLICT;  // V4.4 Idempotency Defense
 
             // 500 Internal Server Error

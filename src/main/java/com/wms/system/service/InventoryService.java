@@ -260,6 +260,18 @@ public class InventoryService {
         return totalStock != null ? totalStock : 0;
     }
 
+    @Transactional(readOnly = true)
+    public Integer getReservedStock(Long productId) {
+        Integer reservedStock = inventoryBatchRepository.sumReservedQuantityByProduct(productId);
+        return reservedStock != null ? reservedStock : 0;
+    }
+
+    @Transactional(readOnly = true)
+    public Integer getAvailableStock(Long productId) {
+        Integer availableStock = inventoryBatchRepository.sumAvailableQuantityByProduct(productId);
+        return availableStock != null ? availableStock : 0;
+    }
+
     /**
      * Query stock distribution for a product (which locations have stock)
      *

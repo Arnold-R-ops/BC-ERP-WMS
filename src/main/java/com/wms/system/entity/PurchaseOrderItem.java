@@ -81,6 +81,13 @@ public class PurchaseOrderItem extends BaseEntity {
     private Integer receivedQuantity = 0;
 
     /**
+     * Quantity already promised to sales backorders before physical receipt.
+     */
+    @Column(name = "committed_qty", nullable = false)
+    @Builder.Default
+    private Integer committedQty = 0;
+
+    /**
      * 单价（采购单价）
      *
      * 隐私保护: STAFF 角色返回 null
@@ -218,6 +225,20 @@ public class PurchaseOrderItem extends BaseEntity {
      */
     public Integer getRemainingQuantity() {
         return this.orderedQuantity - this.receivedQuantity;
+    }
+
+    public Integer getAvailableToPromiseQuantity() {
+        return Math.max(0, getRemainingQuantity() - (committedQty == null ? 0 : committedQty));
+    }
+
+    public void commitToPromise(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            return;
+        }
+        if (quantity > getAvailableToPromiseQuantity()) {
+            throw new IllegalArgumentException("Committed quantity exceeds ATP quantity");
+        }
+        this.committedQty = (this.committedQty == null ? 0 : this.committedQty) + quantity;
     }
 
     /**

@@ -133,6 +133,16 @@ public final class ErrorKeys {
      */
     public static final String INVENTORY_NOT_FOUND = "INVENTORY_NOT_FOUND";
 
+    /**
+     * Inventory reservation not found by ID.
+     */
+    public static final String INVENTORY_RESERVATION_NOT_FOUND = "INVENTORY_RESERVATION_NOT_FOUND";
+
+    /**
+     * Reservation is not in a status that allows the requested operation.
+     */
+    public static final String INVENTORY_RESERVATION_INVALID_STATUS = "INVENTORY_RESERVATION_INVALID_STATUS";
+
     // ========== Transaction Related Errors ==========
 
     /**

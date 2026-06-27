@@ -70,6 +70,11 @@ public class UserWithRolesDTO {
     private Boolean enabled;
 
     /**
+     * List of role IDs assigned to this user.
+     */
+    private List<Long> roleIds;
+
+    /**
      * List of role codes assigned to this user
      *
      * Example: ["WAREHOUSE_ADMIN", "SALESPERSON", "PURCHASER"]

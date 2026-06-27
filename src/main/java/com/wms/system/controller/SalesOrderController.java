@@ -118,9 +118,9 @@ public class SalesOrderController {
     @PostMapping("/batch-options")
     @PreAuthorize("hasAnyAuthority('sales:create', 'SUPER_ADMIN')")
     public ResponseEntity<List<BatchOptionDto>> getBatchOptions(
-        @RequestParam Long productId,
-        @RequestParam Integer quantity,
-        @RequestParam(required = false) Boolean rejectNearExpiry
+        @RequestParam("productId") Long productId,
+        @RequestParam("quantity") Integer quantity,
+        @RequestParam(value = "rejectNearExpiry", required = false) Boolean rejectNearExpiry
     ) {
         log.info("API调用: getBatchOptions - productId: {}, quantity: {}, rejectNearExpiry: {}",
             productId, quantity, rejectNearExpiry);
@@ -180,8 +180,8 @@ public class SalesOrderController {
     @GetMapping
     @PreAuthorize("hasAnyAuthority('sales:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<SalesOrderResponse>> listSalesOrders(
-        @RequestParam(required = false) String status,
-        @RequestParam(required = false) Long customerId
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "customerId", required = false) Long customerId
     ) {
         log.info("API调用: listSalesOrders - status: {}, customerId: {}", status, customerId);
 
@@ -204,7 +204,7 @@ public class SalesOrderController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('sales:view', 'SUPER_ADMIN')")
-    public ResponseEntity<SalesOrderResponse> getSalesOrder(@PathVariable Long id) {
+    public ResponseEntity<SalesOrderResponse> getSalesOrder(@PathVariable("id") Long id) {
         log.info("API调用: getSalesOrder - id: {}", id);
 
         SalesOrderResponse response = salesSubmissionService.getSalesOrder(id);
@@ -228,7 +228,7 @@ public class SalesOrderController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('sales:edit', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> updateSalesOrder(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody UpdateSalesOrderRequest request,
         Authentication authentication
     ) {
@@ -258,7 +258,7 @@ public class SalesOrderController {
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAnyAuthority('sales:approve', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> approveSalesOrder(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody ApprovalRequest request,
         Authentication authentication
     ) {
@@ -271,7 +271,10 @@ public class SalesOrderController {
             id,
             userId,
             username,
-            request.getComment()
+            request.getComment(),
+            request.getAllocationPolicy(),
+            request.getRequestedShipDate(),
+            request.getPromisedShipDate()
         );
 
         log.info("API响应: approveSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
@@ -293,7 +296,7 @@ public class SalesOrderController {
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyAuthority('sales:approve', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> rejectSalesOrder(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody ApprovalRequest request,
         Authentication authentication
     ) {
@@ -328,7 +331,7 @@ public class SalesOrderController {
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAnyAuthority('sales:cancel', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> cancelSalesOrder(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody CancelOrderRequest request,
         Authentication authentication
     ) {
@@ -362,7 +365,7 @@ public class SalesOrderController {
     @PostMapping("/{id}/void")
     @PreAuthorize("hasAnyAuthority('sales:cancel', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> voidSalesOrder(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody CancelOrderRequest request,
         Authentication authentication
     ) {

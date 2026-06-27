@@ -53,9 +53,12 @@ import java.math.BigDecimal;
 @Table(
     name = "products",
     indexes = {
-        @Index(name = "idx_barcode", columnList = "barcode", unique = true),
+        @Index(name = "idx_barcode", columnList = "barcode"),
         @Index(name = "idx_name", columnList = "name"),
         @Index(name = "idx_spu_id", columnList = "spu_id")  // V3.3: SPU-SKU hierarchy
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_products_company_barcode", columnNames = {"company_id", "barcode"})
     }
 )
 public class Product extends BaseEntity {
@@ -164,7 +167,7 @@ public class Product extends BaseEntity {
      */
     @NotBlank(message = "条形码不能为空")
     @Size(max = 50, message = "条形码长度不能超过 50 个字符")
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, length = 50)
     private String barcode;
 
     /**

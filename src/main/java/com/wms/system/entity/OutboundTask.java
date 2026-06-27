@@ -50,7 +50,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_outbound_task_order", columnList = "sales_order_id"),
         @Index(name = "idx_outbound_task_batch", columnList = "assigned_batch_id"),
         @Index(name = "idx_outbound_task_status", columnList = "status"),
-        @Index(name = "idx_outbound_task_item", columnList = "sales_order_item_id")
+        @Index(name = "idx_outbound_task_item", columnList = "sales_order_item_id"),
+        @Index(name = "idx_outbound_task_reservation", columnList = "reservation_id")
     }
 )
 public class OutboundTask extends BaseEntity {
@@ -103,6 +104,12 @@ public class OutboundTask extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_batch_id", insertable = false, updatable = false)
     private InventoryBatch batch;
+
+    /**
+     * Reservation ledger row that this task consumes.
+     */
+    @Column(name = "reservation_id")
+    private Long reservationId;
 
     /**
      * 库位ID

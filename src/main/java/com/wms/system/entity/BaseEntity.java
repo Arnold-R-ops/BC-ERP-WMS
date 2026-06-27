@@ -37,6 +37,12 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     /**
+     * SaaS tenant placeholder. Current single-company deployment always uses 1.
+     */
+    @Column(name = "company_id", nullable = false)
+    private Long companyId = 1L;
+
+    /**
      * Creation timestamp (auto-filled on first save, immutable)
      *
      * Stored in UTC (JVM timezone is forced to UTC)

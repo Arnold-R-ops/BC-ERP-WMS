@@ -1,5 +1,8 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.AllocationPolicy;
+import com.wms.system.entity.enums.CommercialStatus;
+import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.SalesOrderStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -8,6 +11,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -51,11 +55,14 @@ import java.time.LocalDateTime;
 @Table(
     name = "sales_orders",
     indexes = {
-        @Index(name = "idx_sales_order_no", columnList = "order_no", unique = true),
+        @Index(name = "idx_sales_order_no", columnList = "order_no"),
         @Index(name = "idx_sales_status", columnList = "status"),
         @Index(name = "idx_sales_customer", columnList = "customer_id"),
         @Index(name = "idx_sales_applicant", columnList = "applicant_id"),
         @Index(name = "idx_sales_created_at", columnList = "created_at")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_sales_orders_company_order_no", columnNames = {"company_id", "order_no"})
     }
 )
 public class SalesOrder extends BaseEntity {
@@ -75,7 +82,7 @@ public class SalesOrder extends BaseEntity {
      */
     @NotBlank(message = "订单编号不能为空")
     @Size(max = 30, message = "订单编号长度不能超过 30 个字符")
-    @Column(name = "order_no", nullable = false, unique = true, length = 30)
+    @Column(name = "order_no", nullable = false, length = 30)
     private String orderNo;
 
     /**
@@ -119,6 +126,40 @@ public class SalesOrder extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private SalesOrderStatus status;
+
+    /**
+     * V4.5 commercial state: order-intent lifecycle.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commercial_status", nullable = false, length = 40)
+    @Builder.Default
+    private CommercialStatus commercialStatus = CommercialStatus.DRAFT;
+
+    /**
+     * V4.5 fulfillment state: warehouse execution lifecycle.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fulfillment_status", nullable = false, length = 40)
+    @Builder.Default
+    private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.UNALLOCATED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "allocation_policy", nullable = false, length = 30)
+    @Builder.Default
+    private AllocationPolicy allocationPolicy = AllocationPolicy.FULL_ONLY;
+
+    @Column(name = "requested_ship_date")
+    private LocalDate requestedShipDate;
+
+    @Column(name = "promised_ship_date")
+    private LocalDate promisedShipDate;
+
+    @Column(name = "shortage_reason", length = 500)
+    private String shortageReason;
+
+    @Column(name = "fulfillment_version", nullable = false)
+    @Builder.Default
+    private Long fulfillmentVersion = 0L;
 
     /**
      * 审批原因

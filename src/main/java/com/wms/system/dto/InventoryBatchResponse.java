@@ -71,6 +71,16 @@ public class InventoryBatchResponse {
     private Integer quantity;
 
     /**
+     * Quantity reserved by approved sales orders.
+     */
+    private Integer reservedQuantity;
+
+    /**
+     * Quantity currently available for new allocations.
+     */
+    private Integer availableQuantity;
+
+    /**
      * Initial quantity (for turnover calculation)
      */
     private Integer initialQuantity;

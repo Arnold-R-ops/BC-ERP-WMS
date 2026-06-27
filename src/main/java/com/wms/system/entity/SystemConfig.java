@@ -36,7 +36,10 @@ import lombok.*;
 @Table(
     name = "system_config",
     indexes = {
-        @Index(name = "idx_system_config_key", columnList = "config_key", unique = true)
+        @Index(name = "idx_system_config_key", columnList = "config_key")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_system_config_company_key", columnNames = {"company_id", "config_key"})
     }
 )
 public class SystemConfig extends BaseEntity {
@@ -62,7 +65,7 @@ public class SystemConfig extends BaseEntity {
      */
     @NotBlank(message = "配置键不能为空")
     @Size(max = 100, message = "配置键长度不能超过 100 个字符")
-    @Column(name = "config_key", nullable = false, unique = true, length = 100)
+    @Column(name = "config_key", nullable = false, length = 100)
     private String configKey;
 
     /**

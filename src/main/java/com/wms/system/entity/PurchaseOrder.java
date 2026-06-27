@@ -29,10 +29,12 @@ import java.util.List;
 @SQLDelete(sql = "UPDATE purchase_order SET is_deleted = true WHERE id = ?")
 @SQLRestriction("is_deleted = false")
 @Table(name = "purchase_order", indexes = {
-    @Index(name = "idx_po_number", columnList = "po_number", unique = true),
+    @Index(name = "idx_po_number", columnList = "po_number"),
     @Index(name = "idx_status", columnList = "status"),
     @Index(name = "idx_supplier", columnList = "supplier"),
     @Index(name = "idx_purchase_order_created_at", columnList = "created_at")
+}, uniqueConstraints = {
+    @UniqueConstraint(name = "uk_purchase_order_company_po_number", columnNames = {"company_id", "po_number"})
 })
 @Getter
 @Setter
@@ -52,7 +54,7 @@ public class PurchaseOrder extends BaseEntity {
      * - XXX: 当日流水号（001-999�?     *
      * 示例: PO-20250113-001
      */
-    @Column(name = "po_number", nullable = false, unique = true, length = 20)
+    @Column(name = "po_number", nullable = false, length = 20)
     private String poNumber;
 
     /**
@@ -92,6 +94,13 @@ public class PurchaseOrder extends BaseEntity {
      */
     @Column(name = "expected_date", nullable = true)
     private LocalDate expectedDate;
+
+    /**
+     * Supplier delivery confidence score used by ATP views.
+     */
+    @Column(name = "supplier_reliability_score", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal supplierReliabilityScore = BigDecimal.valueOf(100);
 
     /**
      * 实际入库时间（第三阶段完成时自动记录�?     *

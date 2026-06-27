@@ -149,14 +149,18 @@ public class InventoryController {
      * @return ResponseEntity with total stock
      */
     @GetMapping("/total-stock/{productId}")
-    public ResponseEntity<?> getTotalStock(@PathVariable Long productId) {
+    public ResponseEntity<?> getTotalStock(@PathVariable("productId") Long productId) {
         log.info("API: Query total stock - productId={}", productId);
 
         Integer totalStock = inventoryService.getTotalStock(productId);
+        Integer reservedStock = inventoryService.getReservedStock(productId);
+        Integer availableStock = inventoryService.getAvailableStock(productId);
 
         return ResponseEntity.ok(java.util.Map.of(
             "productId", productId,
-            "totalStock", totalStock
+            "totalStock", totalStock,
+            "reservedStock", reservedStock,
+            "availableStock", availableStock
         ));
     }
 

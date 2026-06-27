@@ -41,8 +41,12 @@ ALTER TABLE sales_orders
 DROP COLUMN IF EXISTS is_deleted;
 
 INSERT INTO system_config (config_key, config_value, description, config_type)
-VALUES ('sales.approval.amount_threshold', '50000.00', 'Sales order approval amount threshold', 'DECIMAL')
-ON CONFLICT (config_key) DO NOTHING;
+SELECT 'sales.approval.amount_threshold', '50000.00', 'Sales order approval amount threshold', 'DECIMAL'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM system_config
+    WHERE config_key = 'sales.approval.amount_threshold'
+);
 
 ALTER TABLE sales_orders
 DROP CONSTRAINT IF EXISTS sales_orders_status_check;

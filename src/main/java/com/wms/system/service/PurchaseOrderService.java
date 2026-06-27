@@ -66,6 +66,8 @@ public class PurchaseOrderService {
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final BatchCodeGenerator batchCodeGenerator;
+    private final DomainOutboxService domainOutboxService;
+    private final BackorderService backorderService;
 
     /**
      * ⭐ Stage 1: Create Purchase Order (ORDERING)
@@ -365,6 +367,7 @@ public class PurchaseOrderService {
 
         // 3. Process each batch receipt
         int totalReceivedInThisBatch = 0;
+        java.util.Set<Long> receivedProductIds = new java.util.HashSet<>();
 
         for (BatchReceiptData receipt : receiptData) {
             // Query batch by batch code (V3.3: returns List, get first one)
@@ -434,6 +437,7 @@ public class PurchaseOrderService {
             // Update item receivedQuantity
             PurchaseOrderItem item = batch.getPurchaseOrderItem();
             item.increaseReceivedQuantity(savedBatch.getQuantity());
+            receivedProductIds.add(item.getProduct().getId());
 
             totalReceivedInThisBatch += savedBatch.getQuantity();
         }
@@ -464,6 +468,15 @@ public class PurchaseOrderService {
 
         log.info("✅ Physical receipt completed: poNumber={}, status={}, operator={}",
             savedOrder.getPoNumber(), savedOrder.getStatus(), operatorName);
+
+        for (Long productId : receivedProductIds) {
+            domainOutboxService.append("INVENTORY_AVAILABLE", "Product", productId, Map.of(
+                "productId", productId,
+                "source", "PURCHASE_ORDER",
+                "purchaseOrderId", savedOrder.getId()
+            ));
+            backorderService.wakeProduct(productId);
+        }
 
         return savedOrder;
     }

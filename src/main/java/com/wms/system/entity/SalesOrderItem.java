@@ -1,5 +1,6 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.FulfillmentStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -91,6 +92,35 @@ public class SalesOrderItem extends BaseEntity {
     @Min(value = 1, message = "销售数量必须大于 0")
     @Column(nullable = false)
     private Integer quantity;
+
+    /**
+     * V4.5 requested quantity. Kept separate from legacy quantity so the
+     * commercial request can remain stable while fulfillment counters change.
+     */
+    @Column(name = "requested_qty", nullable = false)
+    @Builder.Default
+    private Integer requestedQty = 0;
+
+    @Column(name = "allocated_qty", nullable = false)
+    @Builder.Default
+    private Integer allocatedQty = 0;
+
+    @Column(name = "shipped_qty", nullable = false)
+    @Builder.Default
+    private Integer shippedQty = 0;
+
+    @Column(name = "backorder_qty", nullable = false)
+    @Builder.Default
+    private Integer backorderQty = 0;
+
+    @Column(name = "cancelled_qty", nullable = false)
+    @Builder.Default
+    private Integer cancelledQty = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fulfillment_status", nullable = false, length = 40)
+    @Builder.Default
+    private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.UNALLOCATED;
 
     /**
      * 单价

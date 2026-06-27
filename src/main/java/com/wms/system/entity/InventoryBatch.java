@@ -171,6 +171,15 @@ public class InventoryBatch extends BaseEntity {
     private Integer quantity;
 
     /**
+     * Quantity reserved by approved sales orders but not yet shipped.
+     *
+     * Available quantity = quantity - reservedQuantity.
+     */
+    @Column(name = "reserved_quantity", nullable = false)
+    @Builder.Default
+    private Integer reservedQuantity = 0;
+
+    /**
      * 初始入库数量（不可变）
      *
      * 用途:
@@ -282,6 +291,42 @@ public class InventoryBatch extends BaseEntity {
             );
         }
         this.quantity -= deductQuantity;
+    }
+
+    public int getAvailableQuantity() {
+        return this.quantity - (this.reservedQuantity == null ? 0 : this.reservedQuantity);
+    }
+
+    public void reserveQuantity(Integer reserveQuantity) {
+        if (reserveQuantity == null || reserveQuantity <= 0) {
+            throw new IllegalArgumentException("Reserve quantity must be positive");
+        }
+        if (getAvailableQuantity() < reserveQuantity) {
+            throw new IllegalArgumentException(
+                String.format("Insufficient available stock: batchCode=%s, available=%d, requested=%d",
+                    this.batchCode, getAvailableQuantity(), reserveQuantity)
+            );
+        }
+        this.reservedQuantity = (this.reservedQuantity == null ? 0 : this.reservedQuantity) + reserveQuantity;
+    }
+
+    public void releaseReservedQuantity(Integer releaseQuantity) {
+        if (releaseQuantity == null || releaseQuantity <= 0) {
+            return;
+        }
+        int currentReserved = this.reservedQuantity == null ? 0 : this.reservedQuantity;
+        if (releaseQuantity > currentReserved) {
+            throw new IllegalArgumentException(
+                String.format("Release quantity exceeds reserved quantity: batchCode=%s, reserved=%d, release=%d",
+                    this.batchCode, currentReserved, releaseQuantity)
+            );
+        }
+        this.reservedQuantity = currentReserved - releaseQuantity;
+    }
+
+    public void consumeReservedQuantity(Integer consumeQuantity) {
+        releaseReservedQuantity(consumeQuantity);
+        decreaseQuantity(consumeQuantity);
     }
 
     /**

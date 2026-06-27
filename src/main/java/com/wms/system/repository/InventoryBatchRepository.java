@@ -43,6 +43,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         Number getConversionRate();
         Number getSafetyStock();
         Number getTotalQuantity();
+        Number getTotalReservedQuantity();
+        Number getTotalAvailableQuantity();
         LocalDate getFurthestExpiryDate();
         String getWarehouseNames();
     }
@@ -52,6 +54,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         String getWarehouseName();
         String getLocationCode();
         Number getQuantity();
+        Number getReservedQuantity();
+        Number getAvailableQuantity();
         LocalDate getExpiryDate();
         Number getConversionRate();
     }
@@ -67,6 +71,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 p.conversion_rate AS "conversionRate",
                 p.safety_stock AS "safetyStock",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity ELSE 0 END), 0) AS "totalQuantity",
+                COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.reserved_quantity ELSE 0 END), 0) AS "totalReservedQuantity",
+                COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity - b.reserved_quantity ELSE 0 END), 0) AS "totalAvailableQuantity",
                 MAX(b.expiry_date) AS "furthestExpiryDate",
                 COALESCE(string_agg(DISTINCT w.name, ','), '') AS "warehouseNames"
             FROM products p
@@ -110,6 +116,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             COALESCE(w.name, 'Unknown Warehouse') AS warehouseName,
             b.locationCode AS locationCode,
             b.quantity AS quantity,
+            b.reservedQuantity AS reservedQuantity,
+            (b.quantity - b.reservedQuantity) AS availableQuantity,
             b.expiryDate AS expiryDate,
             p.conversionRate AS conversionRate
         FROM InventoryBatch b
@@ -129,6 +137,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             COALESCE(w.name, 'Unknown Warehouse') AS warehouseName,
             b.locationCode AS locationCode,
             b.quantity AS quantity,
+            b.reservedQuantity AS reservedQuantity,
+            (b.quantity - b.reservedQuantity) AS availableQuantity,
             b.expiryDate AS expiryDate,
             p.conversionRate AS conversionRate
         FROM InventoryBatch b
@@ -185,6 +195,16 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
            "WHERE b.product.id = :productId " +
            "AND b.active = true")
     Integer sumQuantityByProduct(@Param("productId") Long productId);
+
+    @Query("SELECT SUM(b.reservedQuantity) FROM InventoryBatch b " +
+           "WHERE b.product.id = :productId " +
+           "AND b.active = true")
+    Integer sumReservedQuantityByProduct(@Param("productId") Long productId);
+
+    @Query("SELECT SUM(b.quantity - b.reservedQuantity) FROM InventoryBatch b " +
+           "WHERE b.product.id = :productId " +
+           "AND b.active = true")
+    Integer sumAvailableQuantityByProduct(@Param("productId") Long productId);
 
     /**
      * Find all active batches by product

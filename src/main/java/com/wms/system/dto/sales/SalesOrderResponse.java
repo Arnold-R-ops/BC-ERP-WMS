@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -58,6 +59,24 @@ public class SalesOrderResponse {
      * 订单状态描述
      */
     private String statusDescription;
+
+    private String commercialStatus;
+
+    private String commercialStatusDescription;
+
+    private String fulfillmentStatus;
+
+    private String fulfillmentStatusDescription;
+
+    private String allocationPolicy;
+
+    private LocalDate requestedShipDate;
+
+    private LocalDate promisedShipDate;
+
+    private String shortageReason;
+
+    private Long fulfillmentVersion;
 
     /**
      * 审批原因
@@ -142,6 +161,20 @@ public class SalesOrderResponse {
          * 销售数量
          */
         private Integer quantity;
+
+        private Integer requestedQty;
+
+        private Integer allocatedQty;
+
+        private Integer shippedQty;
+
+        private Integer backorderQty;
+
+        private Integer cancelledQty;
+
+        private String fulfillmentStatus;
+
+        private String fulfillmentStatusDescription;
 
         /**
          * 单价

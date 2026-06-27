@@ -25,8 +25,8 @@ public class OutboundTaskController {
     @GetMapping
     @PreAuthorize("hasAnyAuthority('outbound:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<OutboundTaskResponse>> listOutboundTasks(
-        @RequestParam(required = false) Long salesOrderId,
-        @RequestParam(required = false) String status
+        @RequestParam(value = "salesOrderId", required = false) Long salesOrderId,
+        @RequestParam(value = "status", required = false) String status
     ) {
         log.info("API call: listOutboundTasks - salesOrderId={}, status={}", salesOrderId, status);
         List<OutboundTaskResponse> responses = outboundService.listOutboundTasks(salesOrderId, status);
@@ -35,7 +35,7 @@ public class OutboundTaskController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('outbound:view', 'SUPER_ADMIN')")
-    public ResponseEntity<OutboundTaskResponse> getOutboundTask(@PathVariable Long id) {
+    public ResponseEntity<OutboundTaskResponse> getOutboundTask(@PathVariable("id") Long id) {
         log.info("API call: getOutboundTask - id={}", id);
         OutboundTaskResponse response = outboundService.getOutboundTask(id);
         return ResponseEntity.ok(response);
@@ -44,7 +44,7 @@ public class OutboundTaskController {
     @PostMapping("/{id}/confirm")
     @PreAuthorize("hasAnyAuthority('outbound:pick', 'SUPER_ADMIN')")
     public ResponseEntity<OutboundTaskResponse> confirmPicking(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmPickingRequest request,
         Authentication authentication
     ) {

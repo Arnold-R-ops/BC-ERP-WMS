@@ -69,6 +69,8 @@ public class InventoryQueryService {
 
     private InventorySummaryDto buildInventorySummary(InventoryBatchRepository.InventorySummaryRow row) {
         int totalQuantity = numberToInt(row.getTotalQuantity());
+        int reservedQuantity = numberToInt(row.getTotalReservedQuantity());
+        int availableQuantity = numberToInt(row.getTotalAvailableQuantity());
         int conversionRate = Math.max(numberToInt(row.getConversionRate()), 1);
         int safetyStock = numberToInt(row.getSafetyStock());
 
@@ -84,7 +86,11 @@ public class InventoryQueryService {
             .skuInfo(skuInfo)
             .warehouseNames(parseWarehouseNames(row.getWarehouseNames()))
             .displayQuantity(formatQuantity(totalQuantity, conversionRate, row.getPackUnit()))
-            .stockStatus(totalQuantity < safetyStock ? StockStatus.LOW_STOCK : StockStatus.SUFFICIENT)
+            .totalQuantity(totalQuantity)
+            .reservedQuantity(reservedQuantity)
+            .availableQuantity(availableQuantity)
+            .displayAvailableQuantity(formatQuantity(availableQuantity, conversionRate, row.getPackUnit()))
+            .stockStatus(availableQuantity < safetyStock ? StockStatus.LOW_STOCK : StockStatus.SUFFICIENT)
             .furthestExpiryDate(row.getFurthestExpiryDate())
             .build();
     }
@@ -96,6 +102,8 @@ public class InventoryQueryService {
             .warehouseName(row.getWarehouseName())
             .locationCode(row.getLocationCode())
             .quantity(numberToInt(row.getQuantity()))
+            .reservedQuantity(numberToInt(row.getReservedQuantity()))
+            .availableQuantity(numberToInt(row.getAvailableQuantity()))
             .packageStatus(PackageStatusFormatter.plain(row.getQuantity(), row.getConversionRate()))
             .expiryDate(row.getExpiryDate())
             .build();

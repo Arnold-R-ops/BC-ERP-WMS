@@ -43,7 +43,10 @@ import lombok.*;
         @Index(name = "idx_permission_type_status", columnList = "permission_type,status"),
         @Index(name = "idx_permission_resource", columnList = "resource_path,http_method"),
         @Index(name = "idx_permission_parent", columnList = "parent_id"),
-        @Index(name = "idx_permission_code", columnList = "permission_code", unique = true)
+        @Index(name = "idx_permission_code", columnList = "permission_code")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_sys_permission_company_code", columnNames = {"company_id", "permission_code"})
     }
 )
 public class SysPermission extends BaseEntity {
@@ -61,7 +64,7 @@ public class SysPermission extends BaseEntity {
      */
     @NotBlank(message = "Permission code cannot be blank")
     @Size(max = 100, message = "Permission code must not exceed 100 characters")
-    @Column(name = "permission_code", nullable = false, unique = true, length = 100)
+    @Column(name = "permission_code", nullable = false, length = 100)
     private String permissionCode;
 
     /**

@@ -48,6 +48,11 @@ public class OutboundTaskResponse {
     private Long assignedBatchId;
 
     /**
+     * V4.5 reservation ledger ID consumed by this task.
+     */
+    private Long reservationId;
+
+    /**
      * 批次编码
      */
     private String batchCode;

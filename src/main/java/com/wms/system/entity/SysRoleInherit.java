@@ -52,7 +52,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_role_inherit_parent", columnList = "parent_role_id")
     },
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_role_inherit", columnNames = {"child_role_id", "parent_role_id"})
+        @UniqueConstraint(name = "uk_sys_role_inherit_company_child_parent", columnNames = {"company_id", "child_role_id", "parent_role_id"})
     }
 )
 public class SysRoleInherit {
@@ -63,6 +63,13 @@ public class SysRoleInherit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * SaaS tenant placeholder. Current single-company deployment always uses 1.
+     */
+    @Column(name = "company_id", nullable = false)
+    @Builder.Default
+    private Long companyId = 1L;
 
     /**
      * Child Role ID (the role that inherits)

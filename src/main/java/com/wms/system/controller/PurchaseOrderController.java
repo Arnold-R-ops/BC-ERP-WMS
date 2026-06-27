@@ -221,7 +221,7 @@ public class PurchaseOrderController {
      */
     @PutMapping("/{id}/confirm")
     public ResponseEntity<PurchaseOrderResponse> confirmAndGenerateBatchCodes(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmOrderRequest request,
         Authentication authentication
     ) {
@@ -290,7 +290,7 @@ public class PurchaseOrderController {
      */
     @PutMapping("/{id}/receive")
     public ResponseEntity<PurchaseOrderResponse> receiveGoods(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmReceiptRequest request,
         Authentication authentication
     ) {
@@ -352,7 +352,7 @@ public class PurchaseOrderController {
      */
     @PutMapping("/{id}/rollback")
     public ResponseEntity<PurchaseOrderResponse> rollbackToOrdering(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @RequestParam("reason") String reason,
         Authentication authentication
     ) {
@@ -386,7 +386,7 @@ public class PurchaseOrderController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseOrderResponse> getPurchaseOrderById(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         Authentication authentication
     ) {
         log.info("API: Query purchase order by ID - id={}", id);
@@ -522,6 +522,7 @@ public class PurchaseOrderController {
             .externalBatchCode(item.getExternalBatchCode())
             .remark(item.getRemark())
             .batches(item.getBatches().stream()
+                .filter(batch -> Boolean.TRUE.equals(batch.getActive()))
                 .map(this::mapToBatchResponse)
                 .collect(Collectors.toList()))
             .createdAt(item.getCreatedAt())
@@ -543,6 +544,8 @@ public class PurchaseOrderController {
             .productName(batch.getProduct().getName())
             .productBarcode(batch.getProduct().getBarcode())
             .quantity(batch.getQuantity())
+            .reservedQuantity(batch.getReservedQuantity())
+            .availableQuantity(batch.getAvailableQuantity())
             .initialQuantity(batch.getInitialQuantity())
             .expiryDate(batch.getExpiryDate())
             .productionDate(batch.getProductionDate())

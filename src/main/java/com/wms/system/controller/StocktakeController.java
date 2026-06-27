@@ -96,8 +96,8 @@ public class StocktakeController {
     @GetMapping("/tasks")
     @PreAuthorize("hasAnyAuthority('stocktake:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<StocktakeTaskResponse>> listStocktakeTasks(
-        @RequestParam(required = false) Long warehouseId,
-        @RequestParam(required = false) String status
+        @RequestParam(value = "warehouseId", required = false) Long warehouseId,
+        @RequestParam(value = "status", required = false) String status
     ) {
         log.info("API调用: listStocktakeTasks - warehouseId: {}, status: {}", warehouseId, status);
 
@@ -120,7 +120,7 @@ public class StocktakeController {
      */
     @GetMapping("/tasks/{id}")
     @PreAuthorize("hasAnyAuthority('stocktake:view', 'SUPER_ADMIN')")
-    public ResponseEntity<StocktakeTaskResponse> getStocktakeTask(@PathVariable Long id) {
+    public ResponseEntity<StocktakeTaskResponse> getStocktakeTask(@PathVariable("id") Long id) {
         log.info("API调用: getStocktakeTask - id: {}", id);
 
         StocktakeTaskResponse response = stocktakeService.getStocktakeTask(id);
@@ -143,7 +143,7 @@ public class StocktakeController {
      */
     @PostMapping("/tasks/{id}/start")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
-    public ResponseEntity<StocktakeTaskResponse> startCounting(@PathVariable Long id) {
+    public ResponseEntity<StocktakeTaskResponse> startCounting(@PathVariable("id") Long id) {
         log.info("API调用: startCounting - id: {}", id);
 
         StocktakeTaskResponse response = stocktakeService.startCounting(id);
@@ -166,7 +166,7 @@ public class StocktakeController {
      */
     @GetMapping("/tasks/{id}/items")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
-    public ResponseEntity<List<StocktakeItemResponse>> getStocktakeItems(@PathVariable Long id) {
+    public ResponseEntity<List<StocktakeItemResponse>> getStocktakeItems(@PathVariable("id") Long id) {
         log.info("API调用: getStocktakeItems - taskId: {}", id);
 
         List<StocktakeItemResponse> responses = stocktakeService.getStocktakeItems(id);
@@ -193,8 +193,8 @@ public class StocktakeController {
     @PostMapping("/tasks/{taskId}/items/{itemId}/count")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
     public ResponseEntity<StocktakeItemResponse> submitCount(
-        @PathVariable Long taskId,
-        @PathVariable Long itemId,
+        @PathVariable("taskId") Long taskId,
+        @PathVariable("itemId") Long itemId,
         @Valid @RequestBody SubmitCountRequest request,
         Authentication authentication
     ) {
@@ -229,7 +229,7 @@ public class StocktakeController {
      */
     @PostMapping("/tasks/{id}/finish")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
-    public ResponseEntity<StocktakeTaskResponse> finishCounting(@PathVariable Long id) {
+    public ResponseEntity<StocktakeTaskResponse> finishCounting(@PathVariable("id") Long id) {
         log.info("API调用: finishCounting - id: {}", id);
 
         StocktakeTaskResponse response = stocktakeService.finishCounting(id);
@@ -252,7 +252,7 @@ public class StocktakeController {
      */
     @GetMapping("/tasks/{id}/review-items")
     @PreAuthorize("hasAnyAuthority('stocktake:review', 'SUPER_ADMIN')")
-    public ResponseEntity<List<StocktakeItemDetailResponse>> getStocktakeItemsForReview(@PathVariable Long id) {
+    public ResponseEntity<List<StocktakeItemDetailResponse>> getStocktakeItemsForReview(@PathVariable("id") Long id) {
         log.info("API调用: getStocktakeItemsForReview - taskId: {}", id);
 
         List<StocktakeItemDetailResponse> responses = stocktakeService.getStocktakeItemsForReview(id);
@@ -276,7 +276,7 @@ public class StocktakeController {
     @PostMapping("/tasks/{id}/review")
     @PreAuthorize("hasAnyAuthority('stocktake:review', 'SUPER_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> reviewStocktake(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @Valid @RequestBody ReviewStocktakeRequest request,
         Authentication authentication
     ) {

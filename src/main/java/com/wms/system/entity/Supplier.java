@@ -24,6 +24,9 @@ import lombok.*;
     indexes = {
         @Index(name = "idx_supplier_code", columnList = "code"),
         @Index(name = "idx_supplier_active", columnList = "is_active")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_suppliers_company_code", columnNames = {"company_id", "code"})
     }
 )
 public class Supplier extends BaseEntity {
@@ -37,7 +40,7 @@ public class Supplier extends BaseEntity {
      */
     @NotBlank(message = "供应商编码不能为空")
     @Size(max = 50, message = "供应商编码长度不能超过50")
-    @Column(name = "code", nullable = false, unique = true, length = 50)
+    @Column(name = "code", nullable = false, length = 50)
     private String code;
 
     /**

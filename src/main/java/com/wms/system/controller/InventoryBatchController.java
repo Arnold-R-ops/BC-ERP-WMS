@@ -105,12 +105,12 @@ public class InventoryBatchController {
      */
     @PostMapping("/outbound")
     public ResponseEntity<Map<String, Object>> fifoOutbound(
-        @RequestParam @NotNull(message = "Product ID is required") Long productId,
-        @RequestParam @NotNull(message = "Quantity is required") @Min(value = 1, message = "Quantity must be >= 1") Integer quantity,
-        @RequestParam @NotNull(message = "Source type is required") SourceType sourceType,
-        @RequestParam @NotBlank(message = "Source order ID is required") String sourceOrderId,
-        @RequestParam @NotNull(message = "Operator ID is required") Long operatorId,
-        @RequestParam @NotBlank(message = "Operator name is required") String operatorName
+        @RequestParam("productId") @NotNull(message = "Product ID is required") Long productId,
+        @RequestParam("quantity") @NotNull(message = "Quantity is required") @Min(value = 1, message = "Quantity must be >= 1") Integer quantity,
+        @RequestParam("sourceType") @NotNull(message = "Source type is required") SourceType sourceType,
+        @RequestParam("sourceOrderId") @NotBlank(message = "Source order ID is required") String sourceOrderId,
+        @RequestParam("operatorId") @NotNull(message = "Operator ID is required") Long operatorId,
+        @RequestParam("operatorName") @NotBlank(message = "Operator name is required") String operatorName
     ) {
         log.info("API: FIFO outbound - productId={}, quantity={}, sourceType={}, sourceOrder={}",
             productId, quantity, sourceType, sourceOrderId);
@@ -156,7 +156,7 @@ public class InventoryBatchController {
      * @return ResponseEntity with total stock
      */
     @GetMapping("/total-stock/{productId}")
-    public ResponseEntity<Map<String, Object>> getTotalStock(@PathVariable Long productId) {
+    public ResponseEntity<Map<String, Object>> getTotalStock(@PathVariable("productId") Long productId) {
         log.info("API: Get total stock - productId={}", productId);
 
         Integer totalStock = inventoryBatchService.getTotalStock(productId);
@@ -184,7 +184,7 @@ public class InventoryBatchController {
      */
     @GetMapping("/product/{productId}")
     public ResponseEntity<List<InventoryBatchResponse>> getActiveBatchesByProduct(
-        @PathVariable Long productId
+        @PathVariable("productId") Long productId
     ) {
         log.info("API: Get active batches by product - productId={}", productId);
 
@@ -213,7 +213,7 @@ public class InventoryBatchController {
      */
     @GetMapping("/location/{locationId}")
     public ResponseEntity<List<InventoryBatchResponse>> getActiveBatchesByLocation(
-        @PathVariable Long locationId
+        @PathVariable("locationId") Long locationId
     ) {
         log.info("API: Get active batches by location - locationId={}", locationId);
 
@@ -242,7 +242,7 @@ public class InventoryBatchController {
      */
     @GetMapping("/{batchCode}")
     public ResponseEntity<InventoryBatchResponse> getBatchByCode(
-        @PathVariable String batchCode
+        @PathVariable("batchCode") String batchCode
     ) {
         log.info("API: Get batch by code - batchCode={}", batchCode);
 
@@ -383,13 +383,13 @@ public class InventoryBatchController {
      */
     @PutMapping("/{batchCode}/adjust")
     public ResponseEntity<Map<String, Object>> adjustBatchStock(
-        @PathVariable String batchCode,
-        @RequestParam @NotNull(message = "Adjustment quantity is required") Integer adjustmentQuantity,
-        @RequestParam @NotNull(message = "Source type is required") SourceType sourceType,
-        @RequestParam @NotBlank(message = "Source order ID is required") String sourceOrderId,
-        @RequestParam @NotNull(message = "Operator ID is required") Long operatorId,
-        @RequestParam @NotBlank(message = "Operator name is required") String operatorName,
-        @RequestParam(required = false) String remark
+        @PathVariable("batchCode") String batchCode,
+        @RequestParam("adjustmentQuantity") @NotNull(message = "Adjustment quantity is required") Integer adjustmentQuantity,
+        @RequestParam("sourceType") @NotNull(message = "Source type is required") SourceType sourceType,
+        @RequestParam("sourceOrderId") @NotBlank(message = "Source order ID is required") String sourceOrderId,
+        @RequestParam("operatorId") @NotNull(message = "Operator ID is required") Long operatorId,
+        @RequestParam("operatorName") @NotBlank(message = "Operator name is required") String operatorName,
+        @RequestParam(value = "remark", required = false) String remark
     ) {
         log.info("API: Adjust batch stock - batchCode={}, adjustment={}, sourceType={}",
             batchCode, adjustmentQuantity, sourceType);
@@ -431,6 +431,8 @@ public class InventoryBatchController {
             .productName(batch.getProduct().getName())
             .productBarcode(batch.getProduct().getBarcode())
             .quantity(batch.getQuantity())
+            .reservedQuantity(batch.getReservedQuantity())
+            .availableQuantity(batch.getAvailableQuantity())
             .initialQuantity(batch.getInitialQuantity())
             .expiryDate(batch.getExpiryDate())
             .productionDate(batch.getProductionDate())
