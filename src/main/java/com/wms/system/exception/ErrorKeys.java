@@ -69,6 +69,16 @@ public final class ErrorKeys {
      */
     public static final String LOCATION_ALREADY_EXISTS = "LOCATION_ALREADY_EXISTS";
 
+    /**
+     * Location is already occupied by another product or batch.
+     */
+    public static final String LOCATION_BATCH_MIXING_FORBIDDEN = "LOCATION_BATCH_MIXING_FORBIDDEN";
+
+    /**
+     * Location-visual mode cannot resolve a unique batch from location + product.
+     */
+    public static final String LOCATION_VISUAL_BATCH_AMBIGUOUS = "LOCATION_VISUAL_BATCH_AMBIGUOUS";
+
     // ========== Warehouse Related Errors (Phase 3.4) ==========
 
     /**

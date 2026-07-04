@@ -30,6 +30,7 @@ public class EmergencyStockCorrectionService {
     private final StockTransactionRepository stockTransactionRepository;
     private final DomainOutboxService domainOutboxService;
     private final BackorderService backorderService;
+    private final LocationOccupancyService locationOccupancyService;
 
     @Transactional(rollbackFor = Exception.class)
     public EmergencyStockCorrectionResponse create(EmergencyStockCorrectionRequest request, Long operatorId) {
@@ -134,12 +135,15 @@ public class EmergencyStockCorrectionService {
             : inventoryBatchRepository.findById(correction.getInventoryBatchId())
                 .orElseThrow(() -> new BusinessException(ErrorKeys.BATCH_NOT_FOUND, Map.of("batchId", correction.getInventoryBatchId())));
 
+        locationOccupancyService.validateCanStore(location, product, batch.getBatchCode());
+
         int before = batch.getQuantity();
         batch.setQuantity(correction.getCountedQty());
         batch.setActive(correction.getCountedQty() > 0);
         batch.setLocation(location);
         batch.setLocationCode(location.getLocationCode());
         inventoryBatchRepository.save(batch);
+        locationOccupancyService.refreshLocationStatus(location.getId());
 
         SourceType stockTransactionSourceType = correction.getAdjustmentQty() >= 0
             ? SourceType.INVENTORY_GAIN

@@ -1,0 +1,492 @@
+### WMS V4.5 Enterprise Hardening Suite
+### Covers: idempotency, security, data integrity, dirty input.
+### True concurrent stock race test:
+###   powershell -ExecutionPolicy Bypass -File src/test/scripts/run-v45-hardening.ps1
+
+@host = http://127.0.0.1:8080
+@supplierId = 1
+@spuId = 1
+@runId = {{$timestamp}}
+
+### 1. Login
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password123"
+}
+
+> {%
+client.assert(response.status === 200, "admin login should succeed");
+client.assert(!!response.body.token, "login should return JWT token");
+client.global.set("token", response.body.token);
+%}
+
+### 2. Create warehouse for hardening data
+# @name createHardeningWarehouse
+POST {{host}}/api/warehouses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "HH{{runId}}",
+  "name": "V4.5 Hardening Warehouse",
+  "address": "hardening regression",
+  "contact": "Codex",
+  "phone": "13800138045"
+}
+
+> {%
+client.assert(response.status === 201, "warehouse should be created");
+client.assert(response.body.companyId === 1, "warehouse companyId should default to 1");
+client.global.set("warehouseId", response.body.id);
+client.global.set("warehouseCode", response.body.code);
+%}
+
+### 3. Same-company duplicate warehouse code must be rejected
+# @name duplicateWarehouseCode
+POST {{host}}/api/warehouses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "{{warehouseCode}}",
+  "name": "Duplicate Warehouse",
+  "address": "hardening regression",
+  "contact": "Codex",
+  "phone": "13800138045"
+}
+
+> {%
+client.assert(response.status === 409, "duplicate warehouse code should be rejected");
+client.assert(response.body.errorKey === "WAREHOUSE_ALREADY_EXISTS", "duplicate warehouse should return WAREHOUSE_ALREADY_EXISTS");
+%}
+
+### 4. Create stock location
+# @name createHardeningLocation
+POST {{host}}/api/locations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "warehouseId": {{warehouseId}},
+  "zone": "ZONE_A",
+  "shelfNumber": "A",
+  "positionNumber": "01",
+  "remark": "hardening stock location"
+}
+
+> {%
+client.assert(response.status === 201, "location should be created");
+client.global.set("locationId", response.body.id);
+%}
+
+### 5. Create product that requires manual approval because test order price is below minSalesPrice
+# @name createHardeningProduct
+POST {{host}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "barcode": "HARD-PROD-{{runId}}",
+  "name": "V4.5 Hardening Product",
+  "skuName": "HARD-SKU",
+  "spuId": {{spuId}},
+  "specs": "hardening regression",
+  "unitPrice": 10.00,
+  "minSalesPrice": 10.00,
+  "perPackQty": 1,
+  "conversionRate": 1,
+  "packUnit": "box",
+  "nearExpiryDays": 30,
+  "category": "hardening",
+  "batchTrackingMode": "PRINTED_LABEL",
+  "enabled": true
+}
+
+> {%
+client.assert(response.status === 201, "product should be created");
+client.global.set("productId", response.body.id);
+client.global.set("productBarcode", response.body.barcode);
+%}
+
+### 6. Same-company duplicate product barcode must be rejected
+# @name duplicateProductBarcode
+POST {{host}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "barcode": "{{productBarcode}}",
+  "name": "Duplicate Hardening Product",
+  "skuName": "DUP-HARD-SKU",
+  "spuId": {{spuId}},
+  "specs": "duplicate barcode",
+  "unitPrice": 10.00,
+  "minSalesPrice": 1.00,
+  "perPackQty": 1,
+  "conversionRate": 1,
+  "packUnit": "box",
+  "nearExpiryDays": 30,
+  "category": "hardening",
+  "enabled": true
+}
+
+> {%
+client.assert(response.status === 409, "duplicate product barcode should be rejected");
+client.assert(response.body.errorKey === "PRODUCT_ALREADY_EXISTS", "duplicate product should return PRODUCT_ALREADY_EXISTS");
+%}
+
+### 7. Create customer
+# @name createHardeningCustomer
+POST {{host}}/api/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "CUST-HARD-{{runId}}",
+  "name": "V4.5 Hardening Customer",
+  "contact": "Codex",
+  "phone": "13800138045",
+  "email": "hard{{runId}}@example.com",
+  "address": "hardening regression",
+  "creditLimit": 100000.00,
+  "isActive": true
+}
+
+> {%
+client.assert(response.status === 201, "customer should be created");
+client.global.set("customerId", response.body.id);
+%}
+
+### 8. Create inbound stock order
+# @name createInboundStock
+POST {{host}}/api/inbound-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "supplierId": {{supplierId}},
+  "expectedDate": "2026-07-05",
+  "remark": "V4.5 hardening stock setup",
+  "items": [
+    {
+      "productId": {{productId}},
+      "planQty": 5,
+      "unitCost": 5.00,
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{locationId}},
+      "remark": "hardening stock"
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 201, "inbound stock order should be created");
+client.global.set("inboundOrderId", response.body.id);
+client.global.set("inboundItemId", response.body.items[0].id);
+%}
+
+### 9. Approve inbound stock order
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/approve-plan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "hardening approve"
+}
+
+> {%
+client.assert(response.status === 200, "inbound approval should succeed");
+%}
+
+### 10. Confirm inbound stock order
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/confirm-order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "hardening confirm",
+  "confirmations": [
+    {
+      "itemId": {{inboundItemId}},
+      "confirmedQty": 5,
+      "expiryDate": "2027-12-31",
+      "productionDate": "2026-06-01",
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{locationId}}
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 200, "inbound confirmation should succeed");
+%}
+
+### 11. Receive inbound stock order
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/receive-goods
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receipts": [
+    {
+      "itemId": {{inboundItemId}},
+      "actualQty": 5,
+      "locationId": {{locationId}}
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 200, "inbound receiving should succeed");
+%}
+
+### 12. Create sales order that requires approval
+# @name createApprovalSalesOrder
+POST {{host}}/api/sales-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "items": [
+    {
+      "productId": {{productId}},
+      "quantity": 2,
+      "unitPrice": 1.00,
+      "rejectNearExpiry": false,
+      "remark": "hardening idempotency order"
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 201, "sales order should be created");
+client.assert(response.body.status === "PENDING_APPROVAL", "sales order should wait for approval");
+client.global.set("salesOrderId", response.body.id);
+%}
+
+### 13. First approval should succeed
+# @name firstApproveSalesOrder
+POST {{host}}/api/sales-orders/{{salesOrderId}}/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "first approve",
+  "allocationPolicy": "FULL_ONLY"
+}
+
+> {%
+client.assert(response.status === 200, "first approval should succeed");
+client.assert(response.body.status === "APPROVED_AWAITING_SHIPMENT", "approved order should await shipment");
+%}
+
+### 14. Duplicate approval should be rejected as a state-machine conflict
+# @name duplicateApproveSalesOrder
+POST {{host}}/api/sales-orders/{{salesOrderId}}/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "duplicate approve",
+  "allocationPolicy": "FULL_ONLY"
+}
+
+> {%
+client.assert(response.status === 409, "duplicate approval should return 409");
+client.assert(response.body.errorKey === "SALES_ORDER_INVALID_STATUS", "duplicate approval should return invalid status");
+%}
+
+### 15. Query outbound task
+# @name listOutboundTasks
+GET {{host}}/api/outbound-tasks?salesOrderId={{salesOrderId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "outbound task query should succeed");
+client.assert(response.body.length >= 1, "approval should create outbound task");
+client.global.set("outboundTaskId", response.body[0].id);
+client.global.set("outboundTaskQty", response.body[0].planQty);
+%}
+
+### 16. First outbound confirm should succeed
+# @name firstConfirmOutbound
+POST {{host}}/api/outbound-tasks/{{outboundTaskId}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "actualQty": {{outboundTaskQty}}
+}
+
+> {%
+client.assert(response.status === 200, "first outbound confirm should succeed");
+client.assert(response.body.status === "COMPLETED", "outbound task should be completed");
+%}
+
+### 17. Stock after first confirm
+# @name stockAfterFirstConfirm
+GET {{host}}/api/inventory/total-stock/{{productId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "stock query should succeed after first confirm");
+client.global.set("stockAfterFirstConfirm", response.body.totalStock);
+%}
+
+### 18. Duplicate outbound confirm should be rejected and must not deduct twice
+# @name duplicateConfirmOutbound
+POST {{host}}/api/outbound-tasks/{{outboundTaskId}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "actualQty": {{outboundTaskQty}}
+}
+
+> {%
+client.assert(response.status === 409, "duplicate outbound confirm should return 409");
+client.assert(response.body.errorKey === "OUTBOUND_TASK_ALREADY_COMPLETED", "duplicate confirm should return already completed");
+%}
+
+### 19. Stock after duplicate confirm should be unchanged
+GET {{host}}/api/inventory/total-stock/{{productId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "stock query should succeed after duplicate confirm");
+client.assert(
+  Number(response.body.totalStock) === Number(client.global.get("stockAfterFirstConfirm")),
+  "duplicate confirm must not deduct stock twice"
+);
+%}
+
+### 20. Security: missing token should be rejected
+# @name securityMissingToken
+POST {{host}}/api/warehouses
+Content-Type: application/json
+
+{
+  "code": "NOAUTH{{runId}}",
+  "name": "No Auth Warehouse",
+  "address": "hardening regression",
+  "contact": "Codex",
+  "phone": "13800138045"
+}
+
+> {%
+client.assert(response.status === 401 || response.status === 403, "missing token should be rejected");
+%}
+
+### 21. Security: fake token should be rejected
+# @name securityFakeToken
+POST {{host}}/api/warehouses
+Authorization: Bearer fake.invalid.token
+Content-Type: application/json
+
+{
+  "code": "FAKE{{runId}}",
+  "name": "Fake Token Warehouse",
+  "address": "hardening regression",
+  "contact": "Codex",
+  "phone": "13800138045"
+}
+
+> {%
+client.assert(response.status === 401 || response.status === 403, "fake token should be rejected");
+%}
+
+### 22. Boundary: zero sales quantity should be rejected
+# @name boundaryZeroSalesQuantity
+POST {{host}}/api/sales-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "items": [
+    {
+      "productId": {{productId}},
+      "quantity": 0,
+      "unitPrice": 1.00,
+      "rejectNearExpiry": false
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 400, "zero sales quantity should be rejected");
+client.assert(response.body.errorKey === "VALIDATION_FAILED", "zero sales quantity should be validation failure");
+%}
+
+### 23. Boundary: missing customer should be rejected
+# @name boundaryMissingCustomer
+POST {{host}}/api/sales-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": {{productId}},
+      "quantity": 1,
+      "unitPrice": 1.00,
+      "rejectNearExpiry": false
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 400, "missing customer should be rejected");
+client.assert(response.body.errorKey === "VALIDATION_FAILED", "missing customer should be validation failure");
+%}
+
+### 24. Boundary: non-existent product should be rejected
+# @name boundaryMissingProduct
+POST {{host}}/api/sales-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "items": [
+    {
+      "productId": 999999999,
+      "quantity": 1,
+      "unitPrice": 1.00,
+      "rejectNearExpiry": false
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 404, "non-existent product should be rejected");
+client.assert(response.body.errorKey === "PRODUCT_NOT_FOUND", "non-existent product should return PRODUCT_NOT_FOUND");
+%}
+
+### 25. Boundary: zero stock adjustment should be rejected
+# @name boundaryZeroStockAdjustment
+POST {{host}}/api/inventory/adjust
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": {{productId}},
+  "locationId": {{locationId}},
+  "transactionType": "ADJUST",
+  "sourceType": "MANUAL_ADJUST",
+  "quantity": 0,
+  "sourceOrderId": "HARD-BAD-ADJ-{{runId}}",
+  "operatorId": 2,
+  "operatorName": "admin",
+  "remark": "hardening bad input"
+}
+
+> {%
+client.assert(response.status === 400, "zero stock adjustment should be rejected");
+client.assert(response.body.errorKey === "VALIDATION_FAILED", "zero stock adjustment should be validation failure");
+%}

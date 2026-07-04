@@ -1,5 +1,6 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.BatchTrackingMode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -481,6 +482,11 @@ public class Product extends BaseEntity {
     @Column(name = "near_expiry_days", nullable = false)
     @Builder.Default
     private Integer nearExpiryDays = 90;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "batch_tracking_mode", nullable = false, length = 30)
+    @Builder.Default
+    private BatchTrackingMode batchTrackingMode = BatchTrackingMode.PRINTED_LABEL;
 
     /**
      * 箱规（每箱数量）（V3.7 新增）

@@ -66,6 +66,7 @@ public class InventoryBatchService {
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
+    private final LocationOccupancyService locationOccupancyService;
 
     /**
      * ⭐ FIFO Outbound with Loose Item First Strategy (先进先出出库 - V3.1 零头优先策略)
@@ -273,6 +274,7 @@ public class InventoryBatchService {
             // Deduct from batch
             batch.decreaseQuantity(toDeduct);  // Throws exception if insufficient
             InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
+            locationOccupancyService.refreshLocationStatus(savedBatch.getLocation() == null ? null : savedBatch.getLocation().getId());
 
             // Log with formatted quantities (V3.1)
             log.info("✅ Batch deducted: batchCode={}, type={}, deducted={}, before={}, after={}",
@@ -544,6 +546,7 @@ public class InventoryBatchService {
 
         // 5. Save batch
         InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
+        locationOccupancyService.refreshLocationStatus(savedBatch.getLocation() == null ? null : savedBatch.getLocation().getId());
 
         log.info("✅ Batch adjusted: batchCode={}, before={}, after={}, adjustment={}",
             savedBatch.getBatchCode(), quantityBefore, savedBatch.getQuantity(), adjustmentQuantity);

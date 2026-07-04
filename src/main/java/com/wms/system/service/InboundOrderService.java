@@ -50,6 +50,7 @@ public class InboundOrderService {
     private final UserRepository userRepository;
     private final DomainOutboxService domainOutboxService;
     private final BackorderService backorderService;
+    private final LocationOccupancyService locationOccupancyService;
 
     private static final String ORDER_NO_PREFIX = "IB";
     private static final DateTimeFormatter ORDER_NO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -402,6 +403,8 @@ public class InboundOrderService {
 
             // 创建或更新库存批次记录
             if (receipt.getActualQty() > 0) {
+                locationOccupancyService.validateCanStore(location, item.getProduct(), item.getBatchCode());
+
                 // 获取变动前的库存数量
                 Integer quantityBefore = inventoryBatchRepository
                     .findByBatchCodeAndLocation(item.getBatchCode(), location)
@@ -415,6 +418,7 @@ public class InboundOrderService {
 
                 // 更新库存批次
                 createOrUpdateInventoryBatch(item, location, receipt.getActualQty());
+                locationOccupancyService.markOccupied(location);
 
                 // 生成库存流水记录
                 createStockTransaction(item, location, receipt.getActualQty(), order.getOrderNo(),

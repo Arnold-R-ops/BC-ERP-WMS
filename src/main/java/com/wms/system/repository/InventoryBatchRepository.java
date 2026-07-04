@@ -176,8 +176,9 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b " +
            "WHERE b.product.id = :productId " +
            "AND b.active = :active " +
+           "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
-           "ORDER BY b.expiryDate ASC")
+           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
     List<InventoryBatch> findByProductIdAndActiveOrderByExpiryDateAsc(
         @Param("productId") Long productId,
         @Param("active") Boolean active
@@ -193,16 +194,19 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      */
     @Query("SELECT SUM(b.quantity) FROM InventoryBatch b " +
            "WHERE b.product.id = :productId " +
+           "AND b.location IS NOT NULL " +
            "AND b.active = true")
     Integer sumQuantityByProduct(@Param("productId") Long productId);
 
     @Query("SELECT SUM(b.reservedQuantity) FROM InventoryBatch b " +
            "WHERE b.product.id = :productId " +
+           "AND b.location IS NOT NULL " +
            "AND b.active = true")
     Integer sumReservedQuantityByProduct(@Param("productId") Long productId);
 
     @Query("SELECT SUM(b.quantity - b.reservedQuantity) FROM InventoryBatch b " +
            "WHERE b.product.id = :productId " +
+           "AND b.location IS NOT NULL " +
            "AND b.active = true")
     Integer sumAvailableQuantityByProduct(@Param("productId") Long productId);
 
@@ -234,7 +238,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b " +
            "WHERE b.expiryDate < :today " +
            "AND b.active = :active " +
-           "ORDER BY b.expiryDate ASC")
+           "AND b.location IS NOT NULL " +
+           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
     List<InventoryBatch> findExpiredBatches(
         @Param("today") LocalDate today,
         @Param("active") Boolean active
@@ -251,8 +256,9 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b " +
            "WHERE b.expiryDate BETWEEN :today AND :alertDate " +
            "AND b.active = :active " +
+           "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
-           "ORDER BY b.expiryDate ASC")
+           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
     List<InventoryBatch> findSoonToExpireBatches(
         @Param("today") LocalDate today,
         @Param("alertDate") LocalDate alertDate,
@@ -380,9 +386,10 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b " +
            "WHERE b.product.id = :productId " +
            "AND b.active = :active " +
+           "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
            "AND MOD(b.quantity, :conversionRate) <> 0 " +  // 零头批次（已开箱）
-           "ORDER BY b.expiryDate ASC")
+           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
     List<InventoryBatch> findLooseBatchesByProductOrderByExpiryDateAsc(
         @Param("productId") Long productId,
         @Param("conversionRate") Integer conversionRate,
@@ -411,9 +418,10 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b " +
            "WHERE b.product.id = :productId " +
            "AND b.active = :active " +
+           "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
            "AND MOD(b.quantity, :conversionRate) = 0 " +  // 整箱批次（未开箱）
-           "ORDER BY b.expiryDate ASC")
+           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
     List<InventoryBatch> findFullPackBatchesByProductOrderByExpiryDateAsc(
         @Param("productId") Long productId,
         @Param("conversionRate") Integer conversionRate,
@@ -433,5 +441,27 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     List<InventoryBatch> findByBatchCodeAndLocation(
         @Param("batchCode") String batchCode,
         @Param("location") com.wms.system.entity.Location location
+    );
+
+    @Query("SELECT COALESCE(SUM(b.quantity), 0) FROM InventoryBatch b " +
+           "WHERE b.location.id = :locationId " +
+           "AND b.active = true " +
+           "AND b.quantity > 0")
+    Integer sumActiveQuantityByLocationId(@Param("locationId") Long locationId);
+
+    @Query("SELECT b FROM InventoryBatch b " +
+           "WHERE b.location.id = :locationId " +
+           "AND b.active = true " +
+           "AND b.quantity > 0")
+    List<InventoryBatch> findPositiveActiveBatchesByLocationId(@Param("locationId") Long locationId);
+
+    @Query("SELECT b FROM InventoryBatch b " +
+           "WHERE b.location.id = :locationId " +
+           "AND b.product.id = :productId " +
+           "AND b.active = true " +
+           "AND b.quantity > 0")
+    List<InventoryBatch> findPositiveActiveBatchesByLocationAndProduct(
+        @Param("locationId") Long locationId,
+        @Param("productId") Long productId
     );
 }

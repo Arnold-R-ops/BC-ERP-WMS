@@ -68,6 +68,7 @@ public class PurchaseOrderService {
     private final BatchCodeGenerator batchCodeGenerator;
     private final DomainOutboxService domainOutboxService;
     private final BackorderService backorderService;
+    private final LocationOccupancyService locationOccupancyService;
 
     /**
      * ⭐ Stage 1: Create Purchase Order (ORDERING)
@@ -399,6 +400,8 @@ public class PurchaseOrderService {
                     Map.of("locationId", receipt.getLocationId())
                 ));
 
+            locationOccupancyService.validateCanStore(location, batch.getProduct(), batch.getBatchCode());
+
             // Record quantity before (for audit)
             Integer quantityBefore = batch.getQuantity();
 
@@ -407,6 +410,7 @@ public class PurchaseOrderService {
 
             // Save batch
             InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
+            locationOccupancyService.markOccupied(location);
 
             log.info("✅ Batch received: batchCode={}, location={}, quantity={}, entryDate={}",
                 savedBatch.getBatchCode(), location.getLocationCode(),

@@ -30,6 +30,14 @@ public class ConfirmPickingRequest {
     @Min(value = 0, message = "实际出库数量不能为负数")
     private Integer actualQty;
 
+    private Long locationId;
+
+    @Size(max = 100)
+    private String skuCode;
+
+    @Size(max = 100)
+    private String batchCode;
+
     /**
      * 备注
      */

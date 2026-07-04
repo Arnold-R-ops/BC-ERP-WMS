@@ -1,0 +1,435 @@
+### WMS V4.5.2 Flexible Chaotic Storage Regression
+### Focus: anti-mixing, location-visual outbound, fragment-first allocation, location self-healing.
+
+@host = http://127.0.0.1:8080
+@supplierId = 1
+@spuId = 1
+
+### 1. Login
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password123"
+}
+
+> {%
+client.assert(response.status === 200, "login should succeed");
+client.global.set("token", response.body.token);
+%}
+
+### 2. Create warehouse
+# @name createWarehouse
+POST {{host}}/api/warehouses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "CH{{$timestamp}}",
+  "name": "V4.5.2 Chaotic Storage Warehouse",
+  "address": "V4.5.2 regression",
+  "contact": "Codex",
+  "phone": "13800138045"
+}
+
+> {%
+client.assert(response.status === 201, "warehouse should be created");
+client.global.set("warehouseId", response.body.id);
+%}
+
+### 3. Create fragment location
+# @name createFragmentLocation
+POST {{host}}/api/locations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "warehouseId": {{warehouseId}},
+  "zone": "ZONE_A",
+  "shelfNumber": "A",
+  "positionNumber": "01",
+  "remark": "V4.5.2 fragment-first location"
+}
+
+> {%
+client.assert(response.status === 201, "fragment location should be created");
+client.global.set("fragmentLocationId", response.body.id);
+client.global.set("fragmentLocationCode", response.body.locationCode);
+%}
+
+### 4. Create bulk location
+# @name createBulkLocation
+POST {{host}}/api/locations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "warehouseId": {{warehouseId}},
+  "zone": "ZONE_B",
+  "shelfNumber": "B",
+  "positionNumber": "01",
+  "remark": "V4.5.2 bulk location"
+}
+
+> {%
+client.assert(response.status === 201, "bulk location should be created");
+client.global.set("bulkLocationId", response.body.id);
+%}
+
+### 5. Create LOCATION_VISUAL product
+# @name createVisualProduct
+POST {{host}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "barcode": "V452-VIS-{{$timestamp}}",
+  "name": "V4.5.2 Location Visual Tea",
+  "skuName": "V452-VIS-SKU",
+  "spuId": {{spuId}},
+  "specs": "chaotic-storage-regression",
+  "unitPrice": 10.00,
+  "minSalesPrice": 1.00,
+  "perPackQty": 1,
+  "conversionRate": 1,
+  "packUnit": "box",
+  "nearExpiryDays": 30,
+  "category": "test",
+  "batchTrackingMode": "LOCATION_VISUAL",
+  "enabled": true
+}
+
+> {%
+client.assert(response.status === 201, "visual product should be created");
+client.assert(response.body.batchTrackingMode === "LOCATION_VISUAL", "product should use LOCATION_VISUAL");
+client.global.set("visualProductId", response.body.id);
+client.global.set("visualSkuCode", response.body.barcode);
+%}
+
+### 6. Create another product for anti-mixing attack
+# @name createMixingAttackProduct
+POST {{host}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "barcode": "V452-MIX-{{$timestamp}}",
+  "name": "V4.5.2 Mixing Attack Product",
+  "skuName": "V452-MIX-SKU",
+  "spuId": {{spuId}},
+  "specs": "chaotic-storage-negative-case",
+  "unitPrice": 10.00,
+  "minSalesPrice": 1.00,
+  "perPackQty": 1,
+  "conversionRate": 1,
+  "packUnit": "box",
+  "nearExpiryDays": 30,
+  "category": "test",
+  "batchTrackingMode": "LOCATION_VISUAL",
+  "enabled": true
+}
+
+> {%
+client.assert(response.status === 201, "mixing attack product should be created");
+client.global.set("mixingProductId", response.body.id);
+%}
+
+### 7. Create customer
+# @name createCustomer
+POST {{host}}/api/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "CUST-V452-{{$timestamp}}",
+  "name": "V4.5.2 Test Customer",
+  "contact": "Codex",
+  "phone": "13800138045",
+  "email": "v452@example.com",
+  "address": "V4.5.2 regression",
+  "creditLimit": 100000.00,
+  "isActive": true
+}
+
+> {%
+client.assert(response.status === 201, "customer should be created");
+client.global.set("customerId", response.body.id);
+%}
+
+### 8. Create inbound order with two same-expiry batches: 3 in fragment, 10 in bulk
+# @name createInbound
+POST {{host}}/api/inbound-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "supplierId": {{supplierId}},
+  "expectedDate": "2026-07-05",
+  "remark": "V4.5.2 fragment-first setup",
+  "items": [
+    {
+      "productId": {{visualProductId}},
+      "planQty": 3,
+      "unitCost": 5.00,
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{fragmentLocationId}},
+      "remark": "fragment batch"
+    },
+    {
+      "productId": {{visualProductId}},
+      "planQty": 10,
+      "unitCost": 5.00,
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{bulkLocationId}},
+      "remark": "bulk batch"
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 201, "inbound order should be created");
+client.global.set("inboundOrderId", response.body.id);
+client.global.set("fragmentItemId", response.body.items[0].id);
+client.global.set("bulkItemId", response.body.items[1].id);
+%}
+
+### 9. Approve inbound plan
+# @name approveInbound
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/approve-plan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "V4.5.2 approve"
+}
+
+> {%
+client.assert(response.status === 200, "inbound approval should succeed");
+%}
+
+### 10. Confirm inbound order and generate batch codes
+# @name confirmInbound
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/confirm-order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "V4.5.2 confirm",
+  "confirmations": [
+    {
+      "itemId": {{fragmentItemId}},
+      "confirmedQty": 3,
+      "expiryDate": "2026-12-31",
+      "productionDate": "2026-06-01",
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{fragmentLocationId}}
+    },
+    {
+      "itemId": {{bulkItemId}},
+      "confirmedQty": 10,
+      "expiryDate": "2026-12-31",
+      "productionDate": "2026-06-01",
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{bulkLocationId}}
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 200, "inbound confirmation should succeed");
+%}
+
+### 11. Receive goods
+# @name receiveInbound
+POST {{host}}/api/inbound-orders/{{inboundOrderId}}/receive-goods
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receipts": [
+    {
+      "itemId": {{fragmentItemId}},
+      "actualQty": 3,
+      "locationId": {{fragmentLocationId}}
+    },
+    {
+      "itemId": {{bulkItemId}},
+      "actualQty": 10,
+      "locationId": {{bulkLocationId}}
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 200, "inbound receipt should succeed");
+%}
+
+### 12. Fragment location should be occupied
+# @name fragmentLocationOccupied
+GET {{host}}/api/locations/{{fragmentLocationId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "fragment location query should succeed");
+client.assert(response.body.status === "OCCUPIED", "fragment location should be OCCUPIED after receipt");
+%}
+
+### 13. Anti-mixing: create inbound order for a different product into occupied fragment location
+# @name createMixingInbound
+POST {{host}}/api/inbound-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "supplierId": {{supplierId}},
+  "expectedDate": "2026-07-05",
+  "remark": "V4.5.2 anti-mixing negative case",
+  "items": [
+    {
+      "productId": {{mixingProductId}},
+      "planQty": 1,
+      "unitCost": 5.00,
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{fragmentLocationId}},
+      "remark": "must be rejected at receive"
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 201, "mixing inbound order can be drafted");
+client.global.set("mixingInboundOrderId", response.body.id);
+client.global.set("mixingItemId", response.body.items[0].id);
+%}
+
+### 14. Approve mixing inbound
+POST {{host}}/api/inbound-orders/{{mixingInboundOrderId}}/approve-plan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "approve negative case"
+}
+
+> {%
+client.assert(response.status === 200, "mixing inbound approval should succeed");
+%}
+
+### 15. Confirm mixing inbound
+POST {{host}}/api/inbound-orders/{{mixingInboundOrderId}}/confirm-order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "confirm negative case",
+  "confirmations": [
+    {
+      "itemId": {{mixingItemId}},
+      "confirmedQty": 1,
+      "expiryDate": "2026-12-31",
+      "productionDate": "2026-06-01",
+      "targetWarehouseId": {{warehouseId}},
+      "targetLocationId": {{fragmentLocationId}}
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 200, "mixing inbound confirmation should succeed");
+%}
+
+### 16. Anti-mixing receive must be blocked
+# @name receiveMixingShouldFail
+POST {{host}}/api/inbound-orders/{{mixingInboundOrderId}}/receive-goods
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receipts": [
+    {
+      "itemId": {{mixingItemId}},
+      "actualQty": 1,
+      "locationId": {{fragmentLocationId}}
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 409, "different product/batch must not enter occupied location");
+client.assert(response.body.errorKey === "LOCATION_BATCH_MIXING_FORBIDDEN", "anti-mixing error key should be returned");
+%}
+
+### 17. Create sales order for 3 units; allocation should choose smaller fragment batch first
+# @name createSalesOrder
+POST {{host}}/api/sales-orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "items": [
+    {
+      "productId": {{visualProductId}},
+      "quantity": 3,
+      "unitPrice": 10.00,
+      "rejectNearExpiry": false,
+      "remark": "V4.5.2 fragment-first allocation"
+    }
+  ]
+}
+
+> {%
+client.assert(response.status === 201, "sales order should be created");
+client.global.set("salesOrderId", response.body.id);
+%}
+
+### 18. Query outbound tasks; the first/only task should point to fragment location
+# @name listOutboundTasks
+GET {{host}}/api/outbound-tasks?salesOrderId={{salesOrderId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "outbound task query should succeed");
+client.assert(response.body.length === 1, "sales order should create exactly one outbound task");
+client.assert(response.body[0].locationId === Number(client.global.get("fragmentLocationId")), "allocation should pick smaller fragment location first");
+client.global.set("fragmentTaskId", response.body[0].id);
+%}
+
+### 19. LOCATION_VISUAL confirm: no batchCode required; locationId + skuCode is enough
+# @name confirmVisualOutbound
+POST {{host}}/api/outbound-tasks/{{fragmentTaskId}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "actualQty": 3,
+  "locationId": {{fragmentLocationId}},
+  "skuCode": "{{visualSkuCode}}"
+}
+
+> {%
+client.assert(response.status === 200, "LOCATION_VISUAL outbound confirmation should succeed");
+client.assert(response.body.status === "COMPLETED", "outbound task should be completed");
+%}
+
+### 20. Fragment location should self-heal to EMPTY after stock is cleared
+# @name fragmentLocationEmpty
+GET {{host}}/api/locations/{{fragmentLocationId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "fragment location query should succeed after outbound");
+client.assert(response.body.status === "EMPTY", "fragment location should be EMPTY after all stock is shipped");
+%}
+
+### 21. Bulk location should still be occupied with remaining stock
+# @name bulkLocationStillOccupied
+GET {{host}}/api/locations/{{bulkLocationId}}
+Authorization: Bearer {{token}}
+
+> {%
+client.assert(response.status === 200, "bulk location query should succeed");
+client.assert(response.body.status === "OCCUPIED", "bulk location should remain OCCUPIED");
+%}

@@ -8,6 +8,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -422,6 +423,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+        OptimisticLockingFailureException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.STOCK_CONCURRENCY_CONFLICT)
+            .params(Map.of(
+                "message", "Concurrent stock update conflict, please retry",
+                "exceptionType", ex.getClass().getSimpleName()
+            ))
+            .path(request.getRequestURI())
+            .status(HttpStatus.CONFLICT.value())
+            .build();
+
+        log.warn("Optimistic locking conflict: path={}, type={}, message={}",
+            request.getRequestURI(), ex.getClass().getSimpleName(), ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     /**
      * Handle Generic Exceptions (Unexpected Errors)
      *
@@ -543,6 +565,8 @@ public class GlobalExceptionHandler {
             case ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
                  ErrorKeys.PRODUCT_ALREADY_EXISTS,
                  ErrorKeys.LOCATION_ALREADY_EXISTS,
+                 ErrorKeys.LOCATION_BATCH_MIXING_FORBIDDEN,
+                 ErrorKeys.LOCATION_VISUAL_BATCH_AMBIGUOUS,
                  ErrorKeys.USER_ALREADY_EXISTS,  // v3.3 Multi-Role System
                  ErrorKeys.BATCH_CODE_GENERATION_FAILED,
                  ErrorKeys.WAREHOUSE_ALREADY_EXISTS,  // Phase 3.4

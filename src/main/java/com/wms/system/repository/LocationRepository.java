@@ -135,7 +135,7 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
      */
     @Query("SELECT l FROM Location l " +
            "WHERE l.enabled = true " +
-           "AND NOT EXISTS (SELECT 1 FROM Inventory i WHERE i.location = l)")
+           "AND NOT EXISTS (SELECT 1 FROM InventoryBatch b WHERE b.location = l AND b.active = true AND b.quantity > 0)")
     List<Location> findEmptyLocations();
 
     /**
@@ -152,7 +152,7 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     @Query("SELECT l FROM Location l " +
            "WHERE l.zone = :zone " +
            "AND l.enabled = true " +
-           "AND NOT EXISTS (SELECT 1 FROM Inventory i WHERE i.location = l)")
+           "AND NOT EXISTS (SELECT 1 FROM InventoryBatch b WHERE b.location = l AND b.active = true AND b.quantity > 0)")
     List<Location> findEmptyLocationsByZone(@Param("zone") Zone zone);
 
     /**
@@ -164,8 +164,8 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
      * @return 所有已占用的库位
      */
     @Query("SELECT DISTINCT l FROM Location l " +
-           "JOIN Inventory i ON i.location = l " +
-           "WHERE i.quantity > 0")
+           "JOIN InventoryBatch b ON b.location = l " +
+           "WHERE b.active = true AND b.quantity > 0")
     List<Location> findOccupiedLocations();
 
     /**
@@ -246,7 +246,7 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     @Query("SELECT l FROM Location l " +
            "WHERE l.warehouse.id = :warehouseId " +
            "AND l.enabled = true " +
-           "AND NOT EXISTS (SELECT 1 FROM Inventory i WHERE i.location = l)")
+           "AND NOT EXISTS (SELECT 1 FROM InventoryBatch b WHERE b.location = l AND b.active = true AND b.quantity > 0)")
     List<Location> findEmptyLocationsByWarehouseId(@Param("warehouseId") Long warehouseId);
 
     /**

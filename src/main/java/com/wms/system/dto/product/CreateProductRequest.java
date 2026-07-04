@@ -1,5 +1,6 @@
 package com.wms.system.dto.product;
 
+import com.wms.system.entity.enums.BatchTrackingMode;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -68,6 +69,8 @@ public class CreateProductRequest {
 
     @Size(max = 1000)
     private String description;
+
+    private BatchTrackingMode batchTrackingMode;
 
     private Boolean enabled;
 }

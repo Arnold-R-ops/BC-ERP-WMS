@@ -57,6 +57,9 @@ public class OutboundTaskController {
         OutboundTaskResponse response = outboundService.confirmPicking(
             id,
             request.getActualQty(),
+            request.getLocationId(),
+            request.getSkuCode(),
+            request.getBatchCode(),
             userId,
             username
         );

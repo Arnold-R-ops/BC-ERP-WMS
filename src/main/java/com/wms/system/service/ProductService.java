@@ -4,6 +4,7 @@ import com.wms.system.dto.product.CreateProductRequest;
 import com.wms.system.dto.product.ProductResponse;
 import com.wms.system.entity.Product;
 import com.wms.system.entity.ProductSpu;
+import com.wms.system.entity.enums.BatchTrackingMode;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.ProductRepository;
@@ -53,6 +54,9 @@ public class ProductService {
             .category(request.getCategory())
             .supplier(request.getSupplier())
             .description(request.getDescription())
+            .batchTrackingMode(request.getBatchTrackingMode() != null
+                ? request.getBatchTrackingMode()
+                : BatchTrackingMode.PRINTED_LABEL)
             .enabled(request.getEnabled() != null ? request.getEnabled() : true)
             .isDeleted(false)
             .build();
@@ -108,6 +112,7 @@ public class ProductService {
         if (request.getCategory() != null)      product.setCategory(request.getCategory());
         if (request.getSupplier() != null)      product.setSupplier(request.getSupplier());
         if (request.getDescription() != null)   product.setDescription(request.getDescription());
+        if (request.getBatchTrackingMode() != null) product.setBatchTrackingMode(request.getBatchTrackingMode());
         if (request.getEnabled() != null)       product.setEnabled(request.getEnabled());
 
         product = productRepository.save(product);
@@ -138,6 +143,7 @@ public class ProductService {
             .category(product.getCategory())
             .supplier(product.getSupplier())
             .description(product.getDescription())
+            .batchTrackingMode(product.getBatchTrackingMode())
             .enabled(product.getEnabled())
             .createdAt(product.getCreatedAt())
             .updatedAt(product.getUpdatedAt())

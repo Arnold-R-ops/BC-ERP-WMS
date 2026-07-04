@@ -2,6 +2,7 @@ package com.wms.system.service;
 
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.entity.*;
+import com.wms.system.entity.enums.BatchTrackingMode;
 import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.SalesOrderStatus;
@@ -20,8 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -68,6 +73,7 @@ public class OutboundService {
     private final InventoryReservationRepository inventoryReservationRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
+    private final LocationOccupancyService locationOccupancyService;
 
     /**
      * ⭐ Confirm Picking for Single Task (确认单个拣货任务)
@@ -102,6 +108,15 @@ public class OutboundService {
      * @return OutboundTaskResponse Task response DTO
      * @throws BusinessException if task not found, invalid status, or insufficient stock
      */
+    public OutboundTaskResponse confirmPicking(
+        Long taskId,
+        Integer actualQty,
+        Long operatorId,
+        String operatorName
+    ) {
+        return confirmPicking(taskId, actualQty, null, null, null, operatorId, operatorName);
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @Retryable(
         retryFor = {OptimisticLockException.class},
@@ -111,6 +126,9 @@ public class OutboundService {
     public OutboundTaskResponse confirmPicking(
         Long taskId,
         Integer actualQty,
+        Long scannedLocationId,
+        String skuCode,
+        String scannedBatchCode,
         Long operatorId,
         String operatorName
     ) {
@@ -170,6 +188,8 @@ public class OutboundService {
             );
         }
 
+        verifyPickingIdentity(task, scannedLocationId, skuCode, scannedBatchCode);
+
         // 4. Update task
         task.setActualQty(actualQty);
         task.setStatus(OutboundTaskStatus.COMPLETED);
@@ -199,6 +219,64 @@ public class OutboundService {
 
         // 8. Return response
         return convertToResponse(savedTask);
+    }
+
+    private void verifyPickingIdentity(
+        OutboundTask task,
+        Long scannedLocationId,
+        String skuCode,
+        String scannedBatchCode
+    ) {
+        InventoryBatch batch = inventoryBatchRepository.findById(task.getAssignedBatchId())
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.BATCH_NOT_FOUND,
+                Map.of("batchId", task.getAssignedBatchId())
+            ));
+
+        Product product = batch.getProduct();
+        if (product.getBatchTrackingMode() == BatchTrackingMode.LOCATION_VISUAL) {
+            if (scannedLocationId != null && !scannedLocationId.equals(task.getLocationId())) {
+                throw new BusinessException(
+                    ErrorKeys.VALIDATION_FAILED,
+                    Map.of(
+                        "field", "locationId",
+                        "expectedLocationId", task.getLocationId(),
+                        "actualLocationId", scannedLocationId
+                    )
+                );
+            }
+
+            if (skuCode != null && !skuCode.isBlank()
+                && !skuCode.equals(product.getBarcode())
+                && !skuCode.equals(product.getSkuName())) {
+                throw new BusinessException(
+                    ErrorKeys.VALIDATION_FAILED,
+                    Map.of("field", "skuCode", "value", skuCode, "expectedProductId", product.getId())
+                );
+            }
+
+            Long locationId = scannedLocationId == null ? task.getLocationId() : scannedLocationId;
+            InventoryBatch resolved = locationOccupancyService.resolveSingleVisualBatch(locationId, product.getId());
+            if (!resolved.getId().equals(task.getAssignedBatchId())) {
+                throw new BusinessException(
+                    ErrorKeys.LOCATION_VISUAL_BATCH_AMBIGUOUS,
+                    Map.of(
+                        "locationId", locationId,
+                        "resolvedBatchId", resolved.getId(),
+                        "taskBatchId", task.getAssignedBatchId()
+                    )
+                );
+            }
+            return;
+        }
+
+        if (scannedBatchCode != null && !scannedBatchCode.isBlank()
+            && !scannedBatchCode.equals(batch.getBatchCode())) {
+            throw new BusinessException(
+                ErrorKeys.VALIDATION_FAILED,
+                Map.of("field", "batchCode", "value", scannedBatchCode, "expectedBatchCode", batch.getBatchCode())
+            );
+        }
     }
 
     /**
@@ -322,6 +400,7 @@ public class OutboundService {
 
         // 6. Save batch
         InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
+        locationOccupancyService.refreshLocationStatus(savedBatch.getLocation() == null ? null : savedBatch.getLocation().getId());
 
         log.info("Inventory deducted: batchId={}, batchCode={}, before={}, after={}, deducted={}, active={}",
             savedBatch.getId(), savedBatch.getBatchCode(), quantityBefore,
@@ -368,6 +447,7 @@ public class OutboundService {
 
         reservation.consume(actualQty);
         inventoryBatchRepository.save(batch);
+        locationOccupancyService.refreshLocationStatus(batch.getLocation() == null ? null : batch.getLocation().getId());
         inventoryReservationRepository.save(reservation);
 
         log.info("Reservation consumed: reservationId={}, batchId={}, before={}, after={}, consumed={}, status={}",
@@ -604,8 +684,55 @@ public class OutboundService {
             tasks = outboundTaskRepository.findAll();
         }
 
-        return tasks.stream()
+        return sortTasksForPickingRoute(tasks).stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
+    }
+
+    private List<OutboundTask> sortTasksForPickingRoute(List<OutboundTask> tasks) {
+        if (tasks.size() <= 1) {
+            return tasks;
+        }
+
+        Set<Long> locationIds = tasks.stream()
+            .map(OutboundTask::getLocationId)
+            .filter(id -> id != null)
+            .collect(Collectors.toCollection(HashSet::new));
+
+        Map<Long, Location> locations = new HashMap<>();
+        locationRepository.findAllById(locationIds).forEach(location -> locations.put(location.getId(), location));
+
+        List<OutboundTask> remaining = new ArrayList<>(tasks);
+        List<OutboundTask> sorted = new ArrayList<>();
+        int currentX = 0;
+        int currentY = 0;
+
+        while (!remaining.isEmpty()) {
+            final int x = currentX;
+            final int y = currentY;
+            OutboundTask next = remaining.stream()
+                .min(Comparator
+                    .comparingInt((OutboundTask task) -> distanceFrom(locations.get(task.getLocationId()), x, y))
+                    .thenComparing(OutboundTask::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(remaining.get(0));
+
+            remaining.remove(next);
+            sorted.add(next);
+
+            Location nextLocation = locations.get(next.getLocationId());
+            currentX = nextLocation == null || nextLocation.getPosX() == null ? currentX : nextLocation.getPosX();
+            currentY = nextLocation == null || nextLocation.getPosY() == null ? currentY : nextLocation.getPosY();
+        }
+
+        return sorted;
+    }
+
+    private int distanceFrom(Location location, int x, int y) {
+        if (location == null) {
+            return Integer.MAX_VALUE;
+        }
+        int locationX = location.getPosX() == null ? 0 : location.getPosX();
+        int locationY = location.getPosY() == null ? 0 : location.getPosY();
+        return Math.abs(locationX - x) + Math.abs(locationY - y);
     }
 }

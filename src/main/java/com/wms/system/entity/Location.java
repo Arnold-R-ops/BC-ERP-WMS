@@ -1,5 +1,6 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.LocationStatus;
 import com.wms.system.entity.enums.Zone;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -123,11 +124,36 @@ public class Location extends BaseEntity {
     @Builder.Default
     private Boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private LocationStatus status = LocationStatus.EMPTY;
+
+    @Column(name = "pos_x", nullable = false)
+    @Builder.Default
+    private Integer posX = 0;
+
+    @Column(name = "pos_y", nullable = false)
+    @Builder.Default
+    private Integer posY = 0;
+
     /**
      * 备注信息（可选）
      * 可记录特殊说明，如："靠近消防�?�?需要叉�?�?     */
     @Column(length = 500)
     private String remark;
+
+    public boolean isOccupied() {
+        return LocationStatus.OCCUPIED.equals(status);
+    }
+
+    public void markOccupied() {
+        this.status = LocationStatus.OCCUPIED;
+    }
+
+    public void markEmpty() {
+        this.status = LocationStatus.EMPTY;
+    }
 
     /**
      * JPA 生命周期回调：在持久化或更新前自动同�?warehouseCode 并生�?locationCode

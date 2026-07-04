@@ -1,5 +1,6 @@
 package com.wms.system.dto.product;
 
+import com.wms.system.entity.enums.BatchTrackingMode;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -32,6 +33,7 @@ public class ProductResponse {
     private String category;
     private String supplier;
     private String description;
+    private BatchTrackingMode batchTrackingMode;
     private Boolean enabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
