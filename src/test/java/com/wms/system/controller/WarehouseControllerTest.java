@@ -80,7 +80,8 @@ class WarehouseControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).hasSize(2);
-        assertThat(response.getBody()).extracting(Warehouse::getCode)
+        assertThat(response.getBody())
+                .extracting(WarehouseController.WarehouseResponse::code)
                 .containsExactly("WH01", "WH02");
     }
 
@@ -97,7 +98,7 @@ class WarehouseControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).getIsActive()).isTrue();
+        assertThat(response.getBody().get(0).isActive()).isTrue();
     }
 
     @Test
@@ -112,8 +113,8 @@ class WarehouseControllerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getId()).isEqualTo(1L);
-        assertThat(response.getBody().getCode()).isEqualTo("WH01");
+        assertThat(response.getBody().id()).isEqualTo(1L);
+        assertThat(response.getBody().code()).isEqualTo("WH01");
     }
 
     @Test
@@ -141,7 +142,7 @@ class WarehouseControllerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getCode()).isEqualTo("WH01");
+        assertThat(response.getBody().code()).isEqualTo("WH01");
     }
 
     @Test

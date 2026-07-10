@@ -72,6 +72,9 @@ class SalesSubmissionServiceTest {
     private AllocationService allocationService;
 
     @Mock
+    private InventoryReservationService inventoryReservationService;
+
+    @Mock
     private ObjectMapper objectMapper;
 
     @InjectMocks
@@ -284,7 +287,7 @@ class SalesSubmissionServiceTest {
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
 
         // When
-        SalesOrderResponse response = salesSubmissionService.approveSalesOrder(1L, 1L, "Manager", "Approved");
+        SalesOrderResponse response = salesSubmissionService.approveSalesOrder(1L, 1L, "Manager", "Approved", null, null, null);
 
         // Then
         assertThat(response).isNotNull();
@@ -419,20 +422,14 @@ class SalesSubmissionServiceTest {
             .build();
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
 
         // When
         SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(1L, "Customer request", 1L);
 
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("CANCELLED");
-
-        ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
-        verify(salesOrderRepository).save(orderCaptor.capture());
-        assertThat(orderCaptor.getValue().getStatus()).isEqualTo(SalesOrderStatus.CANCELLED);
+        // Then: DRAFT orders are physically deleted on cancel (V4.2.1 data strategy)
+        assertThat(response).isNull();
+        verify(salesOrderRepository).deleteById(1L);
+        verify(salesOrderRepository, never()).save(any(SalesOrder.class));
     }
 
     // ========== Test 10: Cancel Release Inventory ==========
@@ -461,6 +458,7 @@ class SalesSubmissionServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getStatus()).isEqualTo("CANCELLED");
 
+        verify(inventoryReservationService).releaseOpenReservationsForOrder(1L); // Release reservations
         verify(outboundTaskRepository).deleteBySalesOrderId(1L); // Should release inventory
     }
 }

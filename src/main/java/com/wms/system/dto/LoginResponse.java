@@ -91,4 +91,16 @@ public class LoginResponse {
      * Example: 86400000 ms = 24 hours
      */
     private Long expiresIn;
+
+    /**
+     * Forced password change indicator (P0.5)
+     *
+     * True when an administrator reset this account's password to a temporary
+     * one. The client should immediately prompt for a password change: until
+     * PUT /api/users/me/password succeeds, all APIs other than /api/auth/**
+     * and the change-password endpoint are blocked for this account.
+     *
+     * @since P0.5 (Password Management)
+     */
+    private Boolean mustChangePassword;
 }

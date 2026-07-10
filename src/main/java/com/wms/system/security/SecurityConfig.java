@@ -30,7 +30,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  *
  * Security Rules (Dynamic RBAC):
  * - ✅ Public endpoints (configured in DynamicAuthorizationManager):
- *   - /api/auth/** (login, register endpoints)
+ *   - /api/auth/login (login endpoint)
  *   - /health/** (health check endpoints)
  *   - /actuator/** (monitoring endpoints)
  * - 🔒 Protected endpoints (dynamically checked against user permissions):

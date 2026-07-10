@@ -142,6 +142,18 @@ public class User extends BaseEntity implements UserDetails {
     private String remark;
 
     /**
+     * Forces a password change before the account can use other APIs (P0.5).
+     *
+     * Set to TRUE when an administrator resets this account's password to a
+     * temporary value; cleared when the user changes the password themselves.
+     * While TRUE, DynamicAuthorizationManager only allows the change-password
+     * endpoint (and /api/auth/**) for this account.
+     */
+    @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
+    private Boolean mustChangePassword = false;
+
+    /**
      * Soft-delete marker. Deleted users are automatically excluded from ORM queries.
      */
     @Column(name = "is_deleted", nullable = false)

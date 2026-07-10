@@ -189,6 +189,9 @@ public class AuthController {
             }
 
             // 9. Build response with multi-role information
+            // mustChangePassword (P0.5): tells the client to force a password
+            // change dialog after an admin reset; other APIs are blocked
+            // server-side until the change succeeds.
             LoginResponse response = LoginResponse.builder()
                 .token(token)
                 .tokenType("Bearer")
@@ -196,6 +199,7 @@ public class AuthController {
                 .currentRole(currentRole.getRoleCode())
                 .availableRoles(availableRoles)
                 .expiresIn(jwtExpiration)
+                .mustChangePassword(Boolean.TRUE.equals(user.getMustChangePassword()))
                 .build();
 
             log.info("Login successful: username={}, currentRole={}, availableRoleCount={}",

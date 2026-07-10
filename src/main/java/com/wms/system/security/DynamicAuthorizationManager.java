@@ -68,7 +68,6 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      */
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/login",      // Login endpoint
-        "/api/auth/register",   // Register endpoint (if exists)
         "/health/**",           // Health check
         "/actuator/**",         // Spring Boot Actuator
         "/error",               // Error page
@@ -84,7 +83,20 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
     private static final String[] AUTHENTICATED_ENDPOINTS = {
         "/api/auth/switch-role",  // Any authenticated user can switch their own role
         "/api/auth/logout",       // Any authenticated user can logout
-        "/api/auth/refresh-token" // Any authenticated user can refresh token
+        "/api/auth/refresh-token", // Any authenticated user can refresh token
+        "/api/users/me/password"  // Any authenticated user can change their own password (P0.5)
+    };
+
+    /**
+     * Endpoints reachable while a password change is pending (P0.5).
+     *
+     * When users.must_change_password is set (after an admin reset to a
+     * temporary password), the account is restricted to these patterns so the
+     * temporary password cannot be used to operate the system.
+     */
+    private static final String[] PASSWORD_CHANGE_WHITELIST = {
+        "/api/users/me/password",
+        "/api/auth/**"
     };
 
     /**
@@ -124,6 +136,17 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         Long userId = extractUserId(auth);
         if (userId == null) {
             log.warn("Failed to extract user ID from authentication: {}", auth.getName());
+            return new AuthorizationDecision(false);
+        }
+
+        // 3.5 Enforce pending password change (P0.5).
+        // JwtAuthenticationFilter loads the User entity fresh on every request,
+        // so this flag reflects the database state, not a stale JWT claim.
+        // Applies to ALL roles including SUPER_ADMIN - a temporary password
+        // must be changed before the account can do anything else.
+        if (mustChangePassword(auth) && !isPasswordChangeWhitelisted(requestUri)) {
+            log.warn("Access denied for user {} to {} {} (password change required)",
+                    userId, httpMethod, requestUri);
             return new AuthorizationDecision(false);
         }
 
@@ -188,6 +211,41 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      */
     private boolean isAuthenticatedEndpoint(String requestUri) {
         for (String pattern : AUTHENTICATED_ENDPOINTS) {
+            if (pathMatcher.match(pattern, requestUri)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if the authenticated account has a pending forced password change (P0.5)
+     *
+     * Reads the flag from the live User entity wrapped in SecurityUser
+     * (loaded from the database by JwtAuthenticationFilter on this request).
+     *
+     * @param authentication Spring Security Authentication
+     * @return true if the account must change its password before proceeding
+     */
+    private boolean mustChangePassword(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof SecurityUser) {
+            SecurityUser securityUser = (SecurityUser) principal;
+            return Boolean.TRUE.equals(securityUser.getUser().getMustChangePassword());
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if request URI is reachable while a password change is pending (P0.5)
+     *
+     * @param requestUri Request URI
+     * @return true if whitelisted during forced password change
+     */
+    private boolean isPasswordChangeWhitelisted(String requestUri) {
+        for (String pattern : PASSWORD_CHANGE_WHITELIST) {
             if (pathMatcher.match(pattern, requestUri)) {
                 return true;
             }

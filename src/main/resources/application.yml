@@ -15,10 +15,11 @@ spring:
     name: wms-system
 
   datasource:
-    # Please update based on local environment.
-    url: jdbc:postgresql://localhost:5432/wms_db?serverTimezone=UTC
-    username: postgres
-    password: 123465
+    # Credentials are injected via environment variables (see docs/security/SECURITY_SETUP.md).
+    # DB_PASSWORD has NO default on purpose: startup fails fast if it is missing.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/wms_db?serverTimezone=UTC}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       minimum-idle: 5
@@ -65,7 +66,9 @@ spring:
 # JWT configuration
 # ====================================================================
 jwt:
-  secret: WW91clN1cGVyU2VjcmV0S2V5Rm9ySldUVG9rZW5HZW5lcmF0aW9uTWluaW11bTI1NkJpdHNCYXNlNjRFbmNvZGVkU3RyaW5nPT0=
+  # Base64-encoded HS256 key, injected via environment variable (no default on purpose).
+  # Rotating this key invalidates all issued tokens; users must log in again.
+  secret: ${JWT_SECRET}
   expiration: 86400000
   issuer: WMS-System
   refresh-threshold: 3600000
@@ -75,7 +78,9 @@ jwt:
 # ====================================================================
 batch:
   hashids:
-    salt: ${BATCH_SALT:WMS_BATCH_DEFAULT_SALT_2025_FOR_DEVELOPMENT_ONLY}
+    # No default on purpose. Pick one value per environment and never change it afterwards
+    # (existing batch codes remain valid either way; lookups are by string equality).
+    salt: ${BATCH_SALT}
     min-length: 6
 
 logging:

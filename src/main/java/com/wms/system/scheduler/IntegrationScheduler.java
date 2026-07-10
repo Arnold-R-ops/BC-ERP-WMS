@@ -3,6 +3,7 @@ package com.wms.system.scheduler;
 import com.wms.system.service.ShopifyIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +43,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "wms.integration.shopify.scheduler-enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class IntegrationScheduler {
 

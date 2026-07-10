@@ -5,7 +5,7 @@ import com.wms.system.entity.Product;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
-import com.wms.system.repository.InventoryRepository;
+import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.ProductRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
 public class StockPredictionService {
 
     private final ProductRepository productRepository;
-    private final InventoryRepository inventoryRepository;
+    private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransactionRepository stockTransactionRepository;
 
     /**
@@ -120,7 +120,9 @@ public class StockPredictionService {
             ));
 
         // 2. Query current total stock (sum across all locations)
-        Integer currentStock = inventoryRepository.sumTotalQuantityByProduct(productId);
+        // Single source of truth is inventory_batch (V3.0 architecture decision);
+        // the legacy Inventory table is no longer maintained by inbound/outbound flows.
+        Integer currentStock = inventoryBatchRepository.sumQuantityByProduct(productId);
         if (currentStock == null) {
             currentStock = 0;
         }

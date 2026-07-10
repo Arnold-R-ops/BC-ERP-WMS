@@ -1,5 +1,6 @@
 package com.wms.system.integration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.shopify.ShopifyCustomerDto;
 import com.wms.system.dto.shopify.ShopifyLineItemDto;
@@ -96,6 +97,12 @@ class ShopifyIntegrationE2ETest {
     @Autowired
     private SystemConfigRepository systemConfigRepository;
 
+    @Autowired
+    private ChannelRawEventRepository channelRawEventRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private IntegrationConfig testConfig;
     private Product testProduct;
     private Warehouse testWarehouse;
@@ -104,6 +111,11 @@ class ShopifyIntegrationE2ETest {
 
     @BeforeEach
     void setUp() {
+        // 0. Clean raw events: they are persisted via REQUIRES_NEW and survive
+        //    the test transaction rollback, so leftover dedup state would bleed
+        //    between test methods.
+        channelRawEventRepository.deleteAll();
+
         // 1. Create test warehouse
         testWarehouse = Warehouse.builder()
                 .code("WH-TEST")
@@ -205,10 +217,7 @@ class ShopifyIntegrationE2ETest {
         shopifyOrder.setCustomer(shopifyCustomer);
         shopifyOrder.setLineItems(Collections.singletonList(lineItem));
 
-        ShopifyOrdersResponse response = new ShopifyOrdersResponse();
-        response.setOrders(Collections.singletonList(shopifyOrder));
-
-        when(shopifyApiClient.fetchOrders(any())).thenReturn(response);
+        when(shopifyApiClient.fetchOrdersRaw(any())).thenReturn(ordersJson(shopifyOrder));
 
         // When: Trigger sync
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -216,6 +225,13 @@ class ShopifyIntegrationE2ETest {
         // Then: Verify sync result
         assertThat(result.getSuccessCount()).isEqualTo(1);
         assertThat(result.getFailedCount()).isZero();
+
+        // Verify raw event persisted and marked processed (P1-B1)
+        Optional<ChannelRawEvent> rawEvent = channelRawEventRepository
+                .findFirstByChannelAndEventTypeAndExternalIdOrderByIdDesc("SHOPIFY", ChannelRawEvent.TYPE_ORDER, "12345");
+        assertThat(rawEvent).isPresent();
+        assertThat(rawEvent.get().getStatus()).isEqualTo(ChannelRawEvent.STATUS_PROCESSED);
+        assertThat(rawEvent.get().getPayload()).contains("#1001");
 
         // Verify customer created
         Optional<Customer> customer = customerRepository.findByEmail("newcustomer@example.com");
@@ -278,10 +294,7 @@ class ShopifyIntegrationE2ETest {
         shopifyOrder.setCustomer(shopifyCustomer);
         shopifyOrder.setLineItems(Collections.singletonList(lineItem));
 
-        ShopifyOrdersResponse response = new ShopifyOrdersResponse();
-        response.setOrders(Collections.singletonList(shopifyOrder));
-
-        when(shopifyApiClient.fetchOrders(any())).thenReturn(response);
+        when(shopifyApiClient.fetchOrdersRaw(any())).thenReturn(ordersJson(shopifyOrder));
 
         // When: Trigger sync
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -324,10 +337,7 @@ class ShopifyIntegrationE2ETest {
         shopifyOrder.setCustomer(shopifyCustomer);
         shopifyOrder.setLineItems(Collections.singletonList(lineItem));
 
-        ShopifyOrdersResponse response = new ShopifyOrdersResponse();
-        response.setOrders(Collections.singletonList(shopifyOrder));
-
-        when(shopifyApiClient.fetchOrders(any())).thenReturn(response);
+        when(shopifyApiClient.fetchOrdersRaw(any())).thenReturn(ordersJson(shopifyOrder));
 
         // When: Sync first time
         ShopifyIntegrationService.SyncResult result1 = shopifyIntegrationService.syncOrders();
@@ -338,9 +348,11 @@ class ShopifyIntegrationE2ETest {
         // When: Sync second time (same order)
         ShopifyIntegrationService.SyncResult result2 = shopifyIntegrationService.syncOrders();
 
-        // Then: Second sync should skip (deduplication)
+        // Then: Second sync silently skips via raw-event terminal state (P1-B1:
+        // previously this was counted as a failure; dedup is now a clean skip)
         assertThat(result2.getSuccessCount()).isZero();
-        assertThat(result2.getFailedCount()).isEqualTo(1);
+        assertThat(result2.getFailedCount()).isZero();
+        assertThat(result2.getSkippedCount()).isEqualTo(1);
 
         // Verify only one sales order exists
         List<SalesOrder> orders = salesOrderRepository.findAll();
@@ -374,10 +386,7 @@ class ShopifyIntegrationE2ETest {
         shopifyOrder.setCustomer(shopifyCustomer);
         shopifyOrder.setLineItems(Collections.singletonList(lineItem));
 
-        ShopifyOrdersResponse response = new ShopifyOrdersResponse();
-        response.setOrders(Collections.singletonList(shopifyOrder));
-
-        when(shopifyApiClient.fetchOrders(any())).thenReturn(response);
+        when(shopifyApiClient.fetchOrdersRaw(any())).thenReturn(ordersJson(shopifyOrder));
 
         // When: Trigger sync
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
@@ -389,5 +398,25 @@ class ShopifyIntegrationE2ETest {
         // Verify no sales order created
         Optional<SalesOrder> salesOrder = salesOrderRepository.findByExternalOrderId("88888");
         assertThat(salesOrder).isEmpty();
+
+        // Verify raw event kept with FAILED status and error message (diagnosable/replayable)
+        Optional<ChannelRawEvent> rawEvent = channelRawEventRepository
+                .findFirstByChannelAndEventTypeAndExternalIdOrderByIdDesc("SHOPIFY", ChannelRawEvent.TYPE_ORDER, "88888");
+        assertThat(rawEvent).isPresent();
+        assertThat(rawEvent.get().getStatus()).isEqualTo(ChannelRawEvent.STATUS_FAILED);
+        assertThat(rawEvent.get().getErrorMessage()).isNotBlank();
+    }
+
+    /**
+     * 构造 Shopify orders.json 原始报文（P1-B1：服务改为消费原始 JSON）
+     */
+    private String ordersJson(ShopifyOrderDto... orders) {
+        try {
+            ShopifyOrdersResponse resp = new ShopifyOrdersResponse();
+            resp.setOrders(java.util.List.of(orders));
+            return objectMapper.writeValueAsString(resp);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

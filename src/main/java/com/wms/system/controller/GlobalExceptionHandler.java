@@ -377,7 +377,9 @@ public class GlobalExceptionHandler {
         String fullMessage = message + " " + rootCauseMessage;
 
         // 检测是否为唯一约束违反
-        if (fullMessage.contains("unique") || fullMessage.contains("duplicate")) {
+        if (fullMessage.contains("unique")
+            || fullMessage.contains("duplicate")
+            || fullMessage.contains("already exists")) {
             log.warn("Unique constraint violation detected: {}", ex.getMessage());
 
             // 提取订单类型和订单号
@@ -536,6 +538,9 @@ public class GlobalExceptionHandler {
                  ErrorKeys.FILE_READ_ERROR,
                  ErrorKeys.SHOPIFY_API_ERROR,  // V3.9 Shopify Integration
                  ErrorKeys.SHOPIFY_RATE_LIMIT,  // V3.9 Shopify Integration
+                 ErrorKeys.PASSWORD_INCORRECT,  // P0.5 Password Management
+                 ErrorKeys.PASSWORD_TOO_WEAK,  // P0.5 Password Management
+                 ErrorKeys.PASSWORD_SAME_AS_OLD,  // P0.5 Password Management
                  "SUPPLIER_NOT_FOUND",  // Phase 3.5
                  "INVALID_STATUS_FOR_APPROVAL",  // Phase 3.5
                  "INVALID_STATUS_FOR_CONFIRMATION",  // Phase 3.5

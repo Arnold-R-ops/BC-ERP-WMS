@@ -1,0 +1,28 @@
+# ====================================================================
+# Production profile overrides (activate with SPRING_PROFILES_ACTIVE=prod)
+#
+# Purpose (P0 security fix):
+# - No SQL statements or bound parameter values in logs
+#   (the default profile keeps them on for local debugging)
+# - INFO-level logging only
+#
+# Credentials are NOT defined here - they come from environment
+# variables declared in the base application.yml (DB_PASSWORD,
+# JWT_SECRET, BATCH_SALT). See docs/security/SECURITY_SETUP.md.
+# ====================================================================
+
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+
+logging:
+  level:
+    root: INFO
+    com.wms: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO

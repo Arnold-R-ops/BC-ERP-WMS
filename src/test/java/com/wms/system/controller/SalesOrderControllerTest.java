@@ -402,7 +402,7 @@ class SalesOrderControllerTest {
             .reviewComment("Approved by manager")
             .build();
 
-        when(salesSubmissionService.approveSalesOrder(eq(1L), anyLong(), anyString(), anyString()))
+        when(salesSubmissionService.approveSalesOrder(eq(1L), anyLong(), anyString(), anyString(), any(), any(), any()))
             .thenReturn(response);
 
         // When & Then
@@ -416,7 +416,7 @@ class SalesOrderControllerTest {
             .andExpect(jsonPath("$.reviewedByName").value("manager"))
             .andExpect(jsonPath("$.reviewComment").value("Approved by manager"));
 
-        verify(salesSubmissionService).approveSalesOrder(eq(1L), anyLong(), anyString(), anyString());
+        verify(salesSubmissionService).approveSalesOrder(eq(1L), anyLong(), anyString(), anyString(), any(), any(), any());
     }
 
     @Test

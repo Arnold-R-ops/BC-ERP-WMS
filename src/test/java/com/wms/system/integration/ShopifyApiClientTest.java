@@ -1,6 +1,6 @@
 package com.wms.system.integration;
 
-import com.wms.system.dto.shopify.ShopifyOrderDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.dto.shopify.ShopifyOrdersResponse;
 import com.wms.system.entity.IntegrationConfig;
 import com.wms.system.exception.BusinessException;
@@ -10,173 +10,162 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.Collections;
+import org.springframework.web.client.ResourceAccessException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * ShopifyApiClient 单元测试
  *
- * @author WMS Team
- * @since 2026-02-05
- * @version 3.9 (Shopify Integration)
+ * P1 批次1 重写：客户端改为令牌管理器解析令牌 + 原始报文拉取 + 401 换令牌重试
  */
 @ExtendWith(MockitoExtension.class)
 class ShopifyApiClientTest {
 
     @Mock
-    private RestTemplate restTemplate;
+    private org.springframework.web.client.RestTemplate restTemplate;
+
+    @Mock
+    private ShopifyTokenProvider tokenProvider;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private ShopifyApiClient shopifyApiClient;
 
     private IntegrationConfig config;
 
+    private static final String ORDERS_JSON =
+        "{\"orders\":[{\"id\":123,\"name\":\"#1001\",\"email\":\"a@b.com\",\"line_items\":[]}]}";
+
     @BeforeEach
     void setUp() {
         config = IntegrationConfig.builder()
+                .id(1L)
                 .platform("SHOPIFY")
                 .storeUrl("test-store.myshopify.com")
-                .accessToken("test-access-token")
+                .clientId("cid")
+                .clientSecret("shpss_x")
                 .isActive(true)
                 .build();
+        when(tokenProvider.resolveAccessToken(any())).thenReturn("shpat_test");
+    }
+
+    private void stubGet(String body) {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(body));
     }
 
     @Test
     void fetchOrders_Success() {
-        // Given
-        ShopifyOrdersResponse mockResponse = new ShopifyOrdersResponse();
-        ShopifyOrderDto order = new ShopifyOrderDto();
-        order.setId(123L);
-        order.setName("#1001");
-        mockResponse.setOrders(Collections.singletonList(order));
+        stubGet(ORDERS_JSON);
 
-        ResponseEntity<ShopifyOrdersResponse> responseEntity = ResponseEntity.ok(mockResponse);
-
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenReturn(responseEntity);
-
-        // When
         ShopifyOrdersResponse result = shopifyApiClient.fetchOrders(config);
 
-        // Then
-        assertThat(result).isNotNull();
         assertThat(result.getOrders()).hasSize(1);
         assertThat(result.getOrders().get(0).getId()).isEqualTo(123L);
         assertThat(result.getOrders().get(0).getName()).isEqualTo("#1001");
     }
 
     @Test
-    void fetchOrders_EmptyResponse() {
-        // Given
-        ResponseEntity<ShopifyOrdersResponse> responseEntity = ResponseEntity.ok(null);
+    void fetchOrdersRaw_ReturnsRawJson() {
+        stubGet(ORDERS_JSON);
 
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenReturn(responseEntity);
+        assertThat(shopifyApiClient.fetchOrdersRaw(config)).isEqualTo(ORDERS_JSON);
+    }
 
-        // When
+    @Test
+    void fetchOrders_EmptyResponseBody() {
+        stubGet("{}");
+
         ShopifyOrdersResponse result = shopifyApiClient.fetchOrders(config);
 
-        // Then
-        assertThat(result).isNotNull();
         assertThat(result.getOrders()).isEmpty();
     }
 
     @Test
-    void fetchOrders_AuthenticationFailed_401() {
-        // Given
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
+    void unauthorized_InvalidatesTokenAndRetriesOnce_Success() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.UNAUTHORIZED, "Unauthorized",
+                        HttpHeaders.EMPTY, new byte[0], null))
+                .thenReturn(ResponseEntity.ok(ORDERS_JSON));
 
-        // When & Then
-        assertThatThrownBy(() -> shopifyApiClient.fetchOrders(config))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SHOPIFY_AUTH_FAILED);
+        ShopifyOrdersResponse result = shopifyApiClient.fetchOrders(config);
+
+        assertThat(result.getOrders()).hasSize(1);
+        verify(tokenProvider).invalidate(1L);
     }
 
     @Test
-    void fetchOrders_AuthenticationFailed_403() {
-        // Given
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenThrow(new HttpClientErrorException(HttpStatus.FORBIDDEN));
+    void unauthorized_Twice_ThrowsAuthFailed() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.UNAUTHORIZED, "Unauthorized",
+                        HttpHeaders.EMPTY, new byte[0], null));
 
-        // When & Then
         assertThatThrownBy(() -> shopifyApiClient.fetchOrders(config))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SHOPIFY_AUTH_FAILED);
+        verify(tokenProvider).invalidate(1L);
     }
 
     @Test
-    void fetchOrders_RateLimitExceeded_429() {
-        // Given
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenThrow(new HttpClientErrorException(HttpStatus.TOO_MANY_REQUESTS));
+    void rateLimit_ThrowsRateLimitError() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenThrow(HttpClientErrorException.create(HttpStatus.TOO_MANY_REQUESTS, "Too Many",
+                        HttpHeaders.EMPTY, new byte[0], null));
 
-        // When & Then
         assertThatThrownBy(() -> shopifyApiClient.fetchOrders(config))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SHOPIFY_RATE_LIMIT);
     }
 
     @Test
-    void fetchOrders_ServerError_500() {
-        // Given
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+    void serverError_ThrowsApiError() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenThrow(HttpServerErrorException.create(HttpStatus.INTERNAL_SERVER_ERROR, "Boom",
+                        HttpHeaders.EMPTY, new byte[0], null));
 
-        // When & Then
         assertThatThrownBy(() -> shopifyApiClient.fetchOrders(config))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SHOPIFY_API_ERROR);
     }
 
     @Test
-    void fetchOrders_ClientError_400() {
-        // Given
-        when(restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                org.mockito.ArgumentMatchers.<HttpEntity<String>>any(),
-                eq(ShopifyOrdersResponse.class)
-        )).thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
+    void networkError_ThrowsApiError() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenThrow(new ResourceAccessException("timeout"));
 
-        // When & Then
         assertThatThrownBy(() -> shopifyApiClient.fetchOrders(config))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SHOPIFY_API_ERROR);
     }
-}
 
+    @Test
+    void malformedJson_ThrowsApiError() {
+        stubGet("not-json{{{");
+
+        assertThatThrownBy(() -> shopifyApiClient.fetchOrders(config))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SHOPIFY_API_ERROR);
+    }
+
+    @Test
+    void fetchShopInfo_Success() {
+        stubGet("{\"shop\":{\"name\":\"Bubble Crush UK\",\"currency\":\"GBP\",\"iana_timezone\":\"Europe/London\"}}");
+
+        var shop = shopifyApiClient.fetchShopInfo(config);
+
+        assertThat(shop.get("name")).isEqualTo("Bubble Crush UK");
+        assertThat(shop.get("currency")).isEqualTo("GBP");
+    }
+}

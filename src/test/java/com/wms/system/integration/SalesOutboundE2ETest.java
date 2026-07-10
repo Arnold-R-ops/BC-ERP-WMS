@@ -232,7 +232,10 @@ class SalesOutboundE2ETest {
             orderResponse.getId(),
             2L,
             "manager",
-            "Price approved for this customer"
+            "Price approved for this customer",
+            null,
+            null,
+            null
         );
 
         // Verify: Order approved and status changed

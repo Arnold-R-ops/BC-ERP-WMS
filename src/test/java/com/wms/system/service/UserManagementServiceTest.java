@@ -120,6 +120,92 @@ class UserManagementServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    // ========== P0.5 Password Management ==========
+
+    @Test
+    void changesOwnPasswordAndClearsMustChangeFlag() {
+        target.setMustChangePassword(true);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.matches("old-pass", "encoded")).thenReturn(true);
+        when(passwordEncoder.matches("NewPass2026", "encoded")).thenReturn(false);
+        when(passwordEncoder.encode("NewPass2026")).thenReturn("encoded-new");
+
+        service.changeOwnPassword(2L, "old-pass", "NewPass2026");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPassword()).isEqualTo("encoded-new");
+        assertThat(captor.getValue().getMustChangePassword()).isFalse();
+    }
+
+    @Test
+    void rejectsPasswordChangeWithWrongOldPassword() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.matches("wrong-old", "encoded")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.changeOwnPassword(2L, "wrong-old", "NewPass2026"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PASSWORD_INCORRECT);
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsWeakNewPassword() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.matches("old-pass", "encoded")).thenReturn(true);
+
+        // Too short, digits only, letters only - all violate the policy
+        for (String weak : new String[]{"a1", "12345678", "abcdefgh"}) {
+            assertThatThrownBy(() -> service.changeOwnPassword(2L, "old-pass", weak))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PASSWORD_TOO_WEAK);
+        }
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsNewPasswordIdenticalToOld() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.matches("SamePass1", "encoded")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.changeOwnPassword(2L, "SamePass1", "SamePass1"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PASSWORD_SAME_AS_OLD);
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void resetsPasswordToTemporaryAndSetsMustChangeFlag() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.encode(any())).thenReturn("encoded-temp");
+
+        var response = service.resetPassword(2L, 1L);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPassword()).isEqualTo("encoded-temp");
+        assertThat(captor.getValue().getMustChangePassword()).isTrue();
+
+        assertThat(response.getUserId()).isEqualTo(2L);
+        assertThat(response.getUsername()).isEqualTo("employee");
+        assertThat(response.getMustChangePassword()).isTrue();
+        assertThat(response.getTemporaryPassword()).hasSize(12);
+    }
+
+    @Test
+    void rejectsResettingOwnPassword() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(operator));
+
+        assertThatThrownBy(() -> service.resetPassword(1L, 1L))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+
+        verify(userRepository, never()).save(any());
+    }
+
     @Test
     void rejectsDeletingLastSuperAdmin() {
         SysRole superAdmin = SysRole.builder()

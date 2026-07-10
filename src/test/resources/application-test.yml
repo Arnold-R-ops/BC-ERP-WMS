@@ -9,12 +9,21 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
+  # 测试环境禁用 Flyway：schema 由下方 ddl-auto: create 从实体全量重建，
+  # 测试数据由各测试类 setUp 自播种（不依赖迁移种子）。
+  # 不能两套并存——迁移链并非自包含（V2 起就引用 Hibernate 建的 users 表），
+  # 在 Hibernate 重建的表上重放增量迁移必然失败（曾致 V4_5_1 报 23502）。
+  flyway:
+    enabled: false
+
   # 数据源配置（使用 PostgreSQL 测试数据库）
+  # 密码优先读环境变量 DB_PASSWORD，未设置时回落到本地默认值，
+  # 这样在数据库改密后无需修改本文件即可继续跑测试
   datasource:
     url: jdbc:postgresql://localhost:5432/wms_db_test?serverTimezone=UTC
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: 123465
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:123465}
 
   # JPA 配置
   jpa:
@@ -42,6 +51,12 @@ jwt:
   secret: dGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItaW50ZWdyYXRpb24tdGVzdGluZy1vbmx5LWRvLW5vdC11c2UtaW4tcHJvZHVjdGlvbi1lbnZpcm9ubWVudC0yMDI2
   expiration: 86400000  # 24 小时（毫秒）
   issuer: WMS-System-Test
+
+# 批次码 Hashids 盐（仅测试用；主配置的 BATCH_SALT 无默认值，测试必须自带）
+batch:
+  hashids:
+    salt: TEST_ONLY_BATCH_SALT_NOT_FOR_PRODUCTION
+    min-length: 6
 
 # 日志配置（测试环境）
 logging:

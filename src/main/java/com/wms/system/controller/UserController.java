@@ -39,9 +39,12 @@ import java.util.stream.Collectors;
  * - DELETE /api/users/{id}: Delete user
  * - POST /api/users/{id}/roles: Batch assign roles to user
  * - DELETE /api/users/{id}/roles/{roleId}: Remove single role from user
+ * - PUT /api/users/me/password: Change own password (any authenticated user, P0.5)
+ * - POST /api/users/{id}/reset-password: Admin reset to temporary password (P0.5)
  *
  * Security:
- * - All endpoints require SUPER_ADMIN role
+ * - All endpoints require SUPER_ADMIN role, except /me/password which is
+ *   available to any authenticated user (method-level @PreAuthorize override)
  * - Password is never returned in responses
  * - Prevents deletion of last SUPER_ADMIN (optional protection)
  * - Requires at least one role per user
@@ -325,13 +328,7 @@ public class UserController {
         Authentication authentication
     ) {
         log.info("Deleting user: userId={}", id);
-        Long operatorId = AuthUserResolver.resolveUserId(authentication);
-        if (operatorId == null || operatorId == 0L) {
-            String operatorUsername = AuthUserResolver.resolveUsername(authentication);
-            operatorId = userRepository.findByUsername(operatorUsername)
-                .map(User::getId)
-                .orElse(0L);
-        }
+        Long operatorId = resolveOperatorId(authentication);
         userManagementService.deleteUser(id, operatorId);
         return ResponseEntity.noContent().build();
     }
@@ -510,6 +507,111 @@ public class UserController {
         cacheService.onUserRoleRemoved(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * ⭐ Change Own Password (P0.5)
+     *
+     * Allows the authenticated user to change their own password.
+     * Available to ANY authenticated user (not just SUPER_ADMIN): the
+     * method-level @PreAuthorize overrides the class-level SUPER_ADMIN rule.
+     *
+     * API Endpoint:
+     * PUT /api/users/me/password
+     *
+     * Request Body:
+     * <pre>
+     * {
+     *   "oldPassword": "current-password",
+     *   "newPassword": "NewPassword2026"
+     * }
+     * </pre>
+     *
+     * Success Response (204 No Content)
+     *
+     * Error Responses:
+     * - 400: PASSWORD_INCORRECT - Old password verification failed
+     * - 400: PASSWORD_TOO_WEAK - New password violates the strength policy
+     * - 400: PASSWORD_SAME_AS_OLD - New password equals the current one
+     *
+     * Side effect: clears must_change_password, lifting the temporary-password
+     * restriction after an admin reset.
+     *
+     * @param request Old + new password
+     * @param authentication Current authentication
+     * @return No content
+     */
+    @PutMapping("/me/password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> changeMyPassword(
+        @Valid @RequestBody ChangeMyPasswordRequest request,
+        Authentication authentication
+    ) {
+        Long userId = resolveOperatorId(authentication);
+        if (userId == 0L) {
+            throw new BusinessException(
+                ErrorKeys.USER_NOT_FOUND,
+                Map.of("username", AuthUserResolver.resolveUsername(authentication))
+            );
+        }
+
+        log.info("Password change requested: userId={}", userId);
+        userManagementService.changeOwnPassword(userId, request.getOldPassword(), request.getNewPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * ⭐ Reset User Password (P0.5, SUPER_ADMIN only)
+     *
+     * Resets the target user's password to a generated temporary password and
+     * flags the account must_change_password: until the user changes it via
+     * PUT /api/users/me/password, all other APIs are blocked for that account.
+     *
+     * API Endpoint:
+     * POST /api/users/{id}/reset-password
+     *
+     * Success Response (200 OK):
+     * <pre>
+     * {
+     *   "userId": 5,
+     *   "username": "employee",
+     *   "temporaryPassword": "aB3kM9pQrs2x",
+     *   "mustChangePassword": true
+     * }
+     * </pre>
+     * The temporary password is shown ONCE here and never logged.
+     *
+     * Error Responses:
+     * - 404: USER_NOT_FOUND - Target user does not exist
+     * - 403: OPERATION_NOT_ALLOWED - Resetting your own password (use /me/password)
+     *
+     * @param id Target user ID
+     * @param authentication Current authentication (operator)
+     * @return Temporary password payload
+     */
+    @PostMapping("/{id}/reset-password")
+    public ResponseEntity<ResetPasswordResponse> resetPassword(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
+        Long operatorId = resolveOperatorId(authentication);
+        log.info("Password reset requested: targetUserId={}, operatorId={}", id, operatorId);
+        return ResponseEntity.ok(userManagementService.resetPassword(id, operatorId));
+    }
+
+    /**
+     * Resolve the operator's user ID from the authentication, falling back to
+     * a username lookup (same pattern as deleteUser).
+     */
+    private Long resolveOperatorId(Authentication authentication) {
+        Long operatorId = AuthUserResolver.resolveUserId(authentication);
+        if (operatorId == null || operatorId == 0L) {
+            String operatorUsername = AuthUserResolver.resolveUsername(authentication);
+            operatorId = userRepository.findByUsername(operatorUsername)
+                .map(User::getId)
+                .orElse(0L);
+        }
+        return operatorId;
     }
 
     /**

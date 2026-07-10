@@ -45,10 +45,25 @@ public class IntegrationConfig extends BaseEntity {
     private String apiKey;
 
     /**
-     * 访问令牌
-     * 用于 API 认证
+     * OAuth 应用 Client ID（2026 起 Shopify dev dashboard 应用的标准凭据）。
+     * 与 clientSecret 搭配，运行时通过 client_credentials 模式换取短效访问令牌。
      */
-    @Column(name = "access_token", nullable = false, length = 500)
+    @Column(name = "client_id", length = 100)
+    private String clientId;
+
+    /**
+     * OAuth 应用 Client Secret（shpss_ 开头）。
+     * 双重用途：① 换取访问令牌的材料；② Webhook HMAC 验签密钥。
+     * 目前明文入库，凭证管理阶梯升级见 ROADMAP P3。
+     */
+    @Column(name = "client_secret", length = 200)
+    private String clientSecret;
+
+    /**
+     * 静态访问令牌（旧模式，可选）。
+     * 仅当 clientId/clientSecret 缺失时使用；新配置应优先用 client credentials。
+     */
+    @Column(name = "access_token", length = 500)
     private String accessToken;
 
     /**

@@ -5,7 +5,7 @@ import com.wms.system.entity.Product;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.TransactionType;
 import com.wms.system.exception.BusinessException;
-import com.wms.system.repository.InventoryRepository;
+import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.ProductRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 class StockPredictionServiceTest {
 
     @Mock private ProductRepository productRepository;
-    @Mock private InventoryRepository inventoryRepository;
+    @Mock private InventoryBatchRepository inventoryBatchRepository;
     @Mock private StockTransactionRepository stockTransactionRepository;
 
     @InjectMocks
@@ -59,7 +59,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion - returns suggestion with no outbound history")
     void testGetReorderSuggestion_NoHistory() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(30);
+        when(inventoryBatchRepository.sumQuantityByProduct(1L)).thenReturn(30);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -81,7 +81,7 @@ class StockPredictionServiceTest {
         StockTransaction tx2 = buildTransaction(30, LocalDateTime.now().minusDays(2));
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumQuantityByProduct(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of(tx1, tx2));
 
@@ -106,7 +106,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion - treats null stock as 0")
     void testGetReorderSuggestion_NullStock() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(null);
+        when(inventoryBatchRepository.sumQuantityByProduct(1L)).thenReturn(null);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -119,7 +119,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion(productId) - uses default period 30 days")
     void testGetReorderSuggestion_DefaultPeriod() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumQuantityByProduct(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -140,7 +140,7 @@ class StockPredictionServiceTest {
 
         when(productRepository.findLowStockProducts()).thenReturn(List.of(lowStockProduct));
         when(productRepository.findById(2L)).thenReturn(Optional.of(lowStockProduct));
-        when(inventoryRepository.sumTotalQuantityByProduct(2L)).thenReturn(20); // below minStock
+        when(inventoryBatchRepository.sumQuantityByProduct(2L)).thenReturn(20); // below minStock
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -207,7 +207,7 @@ class StockPredictionServiceTest {
         StockTransaction tx = buildTransaction(10, utcTime);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumQuantityByProduct(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of(tx));
 

@@ -90,8 +90,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * JPQL 语法说明：
      * 1. SELECT p: 查询 Product 实体
      * 2. FROM Product p: 从 Product 表查询（p 是别名）
-     * 3. JOIN Inventory i ON i.product = p: 关联 Inventory 表
-     * 4. WHERE i.quantity < p.minStock: 实际库存 < 安全库存
+     * 3. 子查询汇总 InventoryBatch（V3.0 起唯一库存数据源，active=true 且已分配库位）
+     * 4. WHERE 总库存 < p.minStock: 实际库存 < 安全库存
      * 5. GROUP BY p: 按商品分组（因为一个商品可能分布在多个库位）
      * 6. HAVING SUM(i.quantity) < p.minStock: 所有库位的总库存 < 安全库存
      *
@@ -108,10 +108,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Query("SELECT p FROM Product p " +
            "WHERE p.id IN (" +
-           "  SELECT i.product.id FROM Inventory i " +
-           "  GROUP BY i.product.id " +
-           "  HAVING SUM(i.quantity) < " +
-           "    (SELECT p2.minStock FROM Product p2 WHERE p2.id = i.product.id)" +
+           "  SELECT b.product.id FROM InventoryBatch b " +
+           "  WHERE b.active = true AND b.location IS NOT NULL " +
+           "  GROUP BY b.product.id " +
+           "  HAVING SUM(b.quantity) < " +
+           "    (SELECT p2.minStock FROM Product p2 WHERE p2.id = b.product.id)" +
            ")")
     List<Product> findLowStockProducts();
 
@@ -127,10 +128,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p " +
            "WHERE p.supplier = :supplier " +
            "AND p.id IN (" +
-           "  SELECT i.product.id FROM Inventory i " +
-           "  GROUP BY i.product.id " +
-           "  HAVING SUM(i.quantity) < " +
-           "    (SELECT p2.minStock FROM Product p2 WHERE p2.id = i.product.id)" +
+           "  SELECT b.product.id FROM InventoryBatch b " +
+           "  WHERE b.active = true AND b.location IS NOT NULL " +
+           "  GROUP BY b.product.id " +
+           "  HAVING SUM(b.quantity) < " +
+           "    (SELECT p2.minStock FROM Product p2 WHERE p2.id = b.product.id)" +
            ")")
     List<Product> findLowStockProductsBySupplier(@Param("supplier") String supplier);
 

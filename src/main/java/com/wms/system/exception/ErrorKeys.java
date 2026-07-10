@@ -237,6 +237,30 @@ public final class ErrorKeys {
      */
     public static final String USER_UNAUTHORIZED = "USER_UNAUTHORIZED";
 
+    /**
+     * Old password verification failed during self password change (P0.5)
+     *
+     * Parameters:
+     * - userId (Long): User ID
+     */
+    public static final String PASSWORD_INCORRECT = "PASSWORD_INCORRECT";
+
+    /**
+     * New password does not satisfy the strength policy (P0.5)
+     *
+     * Parameters:
+     * - policy (String): Human-readable policy description
+     */
+    public static final String PASSWORD_TOO_WEAK = "PASSWORD_TOO_WEAK";
+
+    /**
+     * New password is identical to the current password (P0.5)
+     *
+     * Parameters:
+     * - userId (Long): User ID
+     */
+    public static final String PASSWORD_SAME_AS_OLD = "PASSWORD_SAME_AS_OLD";
+
     // ========== Role Related Errors (Multi-Role System v3.3+) ==========
 
     /**
