@@ -1,0 +1,36 @@
+{
+  "name": "2g-wms-admin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "generate:api": "openapi-typescript ../docs/frontend/openapi.json -o src/api/schema.d.ts"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "@ant-design/pro-components": "^2.8.10",
+    "@tanstack/react-query": "^5.101.2",
+    "antd": "^5.29.3",
+    "i18next": "^26.3.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.9",
+    "react-router-dom": "^6.30.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.3",
+    "jsdom": "^29.1.1",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
+  }
+}

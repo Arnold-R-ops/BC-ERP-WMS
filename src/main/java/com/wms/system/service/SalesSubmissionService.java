@@ -122,6 +122,12 @@ public class SalesSubmissionService {
             .applicantName(applicantName)
             .build();
 
+        // P1-B2 渠道标记：请求带 channel 时覆盖默认值 MANUAL（如微信单传 WECHAT）；
+        // 不能在 builder 里传 null，否则会覆盖 @Builder.Default 的 MANUAL
+        if (org.springframework.util.StringUtils.hasText(request.getChannel())) {
+            salesOrder.setChannel(request.getChannel().trim().toUpperCase());
+        }
+
         // Save order first to get ID
         salesOrder = salesOrderRepository.save(salesOrder);
         log.info("✅ Sales order created: orderId={}, orderNo={}", salesOrder.getId(), salesOrder.getOrderNo());

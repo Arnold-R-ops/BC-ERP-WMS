@@ -80,4 +80,12 @@ public class IntegrationConfig extends BaseEntity {
      */
     @Column(name = "last_sync_at")
     private LocalDateTime lastSyncAt;
+
+    /**
+     * Shopify 库位 id（P1-B4 库存回写用）：inventory_levels/set 必须指定库位。
+     * 可通过 /api/integration/configs/{id}/detect-location 自动探测
+     * （需应用具备 read_locations 权限）。
+     */
+    @Column(name = "shopify_location_id", length = 50)
+    private String shopifyLocationId;
 }

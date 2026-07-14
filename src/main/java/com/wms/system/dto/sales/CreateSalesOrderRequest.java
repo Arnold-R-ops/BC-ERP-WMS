@@ -38,6 +38,15 @@ public class CreateSalesOrderRequest {
     private List<SalesOrderItemData> items;
 
     /**
+     * 订单渠道标记（可选，P1-B2）
+     *
+     * 手工单默认 MANUAL；微信客户下的单传 WECHAT 等，报表可按渠道切分销量。
+     * Shopify 等系统集成渠道由集成服务自行覆盖，前端勿传。
+     */
+    @Size(max = 50, message = "渠道标记长度不能超过 50 个字符")
+    private String channel;
+
+    /**
      * 订单明细数据
      */
     @Data

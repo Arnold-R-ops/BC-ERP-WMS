@@ -58,7 +58,13 @@ class ShopifyIntegrationServiceTest {
     private CustomerRepository customerRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ChannelSkuResolver skuResolver;
+
+    @Mock
+    private PendingSkuMappingService pendingSkuMappingService;
+
+    @Mock
+    private SystemConfigService systemConfigService;
 
     @Mock
     private SalesSubmissionService salesSubmissionService;
@@ -192,6 +198,18 @@ class ShopifyIntegrationServiceTest {
                 .thenReturn(rawEvent);
     }
 
+    /**
+     * SKU 解析漏斗桩：默认命中商品（P1-B2）
+     */
+    private void stubSkuResolved(int ratio) {
+        when(skuResolver.resolve(anyString(), anyString(), anyString()))
+                .thenReturn(resolutionOfProduct(ratio));
+    }
+
+    private ChannelSkuResolver.Resolution resolutionOfProduct(int ratio) {
+        return ChannelSkuResolver.Resolution.product(product, ratio);
+    }
+
     // ===== 用例 =====
 
     @Test
@@ -216,7 +234,7 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.of(product));
+        stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
@@ -291,7 +309,7 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.of(product));
+        stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
@@ -309,7 +327,8 @@ class ShopifyIntegrationServiceTest {
     }
 
     @Test
-    void syncOrders_SkuNotFound() {
+    void syncOrders_UnknownSku_QueuedForMapping() {
+        // P1-B2：未知 SKU 不再静默丢单——进待映射队列并阻断本单
         stubActiveConfig();
         when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
         stubNewRawEvent();
@@ -317,12 +336,15 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.empty());
+        when(skuResolver.resolve(anyString(), anyString(), anyString()))
+                .thenReturn(ChannelSkuResolver.Resolution.miss());
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
+        verify(pendingSkuMappingService).recordMiss(eq("SHOPIFY"), anyString(), eq("TEST-SKU-001"),
+                anyString(), any(), eq("#1001"));
         verify(rawEventService).markFailed(eq(10L), anyString());
         verify(salesSubmissionService, never()).createSalesOrder(any(), anyLong(), anyString());
     }
@@ -346,7 +368,7 @@ class ShopifyIntegrationServiceTest {
                 .build();
         when(customerRepository.save(any(Customer.class))).thenReturn(newCustomer);
 
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.of(product));
+        stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
@@ -408,12 +430,12 @@ class ShopifyIntegrationServiceTest {
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
-        verify(productRepository, never()).findByBarcode(anyString());
+        verify(skuResolver, never()).resolve(anyString(), anyString(), anyString());
     }
 
     @Test
-    void syncOrders_LineItemWithoutSku() {
-        // 已知缺陷（批次2 修复）：无 SKU 行被跳过导致下标错位，当前表现为整单失败
+    void syncOrders_LineItemWithoutSku_DefaultPendingPolicy() {
+        // P1-B2：无 SKU 行默认策略 PENDING——以合成键 NOSKU::标题 进待映射队列并阻断
         stubActiveConfig();
         shopifyOrder.getLineItems().get(0).setSku(null);
         when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
@@ -422,11 +444,69 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        when(skuResolver.resolve(anyString(), anyString(), startsWith(PendingSkuMapping.NO_SKU_PREFIX)))
+                .thenReturn(ChannelSkuResolver.Resolution.miss());
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
+        verify(pendingSkuMappingService).recordMiss(eq("SHOPIFY"), anyString(),
+                startsWith(PendingSkuMapping.NO_SKU_PREFIX), anyString(), any(), eq("#1001"));
+    }
+
+    @Test
+    void syncOrders_LineItemWithoutSku_SkipPolicy() {
+        // P1-B2：策略 SKIP——无 SKU 行直接丢行；本单只有这一行 → 无可履约行而失败，但不进队列
+        stubActiveConfig();
+        shopifyOrder.getLineItems().get(0).setSku(null);
+        when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
+        stubNewRawEvent();
+        stubTransactionPassThrough();
+
+        when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
+        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        when(systemConfigService.getConfigValue(ShopifyIntegrationService.NO_SKU_POLICY_KEY))
+                .thenReturn(ShopifyIntegrationService.NO_SKU_POLICY_SKIP);
+        when(skuResolver.resolve(anyString(), anyString(), startsWith(PendingSkuMapping.NO_SKU_PREFIX)))
+                .thenReturn(ChannelSkuResolver.Resolution.miss());
+
+        ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
+
+        assertThat(result.getFailedCount()).isEqualTo(1);
+        verify(pendingSkuMappingService, never()).recordMiss(anyString(), anyString(), anyString(),
+                anyString(), any(), anyString());
+    }
+
+    @Test
+    void syncOrders_QuantityRatioConversion() {
+        // P1-B2：数量换算——1 外部单位 = 20 内部单位（数量 ×20，单价 ÷20）
+        stubActiveConfig();
+        when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
+        stubNewRawEvent();
+        stubTransactionPassThrough();
+
+        when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
+        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubSkuResolved(20);
+
+        SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
+        salesOrderResponse.setId(1L);
+        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
+                .thenReturn(salesOrderResponse);
+        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
+        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
+
+        ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
+
+        assertThat(result.getSuccessCount()).isEqualTo(1);
+        verify(salesSubmissionService).createSalesOrder(argThat(req -> {
+            var item = req.getItems().get(0);
+            // 10 件 ×20 = 200 内部单位；99.99 ÷ 20 = 5.00（HALF_UP 到分）
+            return item.getQuantity() == 200
+                && item.getUnitPrice().compareTo(new BigDecimal("5.00")) == 0;
+        }), anyLong(), anyString());
     }
 
     @Test
@@ -439,7 +519,7 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.of(product));
+        stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
@@ -464,7 +544,7 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.of(product));
+        stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
@@ -516,7 +596,7 @@ class ShopifyIntegrationServiceTest {
                 .build();
         when(customerRepository.save(any(Customer.class))).thenReturn(newCustomer);
 
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.of(product));
+        stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);

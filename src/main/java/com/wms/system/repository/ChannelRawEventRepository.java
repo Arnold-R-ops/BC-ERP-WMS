@@ -24,4 +24,9 @@ public interface ChannelRawEventRepository extends JpaRepository<ChannelRawEvent
      * 按渠道与状态分页查询（诊断/重放入口）
      */
     Page<ChannelRawEvent> findByChannelAndStatusOrderByIdDesc(String channel, String status, Pageable pageable);
+
+    /**
+     * Webhook 事件 id 去重（P1-B3：Shopify 会重发未确认的推送）
+     */
+    boolean existsByWebhookEventId(String webhookEventId);
 }

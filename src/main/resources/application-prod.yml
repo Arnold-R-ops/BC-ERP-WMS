@@ -19,6 +19,13 @@ spring:
         format_sql: false
         use_sql_comments: false
 
+# OpenAPI docs are a development/handover tool - never expose contract in prod
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 logging:
   level:
     root: INFO

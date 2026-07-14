@@ -856,6 +856,18 @@ public final class ErrorKeys {
     public static final String SHOPIFY_ORDER_ALREADY_SYNCED = "SHOPIFY_ORDER_ALREADY_SYNCED";
 
     /**
+     * Channel order blocked: unknown SKU(s) queued for human mapping (P1-B2)
+     *
+     * The order is NOT lost - it stays as a FAILED raw event and will be
+     * retried automatically once the pending SKUs are resolved.
+     *
+     * Parameters:
+     * - externalOrderNo (String): Channel order number
+     * - pendingSkus (String): Comma-joined unknown SKUs
+     */
+    public static final String SKU_MAPPING_PENDING = "SKU_MAPPING_PENDING";
+
+    /**
      * Integration configuration not found
      *
      * Parameters:

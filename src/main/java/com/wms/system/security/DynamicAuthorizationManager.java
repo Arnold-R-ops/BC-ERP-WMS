@@ -68,10 +68,14 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      */
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/login",      // Login endpoint
+        "/api/webhooks/**",     // Channel webhooks (P1-B3): no JWT, secured by HMAC signature inside
         "/health/**",           // Health check
         "/actuator/**",         // Spring Boot Actuator
         "/error",               // Error page
-        "/favicon.ico"          // Favicon
+        "/favicon.ico",         // Favicon
+        "/v3/api-docs/**",      // OpenAPI contract (P2-FE): disabled entirely in prod profile
+        "/swagger-ui/**",       // Swagger UI (P2-FE): disabled entirely in prod profile
+        "/swagger-ui.html"      // Swagger UI entry
     };
 
     /**

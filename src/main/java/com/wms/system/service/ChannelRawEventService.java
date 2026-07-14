@@ -94,4 +94,44 @@ public class ChannelRawEventService {
             repository.save(e);
         });
     }
+
+    /**
+     * 标记待人工复核（P1-B3：渠道侧取消/修改无法自动处理时；独立事务）
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markManualReview(Long eventId, String reason) {
+        repository.findById(eventId).ifPresent(e -> {
+            e.setStatus(ChannelRawEvent.STATUS_MANUAL_REVIEW);
+            e.setProcessedAt(LocalDateTime.now());
+            e.setErrorMessage(reason);
+            repository.save(e);
+        });
+    }
+
+    /**
+     * Webhook 报文落库（P1-B3，带 webhook 事件 id；独立事务）
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public ChannelRawEvent recordWebhook(String channel, String storeIdentifier, String eventType,
+                                         String externalId, String payload, String webhookEventId) {
+        ChannelRawEvent event = ChannelRawEvent.builder()
+            .channel(channel)
+            .storeIdentifier(storeIdentifier)
+            .source(ChannelRawEvent.SOURCE_WEBHOOK)
+            .eventType(eventType)
+            .externalId(externalId)
+            .payload(payload)
+            .webhookEventId(webhookEventId)
+            .status(ChannelRawEvent.STATUS_RECEIVED)
+            .build();
+        return repository.save(event);
+    }
+
+    /**
+     * Webhook 事件 id 是否已接收过（重发去重）
+     */
+    @Transactional(readOnly = true)
+    public boolean webhookAlreadyReceived(String webhookEventId) {
+        return webhookEventId != null && repository.existsByWebhookEventId(webhookEventId);
+    }
 }

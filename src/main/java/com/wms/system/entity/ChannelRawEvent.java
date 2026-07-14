@@ -39,11 +39,20 @@ public class ChannelRawEvent extends BaseEntity {
     public static final String STATUS_FAILED = "FAILED";
     public static final String STATUS_SKIPPED = "SKIPPED";
 
+    /**
+     * 待人工复核（P1-B3）：如取消时已开始拣货、订单被渠道侧修改等，
+     * 系统不自动动单，留给人工比对决定
+     */
+    public static final String STATUS_MANUAL_REVIEW = "MANUAL_REVIEW";
+
     public static final String SOURCE_POLL = "POLL";
     public static final String SOURCE_WEBHOOK = "WEBHOOK";
     public static final String SOURCE_RECONCILE = "RECONCILE";
 
     public static final String TYPE_ORDER = "ORDER";
+    public static final String TYPE_ORDER_CANCELLED = "ORDER_CANCELLED";
+    public static final String TYPE_ORDER_UPDATED = "ORDER_UPDATED";
+    public static final String TYPE_REFUND = "REFUND";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -78,6 +87,13 @@ public class ChannelRawEvent extends BaseEntity {
      */
     @Column(name = "external_id", length = 100)
     private String externalId;
+
+    /**
+     * Webhook 事件唯一标识（X-Shopify-Webhook-Id，P1-B3）：
+     * Shopify 对未确认的推送会重发，此 id 用于精确去重
+     */
+    @Column(name = "webhook_event_id", length = 100)
+    private String webhookEventId;
 
     /**
      * 渠道原样 JSON 报文（JSONB）

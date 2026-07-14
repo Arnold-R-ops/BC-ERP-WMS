@@ -52,16 +52,13 @@ public class IntegrationScheduler {
     /**
      * 同步 Shopify 订单
      *
-     * 执行频率：每 5 分钟执行一次
-     * Cron 表达式：0 0/5 * * * ?
-     * - 秒：0（每分钟的第 0 秒）
-     * - 分：0/5（每 5 分钟）
-     * - 时：*（每小时）
-     * - 日：*（每天）
-     * - 月：*（每月）
-     * - 周：?（不指定）
+     * 执行频率：默认每 5 分钟一次，可经配置覆盖（P1-B3）
+     *
+     * wms.integration.shopify.poll-cron：Webhook 启用后（部署公网并在
+     * dev dashboard 配好回调地址），把此值改为如 "0 0/30 * * * ?" 将
+     * 轮询降为每 30 分钟的兜底对账——无需改代码。
      */
-    @Scheduled(cron = "0 0/5 * * * ?")
+    @Scheduled(cron = "${wms.integration.shopify.poll-cron:0 0/5 * * * ?}")
     public void syncShopifyOrders() {
         log.info("========== 开始执行 Shopify 订单同步任务 ==========");
 

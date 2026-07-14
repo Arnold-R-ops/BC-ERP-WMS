@@ -19,4 +19,9 @@ public interface IntegrationConfigRepository extends JpaRepository<IntegrationCo
      * @return 启用的配置列表
      */
     List<IntegrationConfig> findByPlatformAndIsActiveTrue(String platform);
+
+    /**
+     * 按店铺域名查启用配置（P1-B3：Webhook 按 X-Shopify-Shop-Domain 定位店铺）
+     */
+    java.util.Optional<IntegrationConfig> findFirstByPlatformAndStoreUrlAndIsActiveTrue(String platform, String storeUrl);
 }

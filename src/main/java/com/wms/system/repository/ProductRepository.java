@@ -38,6 +38,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByBarcode(String barcode);
 
     /**
+     * 归一化条码匹配（P1 批次2，SKU 解析漏斗第三层）
+     *
+     * 大写、去空格后相等：渠道 SKU 常见 "TOP0002 - 2" 与本地 "TOP0002-2"
+     * 这类空格差异，用归一化形态兜住。
+     *
+     * @param normalizedBarcode 已归一化（大写去空白）的条码
+     * @return 命中的商品
+     */
+    @Query("SELECT p FROM Product p WHERE REPLACE(UPPER(p.barcode), ' ', '') = :normalizedBarcode")
+    Optional<Product> findByNormalizedBarcode(@Param("normalizedBarcode") String normalizedBarcode);
+
+    /**
+     * SKU 映射人工确认的候选推荐（P1 批次2）：条码前缀或名称关键词匹配
+     */
+    List<Product> findTop10ByBarcodeStartingWithIgnoreCaseOrSkuNameContainingIgnoreCase(String barcodePrefix, String nameKeyword);
+
+    /**
      * 检查条形码是否已存在（用于商品新增时校验）
      * 方法命名规范：existsBy + 字段名
      *

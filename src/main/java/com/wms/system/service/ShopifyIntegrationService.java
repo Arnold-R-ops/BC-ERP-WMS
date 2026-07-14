@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,14 +55,23 @@ public class ShopifyIntegrationService {
     private final ShopifyApiClient shopifyApiClient;
     private final SalesOrderRepository salesOrderRepository;
     private final CustomerRepository customerRepository;
-    private final ProductRepository productRepository;
     private final SalesSubmissionService salesSubmissionService;
     private final AllocationService allocationService;
     private final ChannelRawEventService rawEventService;
+    private final ChannelSkuResolver skuResolver;
+    private final PendingSkuMappingService pendingSkuMappingService;
+    private final SystemConfigService systemConfigService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
 
     private static final String CHANNEL = "SHOPIFY";
+
+    /**
+     * 无 SKU 行处理策略配置键（V4_16 播种，运行时可改）：PENDING / SKIP
+     */
+    static final String NO_SKU_POLICY_KEY = "integration.no_sku_line_policy";
+    static final String NO_SKU_POLICY_PENDING = "PENDING";
+    static final String NO_SKU_POLICY_SKIP = "SKIP";
 
     /**
      * 同步 Shopify 订单（定时任务入口）
@@ -99,7 +109,7 @@ public class ShopifyIntegrationService {
 
                 // 逐单处理：每单独立事务，失败互不影响
                 for (JsonNode orderNode : ordersNode) {
-                    processOrderNode(orderNode, config, result);
+                    processOrderNode(orderNode, config, result, ChannelRawEvent.SOURCE_POLL);
                 }
 
                 config.setLastSyncAt(LocalDateTime.now());
@@ -121,13 +131,23 @@ public class ShopifyIntegrationService {
     }
 
     /**
+     * Webhook 新订单入口（P1-B3）：与轮询共用同一处理管道
+     * （终态去重、报文留底、SKU 漏斗、独立事务、失败重试语义完全一致）
+     */
+    public SyncResult processWebhookOrder(JsonNode orderNode, IntegrationConfig config) {
+        SyncResult result = new SyncResult();
+        processOrderNode(orderNode, config, result, ChannelRawEvent.SOURCE_WEBHOOK);
+        return result;
+    }
+
+    /**
      * 处理单个订单节点（P1-B1 编排）：
      * 1. 去重——留底表已有 PROCESSED/SKIPPED 终态则静默跳过（不重复落库）
      * 2. 留底——新订单先存原始报文（独立事务，业务失败不回滚留底）
      * 3. 处理——订单转换+库存分配跑在自己的事务里，失败只回滚本单
      * 4. 结果回写留底状态
      */
-    private void processOrderNode(JsonNode orderNode, IntegrationConfig config, SyncResult result) {
+    private void processOrderNode(JsonNode orderNode, IntegrationConfig config, SyncResult result, String source) {
         String externalId = orderNode.path("id").asText(null);
         String externalOrderNo = orderNode.path("name").asText("(unknown)");
 
@@ -149,7 +169,7 @@ public class ShopifyIntegrationService {
 
         // 2. 留底：复用未终态的旧事件（FAILED 重试场景），否则新建
         ChannelRawEvent event = latest.orElseGet(() ->
-            rawEventService.record(CHANNEL, config.getStoreUrl(), ChannelRawEvent.SOURCE_POLL,
+            rawEventService.record(CHANNEL, config.getStoreUrl(), source,
                 ChannelRawEvent.TYPE_ORDER, externalId, orderNode.toString()));
 
         // 3. 业务去重：批次1 之前同步过的历史订单补一个 SKIPPED 标记（一次性）
@@ -199,11 +219,9 @@ public class ShopifyIntegrationService {
         // b. 客户匹配/创建
         Customer customer = matchOrCreateCustomer(order);
 
-        // c. SKU 匹配（预检查）
-        List<Product> products = validateAndMatchProducts(order);
-
-        // d. 构建订单请求
-        CreateSalesOrderRequest request = buildSalesOrderRequest(order, customer, products);
+        // c+d. 行解析（P1-B2 四层 SKU 漏斗）并构建订单请求
+        //      未知 SKU 进待映射队列并阻断本单（报文保留 FAILED，映射后自动重试放行）
+        CreateSalesOrderRequest request = buildSalesOrderRequest(order, customer, config);
 
         // e. 创建销售订单
         Long salesOrderId = createSalesOrderForShopify(request, order);
@@ -286,14 +304,24 @@ public class ShopifyIntegrationService {
     }
 
     /**
-     * SKU 匹配验证（预检查）
+     * 行解析 + 构建销售订单请求（P1-B2）
+     *
+     * 每一行独立走四层 SKU 解析漏斗，商品与明细一一对应地构建——
+     * 修复了旧实现"跳过无 SKU 行导致下标错位"的缺陷。
+     *
+     * 行处理规则：
+     * - PRODUCT 命中：按数量换算比转换（数量 ×ratio，单价 ÷ratio）
+     * - VIRTUAL 命中：非库存行，跳过履约（金额不进 WMS 订单）
+     * - 未命中：记入待映射队列并阻断本单（SKU_MAPPING_PENDING）；
+     *   无 SKU 行按策略 PENDING（默认，同上）或 SKIP（丢行保单）
      *
      * @param order Shopify 订单
-     * @return 产品列表
+     * @param customer 客户
+     * @param config 集成配置（提供店铺标识）
+     * @return 创建销售订单请求
      */
-    private List<Product> validateAndMatchProducts(ShopifyOrderDto order) {
-        List<Product> products = new ArrayList<>();
-
+    private CreateSalesOrderRequest buildSalesOrderRequest(ShopifyOrderDto order, Customer customer,
+                                                           IntegrationConfig config) {
         if (order.getLineItems() == null || order.getLineItems().isEmpty()) {
             log.error("订单没有明细: externalOrderNo={}", order.getName());
             throw new BusinessException(ErrorKeys.VALIDATION_FAILED,
@@ -304,86 +332,122 @@ public class ShopifyIntegrationService {
                     ));
         }
 
+        String noSkuPolicy = readNoSkuPolicy();
+        List<CreateSalesOrderRequest.SalesOrderItemData> items = new ArrayList<>();
+        List<String> pendingSkus = new ArrayList<>();
+
         for (ShopifyLineItemDto lineItem : order.getLineItems()) {
-            String sku = lineItem.getSku();
+            boolean hasSku = StringUtils.hasText(lineItem.getSku());
+            // 无 SKU 行用合成键，也走映射表：人工可将其映射为商品或 VIRTUAL
+            String effectiveSku = hasSku ? lineItem.getSku() : noSkuKey(lineItem);
 
-            if (!StringUtils.hasText(sku)) {
-                log.warn("订单明细缺少 SKU: externalOrderNo={}, lineItemId={}", order.getName(), lineItem.getId());
-                continue;
+            ChannelSkuResolver.Resolution resolution =
+                skuResolver.resolve(CHANNEL, config.getStoreUrl(), effectiveSku);
+
+            switch (resolution.getType()) {
+                case PRODUCT -> {
+                    items.add(toItemData(lineItem, resolution, order, effectiveSku));
+                    log.info("SKU 解析成功: sku='{}' → productId={}, ratio={}",
+                        effectiveSku, resolution.getProduct().getId(), resolution.getQuantityRatio());
+                }
+                case VIRTUAL -> log.info("虚拟行跳过履约: externalOrderNo={}, sku='{}', title={}",
+                    order.getName(), effectiveSku, lineItem.getName());
+                case MISS -> {
+                    if (!hasSku && NO_SKU_POLICY_SKIP.equalsIgnoreCase(noSkuPolicy)) {
+                        log.warn("无 SKU 行按策略跳过: externalOrderNo={}, title={}",
+                            order.getName(), lineItem.getName());
+                    } else {
+                        // REQUIRES_NEW：本单随后被阻断回滚，但"卡过单"的事实留存
+                        pendingSkuMappingService.recordMiss(CHANNEL, config.getStoreUrl(), effectiveSku,
+                            lineItem.getName(), parsePrice(lineItem.getPrice()), order.getName());
+                        pendingSkus.add(effectiveSku);
+                    }
+                }
             }
-
-            // 根据 SKU 查询产品（使用 barcode 字段）
-            Optional<Product> product = productRepository.findByBarcode(sku);
-
-            if (product.isEmpty()) {
-                log.error("SKU 不存在: sku={}, externalOrderNo={}", sku, order.getName());
-                throw new BusinessException(ErrorKeys.SHOPIFY_SKU_NOT_FOUND,
-                        Map.of(
-                                "sku", sku,
-                                "externalOrderNo", order.getName(),
-                                "externalOrderId", String.valueOf(order.getId())
-                        ));
-            }
-
-            products.add(product.get());
-            log.info("SKU 匹配成功: sku={}, productId={}, productName={}", sku, product.get().getId(), product.get().getName());
         }
 
-        return products;
+        if (!pendingSkus.isEmpty()) {
+            log.warn("订单被未知 SKU 阻断，已入待映射队列: externalOrderNo={}, skus={}",
+                order.getName(), pendingSkus);
+            throw new BusinessException(ErrorKeys.SKU_MAPPING_PENDING,
+                    Map.of(
+                            "externalOrderNo", order.getName(),
+                            "pendingSkus", String.join(", ", pendingSkus)
+                    ));
+        }
+
+        if (items.isEmpty()) {
+            throw new BusinessException(ErrorKeys.VALIDATION_FAILED,
+                    Map.of(
+                            "field", "lineItems",
+                            "value", "all skipped",
+                            "constraint", "订单没有可履约的商品行（全部为虚拟行或被跳过）"
+                    ));
+        }
+
+        CreateSalesOrderRequest request = new CreateSalesOrderRequest();
+        request.setCustomerId(customer.getId());
+        request.setItems(items);
+        return request;
     }
 
     /**
-     * 构建销售订单请求
-     *
-     * 注意（批次2 待修复）：validateAndMatchProducts 会跳过无 SKU 行，
-     * 导致 products 与 lineItems 按下标配对错位。批次2 引入 SKU 映射
-     * 队列时重构此处的行配对逻辑。
-     *
-     * @param order Shopify 订单
-     * @param customer 客户
-     * @param products 产品列表
-     * @return 创建销售订单请求
+     * 单行转换：应用数量换算比（数量 ×ratio，单价 ÷ratio，四舍五入到分）
      */
-    private CreateSalesOrderRequest buildSalesOrderRequest(ShopifyOrderDto order, Customer customer, List<Product> products) {
-        CreateSalesOrderRequest request = new CreateSalesOrderRequest();
-        request.setCustomerId(customer.getId());
+    private CreateSalesOrderRequest.SalesOrderItemData toItemData(ShopifyLineItemDto lineItem,
+                                                                  ChannelSkuResolver.Resolution resolution,
+                                                                  ShopifyOrderDto order,
+                                                                  String effectiveSku) {
+        int ratio = resolution.getQuantityRatio();
+        BigDecimal channelPrice = parsePrice(lineItem.getPrice());
 
-        List<CreateSalesOrderRequest.SalesOrderItemData> items = new ArrayList<>();
+        CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
+        itemData.setProductId(resolution.getProduct().getId());
+        itemData.setQuantity(lineItem.getQuantity() * ratio);
+        itemData.setUnitPrice(ratio == 1
+            ? channelPrice
+            : channelPrice.divide(BigDecimal.valueOf(ratio), 2, RoundingMode.HALF_UP));
+        itemData.setRejectNearExpiry(false);
+        itemData.setSpecifiedBatchIds(null);
 
-        for (int i = 0; i < order.getLineItems().size(); i++) {
-            ShopifyLineItemDto lineItem = order.getLineItems().get(i);
-            Product product = products.get(i);
-
-            CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
-            itemData.setProductId(product.getId());
-            itemData.setQuantity(lineItem.getQuantity());
-
-            // 解析单价
-            BigDecimal unitPrice = BigDecimal.ZERO;
-            try {
-                if (StringUtils.hasText(lineItem.getPrice())) {
-                    unitPrice = new BigDecimal(lineItem.getPrice());
-                }
-            } catch (NumberFormatException e) {
-                log.warn("单价解析失败: price={}, 使用默认值 0", lineItem.getPrice());
-            }
-            itemData.setUnitPrice(unitPrice);
-
-            // 默认不拒绝近效期
-            itemData.setRejectNearExpiry(false);
-
-            // 不指定批次
-            itemData.setSpecifiedBatchIds(null);
-
-            // 备注
-            itemData.setRemark("Shopify 订单: " + order.getName());
-
-            items.add(itemData);
+        String remark = "Shopify 订单: " + order.getName();
+        if (ratio > 1) {
+            remark += String.format("（渠道SKU '%s' ×%d 换算，渠道单价 %s）",
+                effectiveSku, ratio, lineItem.getPrice());
         }
+        itemData.setRemark(remark);
+        return itemData;
+    }
 
-        request.setItems(items);
+    /**
+     * 无 SKU 行的合成映射键：NOSKU:: + 行标题（截断）
+     */
+    private String noSkuKey(ShopifyLineItemDto lineItem) {
+        String title = StringUtils.hasText(lineItem.getName()) ? lineItem.getName().trim() : "UNTITLED";
+        String key = PendingSkuMapping.NO_SKU_PREFIX + title;
+        return key.length() > 200 ? key.substring(0, 200) : key;
+    }
 
-        return request;
+    private BigDecimal parsePrice(String price) {
+        try {
+            if (StringUtils.hasText(price)) {
+                return new BigDecimal(price);
+            }
+        } catch (NumberFormatException e) {
+            log.warn("单价解析失败: price={}, 使用默认值 0", price);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * 读取无 SKU 行策略（配置缺失时安全回退到 PENDING）
+     */
+    private String readNoSkuPolicy() {
+        try {
+            return systemConfigService.getConfigValue(NO_SKU_POLICY_KEY);
+        } catch (Exception e) {
+            return NO_SKU_POLICY_PENDING;
+        }
     }
 
     /**

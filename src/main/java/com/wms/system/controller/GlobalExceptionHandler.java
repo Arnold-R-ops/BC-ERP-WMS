@@ -576,6 +576,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.BATCH_CODE_GENERATION_FAILED,
                  ErrorKeys.WAREHOUSE_ALREADY_EXISTS,  // Phase 3.4
                  ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,  // V3.9 Shopify Integration
+                 ErrorKeys.SKU_MAPPING_PENDING,  // P1-B2 Channel SKU Mapping
                  ErrorKeys.SALES_ORDER_INVALID_STATUS,
                  ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED,
                  ErrorKeys.INVENTORY_RESERVATION_INVALID_STATUS,

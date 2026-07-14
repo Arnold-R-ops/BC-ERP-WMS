@@ -101,6 +101,12 @@ class ShopifyIntegrationE2ETest {
     private ChannelRawEventRepository channelRawEventRepository;
 
     @Autowired
+    private PendingSkuMappingRepository pendingSkuMappingRepository;
+
+    @Autowired
+    private ChannelSkuMappingRepository channelSkuMappingRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private IntegrationConfig testConfig;
@@ -111,10 +117,12 @@ class ShopifyIntegrationE2ETest {
 
     @BeforeEach
     void setUp() {
-        // 0. Clean raw events: they are persisted via REQUIRES_NEW and survive
-        //    the test transaction rollback, so leftover dedup state would bleed
-        //    between test methods.
+        // 0. Clean raw events / pending SKUs: they are persisted via REQUIRES_NEW
+        //    and survive the test transaction rollback, so leftover state would
+        //    bleed between test methods.
         channelRawEventRepository.deleteAll();
+        pendingSkuMappingRepository.deleteAll();
+        channelSkuMappingRepository.deleteAll();
 
         // 1. Create test warehouse
         testWarehouse = Warehouse.builder()
@@ -405,6 +413,13 @@ class ShopifyIntegrationE2ETest {
         assertThat(rawEvent).isPresent();
         assertThat(rawEvent.get().getStatus()).isEqualTo(ChannelRawEvent.STATUS_FAILED);
         assertThat(rawEvent.get().getErrorMessage()).isNotBlank();
+
+        // P1-B2: unknown SKU lands in the pending mapping queue instead of being lost
+        Optional<PendingSkuMapping> pendingSku = pendingSkuMappingRepository
+                .findByChannelAndExternalSku("SHOPIFY", "NON-EXISTENT-SKU");
+        assertThat(pendingSku).isPresent();
+        assertThat(pendingSku.get().getStatus()).isEqualTo(PendingSkuMapping.STATUS_PENDING);
+        assertThat(pendingSku.get().getSampleExternalOrderNo()).isEqualTo("#1004");
     }
 
     /**

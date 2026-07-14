@@ -62,6 +62,13 @@
             <artifactId>spring-aspects</artifactId>
         </dependency>
 
+        <!-- springdoc OpenAPI（P2 前端交接：自动生成机器可读接口契约 + Swagger UI 调试页；生产 profile 关闭） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
         <!-- PostgreSQL 数据库驱动 -->
         <dependency>
             <groupId>org.postgresql</groupId>
