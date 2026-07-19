@@ -1,9 +1,9 @@
 package com.wms.system.service;
 
 import com.wms.system.entity.ChannelSkuMapping;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.repository.ChannelSkuMappingRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,16 +31,17 @@ class ChannelSkuResolverTest {
     private ChannelSkuMappingRepository mappingRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @InjectMocks
     private ChannelSkuResolver resolver;
 
-    private Product product;
+    private ProductSku product;
 
     @BeforeEach
     void setUp() {
-        product = Product.builder().id(1L).barcode("TOP0002-2-20KG").name("木薯珍珠 20KG").build();
+        product = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode()).id(1L).barcode("TOP0002-2-20KG").name("木薯珍珠 20KG").build();
     }
 
     @Test
@@ -48,7 +49,7 @@ class ChannelSkuResolverTest {
         ChannelSkuMapping mapping = ChannelSkuMapping.builder()
             .channel("SHOPIFY").externalSku("TOP0002 - 2-20KG")
             .normalizedSku("TOP0002-2-20KG")
-            .mappingType(ChannelSkuMapping.TYPE_PRODUCT).product(product).quantityRatio(20)
+            .mappingType(ChannelSkuMapping.TYPE_PRODUCT).productSku(product).quantityRatio(20)
             .status(ChannelSkuMapping.STATUS_ACTIVE).build();
         when(mappingRepository.findByChannelAndExternalSkuAndStatus("SHOPIFY", "TOP0002 - 2-20KG", "ACTIVE"))
             .thenReturn(Optional.of(mapping));
@@ -56,10 +57,10 @@ class ChannelSkuResolverTest {
         var resolution = resolver.resolve("SHOPIFY", "store", "TOP0002 - 2-20KG");
 
         assertThat(resolution.getType()).isEqualTo(ChannelSkuResolver.ResolutionType.PRODUCT);
-        assertThat(resolution.getProduct().getId()).isEqualTo(1L);
+        assertThat(resolution.getProductSku().getId()).isEqualTo(1L);
         assertThat(resolution.getQuantityRatio()).isEqualTo(20);
         // 第一层命中不再往下走
-        verify(productRepository, never()).findByBarcode(anyString());
+        verify(productSkuRepository, never()).findByBarcode(anyString());
     }
 
     @Test
@@ -68,7 +69,7 @@ class ChannelSkuResolverTest {
             .thenReturn(Optional.empty());
         ChannelSkuMapping mapping = ChannelSkuMapping.builder()
             .channel("SHOPIFY").externalSku("TOP0002-2-20KG").normalizedSku("TOP0002-2-20KG")
-            .mappingType(ChannelSkuMapping.TYPE_PRODUCT).product(product).quantityRatio(1)
+            .mappingType(ChannelSkuMapping.TYPE_PRODUCT).productSku(product).quantityRatio(1)
             .status(ChannelSkuMapping.STATUS_ACTIVE).build();
         // "top0002 - 2-20kg" 归一化 → "TOP0002-2-20KG"
         when(mappingRepository.findFirstByChannelAndNormalizedSkuAndStatus("SHOPIFY", "TOP0002-2-20KG", "ACTIVE"))
@@ -77,7 +78,7 @@ class ChannelSkuResolverTest {
         var resolution = resolver.resolve("SHOPIFY", "store", "top0002 - 2-20kg");
 
         assertThat(resolution.getType()).isEqualTo(ChannelSkuResolver.ResolutionType.PRODUCT);
-        assertThat(resolution.getProduct().getId()).isEqualTo(1L);
+        assertThat(resolution.getProductSku().getId()).isEqualTo(1L);
     }
 
     @Test
@@ -86,7 +87,7 @@ class ChannelSkuResolverTest {
             .thenReturn(Optional.empty());
         when(mappingRepository.findFirstByChannelAndNormalizedSkuAndStatus(anyString(), anyString(), anyString()))
             .thenReturn(Optional.empty());
-        when(productRepository.findByBarcode("TOP0002-2-20KG")).thenReturn(Optional.of(product));
+        when(productSkuRepository.findByBarcode("TOP0002-2-20KG")).thenReturn(Optional.of(product));
         when(mappingRepository.existsByChannelAndExternalSku("SHOPIFY", "TOP0002-2-20KG")).thenReturn(false);
 
         var resolution = resolver.resolve("SHOPIFY", "store", "TOP0002-2-20KG");
@@ -105,8 +106,8 @@ class ChannelSkuResolverTest {
             .thenReturn(Optional.empty());
         when(mappingRepository.findFirstByChannelAndNormalizedSkuAndStatus(anyString(), anyString(), anyString()))
             .thenReturn(Optional.empty());
-        when(productRepository.findByBarcode("TOP0002 - 2-20KG")).thenReturn(Optional.empty());
-        when(productRepository.findByNormalizedBarcode("TOP0002-2-20KG")).thenReturn(Optional.of(product));
+        when(productSkuRepository.findByBarcode("TOP0002 - 2-20KG")).thenReturn(Optional.empty());
+        when(productSkuRepository.findByNormalizedBarcode("TOP0002-2-20KG")).thenReturn(Optional.of(product));
         when(mappingRepository.existsByChannelAndExternalSku(anyString(), anyString())).thenReturn(false);
 
         var resolution = resolver.resolve("SHOPIFY", "store", "TOP0002 - 2-20KG");
@@ -128,7 +129,7 @@ class ChannelSkuResolverTest {
         var resolution = resolver.resolve("SHOPIFY", "store", "NOSKU::Shipping Protection");
 
         assertThat(resolution.getType()).isEqualTo(ChannelSkuResolver.ResolutionType.VIRTUAL);
-        assertThat(resolution.getProduct()).isNull();
+        assertThat(resolution.getProductSku()).isNull();
     }
 
     @Test
@@ -137,8 +138,8 @@ class ChannelSkuResolverTest {
             .thenReturn(Optional.empty());
         when(mappingRepository.findFirstByChannelAndNormalizedSkuAndStatus(anyString(), anyString(), anyString()))
             .thenReturn(Optional.empty());
-        when(productRepository.findByBarcode(anyString())).thenReturn(Optional.empty());
-        when(productRepository.findByNormalizedBarcode(anyString())).thenReturn(Optional.empty());
+        when(productSkuRepository.findByBarcode(anyString())).thenReturn(Optional.empty());
+        when(productSkuRepository.findByNormalizedBarcode(anyString())).thenReturn(Optional.empty());
 
         var resolution = resolver.resolve("SHOPIFY", "store", "UNKNOWN-SKU");
 
@@ -153,7 +154,7 @@ class ChannelSkuResolverTest {
             .thenReturn(Optional.empty());
         when(mappingRepository.findFirstByChannelAndNormalizedSkuAndStatus(anyString(), anyString(), anyString()))
             .thenReturn(Optional.empty());
-        when(productRepository.findByBarcode("SKU-X")).thenReturn(Optional.of(product));
+        when(productSkuRepository.findByBarcode("SKU-X")).thenReturn(Optional.of(product));
         when(mappingRepository.existsByChannelAndExternalSku("SHOPIFY", "SKU-X")).thenReturn(true);
 
         var resolution = resolver.resolve("SHOPIFY", "store", "SKU-X");

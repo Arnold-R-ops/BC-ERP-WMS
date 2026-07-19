@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class EmergencyStockCorrectionResponse {
     private Long id;
     private String correctionNo;
-    private Long productId;
+    private Long productSkuId;
     private Long locationId;
     private Long inventoryBatchId;
     private String batchCode;

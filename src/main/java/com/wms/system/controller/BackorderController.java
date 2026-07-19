@@ -23,16 +23,16 @@ public class BackorderController {
         return ResponseEntity.ok(backorderService.listByOrder(salesOrderId));
     }
 
-    @GetMapping("/product/{productId}")
+    @GetMapping("/product/{productSkuId}")
     @PreAuthorize("hasAnyAuthority('inventory:view', 'SUPER_ADMIN')")
-    public ResponseEntity<List<BackorderLineResponse>> listByProduct(@PathVariable("productId") Long productId) {
-        return ResponseEntity.ok(backorderService.listByProduct(productId));
+    public ResponseEntity<List<BackorderLineResponse>> listByProductSku(@PathVariable("productSkuId") Long productSkuId) {
+        return ResponseEntity.ok(backorderService.listByProductSku(productSkuId));
     }
 
-    @PostMapping("/wake/product/{productId}")
+    @PostMapping("/wake/product/{productSkuId}")
     @PreAuthorize("hasAnyAuthority('inventory:adjust', 'SUPER_ADMIN')")
-    public ResponseEntity<?> wakeProduct(@PathVariable("productId") Long productId) {
-        int createdTasks = backorderService.wakeProduct(productId);
-        return ResponseEntity.ok(Map.of("productId", productId, "createdTaskGroups", createdTasks));
+    public ResponseEntity<?> wakeProduct(@PathVariable("productSkuId") Long productSkuId) {
+        int createdTasks = backorderService.wakeProduct(productSkuId);
+        return ResponseEntity.ok(Map.of("productSkuId", productSkuId, "createdTaskGroups", createdTasks));
     }
 }

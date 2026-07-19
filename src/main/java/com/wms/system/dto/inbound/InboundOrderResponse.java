@@ -82,10 +82,10 @@ public class InboundOrderResponse {
         private Long id;
 
         // 产品信息
-        private Long productId;
+        private Long productSkuId;
         private String productName;
         private String productBarcode;
-        private String productSpu;
+        private String productCode;
         private String productSku;
 
         // 数量信息

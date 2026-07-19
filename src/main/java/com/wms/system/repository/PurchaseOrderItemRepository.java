@@ -36,10 +36,10 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
     /**
      * Find items by product
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return List of items
      */
-    List<PurchaseOrderItem> findByProductId(Long productId);
+    List<PurchaseOrderItem> findByProductSkuId(Long productSkuId);
 
     /**
      * Find partially received items (receivedQuantity > 0 AND < orderedQuantity)
@@ -81,11 +81,11 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
         SELECT item
         FROM PurchaseOrderItem item
         JOIN item.purchaseOrder po
-        WHERE item.product.id = :productId
+        WHERE item.productSku.id = :productSkuId
           AND po.status IN (com.wms.system.entity.enums.PurchaseOrderStatus.IN_TRANSIT,
                             com.wms.system.entity.enums.PurchaseOrderStatus.PARTIALLY_RECEIVED)
           AND item.orderedQuantity > item.receivedQuantity
         ORDER BY po.expectedDate ASC, po.id ASC, item.id ASC
         """)
-    List<PurchaseOrderItem> findAtpSupplyByProduct(@Param("productId") Long productId);
+    List<PurchaseOrderItem> findAtpSupplyByProductSku(@Param("productSkuId") Long productSkuId);
 }

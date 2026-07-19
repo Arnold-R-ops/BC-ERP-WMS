@@ -2,10 +2,10 @@ package com.wms.system.service;
 
 import com.wms.system.dto.sales.BatchOptionDto;
 import com.wms.system.entity.InventoryBatch;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.InventoryBatchRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,18 +29,19 @@ import static org.mockito.Mockito.*;
 class SalesEntryServiceTest {
 
     @Mock private InventoryBatchRepository inventoryBatchRepository;
-    @Mock private ProductRepository productRepository;
+    @Mock private ProductSkuRepository productSkuRepository;
 
     @InjectMocks
     private SalesEntryService salesEntryService;
 
-    private Product testProduct;
+    private ProductSku testProduct;
 
     @BeforeEach
     void setUp() {
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
                 .id(1L)
-                .name("Test Product")
+                .name("Test ProductSku")
                 .barcode("BAR001")
                 .unitPrice(new BigDecimal("10.00"))
                 .nearExpiryDays(30)
@@ -92,8 +93,8 @@ class SalesEntryServiceTest {
         InventoryBatch freshBatch = buildBatch(1L, "BC001", 100, LocalDate.now().plusDays(60));
         InventoryBatch nearExpiryBatch = buildBatch(2L, "BC002", 50, LocalDate.now().plusDays(10));
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
                 .thenReturn(List.of(nearExpiryBatch, freshBatch)); // FEFO: near-expiry first
 
         List<BatchOptionDto> result = salesEntryService.getBatchOptions(1L, 50, false);
@@ -108,8 +109,8 @@ class SalesEntryServiceTest {
         InventoryBatch freshBatch = buildBatch(1L, "BC001", 100, LocalDate.now().plusDays(60));
         InventoryBatch nearExpiryBatch = buildBatch(2L, "BC002", 50, LocalDate.now().plusDays(10));
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
                 .thenReturn(List.of(nearExpiryBatch, freshBatch));
 
         List<BatchOptionDto> result = salesEntryService.getBatchOptions(1L, 50, true);
@@ -126,8 +127,8 @@ class SalesEntryServiceTest {
         InventoryBatch freshBatch = buildBatch(1L, "BC001", 100, LocalDate.now().plusDays(60));
         InventoryBatch warningBatch = buildBatch(2L, "BC002", 50, LocalDate.now().plusDays(20));
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
                 .thenReturn(List.of(warningBatch, freshBatch));
 
         List<BatchOptionDto> result = salesEntryService.getBatchOptions(1L, 50, false);
@@ -141,7 +142,7 @@ class SalesEntryServiceTest {
     @Test
     @DisplayName("getBatchOptions - throws when product not found")
     void testGetBatchOptions_ProductNotFound() {
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productSkuRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> salesEntryService.getBatchOptions(99L, 50, false))
                 .isInstanceOf(BusinessException.class);
@@ -150,8 +151,8 @@ class SalesEntryServiceTest {
     @Test
     @DisplayName("getBatchOptions - returns empty when no active batches")
     void testGetBatchOptions_NoBatches() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
                 .thenReturn(List.of());
 
         List<BatchOptionDto> result = salesEntryService.getBatchOptions(1L, 50, false);

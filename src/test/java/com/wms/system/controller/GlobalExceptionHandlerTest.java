@@ -46,17 +46,17 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("BusinessException PRODUCT_NOT_FOUND -> 404")
+    @DisplayName("BusinessException PRODUCT_SKU_NOT_FOUND -> 404")
     void testBusinessException_NotFound_Returns404() throws Exception {
         when(inventoryService.adjustStock(any())).thenThrow(
-                new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND, Map.of("productId", 1L))
+                new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND, Map.of("productSkuId", 1L))
         );
 
         mockMvc.perform(post("/api/inventory/adjust")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validAdjustRequestJson()))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.PRODUCT_NOT_FOUND));
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.PRODUCT_SKU_NOT_FOUND));
     }
 
     @Test
@@ -79,7 +79,7 @@ class GlobalExceptionHandlerTest {
     @DisplayName("BusinessException STOCK_CONCURRENCY_CONFLICT -> 409")
     void testBusinessException_Conflict_Returns409() throws Exception {
         when(inventoryService.adjustStock(any())).thenThrow(
-                new BusinessException(ErrorKeys.STOCK_CONCURRENCY_CONFLICT, Map.of("productId", 1L))
+                new BusinessException(ErrorKeys.STOCK_CONCURRENCY_CONFLICT, Map.of("productSkuId", 1L))
         );
 
         mockMvc.perform(post("/api/inventory/adjust")
@@ -132,7 +132,7 @@ class GlobalExceptionHandlerTest {
     @WithMockUser
     @DisplayName("MethodArgumentNotValidException -> 400 with VALIDATION_FAILED")
     void testValidationException_Returns400() throws Exception {
-        // Missing required fields (productId, quantity, etc.)
+        // Missing required fields (productSkuId, quantity, etc.)
         String emptyJson = "{}";
 
         mockMvc.perform(post("/api/inventory/adjust")
@@ -166,7 +166,7 @@ class GlobalExceptionHandlerTest {
     private String validAdjustRequestJson() {
         return """
                 {
-                  "productId": 1,
+                  "productSkuId": 1,
                   "locationId": 1,
                   "transactionType": "IN",
                   "sourceType": "PURCHASE_IN",

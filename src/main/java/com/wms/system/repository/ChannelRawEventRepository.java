@@ -20,6 +20,14 @@ public interface ChannelRawEventRepository extends JpaRepository<ChannelRawEvent
     Optional<ChannelRawEvent> findFirstByChannelAndEventTypeAndExternalIdOrderByIdDesc(
         String channel, String eventType, String externalId);
 
+    Optional<ChannelRawEvent> findFirstByChannelAndStoreIdentifierAndSourceAndEventTypeAndExternalIdOrderByIdDesc(
+        String channel,
+        String storeIdentifier,
+        String source,
+        String eventType,
+        String externalId
+    );
+
     /**
      * 按渠道与状态分页查询（诊断/重放入口）
      */

@@ -125,4 +125,13 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
      * @return Optional<SalesOrder> 订单对象（可能为空）
      */
     Optional<SalesOrder> findByExternalOrderId(String externalOrderId);
+
+    long countByChannelAndExternalOrderIdIsNotNull(String channel);
+
+    @Query("SELECT s.externalOrderId FROM SalesOrder s " +
+           "WHERE s.channel = :channel AND s.externalOrderId IN :externalOrderIds")
+    List<String> findExistingExternalOrderIds(
+        @Param("channel") String channel,
+        @Param("externalOrderIds") List<String> externalOrderIds
+    );
 }

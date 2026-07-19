@@ -1,9 +1,11 @@
 package com.wms.system.repository;
 
+import com.wms.system.entity.Category;
 import com.wms.system.entity.Inventory;
+import com.wms.system.entity.InventoryBatch;
 import com.wms.system.entity.Location;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
-import com.wms.system.entity.ProductSpu;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.Zone;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,29 +28,46 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @Import(RepositoryTestSupportConfig.class)
-@DisplayName("ProductRepository Tests")
-class ProductRepositoryTest {
+@DisplayName("ProductSkuRepository Tests")
+class ProductSkuRepositoryTest {
 
-    @Autowired private ProductRepository productRepository;
+    @Autowired private ProductSkuRepository productSkuRepository;
     @Autowired private TestEntityManager entityManager;
 
-    private ProductSpu spu;
-    private Product productTea;
-    private Product productJuice;
-    private Product disabledProduct;
+    private Product spu;
+    private ProductSku productTea;
+    private ProductSku productJuice;
+    private ProductSku disabledProduct;
 
     @BeforeEach
     void setUp() {
-        spu = ProductSpu.builder()
-                .spuCode("SPU-DRINK")
-                .spuName("Drinks")
-                .category("beverages")
+        Category rootCategory = Category.builder()
+                .categoryCode("BEVERAGES")
+                .categoryName("Beverages")
+                .enabled(true)
+                .build();
+        entityManager.persist(rootCategory);
+
+        Category leafCategory = Category.builder()
+                .categoryCode("BEVERAGES-GENERAL")
+                .categoryName("General Beverages")
+                .parent(rootCategory)
+                .enabled(true)
+                .build();
+        entityManager.persist(leafCategory);
+
+        spu = Product.builder()
+                .productCode("SPU-DRINK")
+                .productName("Drinks")
+                .category(leafCategory)
                 .enabled(true)
                 .build();
         entityManager.persist(spu);
 
-        productTea = Product.builder()
-                .spu(spu)
+        productTea = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(spu)
+                .skuCode("SKU00000001")
                 .skuName("Green Tea Box")
                 .barcode("BAR-TEA-001")
                 .name("Premium Green Tea 12-Box")
@@ -56,13 +75,14 @@ class ProductRepositoryTest {
                 .minStock(100)
                 .leadTime(7)
                 .enabled(true)
-                .category("beverages")
                 .supplier("SupplierA")
                 .isDeleted(false)
                 .build();
 
-        productJuice = Product.builder()
-                .spu(spu)
+        productJuice = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(spu)
+                .skuCode("SKU00000002")
                 .skuName("Orange Juice")
                 .barcode("BAR-JUS-002")
                 .name("Fresh Orange Juice 1L")
@@ -70,13 +90,14 @@ class ProductRepositoryTest {
                 .minStock(50)
                 .leadTime(3)
                 .enabled(true)
-                .category("beverages")
                 .supplier("SupplierB")
                 .isDeleted(false)
                 .build();
 
-        disabledProduct = Product.builder()
-                .spu(spu)
+        disabledProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(spu)
+                .skuCode("SKU00000003")
                 .skuName("Old Snack")
                 .barcode("BAR-SNK-003")
                 .name("Discontinued Snack Pack")
@@ -84,7 +105,6 @@ class ProductRepositoryTest {
                 .minStock(0)
                 .leadTime(1)
                 .enabled(false)
-                .category("snacks")
                 .supplier("SupplierA")
                 .isDeleted(false)
                 .build();
@@ -100,7 +120,7 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("findByBarcode - returns product when barcode exists")
     void testFindByBarcode_Found() {
-        Optional<Product> found = productRepository.findByBarcode("BAR-TEA-001");
+        Optional<ProductSku> found = productSkuRepository.findByBarcode("BAR-TEA-001");
 
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Premium Green Tea 12-Box");
@@ -110,7 +130,7 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("findByBarcode - returns empty when barcode does not exist")
     void testFindByBarcode_NotFound() {
-        Optional<Product> found = productRepository.findByBarcode("NONEXISTENT-BAR");
+        Optional<ProductSku> found = productSkuRepository.findByBarcode("NONEXISTENT-BAR");
 
         assertThat(found).isEmpty();
     }
@@ -120,7 +140,7 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("existsByBarcode - returns true when barcode exists")
     void testExistsByBarcode_Exists() {
-        boolean exists = productRepository.existsByBarcode("BAR-TEA-001");
+        boolean exists = productSkuRepository.existsByBarcode("BAR-TEA-001");
 
         assertThat(exists).isTrue();
     }
@@ -128,7 +148,7 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("existsByBarcode - returns false when barcode does not exist")
     void testExistsByBarcode_NotExists() {
-        boolean exists = productRepository.existsByBarcode("NONEXISTENT-BAR");
+        boolean exists = productSkuRepository.existsByBarcode("NONEXISTENT-BAR");
 
         assertThat(exists).isFalse();
     }
@@ -138,7 +158,7 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("findByNameContaining - finds products matching keyword")
     void testFindByNameContaining_Found() {
-        List<Product> results = productRepository.findByNameContaining("Tea");
+        List<ProductSku> results = productSkuRepository.findByNameContaining("Tea");
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getBarcode()).isEqualTo("BAR-TEA-001");
@@ -147,7 +167,7 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("findByNameContaining - returns empty list when no match")
     void testFindByNameContaining_NoMatch() {
-        List<Product> results = productRepository.findByNameContaining("ZZZNOTFOUND");
+        List<ProductSku> results = productSkuRepository.findByNameContaining("ZZZNOTFOUND");
 
         assertThat(results).isEmpty();
     }
@@ -157,35 +177,34 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("findByEnabledTrue - returns only enabled products")
     void testFindByEnabledTrue() {
-        List<Product> enabled = productRepository.findByEnabledTrue();
+        List<ProductSku> enabled = productSkuRepository.findByEnabledTrue();
 
         assertThat(enabled).hasSize(2);
         assertThat(enabled)
-                .extracting(Product::getBarcode)
+                .extracting(ProductSku::getBarcode)
                 .containsExactlyInAnyOrder("BAR-TEA-001", "BAR-JUS-002");
-        assertThat(enabled).allMatch(Product::getEnabled);
+        assertThat(enabled).allMatch(ProductSku::getEnabled);
     }
 
-    // ========== findByCategory ==========
+    // ========== findByProductCategoryId ==========
 
     @Test
-    @DisplayName("findByCategory - returns products in given category")
+    @DisplayName("findByProductCategoryId - returns SKUs inherited from the product category")
     void testFindByCategory() {
-        List<Product> beverages = productRepository.findByCategory("beverages");
+        List<ProductSku> beverages = productSkuRepository.findByProductCategoryId(spu.getCategory().getId());
 
-        assertThat(beverages).hasSize(2);
+        assertThat(beverages).hasSize(3);
         assertThat(beverages)
-                .extracting(Product::getCategory)
-                .containsOnly("beverages");
+                .extracting(productSku -> productSku.getProduct().getCategory().getCategoryCode())
+                .containsOnly("BEVERAGES-GENERAL");
     }
 
     @Test
-    @DisplayName("findByCategory - returns products in snacks category")
+    @DisplayName("findByProductCategoryId - returns empty for an unknown category")
     void testFindByCategory_Snacks() {
-        List<Product> snacks = productRepository.findByCategory("snacks");
+        List<ProductSku> snacks = productSkuRepository.findByProductCategoryId(Long.MAX_VALUE);
 
-        assertThat(snacks).hasSize(1);
-        assertThat(snacks.get(0).getBarcode()).isEqualTo("BAR-SNK-003");
+        assertThat(snacks).isEmpty();
     }
 
     // ========== findBySupplier ==========
@@ -193,18 +212,18 @@ class ProductRepositoryTest {
     @Test
     @DisplayName("findBySupplier - returns products from given supplier")
     void testFindBySupplier() {
-        List<Product> supplierAProducts = productRepository.findBySupplier("SupplierA");
+        List<ProductSku> supplierAProducts = productSkuRepository.findBySupplier("SupplierA");
 
         assertThat(supplierAProducts).hasSize(2);
         assertThat(supplierAProducts)
-                .extracting(Product::getSupplier)
+                .extracting(ProductSku::getSupplier)
                 .containsOnly("SupplierA");
     }
 
     @Test
     @DisplayName("findBySupplier - returns empty when supplier has no products")
     void testFindBySupplier_NotFound() {
-        List<Product> results = productRepository.findBySupplier("UnknownSupplier");
+        List<ProductSku> results = productSkuRepository.findBySupplier("UnknownSupplier");
 
         assertThat(results).isEmpty();
     }
@@ -233,19 +252,25 @@ class ProductRepositoryTest {
         entityManager.persist(location);
 
         // productTea has minStock=100; inventory quantity=10 → low stock
-        Inventory lowInventory = Inventory.builder()
-                .product(productTea)
+        InventoryBatch lowInventory = InventoryBatch.builder()
+                .batchCode("LOW-STOCK-BATCH")
+                .productSku(productTea)
                 .location(location)
+                .locationCode(location.getLocationCode())
                 .quantity(10)
+                .initialQuantity(10)
+                .reservedQuantity(0)
+                .expiryDate(java.time.LocalDate.now().plusMonths(6))
+                .active(true)
                 .build();
         entityManager.persist(lowInventory);
         entityManager.flush();
 
-        List<Product> lowStock = productRepository.findLowStockProducts();
+        List<ProductSku> lowStock = productSkuRepository.findLowStockProducts();
 
         assertThat(lowStock).isNotEmpty();
         assertThat(lowStock)
-                .extracting(Product::getBarcode)
+                .extracting(ProductSku::getBarcode)
                 .contains("BAR-TEA-001");
     }
 
@@ -272,17 +297,17 @@ class ProductRepositoryTest {
 
         // productJuice has minStock=50; inventory quantity=200 → sufficient
         Inventory sufficientInventory = Inventory.builder()
-                .product(productJuice)
+                .productSku(productJuice)
                 .location(location)
                 .quantity(200)
                 .build();
         entityManager.persist(sufficientInventory);
         entityManager.flush();
 
-        List<Product> lowStock = productRepository.findLowStockProducts();
+        List<ProductSku> lowStock = productSkuRepository.findLowStockProducts();
 
         assertThat(lowStock)
-                .extracting(Product::getBarcode)
+                .extracting(ProductSku::getBarcode)
                 .doesNotContain("BAR-JUS-002");
     }
 }

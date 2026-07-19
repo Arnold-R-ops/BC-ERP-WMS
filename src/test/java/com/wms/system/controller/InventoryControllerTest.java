@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.StockAdjustmentRequest;
 import com.wms.system.entity.Location;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.SourceType;
 import com.wms.system.entity.enums.TransactionType;
@@ -50,7 +50,7 @@ class InventoryControllerTest {
     @DisplayName("adjustStock - returns 200 when successful")
     void testAdjustStock_Success() throws Exception {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -58,10 +58,11 @@ class InventoryControllerTest {
                 .sourceOrderId("PO20260101001")
                 .build();
 
-        Product product = Product.builder().id(1L).name("Test Product").barcode("BAR001").build();
+        ProductSku product = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode()).id(1L).name("Test ProductSku").barcode("BAR001").build();
         Location location = Location.builder().id(1L).locationCode("WH01-A-01-001").build();
         StockTransaction tx = StockTransaction.builder()
-                .id(1L).product(product).location(location)
+                .id(1L).productSku(product).location(location)
                 .transactionType(TransactionType.IN).sourceType(SourceType.PURCHASE_IN)
                 .quantity(50).quantityBefore(0).quantityAfter(50)
                 .sourceOrderId("PO20260101001")
@@ -79,7 +80,7 @@ class InventoryControllerTest {
 
     @Test
     @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
-    @DisplayName("adjustStock - returns 400 when request is invalid (missing productId)")
+    @DisplayName("adjustStock - returns 400 when request is invalid (missing productSkuId)")
     void testAdjustStock_InvalidRequest() throws Exception {
         String invalidJson = """
                 {
@@ -102,7 +103,7 @@ class InventoryControllerTest {
     @DisplayName("adjustStock - returns error when product not found")
     void testAdjustStock_ProductNotFound() throws Exception {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(99L)
+                .productSkuId(99L)
                 .locationId(1L)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -111,7 +112,7 @@ class InventoryControllerTest {
                 .build();
 
         when(inventoryService.adjustStock(any())).thenThrow(
-                new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND, Map.of("productId", 99L))
+                new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND, Map.of("productSkuId", 99L))
         );
 
         mockMvc.perform(post("/api/inventory/adjust")
@@ -125,7 +126,7 @@ class InventoryControllerTest {
     @DisplayName("adjustStock - returns error when stock insufficient")
     void testAdjustStock_InsufficientStock() throws Exception {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.OUT)
                 .sourceType(SourceType.SALE_OUT)
@@ -143,7 +144,7 @@ class InventoryControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ========== GET /api/inventory/total-stock/{productId} ==========
+    // ========== GET /api/inventory/total-stock/{productSkuId} ==========
 
     @Test
     @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
@@ -153,7 +154,7 @@ class InventoryControllerTest {
 
         mockMvc.perform(get("/api/inventory/total-stock/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.productSkuId").value(1))
                 .andExpect(jsonPath("$.totalStock").value(350));
     }
 

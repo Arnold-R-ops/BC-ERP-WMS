@@ -41,7 +41,7 @@ import java.util.Map;
  * {
  *   "errorKey": "STOCK_INSUFFICIENT",
  *   "params": {
- *     "productId": 123,
+ *     "productSkuId": 123,
  *     "currentStock": 50,
  *     "requestedQuantity": 100,
  *     "shortage": 50
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
      * Handle BusinessException (Error Key System)
      *
      * Maps error keys to HTTP status codes:
-     * - PRODUCT_NOT_FOUND, LOCATION_NOT_FOUND, etc. → 404 Not Found
+     * - PRODUCT_SKU_NOT_FOUND, LOCATION_NOT_FOUND, etc. → 404 Not Found
      * - STOCK_INSUFFICIENT, VALIDATION_FAILED, etc. → 400 Bad Request
      * - STOCK_CONCURRENCY_CONFLICT → 409 Conflict
      * - Others → 500 Internal Server Error
@@ -210,7 +210,7 @@ public class GlobalExceptionHandler {
      * {
      *   "errorKey": "VALIDATION_FAILED",
      *   "params": {
-     *     "productId": "Product ID is required",
+     *     "productSkuId": "ProductSku ID is required",
      *     "quantity": "Quantity must be greater than 0"
      *   },
      *   "timestamp": "...",
@@ -501,7 +501,9 @@ public class GlobalExceptionHandler {
     private HttpStatus mapErrorKeyToHttpStatus(String errorKey) {
         return switch (errorKey) {
             // 404 Not Found
-            case ErrorKeys.PRODUCT_NOT_FOUND,
+            case ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                 ErrorKeys.PRODUCT_NOT_FOUND,
+                 ErrorKeys.CATEGORY_NOT_FOUND,
                  ErrorKeys.LOCATION_NOT_FOUND,
                  ErrorKeys.INVENTORY_NOT_FOUND,
                  ErrorKeys.INVENTORY_RESERVATION_NOT_FOUND,
@@ -521,6 +523,11 @@ public class GlobalExceptionHandler {
 
             // 400 Bad Request
             case ErrorKeys.STOCK_INSUFFICIENT,
+                 ErrorKeys.CATEGORY_DEPTH_EXCEEDED,
+                 ErrorKeys.CATEGORY_PARENT_DISABLED,
+                 ErrorKeys.CATEGORY_CYCLE_DETECTED,
+                 ErrorKeys.PRODUCT_CATEGORY_INVALID,
+                 ErrorKeys.PRODUCT_DISABLED,
                  ErrorKeys.STOCK_INVALID_QUANTITY,
                  ErrorKeys.VALIDATION_FAILED,
                  ErrorKeys.PARAMETER_REQUIRED,
@@ -568,6 +575,10 @@ public class GlobalExceptionHandler {
 
             // 409 Conflict
             case ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
+                 ErrorKeys.CATEGORY_ALREADY_EXISTS,
+                 ErrorKeys.CATEGORY_HAS_CHILDREN,
+                 ErrorKeys.CATEGORY_IN_USE,
+                 ErrorKeys.PRODUCT_SKU_ALREADY_EXISTS,
                  ErrorKeys.PRODUCT_ALREADY_EXISTS,
                  ErrorKeys.LOCATION_ALREADY_EXISTS,
                  ErrorKeys.LOCATION_BATCH_MIXING_FORBIDDEN,

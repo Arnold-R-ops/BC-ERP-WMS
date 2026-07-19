@@ -70,10 +70,13 @@ class CompleteModuleIntegrationTest {
     private LocationRepository locationRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private ProductRepository productRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ProductSkuRepository productSkuRepository;
 
     @Autowired
     private SupplierRepository supplierRepository;
@@ -98,7 +101,7 @@ class CompleteModuleIntegrationTest {
     private User buyerUser;
     private Warehouse warehouse;
     private Location location;
-    private Product product;
+    private ProductSku product;
     private Supplier supplier;
     private Customer customer;
 
@@ -126,7 +129,9 @@ class CompleteModuleIntegrationTest {
         purchaseOrderRepository.deleteAll();
         inventoryBatchRepository.deleteAll();
         locationRepository.deleteAll();
-        warehouseRepository.deleteAll();        productSpuRepository.deleteAll();
+        warehouseRepository.deleteAll();
+        productSkuRepository.deleteAll();
+        productRepository.deleteAll();
         supplierRepository.deleteAll();
     }
 
@@ -163,18 +168,20 @@ class CompleteModuleIntegrationTest {
         return locationRepository.save(loc);
     }
 
-        private Product createProduct() {
-        ProductSpu spu = ProductSpu.builder()
-            .spuCode("SPU001")
-            .spuName("Test SPU")
+        private ProductSku createProduct() {
+        Product spu = Product.builder()
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
+            .productCode("SPU001")
+            .productName("Test SPU")
             .enabled(true)
             .build();
-        spu = productSpuRepository.save(spu);
+        spu = productRepository.save(spu);
 
-        Product prod = Product.builder()
-            .spu(spu)
+        ProductSku prod = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(spu)
             .skuName("SKU001")
-            .name("Test Product")
+            .name("Test ProductSku")
             .barcode("6900000001001")
             .specification("Standard")
             .unitPrice(new BigDecimal("100.00"))
@@ -183,7 +190,7 @@ class CompleteModuleIntegrationTest {
             .nearExpiryDays(90)
             .enabled(true)
             .build();
-        return productRepository.save(prod);
+        return productSkuRepository.save(prod);
     }
 
         private Supplier createSupplier() {
@@ -269,7 +276,7 @@ class CompleteModuleIntegrationTest {
                 "expectedDate": "2026-02-20",
                 "items": [
                     {
-                        "productId": %d,
+                        "productSkuId": %d,
                         "orderedQuantity": 100,
                         "unitCost": 50.00,
                         "productionDate": "2026-02-10",
@@ -298,7 +305,7 @@ class CompleteModuleIntegrationTest {
         // 闂傚倸鍊搁崐鐑芥嚄閸洍鈧箓宕奸姀鈥冲簥闂佽澹嗘晶妤呭磻鐎ｎ喗鐓曢柍鈺佸暟閳藉鏌涢妸銉モ偓鍧楀蓟濞戞鏃堝礃閵娿儱顥庨梻浣规偠閸婃洟鎮ч幘鎰佸殨闁割偅娲橀崐鐑芥煛婢跺鐒炬俊顐㈡椤啴濡堕崨顖滎唶閻庤娲﹂崜鐔凤耿娴ｇ硶鏀介柣妯款嚋瀹搞儵鎮楀鐓庢珝闁糕斂鍎插鍕暆閳ь剛澹曟總鍛婄厪濠电偛鐏濇俊娲煕濮樼厧浜伴柡灞界Х椤т線鏌涢幘瀛樼殤缂侇喗鐟╅獮鎺楀即閻旂娅″┑鐘垫暩婵即宕规總闈╃稏濠㈣泛鏈弳婊堟煙閻戞﹩娈旈柣?
         InventoryBatch batch = InventoryBatch.builder()
             .batchCode("SPU001-SKU001-20260212")
-            .product(product)
+            .productSku(product)
             .location(location)
             .locationCode(location.getLocationCode())
             .quantity(100)
@@ -325,7 +332,7 @@ class CompleteModuleIntegrationTest {
         // 闂傚倸鍊搁崐鐑芥嚄閸洍鈧箓宕奸姀鈥冲簥闂佽澹嗘晶妤呭磻鐎ｎ喗鐓曢柍鈺佸暟閳藉鏌涢妸銉モ偓鍧楀蓟濞戞鏃堝礃閵娿儱顥庨梻浣规偠閸婃洟鎮ч幘璇茶摕婵炴垶菤閺€浠嬫煕閳╁喚娈㈠ù灏栧亾濠电姵顔栭崰妤勫綘闂佸憡姊归崹鍧楃嵁閸愩剮鏃堝焵椤掑嫬鐓″璺号堥弸宥夋煣韫囷絽浜滈柣蹇ュ缁辨帡寮崒姘亪濡ょ姷鍋炵敮锟犵嵁鐎ｎ喖绫嶉柍褜鍓熼幃?
         InventoryBatch batch = InventoryBatch.builder()
             .batchCode("SPU001-SKU001-20260212")
-            .product(product)
+            .productSku(product)
             .location(location)
             .locationCode(location.getLocationCode())
             .quantity(100)

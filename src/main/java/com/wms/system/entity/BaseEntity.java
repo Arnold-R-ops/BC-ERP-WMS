@@ -59,4 +59,20 @@ public abstract class BaseEntity {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void initializeAuditTimestamps() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
+
+    @PreUpdate
+    protected void refreshUpdatedAt() {
+        updatedAt = LocalDateTime.now();
+    }
 }

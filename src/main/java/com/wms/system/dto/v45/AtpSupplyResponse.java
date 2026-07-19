@@ -12,7 +12,7 @@ public class AtpSupplyResponse {
     private Long purchaseOrderId;
     private String poNumber;
     private Long purchaseOrderItemId;
-    private Long productId;
+    private Long productSkuId;
     private String productName;
     private LocalDate expectedDate;
     private Integer orderedQty;

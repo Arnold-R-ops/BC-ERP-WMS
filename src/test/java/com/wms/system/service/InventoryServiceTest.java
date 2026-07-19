@@ -3,14 +3,15 @@ package com.wms.system.service;
 import com.wms.system.dto.StockAdjustmentRequest;
 import com.wms.system.entity.Inventory;
 import com.wms.system.entity.Location;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.SourceType;
 import com.wms.system.entity.enums.TransactionType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.InventoryRepository;
+import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,22 +33,24 @@ import static org.mockito.Mockito.*;
 class InventoryServiceTest {
 
     @Mock private InventoryRepository inventoryRepository;
-    @Mock private ProductRepository productRepository;
+    @Mock private InventoryBatchRepository inventoryBatchRepository;
+    @Mock private ProductSkuRepository productSkuRepository;
     @Mock private LocationRepository locationRepository;
     @Mock private StockTransactionRepository stockTransactionRepository;
 
     @InjectMocks
     private InventoryService inventoryService;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private Location testLocation;
     private Inventory testInventory;
 
     @BeforeEach
     void setUp() {
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
                 .id(1L)
-                .name("Test Product")
+                .name("Test ProductSku")
                 .barcode("BAR001")
                 .minStock(10)
                 .build();
@@ -60,7 +63,7 @@ class InventoryServiceTest {
 
         testInventory = Inventory.builder()
                 .id(1L)
-                .product(testProduct)
+                .productSku(testProduct)
                 .location(testLocation)
                 .quantity(100)
                 .build();
@@ -72,7 +75,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock IN - success increases inventory")
     void testAdjustStock_IN_Success() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -82,7 +85,7 @@ class InventoryServiceTest {
 
         StockTransaction savedTx = StockTransaction.builder()
                 .id(1L)
-                .product(testProduct)
+                .productSku(testProduct)
                 .location(testLocation)
                 .transactionType(TransactionType.IN)
                 .quantity(50)
@@ -90,9 +93,9 @@ class InventoryServiceTest {
                 .quantityAfter(150)
                 .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
-        when(inventoryRepository.findByProductAndLocation(testProduct, testLocation))
+        when(inventoryRepository.findByProductSkuAndLocation(testProduct, testLocation))
                 .thenReturn(Optional.of(testInventory));
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(testInventory);
         when(stockTransactionRepository.save(any(StockTransaction.class))).thenReturn(savedTx);
@@ -109,7 +112,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock OUT - success when stock sufficient")
     void testAdjustStock_OUT_Success() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.OUT)
                 .sourceType(SourceType.SALE_OUT)
@@ -125,9 +128,9 @@ class InventoryServiceTest {
                 .quantityAfter(70)
                 .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
-        when(inventoryRepository.findByProductAndLocation(testProduct, testLocation))
+        when(inventoryRepository.findByProductSkuAndLocation(testProduct, testLocation))
                 .thenReturn(Optional.of(testInventory));
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(testInventory);
         when(stockTransactionRepository.save(any(StockTransaction.class))).thenReturn(savedTx);
@@ -142,7 +145,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock OUT - throws BusinessException when stock insufficient")
     void testAdjustStock_OUT_InsufficientStock() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.OUT)
                 .sourceType(SourceType.SALE_OUT)
@@ -150,9 +153,9 @@ class InventoryServiceTest {
                 .sourceOrderId("SO20260101001")
                 .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
-        when(inventoryRepository.findByProductAndLocation(testProduct, testLocation))
+        when(inventoryRepository.findByProductSkuAndLocation(testProduct, testLocation))
                 .thenReturn(Optional.of(testInventory));
 
         assertThatThrownBy(() -> inventoryService.adjustStock(request))
@@ -166,7 +169,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock ADJUST - success modifies quantity by delta")
     void testAdjustStock_ADJUST_Success() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.ADJUST)
                 .sourceType(SourceType.MANUAL_ADJUST)
@@ -176,9 +179,9 @@ class InventoryServiceTest {
 
         StockTransaction savedTx = StockTransaction.builder().id(3L).build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
-        when(inventoryRepository.findByProductAndLocation(testProduct, testLocation))
+        when(inventoryRepository.findByProductSkuAndLocation(testProduct, testLocation))
                 .thenReturn(Optional.of(testInventory));
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(testInventory);
         when(stockTransactionRepository.save(any(StockTransaction.class))).thenReturn(savedTx);
@@ -194,7 +197,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock - throws BusinessException when product not found")
     void testAdjustStock_ProductNotFound() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(99L)
+                .productSkuId(99L)
                 .locationId(1L)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -202,7 +205,7 @@ class InventoryServiceTest {
                 .sourceOrderId("PO001")
                 .build();
 
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productSkuRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.adjustStock(request))
                 .isInstanceOf(BusinessException.class);
@@ -214,7 +217,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock - throws BusinessException when location not found")
     void testAdjustStock_LocationNotFound() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(99L)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -222,7 +225,7 @@ class InventoryServiceTest {
                 .sourceOrderId("PO001")
                 .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(locationRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> inventoryService.adjustStock(request))
@@ -233,7 +236,7 @@ class InventoryServiceTest {
     @DisplayName("adjustStock IN - creates new inventory when none exists")
     void testAdjustStock_IN_CreatesNewInventory() {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .locationId(1L)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -242,15 +245,15 @@ class InventoryServiceTest {
                 .build();
 
         Inventory newInventory = Inventory.builder()
-                .product(testProduct)
+                .productSku(testProduct)
                 .location(testLocation)
                 .quantity(0)
                 .build();
         StockTransaction savedTx = StockTransaction.builder().id(5L).build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
-        when(inventoryRepository.findByProductAndLocation(testProduct, testLocation))
+        when(inventoryRepository.findByProductSkuAndLocation(testProduct, testLocation))
                 .thenReturn(Optional.empty()); // no existing inventory
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(newInventory);
         when(stockTransactionRepository.save(any(StockTransaction.class))).thenReturn(savedTx);
@@ -267,7 +270,7 @@ class InventoryServiceTest {
     @Test
     @DisplayName("getTotalStock - returns value from repository")
     void testGetTotalStock_HasValue() {
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(350);
+        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(350);
 
         Integer result = inventoryService.getTotalStock(1L);
 
@@ -277,7 +280,7 @@ class InventoryServiceTest {
     @Test
     @DisplayName("getTotalStock - returns 0 when repository returns null")
     void testGetTotalStock_ReturnsZeroWhenNull() {
-        when(inventoryRepository.sumTotalQuantityByProduct(1L)).thenReturn(null);
+        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(null);
 
         Integer result = inventoryService.getTotalStock(1L);
 

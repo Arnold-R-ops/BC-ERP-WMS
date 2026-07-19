@@ -63,7 +63,7 @@ class SalesSubmissionServiceTest {
     private CustomerService customerService;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @Mock
     private SystemConfigService systemConfigService;
@@ -80,15 +80,16 @@ class SalesSubmissionServiceTest {
     @InjectMocks
     private SalesSubmissionService salesSubmissionService;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private Customer testCustomer;
 
     @BeforeEach
     void setUp() {
         // Create test product
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
             .id(1L)
-            .name("Test Product")
+            .name("Test ProductSku")
             .barcode("TEST001")
             .minSalesPrice(new BigDecimal("10.00"))
             .build();
@@ -111,7 +112,7 @@ class SalesSubmissionServiceTest {
         request.setCustomerId(1L);
 
         CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
-        itemData.setProductId(1L);
+        itemData.setProductSkuId(1L);
         itemData.setQuantity(10);
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
@@ -125,7 +126,7 @@ class SalesSubmissionServiceTest {
                 order.setId(1L);
                 return order;
             });
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
@@ -154,7 +155,7 @@ class SalesSubmissionServiceTest {
         request.setCustomerId(1L);
 
         CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
-        itemData.setProductId(1L);
+        itemData.setProductSkuId(1L);
         itemData.setQuantity(10);
         itemData.setUnitPrice(new BigDecimal("8.00")); // Below min price 10.00
         request.setItems(List.of(itemData));
@@ -167,7 +168,7 @@ class SalesSubmissionServiceTest {
                 order.setId(1L);
                 return order;
             });
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
@@ -197,7 +198,7 @@ class SalesSubmissionServiceTest {
         request.setCustomerId(1L);
 
         CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
-        itemData.setProductId(1L);
+        itemData.setProductSkuId(1L);
         itemData.setQuantity(1000);
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
@@ -210,7 +211,7 @@ class SalesSubmissionServiceTest {
                 order.setId(1L);
                 return order;
             });
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("1000.00"));
@@ -236,7 +237,7 @@ class SalesSubmissionServiceTest {
         request.setCustomerId(1L);
 
         CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
-        itemData.setProductId(1L);
+        itemData.setProductSkuId(1L);
         itemData.setQuantity(10);
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
@@ -249,7 +250,7 @@ class SalesSubmissionServiceTest {
                 order.setId(1L);
                 return order;
             });
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
@@ -264,6 +265,54 @@ class SalesSubmissionServiceTest {
         assertThat(response.getStatus()).isEqualTo("APPROVED_AWAITING_SHIPMENT");
 
         verify(allocationService).allocateInventory(1L);
+    }
+
+    @Test
+    @DisplayName("Channel repair order stays pending approval without inventory allocation")
+    void testCreateChannelOrderPendingApproval_NoInventorySideEffects() {
+        CreateSalesOrderRequest request = new CreateSalesOrderRequest();
+        request.setCustomerId(1L);
+        request.setChannel("SHOPIFY");
+
+        CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
+        itemData.setProductSkuId(1L);
+        itemData.setQuantity(10);
+        itemData.setUnitPrice(new BigDecimal("15.00"));
+        request.setItems(List.of(itemData));
+
+        doNothing().when(customerService).validateCustomerActive(1L);
+        when(customerService.getCustomerName(1L)).thenReturn("Test Customer");
+        when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
+        when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> {
+            SalesOrder order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
+
+        SalesOrderResponse response = salesSubmissionService.createChannelOrderPendingApproval(
+            request,
+            77L,
+            "repair-operator",
+            "SHOPIFY",
+            "9002",
+            "#9002"
+        );
+
+        assertThat(response.getStatus()).isEqualTo("PENDING_APPROVAL");
+        ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
+        verify(salesOrderRepository, atLeastOnce()).save(orderCaptor.capture());
+        SalesOrder savedOrder = orderCaptor.getAllValues().get(orderCaptor.getAllValues().size() - 1);
+        assertThat(savedOrder.getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(savedOrder.getExternalOrderId()).isEqualTo("9002");
+        assertThat(savedOrder.getChannel()).isEqualTo("SHOPIFY");
+        verify(allocationService, never()).allocateInventory(anyLong());
+        verify(outboundTaskRepository, never()).save(any());
     }
 
     // ========== Test 5: Approve Sales Order ==========
@@ -353,7 +402,7 @@ class SalesSubmissionServiceTest {
         request.setCustomerId(1L);
 
         UpdateSalesOrderRequest.SalesOrderItemData itemData = new UpdateSalesOrderRequest.SalesOrderItemData();
-        itemData.setProductId(1L);
+        itemData.setProductSkuId(1L);
         itemData.setQuantity(20);
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
@@ -362,7 +411,7 @@ class SalesSubmissionServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));

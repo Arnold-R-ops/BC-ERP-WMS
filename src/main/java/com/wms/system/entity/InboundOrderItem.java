@@ -30,7 +30,7 @@ import java.time.LocalDate;
     name = "inbound_order_items",
     indexes = {
         @Index(name = "idx_inbound_item_order", columnList = "inbound_order_id"),
-        @Index(name = "idx_inbound_item_product", columnList = "product_id"),
+        @Index(name = "idx_inbound_item_product", columnList = "product_sku_id"),
         @Index(name = "idx_inbound_item_batch", columnList = "batch_code"),
         @Index(name = "idx_inbound_item_expiry", columnList = "expiry_date")
     }
@@ -54,8 +54,8 @@ public class InboundOrderItem extends BaseEntity {
      */
     @NotNull(message = "产品不能为空")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_inbound_item_product"))
-    private Product product;
+    @JoinColumn(name = "product_sku_id", nullable = false, foreignKey = @ForeignKey(name = "fk_inbound_item_product"))
+    private ProductSku productSku;
 
     /**
      * 计划数量

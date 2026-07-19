@@ -31,7 +31,7 @@ public class ReorderSuggestion {
     /**
      * 商品ID
      */
-    private Long productId;
+    private Long productSkuId;
 
     /**
      * 商品条形码
@@ -93,6 +93,7 @@ public class ReorderSuggestion {
      * 预计消耗完的天数
      * 公式：当前库存 / 日均出库量
      * 如果小于采购提前期，说明需要紧急补货
+     * null 表示统计周期内没有出库记录，无法按当前销速预测缺货时间
      */
     private Double estimatedDaysUntilStockout;
 
@@ -165,6 +166,9 @@ public class ReorderSuggestion {
         if (currentStock < minStock) {
             // 当前库存 < 安全库存：极度紧急
             this.urgencyLevel = UrgencyLevel.CRITICAL;
+        } else if (estimatedDaysUntilStockout == null) {
+            // No outbound history and stock is not below the safety threshold.
+            this.urgencyLevel = UrgencyLevel.LOW;
         } else if (estimatedDaysUntilStockout < leadTime) {
             // 预计耗尽天数 < 采购提前期：高度紧急
             this.urgencyLevel = UrgencyLevel.HIGH;

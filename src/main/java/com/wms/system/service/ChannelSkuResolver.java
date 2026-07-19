@@ -1,9 +1,9 @@
 package com.wms.system.service;
 
 import com.wms.system.entity.ChannelSkuMapping;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.repository.ChannelSkuMappingRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ import java.util.Optional;
 public class ChannelSkuResolver {
 
     private final ChannelSkuMappingRepository mappingRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
 
     public enum ResolutionType { PRODUCT, VIRTUAL, MISS }
 
@@ -43,16 +43,16 @@ public class ChannelSkuResolver {
     @Getter
     public static class Resolution {
         private final ResolutionType type;
-        private final Product product;
+        private final ProductSku productSku;
         private final int quantityRatio;
 
-        private Resolution(ResolutionType type, Product product, int quantityRatio) {
+        private Resolution(ResolutionType type, ProductSku product, int quantityRatio) {
             this.type = type;
-            this.product = product;
+            this.productSku = product;
             this.quantityRatio = quantityRatio;
         }
 
-        static Resolution product(Product product, int ratio) {
+        static Resolution productSku(ProductSku product, int ratio) {
             return new Resolution(ResolutionType.PRODUCT, product, ratio);
         }
 
@@ -88,19 +88,19 @@ public class ChannelSkuResolver {
         }
 
         // 3. 商品条码精确命中 → 自学
-        Optional<Product> byBarcode = productRepository.findByBarcode(externalSku);
+        Optional<ProductSku> byBarcode = productSkuRepository.findByBarcode(externalSku);
         if (byBarcode.isPresent()) {
             autoLearn(channel, storeIdentifier, externalSku, normalized, byBarcode.get());
-            return Resolution.product(byBarcode.get(), 1);
+            return Resolution.productSku(byBarcode.get(), 1);
         }
 
         // 4. 商品条码归一化命中 → 自学
-        Optional<Product> byNormalizedBarcode = productRepository.findByNormalizedBarcode(normalized);
+        Optional<ProductSku> byNormalizedBarcode = productSkuRepository.findByNormalizedBarcode(normalized);
         if (byNormalizedBarcode.isPresent()) {
             log.info("SKU 归一化命中条码: channel={}, externalSku='{}' → 商品条码 '{}'",
                 channel, externalSku, byNormalizedBarcode.get().getBarcode());
             autoLearn(channel, storeIdentifier, externalSku, normalized, byNormalizedBarcode.get());
-            return Resolution.product(byNormalizedBarcode.get(), 1);
+            return Resolution.productSku(byNormalizedBarcode.get(), 1);
         }
 
         return Resolution.miss();
@@ -110,7 +110,7 @@ public class ChannelSkuResolver {
         if (ChannelSkuMapping.TYPE_VIRTUAL.equals(mapping.getMappingType())) {
             return Resolution.virtual();
         }
-        return Resolution.product(mapping.getProduct(),
+        return Resolution.productSku(mapping.getProductSku(),
             mapping.getQuantityRatio() == null ? 1 : mapping.getQuantityRatio());
     }
 
@@ -119,7 +119,7 @@ public class ChannelSkuResolver {
      * 与订单同一事务——订单回滚则自学一并回滚，下轮重新学习即可。
      */
     private void autoLearn(String channel, String storeIdentifier, String externalSku,
-                           String normalized, Product product) {
+                           String normalized, ProductSku product) {
         if (mappingRepository.existsByChannelAndExternalSku(channel, externalSku)) {
             return; // 已有（可能 DISABLED），不覆盖人工决策
         }
@@ -129,13 +129,13 @@ public class ChannelSkuResolver {
             .externalSku(externalSku)
             .normalizedSku(normalized)
             .mappingType(ChannelSkuMapping.TYPE_PRODUCT)
-            .product(product)
+            .productSku(product)
             .quantityRatio(1)
             .status(ChannelSkuMapping.STATUS_ACTIVE)
             .source(ChannelSkuMapping.SOURCE_AUTO)
             .remark("Auto-learned from barcode match")
             .build());
-        log.info("SKU 映射自学成功: channel={}, externalSku='{}' → productId={}",
+        log.info("SKU 映射自学成功: channel={}, externalSku='{}' → productSkuId={}",
             channel, externalSku, product.getId());
     }
 }

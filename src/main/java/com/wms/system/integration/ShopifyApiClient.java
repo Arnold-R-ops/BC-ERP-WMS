@@ -1,6 +1,9 @@
 package com.wms.system.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wms.system.dto.shopify.ShopifyOrdersResponse;
 import com.wms.system.entity.IntegrationConfig;
 import com.wms.system.exception.BusinessException;
@@ -8,13 +11,21 @@ import com.wms.system.exception.ErrorKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriUtils;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Shopify API 客户端
@@ -41,7 +52,8 @@ public class ShopifyApiClient {
     /**
      * Shopify API 版本
      */
-    private static final String API_VERSION = "2024-01";
+    @Value("${wms.integration.shopify.api-version:2026-07}")
+    private String apiVersion = "2026-07";
 
     /**
      * 拉取订单（类型化结果，兼容既有调用方）
@@ -69,7 +81,22 @@ public class ShopifyApiClient {
      * 查询条件与既有逻辑一致：status=open&financial_status=paid
      */
     public String fetchOrdersRaw(IntegrationConfig config) {
-        return get(config, "orders.json?status=open&financial_status=paid");
+        return fetchOrderPages(config, "orders.json?status=open&financial_status=paid&limit=250");
+    }
+
+    /**
+     * Pulls all order states updated since the supplied instant. This is used
+     * only by reconciliation and never writes to Shopify.
+     */
+    public String fetchOrdersForReconciliationRaw(IntegrationConfig config, OffsetDateTime updatedAtMin) {
+        String encodedTimestamp = UriUtils.encodeQueryParam(
+            updatedAtMin.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            StandardCharsets.UTF_8
+        );
+        return fetchOrderPages(
+            config,
+            "orders.json?status=any&limit=250&updated_at_min=" + encodedTimestamp
+        );
     }
 
     /**
@@ -94,8 +121,13 @@ public class ShopifyApiClient {
      * 统一 GET：解析令牌 → 调用 → 401 时失效缓存重试一次 → 错误映射
      */
     private String get(IntegrationConfig config, String pathWithQuery) {
+        ResponseEntity<String> response = getResponse(config, pathWithQuery);
+        return response.getBody() != null ? response.getBody() : "{}";
+    }
+
+    private ResponseEntity<String> getResponse(IntegrationConfig config, String pathWithQuery) {
         try {
-            return doGet(config, pathWithQuery);
+            return doGetResponse(config, pathWithQuery);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().value() == 401 || e.getStatusCode().value() == 403) {
                 // 令牌可能刚过期：失效缓存换新后重试一次
@@ -103,7 +135,7 @@ public class ShopifyApiClient {
                     config.getStoreUrl(), e.getStatusCode().value());
                 tokenProvider.invalidate(config.getId());
                 try {
-                    return doGet(config, pathWithQuery);
+                    return doGetResponse(config, pathWithQuery);
                 } catch (HttpClientErrorException retryEx) {
                     throw mapClientError(config, pathWithQuery, retryEx);
                 }
@@ -121,17 +153,75 @@ public class ShopifyApiClient {
         }
     }
 
-    private String doGet(IntegrationConfig config, String pathWithQuery) {
+    private ResponseEntity<String> doGetResponse(IntegrationConfig config, String pathWithQuery) {
         String accessToken = tokenProvider.resolveAccessToken(config);
-        String url = String.format("https://%s/admin/api/%s/%s", config.getStoreUrl(), API_VERSION, pathWithQuery);
+        String url = resolveUrl(config, pathWithQuery);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Shopify-Access-Token", accessToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         log.info("调用 Shopify API: {}", url);
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        return response.getBody() != null ? response.getBody() : "{}";
+        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+    }
+
+    private String fetchOrderPages(IntegrationConfig config, String initialPath) {
+        ArrayNode allOrders = objectMapper.createArrayNode();
+        Set<String> visitedPages = new HashSet<>();
+        String nextPage = initialPath;
+
+        while (nextPage != null && visitedPages.add(nextPage)) {
+            ResponseEntity<String> response = getResponse(config, nextPage);
+            try {
+                JsonNode orders = objectMapper.readTree(
+                    response.getBody() == null ? "{}" : response.getBody()
+                ).path("orders");
+                if (orders.isArray()) {
+                    orders.forEach(allOrders::add);
+                }
+            } catch (Exception e) {
+                throw new BusinessException(
+                    ErrorKeys.SHOPIFY_API_ERROR,
+                    Map.of("storeUrl", config.getStoreUrl(), "error", "Order page parse failed: " + e.getMessage())
+                );
+            }
+            nextPage = findNextLink(response.getHeaders().getFirst(HttpHeaders.LINK));
+        }
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.set("orders", allOrders);
+        return result.toString();
+    }
+
+    private String findNextLink(String linkHeader) {
+        if (linkHeader == null || linkHeader.isBlank()) {
+            return null;
+        }
+        for (String part : linkHeader.split(",")) {
+            if (!part.contains("rel=\"next\"")) {
+                continue;
+            }
+            int start = part.indexOf('<');
+            int end = part.indexOf('>');
+            if (start >= 0 && end > start) {
+                return part.substring(start + 1, end);
+            }
+        }
+        return null;
+    }
+
+    private String resolveUrl(IntegrationConfig config, String pathWithQuery) {
+        if (pathWithQuery.startsWith("https://")) {
+            URI uri = URI.create(pathWithQuery);
+            if (!config.getStoreUrl().equalsIgnoreCase(uri.getHost())) {
+                throw new BusinessException(
+                    ErrorKeys.SHOPIFY_API_ERROR,
+                    Map.of("storeUrl", config.getStoreUrl(), "error", "Rejected pagination link for another host")
+                );
+            }
+            return pathWithQuery;
+        }
+        return String.format("https://%s/admin/api/%s/%s", config.getStoreUrl(), apiVersion, pathWithQuery);
     }
 
     private BusinessException mapClientError(IntegrationConfig config, String path, HttpClientErrorException e) {

@@ -27,7 +27,7 @@ public interface InboundOrderItemRepository extends JpaRepository<InboundOrderIt
     /**
      * 根据产品ID查询所有明细
      */
-    List<InboundOrderItem> findByProductId(Long productId);
+    List<InboundOrderItem> findByProductSkuId(Long productSkuId);
 
     /**
      * 根据批次码查询
@@ -48,7 +48,7 @@ public interface InboundOrderItemRepository extends JpaRepository<InboundOrderIt
     /**
      * 根据入库单ID和产品ID查询明细
      */
-    List<InboundOrderItem> findByInboundOrderIdAndProductId(Long inboundOrderId, Long productId);
+    List<InboundOrderItem> findByInboundOrderIdAndProductSkuId(Long inboundOrderId, Long productSkuId);
 
     /**
      * 删除指定入库单的所有明细
@@ -63,6 +63,6 @@ public interface InboundOrderItemRepository extends JpaRepository<InboundOrderIt
     /**
      * 查询指定产品的所有批次码
      */
-    @Query("SELECT DISTINCT ioi.batchCode FROM InboundOrderItem ioi WHERE ioi.product.id = :productId AND ioi.batchCode IS NOT NULL")
-    List<String> findDistinctBatchCodesByProductId(@Param("productId") Long productId);
+    @Query("SELECT DISTINCT ioi.batchCode FROM InboundOrderItem ioi WHERE ioi.productSku.id = :productSkuId AND ioi.batchCode IS NOT NULL")
+    List<String> findDistinctBatchCodesByProductSkuId(@Param("productSkuId") Long productSkuId);
 }

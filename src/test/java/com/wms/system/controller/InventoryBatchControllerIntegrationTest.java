@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閸ゆ垿鏌涢幇鈺佸缂佺虎鍨堕弻?
  * 1. POST /api/inventory/batches/outbound - FIFO 闂備礁鎲￠崹鐢稿箹椤愩倛濮?
- * 2. GET /api/inventory/batches/total-stock/{productId} - 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墮缁犳垿鎮归崶顏勭毢婵ǜ鍔戦幃?
+ * 2. GET /api/inventory/batches/total-stock/{productSkuId} - 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墮缁犳垿鎮归崶顏勭毢婵ǜ鍔戦幃?
  * 3. 闂傚倸鍊稿Λ婊冣枖濞戙垹桅闁哄啠鍋撻悗鐢靛帶铻ｉ柛婵嗗瀵绱撴担鍦姇闁绘绮撳鎶藉箛椤撗勵啍閻庡厜鍋撻柛鎰典簼椤?
  * 4. 闂佸湱鍘ч悺銊╁箰閹间焦鍋ら柕濠忓閳绘梻鈧箍鍎遍悧鍡涘窗閺囩姭鍋撳▓鍨灈闁稿﹥鎮傞幃銉╂嚋闂堟稓绐為梺鍛婃处閸樹粙宕?
  * 5. 闂佸搫顦弲娑樏洪敃鈧敃銏ゆ晸閻樿尙顓奸柣鐔哥懃鐎氱兘宕戣娣囧﹪顢曢悢铚傚婵?
@@ -54,10 +54,13 @@ class InventoryBatchControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private ProductSkuRepository productSkuRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private WarehouseRepository warehouseRepository;
@@ -71,7 +74,7 @@ class InventoryBatchControllerIntegrationTest {
     @Autowired
     private StockTransactionRepository stockTransactionRepository;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
     private InventoryBatch looseBatch;
@@ -83,8 +86,8 @@ class InventoryBatchControllerIntegrationTest {
         stockTransactionRepository.deleteAll();
         inventoryBatchRepository.deleteAll();
         locationRepository.deleteAll();
+        productSkuRepository.deleteAll();
         productRepository.deleteAll();
-        productSpuRepository.deleteAll();
         warehouseRepository.deleteAll();
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵¤尙顭堥湁闁绘娅曠亸顓犵磼?
@@ -108,17 +111,18 @@ class InventoryBatchControllerIntegrationTest {
         testLocation = locationRepository.save(testLocation);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵?SPU
-        ProductSpu testSpu = ProductSpu.builder()
-            .spuCode("SPU-TEA-001")
-            .spuName("Test Tea SPU")
-            .category("Beverage")
+        Product testSpu = Product.builder()
+            .productCode("SPU-TEA-001")
+            .productName("Test Tea SPU")
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .description("Test product spu description")
             .build();
-        testSpu = productSpuRepository.save(testSpu);
+        testSpu = productRepository.save(testSpu);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵¤尙顭堥湁婵犙呭Т閸燁垶骞嗛崒鐐寸叆?缂?= 12闂佽崵鍋為懝楣冾敄閹寸姵顫?
-        testProduct = Product.builder()
-            .spu(testSpu)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(testSpu)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
             .barcode("6901234567890")
             .name("Test Green Tea")
             .skuName("Test Green Tea SKU")  // V3.3 闂傚鍋勫ú銈夊箠鎼淪劍鏅查柣鎰暯閸嬫挸鈽夊▎妯荤暦濡?
@@ -130,12 +134,12 @@ class InventoryBatchControllerIntegrationTest {
             .unitPrice(new BigDecimal("99.99"))
             .enabled(true)
             .build();
-        testProduct = productRepository.save(testProduct);
+        testProduct = productSkuRepository.save(testProduct);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愵嚙閺嬩線鏌ㄥ┑鍡欏鐟滅増鐩弻鐔告媴閸愮偓缍堝銈嗗姇閵堟悂寮?闂佽崵鍋為懝楣冾敄閹寸姵顫?
         looseBatch = InventoryBatch.builder()
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(8)
@@ -148,7 +152,7 @@ class InventoryBatchControllerIntegrationTest {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愵嚙閺嬩線鎮楅棃娑橆棌闁哥偞鎮傞弻鐔告媴閸愮偓缍堝銈嗗姇閵堟悂寮?4闂?= 2缂傚倷鑳舵慨鐢稿船閼姐倖顫?
         fullPackBatch = InventoryBatch.builder()
             .batchCode("BATCH002")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(24)
@@ -165,7 +169,7 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-2")
     void fifoOutbound_OnlyLooseBatch() throws Exception {
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "5")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-001")
@@ -187,7 +191,7 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-3")
     void fifoOutbound_LooseInsufficientNeedUnpack() throws Exception {
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "20")  // 闂傚倸鍊稿ú鐘诲磻閹剧粯鍋?8闂佽崵鍋為懝楣冾敄閸℃稑姹查幖杈剧稻鐎?+ 12闂佽崵鍋為懝楣冾敄閸℃稑姹查柨婵嗘川娑?
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-002")
@@ -210,7 +214,7 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-4")
     void fifoOutbound_InsufficientStock() throws Exception {
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "100")  // 闂備浇顕栭崜婵嬵敋瑜忛懞杈ㄦ綇閳规儳浜炬繛鎴烆仾椤忓洢浜圭憸鏂款嚕?32闂?
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-003")
@@ -231,7 +235,7 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-5")
     void fifoOutbound_ProductNotFound() throws Exception {
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", "99999")
+                .param("productSkuId", "99999")
                 .param("quantity", "10")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-004")
@@ -246,7 +250,7 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-6")
     void fifoOutbound_MissingRequiredParams() throws Exception {
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 // 缂傚倸鍊搁崐鎼佸箹椤愶附鍎?quantity 闂備礁鎲￠悷銉╁磹瑜版帒姹?
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-005")
@@ -261,7 +265,7 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-7")
     void fifoOutbound_NegativeQuantity() throws Exception {
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "-10")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-006")
@@ -278,7 +282,7 @@ class InventoryBatchControllerIntegrationTest {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯х摠娴溿倝鏌涢妷锝呭闁糕晛鍊块弻鐔告媴閸愮偓缍堝?
         InventoryBatch expiredBatch = InventoryBatch.builder()
             .batchCode("BATCH003")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(12)
@@ -289,7 +293,7 @@ class InventoryBatchControllerIntegrationTest {
         inventoryBatchRepository.save(expiredBatch);
 
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "5")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-007")
@@ -305,11 +309,11 @@ class InventoryBatchControllerIntegrationTest {
     @Test
     @DisplayName("case-9")
     void getTotalStock_Success() throws Exception {
-        mockMvc.perform(get("/api/inventory/batches/total-stock/{productId}", testProduct.getId())
+        mockMvc.perform(get("/api/inventory/batches/total-stock/{productSkuId}", testProduct.getId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.productId").value(testProduct.getId()))
+            .andExpect(jsonPath("$.productSkuId").value(testProduct.getId()))
             .andExpect(jsonPath("$.totalStock").value(32));  // 8 + 24 = 32
     }
 
@@ -317,10 +321,11 @@ class InventoryBatchControllerIntegrationTest {
     @DisplayName("case-10")
     void getTotalStock_NoStock() throws Exception {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯ь嚟閳绘棃鏌嶈閸撴氨绮欐径鎰垫晜闁告侗鍨遍埛鏇㈡⒑閸濆嫮澧曟い锔诲灣閼鸿鲸娼忛埞鎯т壕婵炴垶鐟悞鑺ョ箾閸喎鐏︾紒鍌氱Х椤︽煡鏌?
-        Product emptyProduct = Product.builder()
-            .spu(testProduct.getSpu())
+        ProductSku emptyProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(testProduct.getProduct())
             .barcode("6901234567891")
-            .name("Empty Stock Product")
+            .name("Empty Stock ProductSku")
             .skuName("缂傚倷绀侀惌浣割浖閵婏富娈介柛銉墮娴?SKU")  // V3.3 闂傚鍋勫ú銈夊箠鎼淬劍鏅查柣鎰暯閸嬫挸鈽夊▎妯荤暦濡?
             .packUnit("BOX")
             .conversionRate(12)
@@ -330,20 +335,20 @@ class InventoryBatchControllerIntegrationTest {
             .unitPrice(new BigDecimal("99.99"))
             .enabled(true)
             .build();
-        emptyProduct = productRepository.save(emptyProduct);
+        emptyProduct = productSkuRepository.save(emptyProduct);
 
-        mockMvc.perform(get("/api/inventory/batches/total-stock/{productId}", emptyProduct.getId())
+        mockMvc.perform(get("/api/inventory/batches/total-stock/{productSkuId}", emptyProduct.getId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.productId").value(emptyProduct.getId()))
+            .andExpect(jsonPath("$.productSkuId").value(emptyProduct.getId()))
             .andExpect(jsonPath("$.totalStock").value(0));
     }
 
     @Test
     @DisplayName("case-11")
     void getTotalStock_ProductNotFound() throws Exception {
-        mockMvc.perform(get("/api/inventory/batches/total-stock/{productId}", 99999L)
+        mockMvc.perform(get("/api/inventory/batches/total-stock/{productSkuId}", 99999L)
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
             .andExpect(status().isNotFound());
@@ -356,7 +361,7 @@ class InventoryBatchControllerIntegrationTest {
     void looseItemFirst_PreferLooseBatch() throws Exception {
         // 闂佽崵濮村ú顓㈠绩闁秵鍎?5闂佽崵鍋為懝楣冾敄閹寸姵顫曟繝闈涙处閸庣喖鏌￠崘銊︾ォ闁搞倕顦甸弻娑樷枎濡湱鑳烘繝鐢靛仜濞差參骞冩禒瀣╅柨鏃囧Г閻ゅ洭鏌ｉ悩鍐插闁告洦鍋掑Λ妤€鈹?
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "5")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-008")
@@ -376,7 +381,7 @@ class InventoryBatchControllerIntegrationTest {
     void looseItemFirst_UnpackOnlyWhenNecessary() throws Exception {
         // 闂佽崵濮村ú顓㈠绩闁秵鍎?10闂佽崵鍋為懝楣冾敄閹寸姵顫曟繝闈涱儏閺嬩線鏌ㄥ┑鍡欏鐟?8闂佽崵鍋為懝楣冾敄閸曨厾绠斿璺烘湰閹儳绱掑☉妯昏础缂佲偓婢舵劖鈷掗柛銉到娴滈箖鏌ｉ悢鍛婄；闁绘帪闄勯崚?2闂?
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "10")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-009")
@@ -400,7 +405,7 @@ class InventoryBatchControllerIntegrationTest {
     void completeWorkflow_MultipleOutboundsUntilEmpty() throws Exception {
         // 缂傚倷鐒﹂〃蹇涘礂濞戞氨鍗氶柡澶嬪灍閺嬪酣鏌嶉妷銉ユ毐婵絽顦甸獮鏍偓娑櫳戦幆鍫㈢磼?闂佽崵鍋為懝楣冾敄閹寸姵顫曟繛鍡樺姈婵挳鎮归幁鎺戝闁哄棗绻橀弻鈩冪瑹婵犲嫮袣闂侀€涚串缂嶄線寮?
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "5")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-010")
@@ -410,7 +415,7 @@ class InventoryBatchControllerIntegrationTest {
 
         // 缂傚倷鐒﹂〃蹇涘礂濞戞俺濮抽柍杞拌閺嬪酣鏌嶉妷銉ユ毐婵絽顦甸獮鏍偓娑櫳戦幆鍫㈢磼?0闂佽崵鍋為懝楣冾敄閹寸姵顫曟繛鍡樺姈婵挳鎮归幁鎺戝闁哄棗绻橀弻娑㈠箻椤栨稒鐝掔紓鍌氱У閸ㄥ灝顕ｉ锔芥櫜闁割偆鍠庣紞?+ 闂傚倷绶￠崰鎾诲礉瀹€鍕瀭閹兼番鍔岄弸渚€鎮楅棃娑橆棌闁哥偞鎮傞弻?
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "10")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-011")
@@ -420,7 +425,7 @@ class InventoryBatchControllerIntegrationTest {
 
         // 缂傚倷鐒﹂〃蹇涘礂濞戞氨绠斿ù锝囩《閺嬪酣鏌嶉妷銉ユ毐婵絽顦甸獮鏍偓娑櫳戦幆鍫㈢磼?7闂佽崵鍋為懝楣冾敄閹寸姵顫曟繛鍡樺姈婵挳鎮归幁鎺戝闁哄棗绻橀弻娑㈠箻椤栨稒鐝掔紓鍌氱У閸ㄥ灝顕ｉ銈傚亾闂堟稑顥忛柛鐐存倐閺?
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "17")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-012")
@@ -429,13 +434,13 @@ class InventoryBatchControllerIntegrationTest {
             .andExpect(status().isOk());
 
         // 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顒傜暠闁荤姴娲╃亸娆忣潩閵娾晜鍊垫繛鎴烆仾閼测晜瀚?0
-        mockMvc.perform(get("/api/inventory/batches/total-stock/{productId}", testProduct.getId()))
+        mockMvc.perform(get("/api/inventory/batches/total-stock/{productSkuId}", testProduct.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalStock").value(0));
 
         // 缂傚倷鐒﹂〃蹇涘礈濞嗗緷娲箻閺傘儲鐎婚梺鐐藉劚閸熷灝袙婢舵劕绠归悗娑櫳戦幆鍫㈢磼鏉堚晛顣奸柟顖涙瀵噣宕剁捄鐑樼暯濠电姰鍨洪崕鑲╁垝閸撗勫枂闁挎洖鍊归弲顒勬煕椤愶絿绠樻慨妯稿姂閹鈽夊▍顓″亹缁厽寰勭仦鐐劚缂備焦绋戝﹢杈╃矆?
         mockMvc.perform(post("/api/inventory/batches/outbound")
-                .param("productId", testProduct.getId().toString())
+                .param("productSkuId", testProduct.getId().toString())
                 .param("quantity", "1")
                 .param("sourceType", "SALE_OUT")
                 .param("sourceOrderId", "SO-013")

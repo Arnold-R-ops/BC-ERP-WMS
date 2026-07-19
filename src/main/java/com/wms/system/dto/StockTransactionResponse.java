@@ -36,17 +36,17 @@ public class StockTransactionResponse {
     private Long id;
 
     /**
-     * Product ID
+     * ProductSku ID
      */
-    private Long productId;
+    private Long productSkuId;
 
     /**
-     * Product name (for display convenience)
+     * ProductSku name (for display convenience)
      */
     private String productName;
 
     /**
-     * Product barcode
+     * ProductSku barcode
      */
     private String productBarcode;
 

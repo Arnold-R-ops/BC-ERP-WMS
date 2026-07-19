@@ -29,13 +29,13 @@ import java.util.Map;
  * 4. Handle parsing errors gracefully
  *
  * Excel Format (Expected):
- * | productId | quantity | unitCost | expiryDate | productionDate | externalBatchCode | remark |
+ * | productSkuId | quantity | unitCost | expiryDate | productionDate | externalBatchCode | remark |
  * |-----------|----------|----------|------------|----------------|-------------------|--------|
  * | 1         | 100      | 10.50    | 2025-12-31 | 2025-01-01     | BATCH001          | Note   |
  * | 2         | 200      | 5.00     | 2026-06-30 |                |                   |        |
  *
  * Column Mapping:
- * - Column A (0): productId (Long, required)
+ * - Column A (0): productSkuId (Long, required)
  * - Column B (1): orderedQuantity (Integer, required)
  * - Column C (2): unitCost (BigDecimal, optional)
  * - Column D (3): expiryDate (LocalDate, optional at Stage 1)
@@ -68,7 +68,7 @@ public class ExcelImportService {
      * 2. Iterate through rows (skip header row 0)
      * 3. Extract data from each column
      * 4. Convert to PurchaseOrderItemData
-     * 5. Validate required fields (productId, orderedQuantity)
+     * 5. Validate required fields (productSkuId, orderedQuantity)
      * 6. Return list of items
      *
      * Error Handling:
@@ -128,8 +128,8 @@ public class ExcelImportService {
                     PurchaseOrderService.PurchaseOrderItemData item = parseRow(row, rowIndex);
                     items.add(item);
 
-                    log.debug("Row parsed successfully: rowIndex={}, productId={}, quantity={}",
-                        rowIndex, item.getProductId(), item.getOrderedQuantity());
+                    log.debug("Row parsed successfully: rowIndex={}, productSkuId={}, quantity={}",
+                        rowIndex, item.getProductSkuId(), item.getOrderedQuantity());
 
                 } catch (Exception e) {
                     log.error("Failed to parse row: rowIndex={}, error={}",
@@ -168,7 +168,7 @@ public class ExcelImportService {
      * Parse single row to PurchaseOrderItemData
      *
      * Column Mapping:
-     * - Column A (0): productId (Long, required)
+     * - Column A (0): productSkuId (Long, required)
      * - Column B (1): orderedQuantity (Integer, required)
      * - Column C (2): unitCost (BigDecimal, optional)
      * - Column D (3): expiryDate (LocalDate, optional)
@@ -182,10 +182,10 @@ public class ExcelImportService {
      * @throws IllegalArgumentException if required fields missing
      */
     private PurchaseOrderService.PurchaseOrderItemData parseRow(Row row, int rowIndex) {
-        // Column A: productId (required)
-        Long productId = getCellLong(row, 0);
-        if (productId == null) {
-            throw new IllegalArgumentException("Missing productId in column A");
+        // Column A: productSkuId (required)
+        Long productSkuId = getCellLong(row, 0);
+        if (productSkuId == null) {
+            throw new IllegalArgumentException("Missing productSkuId in column A");
         }
 
         // Column B: orderedQuantity (required)
@@ -210,7 +210,7 @@ public class ExcelImportService {
         String remark = getCellString(row, 6);
 
         return PurchaseOrderService.PurchaseOrderItemData.builder()
-            .productId(productId)
+            .productSkuId(productSkuId)
             .orderedQuantity(orderedQuantity)
             .unitCost(unitCost)
             .expiryDate(expiryDate)

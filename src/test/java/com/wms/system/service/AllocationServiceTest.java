@@ -39,7 +39,7 @@ import static org.mockito.Mockito.*;
  * 6. Loose item first strategy
  * 7. Break box when needed
  * 8. Multiple order items allocation
- * 9. Product not found exception
+ * 9. ProductSku not found exception
  * 10. Specified batch not found exception
  * 11. Specified batch inactive exception
  * 12. Mixed scenario (full box + loose items)
@@ -64,10 +64,16 @@ class AllocationServiceTest {
     private InventoryBatchRepository inventoryBatchRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @Mock
     private OutboundTaskRepository outboundTaskRepository;
+
+    @Mock
+    private InventoryReservationRepository inventoryReservationRepository;
+
+    @Mock
+    private BackorderService backorderService;
 
     @Mock
     private ObjectMapper objectMapper;
@@ -76,12 +82,17 @@ class AllocationServiceTest {
     private AllocationService allocationService;
 
     private SalesOrder testOrder;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Location testLocation;
     private List<InventoryBatch> testBatches;
 
     @BeforeEach
     void setUp() {
+        lenient().when(inventoryBatchRepository.save(any(InventoryBatch.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(inventoryReservationRepository.save(any(InventoryReservation.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
         // Create test location
         testLocation = Location.builder()
             .id(1L)
@@ -89,9 +100,10 @@ class AllocationServiceTest {
             .build();
 
         // Create test product (per_pack_qty = 12)
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
             .id(1L)
-            .name("Test Product")
+            .name("Test ProductSku")
             .barcode("TEST001")
             .perPackQty(12)
             .nearExpiryDays(30)
@@ -123,8 +135,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(List.of(batch1));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -156,7 +168,7 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
             eq("[2, 3]"),
             org.mockito.ArgumentMatchers.<com.fasterxml.jackson.core.type.TypeReference<List<Long>>>any()
@@ -177,7 +189,7 @@ class AllocationServiceTest {
         assertThat(tasks.get(1).getAssignedBatchId()).isEqualTo(2L);
         assertThat(tasks.get(1).getPlanQty()).isEqualTo(5);
 
-        verify(inventoryBatchRepository, never()).findByProductIdAndActiveOrderByExpiryDateAsc(anyLong(), anyBoolean());
+        verify(inventoryBatchRepository, never()).findByProductSkuIdAndActiveOrderByExpiryDateAsc(anyLong(), anyBoolean());
     }
 
     // ========== Test 3: Strict Box Strategy ==========
@@ -194,8 +206,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(looseBatch, fullBoxBatch1, fullBoxBatch2));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -228,8 +240,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(nearExpiryBatch, freshBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -256,8 +268,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(batch1, batch2));
 
         // When & Then
@@ -282,8 +294,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(batch2, batch3, batch1)); // Already sorted by expiry date
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -311,8 +323,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(looseBatch, fullBoxBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -340,8 +352,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(List.of(fullBoxBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -367,8 +379,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(Arrays.asList(item1, item2));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(List.of(batch1));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -398,7 +410,7 @@ class AllocationServiceTest {
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SALES_ORDER_NOT_FOUND);
     }
 
-    // ========== Test 11: Product Not Found ==========
+    // ========== Test 11: ProductSku Not Found ==========
 
     @Test
     @DisplayName("case-12")
@@ -408,12 +420,12 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+        when(productSkuRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> allocationService.allocateInventory(1L))
             .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_NOT_FOUND);
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_SKU_NOT_FOUND);
     }
 
     // ========== Test 12: Specified Batch Not Found ==========
@@ -427,7 +439,7 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
             eq("[999]"),
             org.mockito.ArgumentMatchers.<com.fasterxml.jackson.core.type.TypeReference<List<Long>>>any()
@@ -455,7 +467,7 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
             eq("[1]"),
             org.mockito.ArgumentMatchers.<com.fasterxml.jackson.core.type.TypeReference<List<Long>>>any()
@@ -483,8 +495,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(looseBatch, fullBoxBatch1, fullBoxBatch2));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -512,8 +524,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(List.of(oldBatch, freshBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -535,8 +547,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(List.of(mixedBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -566,8 +578,8 @@ class AllocationServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(Arrays.asList(nearExpiryBatch1, nearExpiryBatch2, freshBatch1, freshBatch2));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -585,11 +597,11 @@ class AllocationServiceTest {
 
     // ========== Helper Methods ==========
 
-    private SalesOrderItem createOrderItem(Long id, Long productId, Integer quantity) {
+    private SalesOrderItem createOrderItem(Long id, Long productSkuId, Integer quantity) {
         return SalesOrderItem.builder()
             .id(id)
             .salesOrderId(1L)
-            .productId(productId)
+            .productSkuId(productSkuId)
             .quantity(quantity)
             .unitPrice(new BigDecimal("10.00"))
             .subtotal(new BigDecimal("10.00").multiply(BigDecimal.valueOf(quantity)))
@@ -601,7 +613,7 @@ class AllocationServiceTest {
         return InventoryBatch.builder()
             .id(id)
             .batchCode(batchCode)
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .quantity(quantity)
             .initialQuantity(quantity)

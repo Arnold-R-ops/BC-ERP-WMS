@@ -10,7 +10,7 @@ import java.time.LocalDate;
 @Data
 public class EmergencyStockCorrectionRequest {
     @NotNull
-    private Long productId;
+    private Long productSkuId;
 
     @NotNull
     private Long locationId;

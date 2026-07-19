@@ -41,7 +41,7 @@ public class InboundOrderService {
     private final InboundOrderRepository inboundOrderRepository;
     private final InboundOrderItemRepository inboundOrderItemRepository;
     private final SupplierRepository supplierRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final WarehouseRepository warehouseRepository;
     private final LocationRepository locationRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
@@ -106,10 +106,10 @@ public class InboundOrderService {
         // 4. 创建入库单明细
         for (CreateInboundOrderRequest.InboundOrderItemRequest itemReq : request.getItems()) {
             // 验证产品
-            Product product = productRepository.findById(itemReq.getProductId())
+            ProductSku product = productSkuRepository.findById(itemReq.getProductSkuId())
                 .orElseThrow(() -> new BusinessException(
-                    "PRODUCT_NOT_FOUND",
-                    Map.of("productId", itemReq.getProductId())
+                    "PRODUCT_SKU_NOT_FOUND",
+                    Map.of("productSkuId", itemReq.getProductSkuId())
                 ));
 
             // 验证仓库和库位（如果提供）
@@ -134,7 +134,7 @@ public class InboundOrderService {
 
             // 创建明细项
             InboundOrderItem item = InboundOrderItem.builder()
-                .product(product)
+                .productSku(product)
                 .planQty(itemReq.getPlanQty())
                 .confirmedQty(null)
                 .actualQty(0)
@@ -276,7 +276,7 @@ public class InboundOrderService {
             item.setConfirmedQty(confirmation.getConfirmedQty());
 
             // 生成批次码（SPU-SKU-DATE 格式）
-            String batchCode = batchCodeGenerator.generateUnique(item.getProduct(), batchDate);
+            String batchCode = batchCodeGenerator.generateUnique(item.getProductSku(), batchDate);
             item.setBatchCode(batchCode);
 
             // 更新其他信息
@@ -368,7 +368,7 @@ public class InboundOrderService {
         }
 
         // 3. 更新明细项并创建库存记录
-        Set<Long> receivedProductIds = new HashSet<>();
+        Set<Long> receivedProductSkuIds = new HashSet<>();
         for (ReceiveGoodsRequest.ItemReceipt receipt : request.getReceipts()) {
             InboundOrderItem item = order.getItems().stream()
                 .filter(i -> i.getId().equals(receipt.getItemId()))
@@ -403,7 +403,7 @@ public class InboundOrderService {
 
             // 创建或更新库存批次记录
             if (receipt.getActualQty() > 0) {
-                locationOccupancyService.validateCanStore(location, item.getProduct(), item.getBatchCode());
+                locationOccupancyService.validateCanStore(location, item.getProductSku(), item.getBatchCode());
 
                 // 获取变动前的库存数量
                 Integer quantityBefore = inventoryBatchRepository
@@ -423,7 +423,7 @@ public class InboundOrderService {
                 // 生成库存流水记录
                 createStockTransaction(item, location, receipt.getActualQty(), order.getOrderNo(),
                     quantityBefore, quantityAfter);
-                receivedProductIds.add(item.getProduct().getId());
+                receivedProductSkuIds.add(item.getProductSku().getId());
             }
 
             log.info("Received goods for item {}: {} units to location {}",
@@ -448,13 +448,14 @@ public class InboundOrderService {
         log.info("Inbound order completed: {}, total actual qty: {}",
             savedOrder.getOrderNo(), savedOrder.getTotalActualQty());
 
-        for (Long productId : receivedProductIds) {
-            domainOutboxService.append("INVENTORY_AVAILABLE", "Product", productId, Map.of(
-                "productId", productId,
+        for (Long productSkuId : receivedProductSkuIds) {
+            domainOutboxService.append("INVENTORY_AVAILABLE", "ProductSku", productSkuId, Map.of(
+                "schemaVersion", 2,
+                "productSkuId", productSkuId,
                 "source", "INBOUND_ORDER",
                 "orderId", savedOrder.getId()
             ));
-            backorderService.wakeProduct(productId);
+            backorderService.wakeProduct(productSkuId);
         }
 
         return convertToResponse(savedOrder);
@@ -786,7 +787,7 @@ public class InboundOrderService {
 
             // 创建新批次
             InventoryBatch newBatch = InventoryBatch.builder()
-                .product(item.getProduct())
+                .productSku(item.getProductSku())
                 .location(location)
                 .locationCode(location.getLocationCode())  // V3.3: 必填字段
                 .batchCode(item.getBatchCode())
@@ -817,7 +818,7 @@ public class InboundOrderService {
         Integer quantityAfter
     ) {
         StockTransaction transaction = StockTransaction.builder()
-            .product(item.getProduct())
+            .productSku(item.getProductSku())
             .location(location)
             .transactionType(TransactionType.IN)
             .sourceType(SourceType.INBOUND_IN)
@@ -830,7 +831,7 @@ public class InboundOrderService {
         stockTransactionRepository.save(transaction);
 
         log.info("Created stock transaction: {} units of product {} to location {}, before: {}, after: {}",
-            quantity, item.getProduct().getId(), location.getLocationCode(), quantityBefore, quantityAfter);
+            quantity, item.getProductSku().getId(), location.getLocationCode(), quantityBefore, quantityAfter);
     }
 
     /**
@@ -899,11 +900,11 @@ public class InboundOrderService {
     private InboundOrderResponse.InboundOrderItemResponse convertItemToResponse(InboundOrderItem item) {
         return InboundOrderResponse.InboundOrderItemResponse.builder()
             .id(item.getId())
-            .productId(item.getProduct().getId())
-            .productName(item.getProduct().getName())
-            .productBarcode(item.getProduct().getBarcode())
-            .productSpu(item.getProduct().getSpu() != null ? item.getProduct().getSpu().getSpuCode() : null)
-            .productSku(item.getProduct().getSkuName())
+            .productSkuId(item.getProductSku().getId())
+            .productName(item.getProductSku().getName())
+            .productBarcode(item.getProductSku().getBarcode())
+            .productCode(item.getProductSku().getProduct() != null ? item.getProductSku().getProduct().getProductCode() : null)
+            .productSku(item.getProductSku().getSkuName())
             .planQty(item.getPlanQty())
             .confirmedQty(item.getConfirmedQty())
             .actualQty(item.getActualQty())

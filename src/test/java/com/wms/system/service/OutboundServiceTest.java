@@ -3,6 +3,7 @@ package com.wms.system.service;
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.OutboundTaskStatus;
+import com.wms.system.entity.enums.BatchTrackingMode;
 import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -58,10 +59,19 @@ class OutboundServiceTest {
     private SalesOrderRepository salesOrderRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private SalesOrderItemRepository salesOrderItemRepository;
+
+    @Mock
+    private InventoryReservationRepository inventoryReservationRepository;
+
+    @Mock
+    private ProductSkuRepository productSkuRepository;
 
     @Mock
     private LocationRepository locationRepository;
+
+    @Mock
+    private LocationOccupancyService locationOccupancyService;
 
     @InjectMocks
     private OutboundService outboundService;
@@ -69,11 +79,22 @@ class OutboundServiceTest {
     private OutboundTask testTask;
     private InventoryBatch testBatch;
     private SalesOrder testOrder;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Location testLocation;
 
     @BeforeEach
     void setUp() {
+        SalesOrderItem orderItem = SalesOrderItem.builder()
+            .id(1L)
+            .salesOrderId(1L)
+            .productSkuId(1L)
+            .quantity(50)
+            .shippedQty(0)
+            .build();
+        lenient().when(salesOrderItemRepository.findById(1L)).thenReturn(Optional.of(orderItem));
+        lenient().when(salesOrderItemRepository.save(any(SalesOrderItem.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
         // Create test location
         testLocation = Location.builder()
             .id(1L)
@@ -81,9 +102,10 @@ class OutboundServiceTest {
             .build();
 
         // Create test product
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+            .skuCode("SKU00000001")
             .id(1L)
-            .name("Test Product")
+            .name("Test ProductSku")
             .barcode("TEST001")
             .build();
 
@@ -91,7 +113,7 @@ class OutboundServiceTest {
         testBatch = InventoryBatch.builder()
             .id(1L)
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .quantity(100)
             .initialQuantity(100)
@@ -366,5 +388,44 @@ class OutboundServiceTest {
         verify(outboundTaskRepository, times(2)).save(any(OutboundTask.class));
         verify(inventoryBatchRepository, times(2)).save(any(InventoryBatch.class));
         verify(stockTransactionRepository, times(2)).save(any(StockTransaction.class));
+    }
+
+    @Test
+    @DisplayName("LOCATION_VISUAL accepts the immutable internal skuCode")
+    void confirmPicking_LocationVisual_AcceptsSkuCode() {
+        testProduct.setBatchTrackingMode(BatchTrackingMode.LOCATION_VISUAL);
+        when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(outboundTaskRepository.save(any(OutboundTask.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
+        when(locationOccupancyService.resolveSingleVisualBatch(1L, 1L)).thenReturn(testBatch);
+        when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(stockTransactionRepository.save(any(StockTransaction.class))).thenReturn(new StockTransaction());
+        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(1L);
+        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(1L);
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OutboundTaskResponse response = outboundService.confirmPicking(
+            1L, 50, 1L, "SKU00000001", null, 1L, "Operator"
+        );
+
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+        verify(locationOccupancyService).resolveSingleVisualBatch(1L, 1L);
+    }
+
+    @Test
+    @DisplayName("LOCATION_VISUAL no longer treats barcode as skuCode")
+    void confirmPicking_LocationVisual_RejectsBarcodeInSkuCodeField() {
+        testProduct.setBatchTrackingMode(BatchTrackingMode.LOCATION_VISUAL);
+        when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
+
+        assertThatThrownBy(() -> outboundService.confirmPicking(
+            1L, 50, 1L, "TEST001", null, 1L, "Operator"
+        ))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.VALIDATION_FAILED);
+
+        verify(locationOccupancyService, never()).resolveSingleVisualBatch(anyLong(), anyLong());
     }
 }

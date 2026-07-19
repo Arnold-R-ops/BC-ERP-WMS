@@ -3,11 +3,11 @@ package com.wms.system.service;
 import com.wms.system.dto.sales.BatchOptionDto;
 import com.wms.system.dto.sales.CreateSalesOrderRequest.SalesOrderItemData;
 import com.wms.system.entity.InventoryBatch;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.util.PackageStatusFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 public class SalesEntryService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
 
     // ========== Excel Template Download ==========
 
@@ -98,7 +98,7 @@ public class SalesEntryService {
         Row headerRow = sheet.createRow(0);
         String[] headers = {
             "customerId (瀹㈡埛ID)",
-            "productId (浜у搧ID)",
+            "productSkuId (浜у搧ID)",
             "quantity (鏁伴噺)",
             "unitPrice (鍗曚环)",
             "rejectNearExpiry (鎷掓敹涓存湡鍝? true/false)",
@@ -115,7 +115,7 @@ public class SalesEntryService {
         // 鍒涘缓绀轰緥鏁版嵁琛?(row 1)
         Row exampleRow = sheet.createRow(1);
         exampleRow.createCell(0).setCellValue(1);           // customerId
-        exampleRow.createCell(1).setCellValue(100);         // productId
+        exampleRow.createCell(1).setCellValue(100);         // productSkuId
         exampleRow.createCell(2).setCellValue(50);          // quantity
         exampleRow.createCell(3).setCellValue(99.99);       // unitPrice
         exampleRow.createCell(4).setCellValue("false");     // rejectNearExpiry
@@ -124,7 +124,7 @@ public class SalesEntryService {
 
         // 璁剧疆鍒楀
         sheet.setColumnWidth(0, 5000);  // customerId
-        sheet.setColumnWidth(1, 5000);  // productId
+        sheet.setColumnWidth(1, 5000);  // productSkuId
         sheet.setColumnWidth(2, 4000);  // quantity
         sheet.setColumnWidth(3, 4000);  // unitPrice
         sheet.setColumnWidth(4, 8000);  // rejectNearExpiry
@@ -224,7 +224,7 @@ public class SalesEntryService {
     private SalesOrderItemData parseExcelRow(Row row, int rowIndex) {
         // 瑙ｆ瀽鍚勫垪鏁版嵁
         Long customerId = readLongCell(row, 0, "customerId");
-        Long productId = readLongCell(row, 1, "productId");
+        Long productSkuId = readLongCell(row, 1, "productSkuId");
         Integer quantity = readIntegerCell(row, 2, "quantity");
         BigDecimal unitPrice = readBigDecimalCell(row, 3, "unitPrice");
         Boolean rejectNearExpiry = readBooleanCell(row, 4, "rejectNearExpiry");
@@ -235,7 +235,7 @@ public class SalesEntryService {
         if (customerId == null) {
             throw new IllegalArgumentException("瀹㈡埛ID涓嶈兘涓虹┖");
         }
-        if (productId == null) {
+        if (productSkuId == null) {
             throw new IllegalArgumentException("浜у搧ID涓嶈兘涓虹┖");
         }
         if (quantity == null || quantity <= 0) {
@@ -250,7 +250,7 @@ public class SalesEntryService {
 
         // 鏋勫缓璁㈠崟鏄庣粏瀵硅薄
         return SalesOrderItemData.builder()
-            .productId(productId)
+            .productSkuId(productSkuId)
             .quantity(quantity)
             .unitPrice(unitPrice)
             .rejectNearExpiry(rejectNearExpiry != null ? rejectNearExpiry : false)
@@ -285,24 +285,24 @@ public class SalesEntryService {
      * - 杩囨护涓存湡鎵规锛堝彲閫夛級
      * - 璁＄畻鏂伴矞搴﹀拰鍖呰鐘舵€?     * - 鎸?FEFO 鎺掑簭
      *
-     * @param productId 浜у搧ID
+     * @param productSkuId 浜у搧ID
      * @param quantity 闇€姹傛暟閲?     * @param rejectNearExpiry 鏄惁鎷掓敹涓存湡鍝?     * @return 鎵规閫夐」鍒楄〃
      */
     @Transactional(readOnly = true)
-    public List<BatchOptionDto> getBatchOptions(Long productId, Integer quantity, Boolean rejectNearExpiry) {
-        log.info("Getting batch options for productId={}, quantity={}, rejectNearExpiry={}",
-            productId, quantity, rejectNearExpiry);
+    public List<BatchOptionDto> getBatchOptions(Long productSkuId, Integer quantity, Boolean rejectNearExpiry) {
+        log.info("Getting batch options for productSkuId={}, quantity={}, rejectNearExpiry={}",
+            productSkuId, quantity, rejectNearExpiry);
 
         // 鏌ヨ浜у搧淇℃伅
-        Product product = productRepository.findById(productId)
+        ProductSku product = productSkuRepository.findById(productSkuId)
             .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PRODUCT_NOT_FOUND,
-                Map.of("productId", productId)
+                ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                Map.of("productSkuId", productSkuId)
             ));
 
         // 鏌ヨ鍙敤鎵规锛團EFO 鎺掑簭锛?
         List<InventoryBatch> batches = inventoryBatchRepository
-            .findByProductIdAndActiveOrderByExpiryDateAsc(productId, true);
+            .findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
 
         LocalDate today = LocalDate.now();
 
@@ -345,7 +345,7 @@ public class SalesEntryService {
             })
             .collect(Collectors.toList());
 
-        log.info("Found {} batch options for productId={}", options.size(), productId);
+        log.info("Found {} batch options for productSkuId={}", options.size(), productSkuId);
         return options;
     }
 

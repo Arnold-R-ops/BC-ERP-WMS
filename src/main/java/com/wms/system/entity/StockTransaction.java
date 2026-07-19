@@ -31,7 +31,7 @@ import lombok.*;
 @Table(
     name = "stock_transactions",
     indexes = {
-        @Index(name = "idx_stock_tx_product_id", columnList = "product_id"),
+        @Index(name = "idx_stock_tx_product_sku_id", columnList = "product_sku_id"),
         @Index(name = "idx_stock_tx_location_id", columnList = "location_id"),
         @Index(name = "idx_transaction_type", columnList = "transactionType"),
         @Index(name = "idx_source_type", columnList = "sourceType"),
@@ -53,8 +53,8 @@ public class StockTransaction extends BaseEntity {
      * - 即使商品被删除，流水记录仍保留（通过冗余字段 productName �?productBarcode 查看�?     */
     @NotNull(message = "商品不能为空")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transaction_product"))
-    private Product product;
+    @JoinColumn(name = "product_sku_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transaction_product"))
+    private ProductSku productSku;
 
     /**
      * 关联库位（多对一关系�?     * - 记录库存变动发生在哪个库�?     * - 调拨场景：OUT 流水记录源库位，IN 流水记录目标库位
@@ -200,9 +200,9 @@ public class StockTransaction extends BaseEntity {
      */
     @PrePersist
     private void fillRedundantFields() {
-        if (product != null) {
-            this.productName = product.getName();
-            this.productBarcode = product.getBarcode();
+        if (productSku != null) {
+            this.productName = productSku.getName();
+            this.productBarcode = productSku.getBarcode();
         }
         if (location != null) {
             this.locationCode = location.getLocationCode();

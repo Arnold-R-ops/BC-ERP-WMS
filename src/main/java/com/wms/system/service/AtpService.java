@@ -17,8 +17,8 @@ public class AtpService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
 
     @Transactional(readOnly = true)
-    public List<AtpSupplyResponse> listSupply(Long productId) {
-        return purchaseOrderItemRepository.findAtpSupplyByProduct(productId).stream()
+    public List<AtpSupplyResponse> listSupply(Long productSkuId) {
+        return purchaseOrderItemRepository.findAtpSupplyByProductSku(productSkuId).stream()
             .map(this::toResponse)
             .toList();
     }
@@ -29,8 +29,8 @@ public class AtpService {
             .purchaseOrderId(order.getId())
             .poNumber(order.getPoNumber())
             .purchaseOrderItemId(item.getId())
-            .productId(item.getProduct().getId())
-            .productName(item.getProduct().getName())
+            .productSkuId(item.getProductSku().getId())
+            .productName(item.getProductSku().getName())
             .expectedDate(order.getExpectedDate())
             .orderedQty(item.getOrderedQuantity())
             .receivedQty(item.getReceivedQuantity())

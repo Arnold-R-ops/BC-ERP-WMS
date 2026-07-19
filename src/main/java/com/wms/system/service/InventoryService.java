@@ -3,14 +3,14 @@ package com.wms.system.service;
 import com.wms.system.dto.StockAdjustmentRequest;
 import com.wms.system.entity.Inventory;
 import com.wms.system.entity.Location;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryRepository;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class InventoryService {
 
     private final InventoryRepository inventoryRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
 
@@ -67,7 +67,7 @@ public class InventoryService {
      * - Conflicts trigger auto-retry (max 3 attempts, 1 second delay)
      *
      * Exception Handling (Error Key System):
-     * - PRODUCT_NOT_FOUND: Product does not exist
+     * - PRODUCT_SKU_NOT_FOUND: ProductSku does not exist
      * - LOCATION_NOT_FOUND: Location does not exist
      * - STOCK_INSUFFICIENT: Outbound quantity exceeds current stock
      * - STOCK_CONCURRENCY_CONFLICT: Optimistic lock conflict (after 3 retries)
@@ -83,8 +83,8 @@ public class InventoryService {
         backoff = @Backoff(delay = 1000)  // Retry after 1 second delay
     )
     public StockTransaction adjustStock(StockAdjustmentRequest request) {
-        log.info("Starting stock adjustment: productId={}, locationId={}, type={}, quantity={}",
-            request.getProductId(),
+        log.info("Starting stock adjustment: productSkuId={}, locationId={}, type={}, quantity={}",
+            request.getProductSkuId(),
             request.getLocationId(),
             request.getTransactionType(),
             request.getQuantity()
@@ -92,10 +92,10 @@ public class InventoryService {
 
         try {
             // 1. Validation: Query product and location
-            Product product = productRepository.findById(request.getProductId())
+            ProductSku product = productSkuRepository.findById(request.getProductSkuId())
                 .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.PRODUCT_NOT_FOUND,
-                    Map.of("productId", request.getProductId())
+                    ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                    Map.of("productSkuId", request.getProductSkuId())
                 ));
 
             Location location = locationRepository.findById(request.getLocationId())
@@ -106,7 +106,7 @@ public class InventoryService {
 
             // 2. Query or create inventory record
             Inventory inventory = inventoryRepository
-                .findByProductAndLocation(product, location)
+                .findByProductSkuAndLocation(product, location)
                 .orElseGet(() -> createNewInventory(product, location));
 
             // Record quantity BEFORE adjustment (for audit trail)
@@ -125,7 +125,7 @@ public class InventoryService {
                     // Outbound: Decrease stock (check if sufficient)
                     if (inventory.getQuantity() < request.getQuantity()) {
                         // Insufficient stock - throw error with parameters
-                        log.error("Outbound failed: Insufficient stock. productId={}, locationId={}, " +
+                        log.error("Outbound failed: Insufficient stock. productSkuId={}, locationId={}, " +
                                 "currentStock={}, requestedQuantity={}",
                             product.getId(), location.getId(),
                             inventory.getQuantity(), request.getQuantity());
@@ -133,7 +133,7 @@ public class InventoryService {
                         throw new BusinessException(
                             ErrorKeys.STOCK_INSUFFICIENT,
                             Map.of(
-                                "productId", product.getId(),
+                                "productSkuId", product.getId(),
                                 "productName", product.getName(),
                                 "locationId", location.getId(),
                                 "locationCode", location.getLocationCode(),
@@ -179,14 +179,14 @@ public class InventoryService {
 
         } catch (OptimisticLockException e) {
             // Optimistic lock conflict: Another user modified this inventory
-            log.error("Optimistic lock conflict: productId={}, locationId={}, operationType={}",
-                request.getProductId(), request.getLocationId(), request.getTransactionType(), e);
+            log.error("Optimistic lock conflict: productSkuId={}, locationId={}, operationType={}",
+                request.getProductSkuId(), request.getLocationId(), request.getTransactionType(), e);
 
             // Convert to BusinessException (will be retried by @Retryable)
             throw new BusinessException(
                 ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
                 Map.of(
-                    "productId", request.getProductId(),
+                    "productSkuId", request.getProductSkuId(),
                     "locationId", request.getLocationId(),
                     "operationType", request.getTransactionType().name(),
                     "retryAttempts", 3
@@ -198,16 +198,16 @@ public class InventoryService {
     /**
      * Create new inventory record (when product is first stored in a location)
      *
-     * @param product Product entity
+     * @param product ProductSku entity
      * @param location Location entity
      * @return Inventory New inventory record (initial quantity = 0)
      */
-    private Inventory createNewInventory(Product product, Location location) {
+    private Inventory createNewInventory(ProductSku product, Location location) {
         log.info("Creating new inventory record: product={}, location={}",
             product.getName(), location.getLocationCode());
 
         return Inventory.builder()
-            .product(product)
+            .productSku(product)
             .location(location)
             .quantity(0)  // Initial stock = 0
             .build();
@@ -222,19 +222,19 @@ public class InventoryService {
      * - These fields enable audit trail and historical analysis
      *
      * @param request Stock adjustment request
-     * @param product Product entity
+     * @param product ProductSku entity
      * @param location Location entity
      * @param quantityBefore Stock before adjustment
      * @param quantityAfter Stock after adjustment
      * @return StockTransaction Transaction record
      */
     private StockTransaction createStockTransaction(StockAdjustmentRequest request,
-                                                     Product product,
+                                                     ProductSku product,
                                                      Location location,
                                                      Integer quantityBefore,
                                                      Integer quantityAfter) {
         return StockTransaction.builder()
-            .product(product)
+            .productSku(product)
             .location(location)
             .transactionType(request.getTransactionType())
             .sourceType(request.getSourceType())
@@ -251,36 +251,36 @@ public class InventoryService {
     /**
      * Query total stock for a product (sum across all locations)
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return Integer Total stock (returns 0 if no inventory records found)
      */
     @Transactional(readOnly = true)
-    public Integer getTotalStock(Long productId) {
-        Integer totalStock = inventoryBatchRepository.sumQuantityByProduct(productId);
+    public Integer getTotalStock(Long productSkuId) {
+        Integer totalStock = inventoryBatchRepository.sumQuantityByProductSku(productSkuId);
         return totalStock != null ? totalStock : 0;
     }
 
     @Transactional(readOnly = true)
-    public Integer getReservedStock(Long productId) {
-        Integer reservedStock = inventoryBatchRepository.sumReservedQuantityByProduct(productId);
+    public Integer getReservedStock(Long productSkuId) {
+        Integer reservedStock = inventoryBatchRepository.sumReservedQuantityByProductSku(productSkuId);
         return reservedStock != null ? reservedStock : 0;
     }
 
     @Transactional(readOnly = true)
-    public Integer getAvailableStock(Long productId) {
-        Integer availableStock = inventoryBatchRepository.sumAvailableQuantityByProduct(productId);
+    public Integer getAvailableStock(Long productSkuId) {
+        Integer availableStock = inventoryBatchRepository.sumAvailableQuantityByProductSku(productSkuId);
         return availableStock != null ? availableStock : 0;
     }
 
     /**
      * Query stock distribution for a product (which locations have stock)
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return List<Inventory> Inventory records
      */
     @Transactional(readOnly = true)
-    public List<Inventory> getStockDistribution(Long productId) {
-        return inventoryRepository.findByProduct_Id(productId);
+    public List<Inventory> getStockDistribution(Long productSkuId) {
+        return inventoryRepository.findByProductSku_Id(productSkuId);
     }
 
     /**

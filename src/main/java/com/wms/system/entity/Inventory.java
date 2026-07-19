@@ -44,12 +44,12 @@ import lombok.*;
 @Table(
     name = "inventory",
     indexes = {
-        @Index(name = "idx_inventory_product_id", columnList = "product_id"),
+        @Index(name = "idx_inventory_product_sku_id", columnList = "product_sku_id"),
         @Index(name = "idx_inventory_location_id", columnList = "location_id")
     },
     uniqueConstraints = {
         // 确保同一个库位只能存储一个商品的一个批次（当前不考虑批次，所以一个库位一个商品）
-        @UniqueConstraint(name = "uk_inventory_company_product_location", columnNames = {"company_id", "product_id", "location_id"})
+        @UniqueConstraint(name = "uk_inventory_company_product_location", columnNames = {"company_id", "product_sku_id", "location_id"})
     }
 )
 public class Inventory extends BaseEntity {
@@ -65,12 +65,12 @@ public class Inventory extends BaseEntity {
      * 关联商品（多对一关系）
      * - 多条库存记录可以对应同一个商品（不同库位）
      * - FetchType.LAZY: 延迟加载，仅在访问 product 属性时才查询商品信息（提升性能）
-     * - JoinColumn: 指定外键列名为 product_id
+     * - JoinColumn: 指定外键列名为 product_sku_id
      */
     @NotNull(message = "商品不能为空")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_inventory_product"))
-    private Product product;
+    @JoinColumn(name = "product_sku_id", nullable = false, foreignKey = @ForeignKey(name = "fk_inventory_product"))
+    private ProductSku productSku;
 
     /**
      * 关联库位（多对一关系）
@@ -159,9 +159,9 @@ public class Inventory extends BaseEntity {
      * @return true 表示需要预警
      */
     public boolean isBelowMinStock() {
-        if (product == null || product.getMinStock() == null) {
+        if (productSku == null || productSku.getMinStock() == null) {
             return false;
         }
-        return this.quantity < product.getMinStock();
+        return this.quantity < productSku.getMinStock();
     }
 }

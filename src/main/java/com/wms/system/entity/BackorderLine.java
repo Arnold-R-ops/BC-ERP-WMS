@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @Table(
     name = "backorder_line",
     indexes = {
-        @Index(name = "idx_backorder_product_status", columnList = "product_id,status"),
+        @Index(name = "idx_backorder_product_status", columnList = "product_sku_id,status"),
         @Index(name = "idx_backorder_sales_order", columnList = "sales_order_id"),
         @Index(name = "idx_backorder_priority_created", columnList = "priority,created_at")
     }
@@ -32,8 +32,8 @@ public class BackorderLine extends BaseEntity {
     @Column(name = "sales_order_item_id", nullable = false)
     private Long salesOrderItemId;
 
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @Column(name = "product_sku_id", nullable = false)
+    private Long productSkuId;
 
     @Column(name = "requested_qty", nullable = false)
     private Integer requestedQty;

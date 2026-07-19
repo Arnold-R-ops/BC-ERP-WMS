@@ -23,7 +23,7 @@ import java.util.Map;
  * throw new BusinessException(
  *     ErrorKeys.STOCK_INSUFFICIENT,
  *     Map.of(
- *         "productId", 123L,
+ *         "productSkuId", 123L,
  *         "currentStock", 50,
  *         "requestedQuantity", 100
  *     )
@@ -43,20 +43,20 @@ public class BusinessException extends RuntimeException {
 
     /**
      * Error key for frontend i18n translation
-     * Examples: "STOCK_INSUFFICIENT", "PRODUCT_NOT_FOUND", "LOCATION_NOT_FOUND"
+     * Examples: "STOCK_INSUFFICIENT", "PRODUCT_SKU_NOT_FOUND", "LOCATION_NOT_FOUND"
      */
     private final String errorKey;
 
     /**
      * Dynamic parameters for error message interpolation
-     * Examples: {"productId": 123, "currentStock": 50, "requestedQuantity": 100}
+     * Examples: {"productSkuId": 123, "currentStock": 50, "requestedQuantity": 100}
      */
     private final Map<String, Object> params;
 
     /**
      * Constructor with error key only (no parameters)
      *
-     * @param errorKey Error key for i18n translation (e.g., "PRODUCT_NOT_FOUND")
+     * @param errorKey Error key for i18n translation (e.g., "PRODUCT_SKU_NOT_FOUND")
      */
     public BusinessException(String errorKey) {
         super(errorKey);  // Store error key in exception message for logging

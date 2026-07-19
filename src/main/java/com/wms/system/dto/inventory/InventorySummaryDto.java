@@ -17,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventorySummaryDto {
-    private Long productId;
+    private Long productSkuId;
     private SkuInfoDto skuInfo;
     private List<String> warehouseNames;
     private String displayQuantity;

@@ -61,7 +61,7 @@ public class InventoryBatchController {
      * Request Body Example:
      * <pre>
      * {
-     *   "productId": 1,
+     *   "productSkuId": 1,
      *   "quantity": 150,
      *   "sourceType": "SALE_OUT",
      *   "sourceOrderId": "SO-20250113-001",
@@ -95,7 +95,7 @@ public class InventoryBatchController {
      * }
      * </pre>
      *
-     * @param productId Product ID (required)
+     * @param productSkuId ProductSku ID (required)
      * @param quantity Outbound quantity (required, >= 1)
      * @param sourceType Source type (required, e.g., SALE_OUT, PRODUCTION_OUT)
      * @param sourceOrderId Source order ID (required)
@@ -105,19 +105,19 @@ public class InventoryBatchController {
      */
     @PostMapping("/outbound")
     public ResponseEntity<Map<String, Object>> fifoOutbound(
-        @RequestParam("productId") @NotNull(message = "Product ID is required") Long productId,
+        @RequestParam("productSkuId") @NotNull(message = "ProductSku ID is required") Long productSkuId,
         @RequestParam("quantity") @NotNull(message = "Quantity is required") @Min(value = 1, message = "Quantity must be >= 1") Integer quantity,
         @RequestParam("sourceType") @NotNull(message = "Source type is required") SourceType sourceType,
         @RequestParam("sourceOrderId") @NotBlank(message = "Source order ID is required") String sourceOrderId,
         @RequestParam("operatorId") @NotNull(message = "Operator ID is required") Long operatorId,
         @RequestParam("operatorName") @NotBlank(message = "Operator name is required") String operatorName
     ) {
-        log.info("API: FIFO outbound - productId={}, quantity={}, sourceType={}, sourceOrder={}",
-            productId, quantity, sourceType, sourceOrderId);
+        log.info("API: FIFO outbound - productSkuId={}, quantity={}, sourceType={}, sourceOrder={}",
+            productSkuId, quantity, sourceType, sourceOrderId);
 
         // Call service (FIFO logic)
         List<StockTransaction> transactions = inventoryBatchService.outboundWithFifo(
-            productId, quantity, sourceType, sourceOrderId, operatorId, operatorName
+            productSkuId, quantity, sourceType, sourceOrderId, operatorId, operatorName
         );
 
         // Build response
@@ -128,67 +128,67 @@ public class InventoryBatchController {
             .map(StockTransaction::getId)
             .collect(Collectors.toList()));
 
-        log.info("API: FIFO outbound completed - productId={}, quantity={}, transactionCount={}",
-            productId, quantity, transactions.size());
+        log.info("API: FIFO outbound completed - productSkuId={}, quantity={}, transactionCount={}",
+            productSkuId, quantity, transactions.size());
 
         return ResponseEntity.ok(response);
     }
 
     /**
-     * ⭐ Get Total Stock for Product (V3.0: Real-time Aggregation)
+     * ⭐ Get Total Stock for ProductSku (V3.0: Real-time Aggregation)
      *
      * API Endpoint:
-     * GET /api/inventory/batches/total-stock/{productId}
+     * GET /api/inventory/batches/total-stock/{productSkuId}
      *
      * V3.0 Architecture:
-     * - Query: SELECT SUM(quantity) FROM inventory_batch WHERE product_id = ? AND active = true
+     * - Query: SELECT SUM(quantity) FROM inventory_batch WHERE product_sku_id = ? AND active = true
      * - No Inventory table lookup
      *
      * Success Response (200 OK):
      * <pre>
      * {
-     *   "productId": 1,
+     *   "productSkuId": 1,
      *   "totalStock": 250
      * }
      * </pre>
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return ResponseEntity with total stock
      */
-    @GetMapping("/total-stock/{productId}")
-    public ResponseEntity<Map<String, Object>> getTotalStock(@PathVariable("productId") Long productId) {
-        log.info("API: Get total stock - productId={}", productId);
+    @GetMapping("/total-stock/{productSkuId}")
+    public ResponseEntity<Map<String, Object>> getTotalStock(@PathVariable("productSkuId") Long productSkuId) {
+        log.info("API: Get total stock - productSkuId={}", productSkuId);
 
-        Integer totalStock = inventoryBatchService.getTotalStock(productId);
+        Integer totalStock = inventoryBatchService.getTotalStock(productSkuId);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("productId", productId);
+        response.put("productSkuId", productSkuId);
         response.put("totalStock", totalStock);
 
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Query Active Batches by Product
+     * Query Active Batches by ProductSku
      *
      * API Endpoint:
-     * GET /api/inventory/batches/product/{productId}
+     * GET /api/inventory/batches/product/{productSkuId}
      *
      * Returns all active batches for a product, sorted by expiry date (FIFO order).
      *
      * Success Response (200 OK):
      * Returns List<InventoryBatchResponse>
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return ResponseEntity<List<InventoryBatchResponse>> Active batches
      */
-    @GetMapping("/product/{productId}")
-    public ResponseEntity<List<InventoryBatchResponse>> getActiveBatchesByProduct(
-        @PathVariable("productId") Long productId
+    @GetMapping("/product/{productSkuId}")
+    public ResponseEntity<List<InventoryBatchResponse>> getActiveBatchesByProductSku(
+        @PathVariable("productSkuId") Long productSkuId
     ) {
-        log.info("API: Get active batches by product - productId={}", productId);
+        log.info("API: Get active batches by product - productSkuId={}", productSkuId);
 
-        List<InventoryBatch> batches = inventoryBatchService.getActiveBatchesByProduct(productId);
+        List<InventoryBatch> batches = inventoryBatchService.getActiveBatchesByProductSku(productSkuId);
 
         List<InventoryBatchResponse> responses = batches.stream()
             .map(this::mapToResponse)
@@ -427,9 +427,9 @@ public class InventoryBatchController {
         return InventoryBatchResponse.builder()
             .id(batch.getId())
             .batchCode(batch.getBatchCode())
-            .productId(batch.getProduct().getId())
-            .productName(batch.getProduct().getName())
-            .productBarcode(batch.getProduct().getBarcode())
+            .productSkuId(batch.getProductSku().getId())
+            .productName(batch.getProductSku().getName())
+            .productBarcode(batch.getProductSku().getBarcode())
             .quantity(batch.getQuantity())
             .reservedQuantity(batch.getReservedQuantity())
             .availableQuantity(batch.getAvailableQuantity())

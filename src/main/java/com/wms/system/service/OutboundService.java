@@ -71,7 +71,7 @@ public class OutboundService {
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final LocationOccupancyService locationOccupancyService;
 
@@ -233,7 +233,7 @@ public class OutboundService {
                 Map.of("batchId", task.getAssignedBatchId())
             ));
 
-        Product product = batch.getProduct();
+        ProductSku product = batch.getProductSku();
         if (product.getBatchTrackingMode() == BatchTrackingMode.LOCATION_VISUAL) {
             if (scannedLocationId != null && !scannedLocationId.equals(task.getLocationId())) {
                 throw new BusinessException(
@@ -247,11 +247,15 @@ public class OutboundService {
             }
 
             if (skuCode != null && !skuCode.isBlank()
-                && !skuCode.equals(product.getBarcode())
-                && !skuCode.equals(product.getSkuName())) {
+                && !skuCode.equals(product.getSkuCode())) {
                 throw new BusinessException(
                     ErrorKeys.VALIDATION_FAILED,
-                    Map.of("field", "skuCode", "value", skuCode, "expectedProductId", product.getId())
+                    Map.of(
+                        "field", "skuCode",
+                        "value", skuCode,
+                        "expectedSkuCode", product.getSkuCode(),
+                        "expectedProductSkuId", product.getId()
+                    )
                 );
             }
 
@@ -517,7 +521,7 @@ public class OutboundService {
 
         // 4. Create stock transaction
         StockTransaction transaction = StockTransaction.builder()
-            .product(batch.getProduct())
+            .productSku(batch.getProductSku())
             .location(batch.getLocation())
             .transactionType(TransactionType.OUT)
             .sourceType(SourceType.SALE_OUT)
@@ -607,7 +611,7 @@ public class OutboundService {
                 Map.of("salesOrderId", task.getSalesOrderId())
             ));
 
-        Product product = batch.getProduct();
+        ProductSku product = batch.getProductSku();
         Location location = batch.getLocation();
 
         return OutboundTaskResponse.builder()
@@ -620,7 +624,7 @@ public class OutboundService {
             .batchCode(batch.getBatchCode())
             .locationId(task.getLocationId())
             .locationCode(location.getLocationCode())
-            .productId(product.getId())
+            .productSkuId(product.getId())
             .productName(product.getName())
             .productBarcode(product.getBarcode())
             .planQty(task.getPlanQty())

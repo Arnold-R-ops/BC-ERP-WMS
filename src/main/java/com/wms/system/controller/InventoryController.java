@@ -46,7 +46,7 @@ public class InventoryController {
      * Request Body Example:
      * <pre>
      * {
-     *   "productId": 123,
+     *   "productSkuId": 123,
      *   "locationId": 456,
      *   "transactionType": "OUT",
      *   "sourceType": "SALE_OUT",
@@ -62,7 +62,7 @@ public class InventoryController {
      * <pre>
      * {
      *   "id": 1001,
-     *   "productId": 123,
+     *   "productSkuId": 123,
      *   "productName": "Coca-Cola 500ml",
      *   "locationId": 456,
      *   "locationCode": "WH01-ZONE_A-A-01-001",
@@ -83,7 +83,7 @@ public class InventoryController {
      * {
      *   "errorKey": "STOCK_INSUFFICIENT",
      *   "params": {
-     *     "productId": 123,
+     *     "productSkuId": 123,
      *     "currentStock": 50,
      *     "requestedQuantity": 100,
      *     "shortage": 50
@@ -94,12 +94,12 @@ public class InventoryController {
      * }
      * </pre>
      *
-     * Error Response (404 Not Found - Product Not Found):
+     * Error Response (404 Not Found - ProductSku Not Found):
      * <pre>
      * {
-     *   "errorKey": "PRODUCT_NOT_FOUND",
+     *   "errorKey": "PRODUCT_SKU_NOT_FOUND",
      *   "params": {
-     *     "productId": 999
+     *     "productSkuId": 999
      *   },
      *   "timestamp": "2025-01-11T10:30:00+00:00",
      *   "path": "/api/inventory/adjust",
@@ -115,8 +115,8 @@ public class InventoryController {
     public ResponseEntity<StockTransactionResponse> adjustStock(
         @Valid @RequestBody StockAdjustmentRequest request
     ) {
-        log.info("API: Adjust stock - productId={}, locationId={}, type={}, quantity={}",
-            request.getProductId(), request.getLocationId(),
+        log.info("API: Adjust stock - productSkuId={}, locationId={}, type={}, quantity={}",
+            request.getProductSkuId(), request.getLocationId(),
             request.getTransactionType(), request.getQuantity());
 
         // Call service layer
@@ -135,29 +135,29 @@ public class InventoryController {
      * Query total stock for a product
      *
      * API Endpoint:
-     * GET /api/inventory/total-stock/{productId}
+     * GET /api/inventory/total-stock/{productSkuId}
      *
      * Success Response (200 OK):
      * <pre>
      * {
-     *   "productId": 123,
+     *   "productSkuId": 123,
      *   "totalStock": 350
      * }
      * </pre>
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return ResponseEntity with total stock
      */
-    @GetMapping("/total-stock/{productId}")
-    public ResponseEntity<?> getTotalStock(@PathVariable("productId") Long productId) {
-        log.info("API: Query total stock - productId={}", productId);
+    @GetMapping("/total-stock/{productSkuId}")
+    public ResponseEntity<?> getTotalStock(@PathVariable("productSkuId") Long productSkuId) {
+        log.info("API: Query total stock - productSkuId={}", productSkuId);
 
-        Integer totalStock = inventoryService.getTotalStock(productId);
-        Integer reservedStock = inventoryService.getReservedStock(productId);
-        Integer availableStock = inventoryService.getAvailableStock(productId);
+        Integer totalStock = inventoryService.getTotalStock(productSkuId);
+        Integer reservedStock = inventoryService.getReservedStock(productSkuId);
+        Integer availableStock = inventoryService.getAvailableStock(productSkuId);
 
         return ResponseEntity.ok(java.util.Map.of(
-            "productId", productId,
+            "productSkuId", productSkuId,
             "totalStock", totalStock,
             "reservedStock", reservedStock,
             "availableStock", availableStock
@@ -195,9 +195,9 @@ public class InventoryController {
     private StockTransactionResponse mapToResponse(StockTransaction transaction) {
         return StockTransactionResponse.builder()
             .id(transaction.getId())
-            .productId(transaction.getProduct().getId())
-            .productName(transaction.getProduct().getName())
-            .productBarcode(transaction.getProduct().getBarcode())
+            .productSkuId(transaction.getProductSku().getId())
+            .productName(transaction.getProductSku().getName())
+            .productBarcode(transaction.getProductSku().getBarcode())
             .locationId(transaction.getLocation().getId())
             .locationCode(transaction.getLocation().getLocationCode())
             .transactionType(transaction.getTransactionType())

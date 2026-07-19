@@ -69,8 +69,8 @@ public class ChannelSkuMapping extends BaseEntity {
      * 内部商品（VIRTUAL 时为空）
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @JoinColumn(name = "product_sku_id")
+    private ProductSku productSku;
 
     /**
      * 数量换算：1 外部单位 = N 内部单位

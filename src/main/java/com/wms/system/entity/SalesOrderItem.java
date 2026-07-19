@@ -19,7 +19,7 @@ import java.math.BigDecimal;
  *
  * 核心字段：
  * - salesOrderId: 销售订单ID
- * - productId: 产品ID
+ * - productSkuId: 产品ID
  * - quantity: 销售数量
  * - unitPrice: 单价
  * - subtotal: 小计金额
@@ -45,7 +45,7 @@ import java.math.BigDecimal;
     name = "sales_order_items",
     indexes = {
         @Index(name = "idx_sales_item_order", columnList = "sales_order_id"),
-        @Index(name = "idx_sales_item_product", columnList = "product_id")
+        @Index(name = "idx_sales_item_product", columnList = "product_sku_id")
     }
 )
 public class SalesOrderItem extends BaseEntity {
@@ -75,15 +75,15 @@ public class SalesOrderItem extends BaseEntity {
      * 产品ID
      */
     @NotNull(message = "产品ID不能为空")
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @Column(name = "product_sku_id", nullable = false)
+    private Long productSkuId;
 
     /**
      * 产品实体（懒加载）
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", insertable = false, updatable = false)
-    private Product product;
+    @JoinColumn(name = "product_sku_id", insertable = false, updatable = false)
+    private ProductSku productSku;
 
     /**
      * 销售数量

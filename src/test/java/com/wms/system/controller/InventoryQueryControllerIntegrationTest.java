@@ -5,9 +5,10 @@ import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.Zone;
 import com.wms.system.repository.InventoryBatchRepository;
+import com.wms.system.repository.CategoryRepository;
 import com.wms.system.repository.LocationRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.ProductRepository;
-import com.wms.system.repository.ProductSpuRepository;
 import com.wms.system.repository.WarehouseRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,10 +55,13 @@ class InventoryQueryControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private ProductSkuRepository productSkuRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private WarehouseRepository warehouseRepository;
@@ -68,7 +72,7 @@ class InventoryQueryControllerIntegrationTest {
     @Autowired
     private InventoryBatchRepository inventoryBatchRepository;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
     private InventoryBatch testBatch1;
@@ -79,8 +83,8 @@ class InventoryQueryControllerIntegrationTest {
         // 婵犵數鍋為幐鎼佸箠閹版澘绠栧┑鐘叉搐閺嬩線鏌ｅΔ鈧悧鍡欑矈?
         inventoryBatchRepository.deleteAll();
         locationRepository.deleteAll();
+        productSkuRepository.deleteAll();
         productRepository.deleteAll();
-        productSpuRepository.deleteAll();
         warehouseRepository.deleteAll();
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵¤尙顭堥湁闁绘娅曠亸顓犵磼?
@@ -104,17 +108,18 @@ class InventoryQueryControllerIntegrationTest {
         testLocation = locationRepository.save(testLocation);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵?SPU
-        ProductSpu testSpu = ProductSpu.builder()
-            .spuCode("SPU-TEA-001")
-            .spuName("Test Tea SPU")
-            .category("Beverage")
+        Product testSpu = Product.builder()
+            .productCode("SPU-TEA-001")
+            .productName("Test Tea SPU")
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .description("Test product spu description")
             .build();
-        testSpu = productSpuRepository.save(testSpu);
+        testSpu = productRepository.save(testSpu);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵¤尙顭堥湁婵犙呭Т閸燁垶骞?
-        testProduct = Product.builder()
-            .spu(testSpu)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(testSpu)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
             .barcode("6901234567890")
             .name("Test Green Tea")
             .skuName("Test Green Tea SKU")  // V3.3 闂傚鍋勫ú銈夊箠鎼淪劍鏅查柣鎰暯閸嬫挸鈽夊▎妯荤暦濡?
@@ -126,12 +131,12 @@ class InventoryQueryControllerIntegrationTest {
             .unitPrice(new java.math.BigDecimal("99.99"))
             .enabled(true)
             .build();
-        testProduct = productRepository.save(testProduct);
+        testProduct = productSkuRepository.save(testProduct);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻鐔告媴閸愮偓缍堝?闂備焦瀵х粙鎴︽偋婵犲洤姹查柨婵嗘川娑撳秹鏌熼幓鎺濆剳缂?4闂?= 2缂傚倷鑳舵慨鐢稿船閼姐倖顫?
         testBatch1 = InventoryBatch.builder()
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(24)
@@ -144,7 +149,7 @@ class InventoryQueryControllerIntegrationTest {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻鐔告媴閸愮偓缍堝?闂備焦瀵х粙鎴︽偋婵犲洤姹查幖杈剧稻鐎氳崵鎲稿┑鍫燁潟?闂佽崵鍋為懝楣冾敄閹寸姵顫?
         testBatch2 = InventoryBatch.builder()
             .batchCode("BATCH002")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(8)
@@ -167,9 +172,10 @@ class InventoryQueryControllerIntegrationTest {
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content", hasSize(1)))
-            .andExpect(jsonPath("$.content[0].productId").value(testProduct.getId()))
+            .andExpect(jsonPath("$.content[0].productSkuId").value(testProduct.getId()))
             .andExpect(jsonPath("$.content[0].skuInfo.name").value("Test Green Tea"))
-            .andExpect(jsonPath("$.content[0].skuInfo.skuCode").value("6901234567890"))
+            .andExpect(jsonPath("$.content[0].skuInfo.skuCode").value(testProduct.getSkuCode()))
+            .andExpect(jsonPath("$.content[0].skuInfo.barcode").value("6901234567890"))
             .andExpect(jsonPath("$.content[0].displayQuantity", notNullValue()))
             .andExpect(jsonPath("$.content[0].stockStatus").value("LOW_STOCK"))  // 32 < 50
             .andExpect(jsonPath("$.content[0].warehouseNames", hasSize(1)))
@@ -205,17 +211,18 @@ class InventoryQueryControllerIntegrationTest {
     @DisplayName("case-5")
     void testGetSummary_Pagination() throws Exception {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯у缁犳梹銇勯幋锝嗙《闁谎冭嫰閳?SPU
-        ProductSpu spu2 = ProductSpu.builder()
-            .spuCode("SPU-COFFEE-001")
-            .spuName("Test Coffee SPU")
-            .category("Beverage")
+        Product spu2 = Product.builder()
+            .productCode("SPU-COFFEE-001")
+            .productName("Test Coffee SPU")
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .description("Coffee product spu")
             .build();
-        spu2 = productSpuRepository.save(spu2);
+        spu2 = productRepository.save(spu2);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯у缁犳梹銇勯幋锝嗙《闁谎冭嫰閳藉骞欓崘褏鑳烘俊銈囧Т濞差厼鐣?
-        Product product2 = Product.builder()
-            .spu(spu2)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
+        ProductSku product2 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(spu2)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
             .barcode("6901234567891")
             .name("Test Coffee")
             .skuName("Test Coffee SKU")  // V3.3 闂傚鍋勫ú銈夊箠鎼淪劍鏅查柣鎰暯閸嬫挸鈽夊▎妯荤暦濡?
@@ -227,7 +234,7 @@ class InventoryQueryControllerIntegrationTest {
             .unitPrice(new java.math.BigDecimal("79.99"))
             .enabled(true)
             .build();
-        productRepository.save(product2);
+        productSkuRepository.save(product2);
 
         // 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍ㄧ矌缁犳梹銇勯幋锝嗙《妞ゅ繐宕—鍐Χ閸ヨ埖娈扮紓浣介哺閻熴儴顣鹃棅顐㈡处缁嬪繘鍩€?闂備礁鎼ˇ顐⑽ｉ崟顓燁潟?
         mockMvc.perform(get("/api/inventory/summary")
@@ -256,7 +263,7 @@ class InventoryQueryControllerIntegrationTest {
     void testGetSummary_SufficientStock() throws Exception {
         // 濠电儑绲藉ù鍌炲窗濡ゅ懎鏋侀柤娴嬫杹閸嬫捇鎮烽柇锔叫﹂梺鍛婄懃缁绘垿骞嗛弮鍫濈鐎规洖娲﹂幉鍏肩箾?30闂備焦瀵х粙鎴︽偋閸℃瑧绀婇悗锝庡枛缁€鍫⑩偓骞垮劚閹虫劕顫濋妸鈺傚€?32 > 30闂?
         testProduct.setSafetyStock(30);
-        productRepository.save(testProduct);
+        productSkuRepository.save(testProduct);
 
         mockMvc.perform(get("/api/inventory/summary")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -316,19 +323,20 @@ class InventoryQueryControllerIntegrationTest {
     @DisplayName("case-10")
     void testGetDetails_NoBatches() throws Exception {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯ь嚟閳绘棃鏌嶈閸撴氨绮欐径鎰垫晜闁糕€崇箲閺?SPU
-        ProductSpu emptySpu = ProductSpu.builder()
-            .spuCode("SPU-EMPTY-001")
-            .spuName("Empty Product SPU")
-            .category("General")
+        Product emptySpu = Product.builder()
+            .productCode("SPU-EMPTY-001")
+            .productName("Empty ProductSku SPU")
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .description("Empty product for detail query")
             .build();
-        emptySpu = productSpuRepository.save(emptySpu);
+        emptySpu = productRepository.save(emptySpu);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯ь嚟閳绘棃鏌嶈閸撴氨绮欐径鎰垫晜闁告侗鍨遍埛鏇㈡⒑閸濆嫮澧曟い锔惧缁旂喖骞掗幋鏃€鐎婚梺鎸庣☉鐎氼參鎮鹃崡鐏荤懓鈹冮悩鎻掓殲闁?
-        Product emptyProduct = Product.builder()
-            .spu(emptySpu)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
+        ProductSku emptyProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(emptySpu)  // 闂備胶顭堢换鎰版偪閸ャ劎顩?SPU
             .barcode("6901234567892")
-            .name("Empty Stock Product")
+            .name("Empty Stock ProductSku")
             .skuName("缂傚倷绀侀惌浣割浖閵婏富娈介柛銉墮娴?SKU")  // V3.3 闂傚鍋勫ú銈夊箠鎼淬劍鏅查柣鎰暯閸嬫挸鈽夊▎妯荤暦濡?
             .packUnit("BOX")
             .conversionRate(12)
@@ -338,7 +346,7 @@ class InventoryQueryControllerIntegrationTest {
             .unitPrice(new java.math.BigDecimal("99.99"))
             .enabled(true)
             .build();
-        emptyProduct = productRepository.save(emptyProduct);
+        emptyProduct = productSkuRepository.save(emptyProduct);
 
         mockMvc.perform(get("/api/inventory/details/{skuId}", emptyProduct.getId())
                 .contentType(MediaType.APPLICATION_JSON))
@@ -363,7 +371,7 @@ class InventoryQueryControllerIntegrationTest {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯у缁犳梹銇勯幋锝嗙《闁荤喎绻愰埥澶愬箼閸愌呭嚬婵犮垼顫夌敮鎺楀煝鎼淬劌鐓￠柛娑卞灣椤︹晠姊洪崫鍕闁稿鎹囧鍫曞煛閸屾粎鐓佸┑鐘亾濞撴埃鍋撶€殿噮鍋婂畷濂告偄缁嬭法鍔梻?
         InventoryBatch batch3 = InventoryBatch.builder()
             .batchCode("BATCH003")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(12)
@@ -406,7 +414,8 @@ class InventoryQueryControllerIntegrationTest {
         mockMvc.perform(get("/api/inventory/location/{locationCode}", "INVALID-CODE")
                 .contentType(MediaType.APPLICATION_JSON))
             .andDo(print())
-            .andExpect(status().isInternalServerError());  // 濠电偞娼欓崥瀣枈瀹ュ棙鍙忛煫鍥ㄧ☉缁€?IllegalArgumentException
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.errorKey").value("LOCATION_NOT_FOUND"));
     }
 
     @Test
@@ -436,8 +445,9 @@ class InventoryQueryControllerIntegrationTest {
     @DisplayName("case-16")
     void testGetLocationView_MultipleProducts() throws Exception {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯у缁犳梹銇勯幋锝嗙《闁谎冭嫰閳藉骞欓崘褏鑳烘俊銈囧Т濞差厼鐣?
-        Product product2 = Product.builder()
-            .spu(testProduct.getSpu())
+        ProductSku product2 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(testProduct.getProduct())
             .barcode("6901234567893")
             .name("Test Coffee")
             .skuName("闂備礁鎲＄划宥夋偋閺囥垹姹?闂佽崵鍋為懝楣冾敄閸儖?")  // V3.3 闂傚鍋勫ú銈夊箠鎼淬劍鏅查柣鎰暯閸嬫挸鈽夊▎妯荤暦濡?
@@ -449,12 +459,12 @@ class InventoryQueryControllerIntegrationTest {
             .unitPrice(new java.math.BigDecimal("79.99"))
             .enabled(true)
             .build();
-        product2 = productRepository.save(product2);
+        product2 = productSkuRepository.save(product2);
 
         // 闂備線娼荤拹鐔煎礉瀹€鍕畺闁规儳顕埢鏃堟煃瑜滈崜姘跺箚閺冨牆绠婚柤纰卞墰瀛濋梻浣告啞鐢绮欓幋鐘电＝闁规儳澧庣粻鏃€銇勯幋锝嗙《闁谎冭嫰閳藉骞欓崘褏鑳烘俊銈囧Т濞差厼鐣烽锝嗗闁绘垶顭囬弳鐘绘⒑闁稓绁锋い顐㈩樀椤?
         InventoryBatch batch3 = InventoryBatch.builder()
             .batchCode("BATCH003")
-            .product(product2)
+            .productSku(product2)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(20)
@@ -478,7 +488,7 @@ class InventoryQueryControllerIntegrationTest {
     void testGetSummary_EmptyDatabase() throws Exception {
         // 婵犵數鍋為幐鎼佸箠閹版澘鐓橀柡宥庡幖缁犮儵鏌嶈閸撶喎顕ｉ崹顐㈢窞閻庯綆鍋呴宥夋⒑?
         inventoryBatchRepository.deleteAll();
-        productRepository.deleteAll();
+        productSkuRepository.deleteAll();
 
         mockMvc.perform(get("/api/inventory/summary")
                 .contentType(MediaType.APPLICATION_JSON))

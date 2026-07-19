@@ -32,7 +32,7 @@ class PurchaseOrderServiceTest {
     @Mock private PurchaseOrderRepository purchaseOrderRepository;
     @Mock private PurchaseOrderItemRepository purchaseOrderItemRepository;
     @Mock private InventoryBatchRepository inventoryBatchRepository;
-    @Mock private ProductRepository productRepository;
+    @Mock private ProductSkuRepository productSkuRepository;
     @Mock private LocationRepository locationRepository;
     @Mock private StockTransactionRepository stockTransactionRepository;
     @Mock private BatchCodeGenerator batchCodeGenerator;
@@ -40,14 +40,15 @@ class PurchaseOrderServiceTest {
     @InjectMocks
     private PurchaseOrderService purchaseOrderService;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private PurchaseOrder orderingPurchaseOrder;
 
     @BeforeEach
     void setUp() {
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
                 .id(1L)
-                .name("Test Product")
+                .name("Test ProductSku")
                 .barcode("BAR001")
                 .unitPrice(new BigDecimal("10.00"))
                 .build();
@@ -70,7 +71,7 @@ class PurchaseOrderServiceTest {
     void testCreatePurchaseOrder_Success() {
         PurchaseOrderService.PurchaseOrderItemData itemData =
                 PurchaseOrderService.PurchaseOrderItemData.builder()
-                        .productId(1L)
+                        .productSkuId(1L)
                         .orderedQuantity(100)
                         .unitCost(new BigDecimal("10.00"))
                         .build();
@@ -78,7 +79,7 @@ class PurchaseOrderServiceTest {
         // Mock PO number generation: findLatestByDatePrefix returns empty list
         when(purchaseOrderRepository.findLatestByDatePrefix(anyString()))
                 .thenReturn(new ArrayList<PurchaseOrder>());
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(orderingPurchaseOrder);
 
         PurchaseOrder result = purchaseOrderService.createPurchaseOrder(
@@ -95,13 +96,13 @@ class PurchaseOrderServiceTest {
     void testCreatePurchaseOrder_ProductNotFound() {
         PurchaseOrderService.PurchaseOrderItemData itemData =
                 PurchaseOrderService.PurchaseOrderItemData.builder()
-                        .productId(99L)
+                        .productSkuId(99L)
                         .orderedQuantity(100)
                         .build();
 
         when(purchaseOrderRepository.findLatestByDatePrefix(anyString()))
                 .thenReturn(new ArrayList<PurchaseOrder>());
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productSkuRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> purchaseOrderService.createPurchaseOrder(
                 "Supplier", List.of(itemData), LocalDate.now(), 1L, "Admin", null

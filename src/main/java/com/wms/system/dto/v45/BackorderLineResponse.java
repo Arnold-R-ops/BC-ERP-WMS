@@ -13,7 +13,7 @@ public class BackorderLineResponse {
     private Long id;
     private Long salesOrderId;
     private Long salesOrderItemId;
-    private Long productId;
+    private Long productSkuId;
     private Integer requestedQty;
     private Integer remainingQty;
     private Integer allocatedQty;

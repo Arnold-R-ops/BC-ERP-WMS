@@ -6,7 +6,7 @@ package com.wms.system.exception;
  * CLAUDE.md Compliance:
  * - All error keys are constants (no hardcoded strings in Service layer)
  * - Frontend uses these keys for i18n translation
- * - Format: DOMAIN_ERROR_TYPE (e.g., STOCK_INSUFFICIENT, PRODUCT_NOT_FOUND)
+ * - Format: DOMAIN_ERROR_TYPE (e.g., STOCK_INSUFFICIENT, PRODUCT_SKU_NOT_FOUND)
  *
  * Naming Convention:
  * - DOMAIN: Business domain (STOCK, PRODUCT, LOCATION, etc.)
@@ -23,32 +23,45 @@ public final class ErrorKeys {
         throw new UnsupportedOperationException("ErrorKeys is a utility class and cannot be instantiated");
     }
 
-    // ========== Product Related Errors ==========
+    // ========== ProductSku Related Errors ==========
 
     /**
-     * Product not found by ID or barcode
+     * ProductSku not found by ID or barcode
      *
      * Parameters:
-     * - productId (Long): Product ID
-     * - barcode (String): Product barcode (optional)
+     * - productSkuId (Long): ProductSku ID
+     * - barcode (String): ProductSku barcode (optional)
      */
-    public static final String PRODUCT_NOT_FOUND = "PRODUCT_NOT_FOUND";
+    public static final String PRODUCT_SKU_NOT_FOUND = "PRODUCT_SKU_NOT_FOUND";
 
     /**
-     * Product already exists (duplicate barcode)
+     * ProductSku already exists (duplicate barcode)
      *
      * Parameters:
      * - barcode (String): Duplicate barcode
      */
-    public static final String PRODUCT_ALREADY_EXISTS = "PRODUCT_ALREADY_EXISTS";
+    public static final String PRODUCT_SKU_ALREADY_EXISTS = "PRODUCT_SKU_ALREADY_EXISTS";
 
     /**
      * SPU not found by ID
      *
      * Parameters:
-     * - spuId (Long): SPU ID
+     * - productId (Long): SPU ID
      */
-    public static final String PRODUCT_SPU_NOT_FOUND = "PRODUCT_SPU_NOT_FOUND";
+    public static final String PRODUCT_NOT_FOUND = "PRODUCT_NOT_FOUND";
+    public static final String PRODUCT_ALREADY_EXISTS = "PRODUCT_ALREADY_EXISTS";
+    public static final String PRODUCT_CATEGORY_INVALID = "PRODUCT_CATEGORY_INVALID";
+    public static final String PRODUCT_DISABLED = "PRODUCT_DISABLED";
+
+    // ========== Category Related Errors ==========
+
+    public static final String CATEGORY_NOT_FOUND = "CATEGORY_NOT_FOUND";
+    public static final String CATEGORY_ALREADY_EXISTS = "CATEGORY_ALREADY_EXISTS";
+    public static final String CATEGORY_DEPTH_EXCEEDED = "CATEGORY_DEPTH_EXCEEDED";
+    public static final String CATEGORY_PARENT_DISABLED = "CATEGORY_PARENT_DISABLED";
+    public static final String CATEGORY_CYCLE_DETECTED = "CATEGORY_CYCLE_DETECTED";
+    public static final String CATEGORY_HAS_CHILDREN = "CATEGORY_HAS_CHILDREN";
+    public static final String CATEGORY_IN_USE = "CATEGORY_IN_USE";
 
     // ========== Location Related Errors ==========
 
@@ -104,8 +117,8 @@ public final class ErrorKeys {
      * Insufficient stock for outbound operation
      *
      * Parameters:
-     * - productId (Long): Product ID
-     * - productName (String): Product name
+     * - productSkuId (Long): ProductSku ID
+     * - productName (String): ProductSku name
      * - locationId (Long): Location ID
      * - locationCode (String): Location code
      * - currentStock (Integer): Current stock quantity
@@ -118,7 +131,7 @@ public final class ErrorKeys {
      * Stock concurrency conflict (optimistic lock failure after retries)
      *
      * Parameters:
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      * - locationId (Long): Location ID
      * - operationType (String): Operation type (IN/OUT/ADJUST)
      * - retryAttempts (Integer): Number of retry attempts (default: 3)
@@ -138,7 +151,7 @@ public final class ErrorKeys {
      * Inventory record not found
      *
      * Parameters:
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      * - locationId (Long): Location ID
      */
     public static final String INVENTORY_NOT_FOUND = "INVENTORY_NOT_FOUND";
@@ -414,7 +427,7 @@ public final class ErrorKeys {
      *
      * Parameters:
      * - itemId (Long): Purchase order item ID
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      */
     public static final String PO_EXPIRY_DATE_REQUIRED = "PO_EXPIRY_DATE_REQUIRED";
 
@@ -433,7 +446,7 @@ public final class ErrorKeys {
      * Batch code generation failed after retry attempts
      *
      * Parameters:
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      * - itemId (Long): Purchase order item ID
      * - attempts (Integer): Number of retry attempts (default: 3)
      */
@@ -453,7 +466,7 @@ public final class ErrorKeys {
      * Batch stock insufficient for FIFO outbound operation
      *
      * Parameters:
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      * - requestedQuantity (Integer): Requested outbound quantity
      * - availableQuantity (Integer): Available quantity across all active batches
      * - shortage (Integer): Shortage amount
@@ -474,7 +487,7 @@ public final class ErrorKeys {
      * Insufficient stock for operation (alias for STOCK_INSUFFICIENT)
      *
      * Parameters:
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      * - requestedQuantity (Integer): Requested quantity
      * - availableQuantity (Integer): Available quantity
      */
@@ -486,7 +499,7 @@ public final class ErrorKeys {
      * Parameters:
      * - batchCode (String): Expired batch code
      * - expiryDate (String): Expiry date
-     * - productId (Long): Product ID
+     * - productSkuId (Long): ProductSku ID
      */
     public static final String EXPIRED_BATCH_FOUND = "EXPIRED_BATCH_FOUND";
 
@@ -516,7 +529,7 @@ public final class ErrorKeys {
      * Resource not found (generic)
      *
      * Parameters:
-     * - resourceType (String): Resource type (e.g., "Product", "Location")
+     * - resourceType (String): Resource type (e.g., "ProductSku", "Location")
      * - resourceId (String): Resource identifier
      */
     public static final String RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND";
@@ -668,8 +681,8 @@ public final class ErrorKeys {
      * Unit price is below minimum sales price
      *
      * Parameters:
-     * - productId (Long): Product ID
-     * - productName (String): Product name
+     * - productSkuId (Long): ProductSku ID
+     * - productName (String): ProductSku name
      * - unitPrice (BigDecimal): Requested unit price
      * - minSalesPrice (BigDecimal): Minimum sales price
      */

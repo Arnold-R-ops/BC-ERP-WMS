@@ -3,7 +3,7 @@
 
 @host = http://127.0.0.1:8080
 @supplierId = 1
-@spuId = 1
+@runId = {{$timestamp}}
 
 ### 1. Login
 # @name login
@@ -27,7 +27,7 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "code": "CH{{$timestamp}}",
+  "code": "CH{{runId}}",
   "name": "V4.5.2 Chaotic Storage Warehouse",
   "address": "V4.5.2 regression",
   "contact": "Codex",
@@ -78,17 +78,72 @@ client.assert(response.status === 201, "bulk location should be created");
 client.global.set("bulkLocationId", response.body.id);
 %}
 
-### 5. Create LOCATION_VISUAL product
+### 5. Create category root
+# @name createChaoticRootCategory
+POST {{host}}/api/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryCode": "V452_ROOT_{{runId}}",
+  "categoryName": "V4.5.2 Storage Root {{runId}}",
+  "sortOrder": 200
+}
+
+> {%
+client.assert(response.status === 201, "root category should be created");
+client.global.set("rootCategoryId", response.body.id);
+%}
+
+### 6. Create category leaf
+# @name createChaoticLeafCategory
+POST {{host}}/api/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryCode": "V452_LEAF_{{runId}}",
+  "categoryName": "V4.5.2 Storage Leaf {{runId}}",
+  "parentId": {{rootCategoryId}},
+  "sortOrder": 200
+}
+
+> {%
+client.assert(response.status === 201, "leaf category should be created");
+client.global.set("categoryId", response.body.id);
+%}
+
+### 7. Create LOCATION_VISUAL Product (SPU)
 # @name createVisualProduct
 POST {{host}}/api/products
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "barcode": "V452-VIS-{{$timestamp}}",
+  "productCode": "V452-VIS-SPU-{{runId}}",
+  "productName": "V4.5.2 Location Visual Tea",
+  "categoryId": {{categoryId}},
+  "brand": "Codex",
+  "description": "chaotic-storage-regression",
+  "enabled": true
+}
+
+> {%
+client.assert(response.status === 201, "visual Product should be created");
+client.global.set("visualProductId", response.body.id);
+%}
+
+### 8. Create LOCATION_VISUAL ProductSku
+# @name createVisualProductSku
+POST {{host}}/api/product-skus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": {{visualProductId}},
+  "barcode": "V452-VIS-{{runId}}",
   "name": "V4.5.2 Location Visual Tea",
   "skuName": "V452-VIS-SKU",
-  "spuId": {{spuId}},
   "specs": "chaotic-storage-regression",
   "unitPrice": 10.00,
   "minSalesPrice": 1.00,
@@ -96,29 +151,48 @@ Content-Type: application/json
   "conversionRate": 1,
   "packUnit": "box",
   "nearExpiryDays": 30,
-  "category": "test",
   "batchTrackingMode": "LOCATION_VISUAL",
   "enabled": true
 }
 
 > {%
-client.assert(response.status === 201, "visual product should be created");
-client.assert(response.body.batchTrackingMode === "LOCATION_VISUAL", "product should use LOCATION_VISUAL");
-client.global.set("visualProductId", response.body.id);
-client.global.set("visualSkuCode", response.body.barcode);
+client.assert(response.status === 201, "visual ProductSku should be created");
+client.assert(response.body.batchTrackingMode === "LOCATION_VISUAL", "ProductSku should use LOCATION_VISUAL");
+client.global.set("visualProductSkuId", response.body.id);
+client.global.set("visualSkuCode", response.body.skuCode);
 %}
 
-### 6. Create another product for anti-mixing attack
+### 9. Create another Product (SPU) for anti-mixing attack
 # @name createMixingAttackProduct
 POST {{host}}/api/products
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "barcode": "V452-MIX-{{$timestamp}}",
+  "productCode": "V452-MIX-SPU-{{runId}}",
+  "productName": "V4.5.2 Mixing Attack Product",
+  "categoryId": {{categoryId}},
+  "brand": "Codex",
+  "description": "chaotic-storage-negative-case",
+  "enabled": true
+}
+
+> {%
+client.assert(response.status === 201, "mixing attack Product should be created");
+client.global.set("mixingProductId", response.body.id);
+%}
+
+### 10. Create another ProductSku for anti-mixing attack
+# @name createMixingAttackProductSku
+POST {{host}}/api/product-skus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": {{mixingProductId}},
+  "barcode": "V452-MIX-{{runId}}",
   "name": "V4.5.2 Mixing Attack Product",
   "skuName": "V452-MIX-SKU",
-  "spuId": {{spuId}},
   "specs": "chaotic-storage-negative-case",
   "unitPrice": 10.00,
   "minSalesPrice": 1.00,
@@ -126,24 +200,23 @@ Content-Type: application/json
   "conversionRate": 1,
   "packUnit": "box",
   "nearExpiryDays": 30,
-  "category": "test",
   "batchTrackingMode": "LOCATION_VISUAL",
   "enabled": true
 }
 
 > {%
-client.assert(response.status === 201, "mixing attack product should be created");
-client.global.set("mixingProductId", response.body.id);
+client.assert(response.status === 201, "mixing attack ProductSku should be created");
+client.global.set("mixingProductSkuId", response.body.id);
 %}
 
-### 7. Create customer
+### 11. Create customer
 # @name createCustomer
 POST {{host}}/api/customers
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "code": "CUST-V452-{{$timestamp}}",
+  "code": "CUST-V452-{{runId}}",
   "name": "V4.5.2 Test Customer",
   "contact": "Codex",
   "phone": "13800138045",
@@ -158,7 +231,7 @@ client.assert(response.status === 201, "customer should be created");
 client.global.set("customerId", response.body.id);
 %}
 
-### 8. Create inbound order with two same-expiry batches: 3 in fragment, 10 in bulk
+### 12. Create inbound order with two same-expiry batches: 3 in fragment, 10 in bulk
 # @name createInbound
 POST {{host}}/api/inbound-orders
 Authorization: Bearer {{token}}
@@ -166,11 +239,11 @@ Content-Type: application/json
 
 {
   "supplierId": {{supplierId}},
-  "expectedDate": "2026-07-05",
+  "expectedDate": "2026-12-01",
   "remark": "V4.5.2 fragment-first setup",
   "items": [
     {
-      "productId": {{visualProductId}},
+      "productSkuId": {{visualProductSkuId}},
       "planQty": 3,
       "unitCost": 5.00,
       "targetWarehouseId": {{warehouseId}},
@@ -178,7 +251,7 @@ Content-Type: application/json
       "remark": "fragment batch"
     },
     {
-      "productId": {{visualProductId}},
+      "productSkuId": {{visualProductSkuId}},
       "planQty": 10,
       "unitCost": 5.00,
       "targetWarehouseId": {{warehouseId}},
@@ -195,7 +268,7 @@ client.global.set("fragmentItemId", response.body.items[0].id);
 client.global.set("bulkItemId", response.body.items[1].id);
 %}
 
-### 9. Approve inbound plan
+### 13. Approve inbound plan
 # @name approveInbound
 POST {{host}}/api/inbound-orders/{{inboundOrderId}}/approve-plan
 Authorization: Bearer {{token}}
@@ -209,7 +282,7 @@ Content-Type: application/json
 client.assert(response.status === 200, "inbound approval should succeed");
 %}
 
-### 10. Confirm inbound order and generate batch codes
+### 14. Confirm inbound order and generate batch codes
 # @name confirmInbound
 POST {{host}}/api/inbound-orders/{{inboundOrderId}}/confirm-order
 Authorization: Bearer {{token}}
@@ -241,7 +314,7 @@ Content-Type: application/json
 client.assert(response.status === 200, "inbound confirmation should succeed");
 %}
 
-### 11. Receive goods
+### 15. Receive goods
 # @name receiveInbound
 POST {{host}}/api/inbound-orders/{{inboundOrderId}}/receive-goods
 Authorization: Bearer {{token}}
@@ -266,7 +339,7 @@ Content-Type: application/json
 client.assert(response.status === 200, "inbound receipt should succeed");
 %}
 
-### 12. Fragment location should be occupied
+### 16. Fragment location should be occupied
 # @name fragmentLocationOccupied
 GET {{host}}/api/locations/{{fragmentLocationId}}
 Authorization: Bearer {{token}}
@@ -276,7 +349,7 @@ client.assert(response.status === 200, "fragment location query should succeed")
 client.assert(response.body.status === "OCCUPIED", "fragment location should be OCCUPIED after receipt");
 %}
 
-### 13. Anti-mixing: create inbound order for a different product into occupied fragment location
+### 17. Anti-mixing: create inbound order for a different ProductSku into occupied fragment location
 # @name createMixingInbound
 POST {{host}}/api/inbound-orders
 Authorization: Bearer {{token}}
@@ -284,11 +357,11 @@ Content-Type: application/json
 
 {
   "supplierId": {{supplierId}},
-  "expectedDate": "2026-07-05",
+  "expectedDate": "2026-12-01",
   "remark": "V4.5.2 anti-mixing negative case",
   "items": [
     {
-      "productId": {{mixingProductId}},
+      "productSkuId": {{mixingProductSkuId}},
       "planQty": 1,
       "unitCost": 5.00,
       "targetWarehouseId": {{warehouseId}},
@@ -304,7 +377,7 @@ client.global.set("mixingInboundOrderId", response.body.id);
 client.global.set("mixingItemId", response.body.items[0].id);
 %}
 
-### 14. Approve mixing inbound
+### 18. Approve mixing inbound
 POST {{host}}/api/inbound-orders/{{mixingInboundOrderId}}/approve-plan
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -317,7 +390,7 @@ Content-Type: application/json
 client.assert(response.status === 200, "mixing inbound approval should succeed");
 %}
 
-### 15. Confirm mixing inbound
+### 19. Confirm mixing inbound
 POST {{host}}/api/inbound-orders/{{mixingInboundOrderId}}/confirm-order
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -340,7 +413,7 @@ Content-Type: application/json
 client.assert(response.status === 200, "mixing inbound confirmation should succeed");
 %}
 
-### 16. Anti-mixing receive must be blocked
+### 20. Anti-mixing receive must be blocked
 # @name receiveMixingShouldFail
 POST {{host}}/api/inbound-orders/{{mixingInboundOrderId}}/receive-goods
 Authorization: Bearer {{token}}
@@ -361,7 +434,7 @@ client.assert(response.status === 409, "different product/batch must not enter o
 client.assert(response.body.errorKey === "LOCATION_BATCH_MIXING_FORBIDDEN", "anti-mixing error key should be returned");
 %}
 
-### 17. Create sales order for 3 units; allocation should choose smaller fragment batch first
+### 21. Create sales order for 3 units; allocation should choose smaller fragment batch first
 # @name createSalesOrder
 POST {{host}}/api/sales-orders
 Authorization: Bearer {{token}}
@@ -371,7 +444,7 @@ Content-Type: application/json
   "customerId": {{customerId}},
   "items": [
     {
-      "productId": {{visualProductId}},
+      "productSkuId": {{visualProductSkuId}},
       "quantity": 3,
       "unitPrice": 10.00,
       "rejectNearExpiry": false,
@@ -385,7 +458,7 @@ client.assert(response.status === 201, "sales order should be created");
 client.global.set("salesOrderId", response.body.id);
 %}
 
-### 18. Query outbound tasks; the first/only task should point to fragment location
+### 22. Query outbound tasks; the first/only task should point to fragment location
 # @name listOutboundTasks
 GET {{host}}/api/outbound-tasks?salesOrderId={{salesOrderId}}
 Authorization: Bearer {{token}}
@@ -397,7 +470,7 @@ client.assert(response.body[0].locationId === Number(client.global.get("fragment
 client.global.set("fragmentTaskId", response.body[0].id);
 %}
 
-### 19. LOCATION_VISUAL confirm: no batchCode required; locationId + skuCode is enough
+### 23. LOCATION_VISUAL confirm: no batchCode required; locationId + skuCode is enough
 # @name confirmVisualOutbound
 POST {{host}}/api/outbound-tasks/{{fragmentTaskId}}/confirm
 Authorization: Bearer {{token}}
@@ -414,7 +487,7 @@ client.assert(response.status === 200, "LOCATION_VISUAL outbound confirmation sh
 client.assert(response.body.status === "COMPLETED", "outbound task should be completed");
 %}
 
-### 20. Fragment location should self-heal to EMPTY after stock is cleared
+### 24. Fragment location should self-heal to EMPTY after stock is cleared
 # @name fragmentLocationEmpty
 GET {{host}}/api/locations/{{fragmentLocationId}}
 Authorization: Bearer {{token}}
@@ -424,7 +497,7 @@ client.assert(response.status === 200, "fragment location query should succeed a
 client.assert(response.body.status === "EMPTY", "fragment location should be EMPTY after all stock is shipped");
 %}
 
-### 21. Bulk location should still be occupied with remaining stock
+### 25. Bulk location should still be occupied with remaining stock
 # @name bulkLocationStillOccupied
 GET {{host}}/api/locations/{{bulkLocationId}}
 Authorization: Bearer {{token}}

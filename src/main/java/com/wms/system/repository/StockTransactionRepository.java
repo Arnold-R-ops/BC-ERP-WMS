@@ -1,6 +1,6 @@
 package com.wms.system.repository;
 
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.SourceType;
 import com.wms.system.entity.enums.TransactionType;
@@ -37,7 +37,7 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
 
     /**
      * 根据商品查询所有流水记录
-     * 方法命名规范：findBy + 字段名（Product）
+     * 方法命名规范：findBy + 字段名（ProductSku）
      *
      * 使用场景：
      * 查询某商品的完整出入库历史
@@ -45,16 +45,16 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * @param product 商品对象
      * @return 该商品的所有流水记录
      */
-    List<StockTransaction> findByProduct(Product product);
+    List<StockTransaction> findByProductSku(ProductSku product);
 
     /**
      * 根据商品ID查询所有流水记录（按时间倒序）
      * 方法命名规范：findBy + 字段名 + OrderBy + 排序字段 + 排序方式
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @return 该商品的所有流水记录（最新的在前）
      */
-    List<StockTransaction> findByProduct_IdOrderByCreatedAtDesc(Long productId);
+    List<StockTransaction> findByProductSku_IdOrderByCreatedAtDesc(Long productSkuId);
 
     /**
      * 根据变动类型查询流水
@@ -105,7 +105,7 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * JPQL 语法说明：
      * 1. SELECT t: 查询 StockTransaction 实体
      * 2. FROM StockTransaction t: 从流水表查询
-     * 3. WHERE t.product.id = :productId: 筛选指定商品
+     * 3. WHERE t.productSku.id = :productSkuId: 筛选指定商品
      * 4. AND t.transactionType = 'OUT': 仅查询出库流水
      * 5. AND t.createdAt BETWEEN :startDate AND :endDate: 时间范围筛选
      * 6. ORDER BY t.createdAt DESC: 按时间倒序排序
@@ -126,17 +126,17 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * 总出库量：900 件
      * 日均出库量：900 / 30 = 30 件/天
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param startDate 开始时间
      * @param endDate 结束时间
      * @return 该商品在指定时间范围内的所有出库流水
      */
     @Query("SELECT t FROM StockTransaction t " +
-           "WHERE t.product.id = :productId " +
+           "WHERE t.productSku.id = :productSkuId " +
            "AND t.transactionType = 'OUT' " +
            "AND t.createdAt BETWEEN :startDate AND :endDate " +
            "ORDER BY t.createdAt DESC")
-    List<StockTransaction> findMovementHistory(@Param("productId") Long productId,
+    List<StockTransaction> findMovementHistory(@Param("productSkuId") Long productSkuId,
                                                  @Param("startDate") LocalDateTime startDate,
                                                  @Param("endDate") LocalDateTime endDate);
 
@@ -154,32 +154,32 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * 使用场景：
      * 快速计算日均出库量：总出库量 / 天数
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param startDate 开始时间
      * @param endDate 结束时间
      * @return 总出库量（如果没有出库记录，返回 null）
      */
     @Query("SELECT SUM(t.quantity) FROM StockTransaction t " +
-           "WHERE t.product.id = :productId " +
+           "WHERE t.productSku.id = :productSkuId " +
            "AND t.transactionType = 'OUT' " +
            "AND t.createdAt BETWEEN :startDate AND :endDate")
-    Integer sumOutboundQuantity(@Param("productId") Long productId,
+    Integer sumOutboundQuantity(@Param("productSkuId") Long productSkuId,
                                  @Param("startDate") LocalDateTime startDate,
                                  @Param("endDate") LocalDateTime endDate);
 
     /**
      * 计算某商品在指定时间范围内的总入库量
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param startDate 开始时间
      * @param endDate 结束时间
      * @return 总入库量
      */
     @Query("SELECT SUM(t.quantity) FROM StockTransaction t " +
-           "WHERE t.product.id = :productId " +
+           "WHERE t.productSku.id = :productSkuId " +
            "AND t.transactionType = 'IN' " +
            "AND t.createdAt BETWEEN :startDate AND :endDate")
-    Integer sumInboundQuantity(@Param("productId") Long productId,
+    Integer sumInboundQuantity(@Param("productSkuId") Long productSkuId,
                                 @Param("startDate") LocalDateTime startDate,
                                 @Param("endDate") LocalDateTime endDate);
 
@@ -206,15 +206,15 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * 使用场景：
      * 快速查看某商品的最近操作历史
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param limit 查询数量
      * @return 最近的 N 条流水记录
      */
     @Query("SELECT t FROM StockTransaction t " +
-           "WHERE t.product.id = :productId " +
+           "WHERE t.productSku.id = :productSkuId " +
            "ORDER BY t.createdAt DESC " +
            "LIMIT :limit")
-    List<StockTransaction> findRecentTransactions(@Param("productId") Long productId,
+    List<StockTransaction> findRecentTransactions(@Param("productSkuId") Long productSkuId,
                                                     @Param("limit") int limit);
 
     /**
@@ -232,10 +232,10 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * 统计某商品的流水记录总数
      * 方法命名规范：countBy + 字段名
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @return 流水记录总数
      */
-    long countByProduct_Id(Long productId);
+    long countByProductSku_Id(Long productSkuId);
 
     /**
      * 统计指定时间范围内的流水记录总数
@@ -258,7 +258,7 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      *
      * 返回结果格式：
      * {
-     *   "productId": 1,
+     *   "productSkuId": 1,
      *   "totalOutbound": 900,
      *   "avgInventory": 150,
      *   "turnoverRate": 6.0  // 周转 6 次
@@ -268,16 +268,16 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * 1. 评估商品流转速度（周转率越高，流转越快）
      * 2. 优化库存配置（高周转率商品应增加库存）
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param startDate 开始时间
      * @param endDate 结束时间
      * @return 总出库量（周转率需在 Service 层计算）
      */
     @Query("SELECT SUM(t.quantity) FROM StockTransaction t " +
-           "WHERE t.product.id = :productId " +
+           "WHERE t.productSku.id = :productSkuId " +
            "AND t.transactionType = 'OUT' " +
            "AND t.createdAt BETWEEN :startDate AND :endDate")
-    Integer calculateTurnoverRate(@Param("productId") Long productId,
+    Integer calculateTurnoverRate(@Param("productSkuId") Long productSkuId,
                                    @Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
 
@@ -288,15 +288,15 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      * 1. 查询某商品的所有销售出库记录（SALE_OUT）
      * 2. 查询某商品的所有采购入库记录（PURCHASE_IN）
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param sourceType 来源类型
      * @return 符合条件的流水记录
      */
     @Query("SELECT t FROM StockTransaction t " +
-           "WHERE t.product.id = :productId " +
+           "WHERE t.productSku.id = :productSkuId " +
            "AND t.sourceType = :sourceType " +
            "ORDER BY t.createdAt DESC")
-    List<StockTransaction> findByProductAndSourceType(@Param("productId") Long productId,
+    List<StockTransaction> findByProductSkuAndSourceType(@Param("productSkuId") Long productSkuId,
                                                         @Param("sourceType") SourceType sourceType);
 
     /**

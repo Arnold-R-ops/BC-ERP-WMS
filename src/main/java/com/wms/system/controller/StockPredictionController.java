@@ -42,7 +42,7 @@ public class StockPredictionController {
      * Get reorder suggestion for a single product
      *
      * API Endpoint:
-     * GET /api/predictions/reorder/{productId}?days=30
+     * GET /api/predictions/reorder/{productSkuId}?days=30
      *
      * Query Parameters:
      * - days: Calculation period in days (default: 30)
@@ -50,7 +50,7 @@ public class StockPredictionController {
      * Success Response (200 OK):
      * <pre>
      * {
-     *   "productId": 123,
+     *   "productSkuId": 123,
      *   "barcode": "4901234567890",
      *   "productName": "Coca-Cola 500ml",
      *   "specification": "500ml",
@@ -80,24 +80,24 @@ public class StockPredictionController {
      * - Calculations use Europe/London timezone for date grouping
      * - Ensures accurate daily statistics for UK business
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param days Calculation period in days (optional, default: 30)
      * @return ResponseEntity<ReorderSuggestion> Reorder suggestion
      * @throws com.wms.system.exception.BusinessException if product not found
      */
-    @GetMapping("/reorder/{productId}")
+    @GetMapping("/reorder/{productSkuId}")
     public ResponseEntity<ReorderSuggestion> getReorderSuggestion(
-        @PathVariable("productId") Long productId,
+        @PathVariable("productSkuId") Long productSkuId,
         @RequestParam(name = "days", defaultValue = "30") Integer days
     ) {
-        log.info("API: Get reorder suggestion - productId={}, calculationPeriod={} days",
-            productId, days);
+        log.info("API: Get reorder suggestion - productSkuId={}, calculationPeriod={} days",
+            productSkuId, days);
 
-        ReorderSuggestion suggestion = predictionService.getReorderSuggestion(productId, days);
+        ReorderSuggestion suggestion = predictionService.getReorderSuggestion(productSkuId, days);
 
-        log.info("API: Reorder suggestion generated - productId={}, urgency={}, " +
+        log.info("API: Reorder suggestion generated - productSkuId={}, urgency={}, " +
                 "suggestedReorder={}, estimatedStockout={} days",
-            productId,
+            productSkuId,
             suggestion.getUrgencyLevel().getDescription(),
             suggestion.getSuggestedReorderQuantity(),
             String.format("%.1f", suggestion.getEstimatedDaysUntilStockout())
@@ -120,7 +120,7 @@ public class StockPredictionController {
      * {
      *   "suggestions": [
      *     {
-     *       "productId": 123,
+     *       "productSkuId": 123,
      *       "productName": "Coca-Cola 500ml",
      *       "urgencyLevel": "CRITICAL",
      *       "currentStock": 50,
@@ -128,7 +128,7 @@ public class StockPredictionController {
      *       ...
      *     },
      *     {
-     *       "productId": 456,
+     *       "productSkuId": 456,
      *       "productName": "Pepsi 500ml",
      *       "urgencyLevel": "HIGH",
      *       "currentStock": 80,
@@ -184,7 +184,7 @@ public class StockPredictionController {
      * {
      *   "suggestions": [
      *     {
-     *       "productId": 123,
+     *       "productSkuId": 123,
      *       "urgencyLevel": "CRITICAL",
      *       ...
      *     }

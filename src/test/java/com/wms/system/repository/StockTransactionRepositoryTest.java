@@ -1,8 +1,8 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.Location;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
-import com.wms.system.entity.ProductSpu;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.SourceType;
@@ -34,8 +34,8 @@ class StockTransactionRepositoryTest {
     @Autowired private StockTransactionRepository stockTransactionRepository;
     @Autowired private TestEntityManager entityManager;
 
-    private Product product;
-    private Product otherProduct;
+    private ProductSku product;
+    private ProductSku otherProduct;
     private Location location;
     private StockTransaction inTransaction;
     private StockTransaction outTransaction;
@@ -43,27 +43,30 @@ class StockTransactionRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        ProductSpu spu = ProductSpu.builder()
-                .spuCode("SPU-TEST")
-                .spuName("Test SPU")
+        Product spu = Product.builder()
+                .category(com.wms.system.support.TestCatalogFactory.persistLeafCategory(entityManager))
+                .productCode("SPU-TEST")
+                .productName("Test SPU")
                 .enabled(true)
                 .build();
         entityManager.persist(spu);
 
-        product = Product.builder()
-                .spu(spu)
+        product = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(spu)
                 .skuName("Test SKU")
                 .barcode("BAR-TEST-001")
-                .name("Test Product A")
+                .name("Test ProductSku A")
                 .unitPrice(new BigDecimal("10.00"))
                 .isDeleted(false)
                 .build();
 
-        otherProduct = Product.builder()
-                .spu(spu)
+        otherProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(spu)
                 .skuName("Other SKU")
                 .barcode("BAR-TEST-002")
-                .name("Test Product B")
+                .name("Test ProductSku B")
                 .unitPrice(new BigDecimal("20.00"))
                 .isDeleted(false)
                 .build();
@@ -92,12 +95,12 @@ class StockTransactionRepositoryTest {
 
         // Re-fetch to get generated locationCode
         location = entityManager.find(Location.class, location.getId());
-        product = entityManager.find(Product.class, product.getId());
-        otherProduct = entityManager.find(Product.class, otherProduct.getId());
+        product = entityManager.find(ProductSku.class, product.getId());
+        otherProduct = entityManager.find(ProductSku.class, otherProduct.getId());
 
         // Create transactions
         inTransaction = StockTransaction.builder()
-                .product(product)
+                .productSku(product)
                 .location(location)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -108,7 +111,7 @@ class StockTransactionRepositoryTest {
                 .build();
 
         outTransaction = StockTransaction.builder()
-                .product(product)
+                .productSku(product)
                 .location(location)
                 .transactionType(TransactionType.OUT)
                 .sourceType(SourceType.SALE_OUT)
@@ -119,7 +122,7 @@ class StockTransactionRepositoryTest {
                 .build();
 
         adjustTransaction = StockTransaction.builder()
-                .product(otherProduct)
+                .productSku(otherProduct)
                 .location(location)
                 .transactionType(TransactionType.ADJUST)
                 .sourceType(SourceType.MANUAL_ADJUST)
@@ -135,12 +138,12 @@ class StockTransactionRepositoryTest {
         entityManager.flush();
     }
 
-    // ========== findByProduct ==========
+    // ========== findByProductSku ==========
 
     @Test
-    @DisplayName("findByProduct - returns transactions for the given product")
-    void testFindByProduct() {
-        List<StockTransaction> txs = stockTransactionRepository.findByProduct(product);
+    @DisplayName("findByProductSku - returns transactions for the given product")
+    void testFindByProductSku() {
+        List<StockTransaction> txs = stockTransactionRepository.findByProductSku(product);
 
         assertThat(txs).hasSize(2);
         assertThat(txs)
@@ -149,37 +152,39 @@ class StockTransactionRepositoryTest {
     }
 
     @Test
-    @DisplayName("findByProduct - returns empty for product with no transactions")
-    void testFindByProduct_Empty() {
-        ProductSpu spu = entityManager.find(ProductSpu.class,
-                entityManager.persistAndGetId(ProductSpu.builder()
-                        .spuCode("SPU-EMPTY")
-                        .spuName("Empty SPU")
+    @DisplayName("findByProductSku - returns empty for product with no transactions")
+    void testFindByProductSku_Empty() {
+        Product spu = entityManager.find(Product.class,
+                entityManager.persistAndGetId(Product.builder()
+                        .category(com.wms.system.support.TestCatalogFactory.persistLeafCategory(entityManager))
+                        .productCode("SPU-EMPTY")
+                        .productName("Empty SPU")
                         .enabled(true)
                         .build()));
-        Product newProduct = Product.builder()
-                .spu(spu)
+        ProductSku newProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(spu)
                 .skuName("No Tx SKU")
                 .barcode("BAR-NOTX-999")
-                .name("Product With No Transactions")
+                .name("ProductSku With No Transactions")
                 .unitPrice(BigDecimal.ONE)
                 .isDeleted(false)
                 .build();
         entityManager.persist(newProduct);
         entityManager.flush();
 
-        List<StockTransaction> txs = stockTransactionRepository.findByProduct(newProduct);
+        List<StockTransaction> txs = stockTransactionRepository.findByProductSku(newProduct);
 
         assertThat(txs).isEmpty();
     }
 
-    // ========== findByProduct_IdOrderByCreatedAtDesc ==========
+    // ========== findByProductSku_IdOrderByCreatedAtDesc ==========
 
     @Test
-    @DisplayName("findByProduct_IdOrderByCreatedAtDesc - returns transactions ordered by createdAt desc")
-    void testFindByProductIdOrderByCreatedAtDesc() {
+    @DisplayName("findByProductSku_IdOrderByCreatedAtDesc - returns transactions ordered by createdAt desc")
+    void testFindByProductSkuIdOrderByCreatedAtDesc() {
         List<StockTransaction> txs = stockTransactionRepository
-                .findByProduct_IdOrderByCreatedAtDesc(product.getId());
+                .findByProductSku_IdOrderByCreatedAtDesc(product.getId());
 
         assertThat(txs).hasSize(2);
         // Should not be empty and should be ordered (most recent first)
@@ -294,20 +299,20 @@ class StockTransactionRepositoryTest {
         assertThat(txs).isEmpty();
     }
 
-    // ========== countByProduct_Id ==========
+    // ========== countByProductSku_Id ==========
 
     @Test
-    @DisplayName("countByProduct_Id - returns correct transaction count for product")
-    void testCountByProductId() {
-        long count = stockTransactionRepository.countByProduct_Id(product.getId());
+    @DisplayName("countByProductSku_Id - returns correct transaction count for product")
+    void testCountByProductSkuId() {
+        long count = stockTransactionRepository.countByProductSku_Id(product.getId());
 
         assertThat(count).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("countByProduct_Id - returns 0 for product with no transactions")
-    void testCountByProductId_Zero() {
-        long count = stockTransactionRepository.countByProduct_Id(9999L);
+    @DisplayName("countByProductSku_Id - returns 0 for product with no transactions")
+    void testCountByProductSkuId_Zero() {
+        long count = stockTransactionRepository.countByProductSku_Id(9999L);
 
         assertThat(count).isEqualTo(0);
     }

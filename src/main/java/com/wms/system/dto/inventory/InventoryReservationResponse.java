@@ -17,7 +17,7 @@ public class InventoryReservationResponse {
     private Long salesOrderItemId;
     private Long inventoryBatchId;
     private String batchCode;
-    private Long productId;
+    private Long productSkuId;
     private String productName;
     private Long locationId;
     private String locationCode;

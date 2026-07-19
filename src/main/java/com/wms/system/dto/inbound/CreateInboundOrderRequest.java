@@ -61,7 +61,7 @@ public class CreateInboundOrderRequest {
          * 产品 ID
          */
         @NotNull(message = "产品ID不能为空")
-        private Long productId;
+        private Long productSkuId;
 
         /**
          * 计划数量

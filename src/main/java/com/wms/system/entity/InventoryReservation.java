@@ -48,8 +48,8 @@ public class InventoryReservation extends BaseEntity {
     private Long inventoryBatchId;
 
     @NotNull
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @Column(name = "product_sku_id", nullable = false)
+    private Long productSkuId;
 
     @NotNull
     @Column(name = "location_id", nullable = false)

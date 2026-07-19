@@ -40,10 +40,10 @@ import static org.mockito.Mockito.when;
  * 1. Setup test data (product, inventory, integration config)
  * 2. Mock Shopify API response
  * 3. Trigger order sync
- * 4. Verify customer created/matched
+ * 4. Verify only an existing active customer can be matched
  * 5. Verify sales order created with correct channel info
- * 6. Verify order status is APPROVED_AWAITING_SHIPMENT
- * 7. Verify outbound tasks generated
+ * 6. Verify order status is PENDING_APPROVAL
+ * 7. Verify no reservation or outbound task exists before approval
  * 8. Test deduplication (sync same order twice)
  * 9. Test SKU not found scenario
  *
@@ -71,10 +71,13 @@ class ShopifyIntegrationE2ETest {
     private CustomerRepository customerRepository;
 
     @Autowired
+    private ProductSkuRepository productSkuRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private WarehouseRepository warehouseRepository;
@@ -110,7 +113,7 @@ class ShopifyIntegrationE2ETest {
     private ObjectMapper objectMapper;
 
     private IntegrationConfig testConfig;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
     private InventoryBatch testBatch;
@@ -144,27 +147,29 @@ class ShopifyIntegrationE2ETest {
         testLocation = locationRepository.save(testLocation);
 
         // 3. Create test product SPU
-        ProductSpu testSpu = ProductSpu.builder()
-                .spuCode("SPU-TEST")
-                .spuName("Test SPU")
+        Product testSpu = Product.builder()
+                .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
+                .productCode("SPU-TEST")
+                .productName("Test SPU")
                 .build();
-        testSpu = productSpuRepository.save(testSpu);
+        testSpu = productRepository.save(testSpu);
 
         // 4. Create test product
-        testProduct = Product.builder()
-                .spu(testSpu)
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(testSpu)
                 .skuName("TEST-SKU-001")
                 .barcode("TEST-SKU-001")
-                .name("Test Product")
+                .name("Test ProductSku")
                 .specification("Test Spec")
                 .unitPrice(BigDecimal.valueOf(99.99))
                 .minSalesPrice(BigDecimal.valueOf(50.00))
                 .build();
-        testProduct = productRepository.save(testProduct);
+        testProduct = productSkuRepository.save(testProduct);
 
         // 5. Create test inventory batch
         testBatch = InventoryBatch.builder()
-                .product(testProduct)
+                .productSku(testProduct)
                 .location(testLocation)
                 .locationCode(testLocation.getLocationCode())
                 .batchCode("BATCH-TEST-001")
@@ -201,7 +206,7 @@ class ShopifyIntegrationE2ETest {
 
     @Test
     @DisplayName("case-2")
-    void testCompleteOrderSync_NewCustomer() {
+    void testOrderSync_UnknownCustomerIsBlocked() {
         // Given: Mock Shopify API response
         ShopifyCustomerDto shopifyCustomer = new ShopifyCustomerDto();
         shopifyCustomer.setId(100L);
@@ -213,7 +218,7 @@ class ShopifyIntegrationE2ETest {
         ShopifyLineItemDto lineItem = new ShopifyLineItemDto();
         lineItem.setId(1L);
         lineItem.setSku("TEST-SKU-001");
-        lineItem.setName("Test Product");
+        lineItem.setName("Test ProductSku");
         lineItem.setQuantity(10);
         lineItem.setPrice("99.99");
 
@@ -230,42 +235,23 @@ class ShopifyIntegrationE2ETest {
         // When: Trigger sync
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
-        // Then: Verify sync result
-        assertThat(result.getSuccessCount()).isEqualTo(1);
-        assertThat(result.getFailedCount()).isZero();
+        // Unknown channel customers must be reviewed and created through the
+        // customer-master workflow, never by the integration account.
+        assertThat(result.getSuccessCount()).isZero();
+        assertThat(result.getFailedCount()).isEqualTo(1);
 
         // Verify raw event persisted and marked processed (P1-B1)
         Optional<ChannelRawEvent> rawEvent = channelRawEventRepository
                 .findFirstByChannelAndEventTypeAndExternalIdOrderByIdDesc("SHOPIFY", ChannelRawEvent.TYPE_ORDER, "12345");
         assertThat(rawEvent).isPresent();
-        assertThat(rawEvent.get().getStatus()).isEqualTo(ChannelRawEvent.STATUS_PROCESSED);
+        assertThat(rawEvent.get().getStatus()).isEqualTo(ChannelRawEvent.STATUS_FAILED);
         assertThat(rawEvent.get().getPayload()).contains("#1001");
 
-        // Verify customer created
+        // No customer, order, reservation or outbound task may be created.
         Optional<Customer> customer = customerRepository.findByEmail("newcustomer@example.com");
-        assertThat(customer).isPresent();
-        assertThat(customer.get().getCode()).isEqualTo("SHOPIFY_100");
-        assertThat(customer.get().getName()).isEqualTo("Jane Smith");
-        assertThat(customer.get().getPhone()).isEqualTo("9876543210");
-
-        // Verify sales order created
+        assertThat(customer).isEmpty();
         Optional<SalesOrder> salesOrder = salesOrderRepository.findByExternalOrderId("12345");
-        assertThat(salesOrder).isPresent();
-        assertThat(salesOrder.get().getChannel()).isEqualTo("SHOPIFY");
-        assertThat(salesOrder.get().getExternalOrderNo()).isEqualTo("#1001");
-        assertThat(salesOrder.get().getStatus()).isEqualTo(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT);
-        assertThat(salesOrder.get().getCustomerId()).isEqualTo(customer.get().getId());
-
-        // Verify sales order items
-        List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderId(salesOrder.get().getId());
-        assertThat(items).hasSize(1);
-        assertThat(items.get(0).getProductId()).isEqualTo(testProduct.getId());
-        assertThat(items.get(0).getQuantity()).isEqualTo(10);
-        assertThat(items.get(0).getUnitPrice()).isEqualByComparingTo(BigDecimal.valueOf(99.99));
-
-        // Verify outbound tasks generated
-        List<OutboundTask> tasks = outboundTaskRepository.findBySalesOrderId(salesOrder.get().getId());
-        assertThat(tasks).isNotEmpty();
+        assertThat(salesOrder).isEmpty();
     }
 
     @Test
@@ -319,12 +305,27 @@ class ShopifyIntegrationE2ETest {
         Optional<SalesOrder> salesOrder = salesOrderRepository.findByExternalOrderId("67890");
         assertThat(salesOrder).isPresent();
         assertThat(salesOrder.get().getCustomerId()).isEqualTo(existingCustomer.getId());
+        assertThat(salesOrder.get().getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(outboundTaskRepository.findBySalesOrderId(salesOrder.get().getId())).isEmpty();
+        assertThat(inventoryBatchRepository.findById(testBatch.getId()))
+                .get()
+                .extracting(InventoryBatch::getReservedQuantity)
+                .isEqualTo(0);
     }
 
     @Test
     @DisplayName("case-4")
     void testDeduplication() {
-        // Given: Mock Shopify API response
+        // Given: customer already exists; integration has no customer-create permission
+        customerRepository.save(Customer.builder()
+                .code("CUST-DEDUP")
+                .name("Dedup Test")
+                .email("dedup@example.com")
+                .isActive(true)
+                .creditLimit(BigDecimal.ZERO)
+                .build());
+
+        // Mock Shopify API response
         ShopifyCustomerDto shopifyCustomer = new ShopifyCustomerDto();
         shopifyCustomer.setId(300L);
         shopifyCustomer.setEmail("dedup@example.com");
@@ -373,7 +374,16 @@ class ShopifyIntegrationE2ETest {
     @Test
     @DisplayName("case-5")
     void testSkuNotFound() {
-        // Given: Mock Shopify API response with non-existent SKU
+        // Given: customer exists, but SKU mapping does not
+        customerRepository.save(Customer.builder()
+                .code("CUST-SKU-MISS")
+                .name("SKU Test")
+                .email("sku-test@example.com")
+                .isActive(true)
+                .creditLimit(BigDecimal.ZERO)
+                .build());
+
+        // Mock Shopify API response with non-existent SKU
         ShopifyCustomerDto shopifyCustomer = new ShopifyCustomerDto();
         shopifyCustomer.setId(400L);
         shopifyCustomer.setEmail("sku-test@example.com");

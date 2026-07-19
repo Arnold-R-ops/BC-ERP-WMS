@@ -36,17 +36,17 @@ public class StocktakeItemResponse {
     private Long taskId;
 
     /**
-     * Product ID
+     * ProductSku ID
      */
-    private Long productId;
+    private Long productSkuId;
 
     /**
-     * Product name
+     * ProductSku name
      */
     private String productName;
 
     /**
-     * Product barcode
+     * ProductSku barcode
      */
     private String productBarcode;
 

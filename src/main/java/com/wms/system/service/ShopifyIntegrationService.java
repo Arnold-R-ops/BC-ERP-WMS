@@ -6,7 +6,6 @@ import com.wms.system.dto.sales.CreateSalesOrderRequest;
 import com.wms.system.dto.shopify.ShopifyLineItemDto;
 import com.wms.system.dto.shopify.ShopifyOrderDto;
 import com.wms.system.entity.*;
-import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
@@ -36,7 +35,7 @@ import java.util.Optional;
  * 业务流程：
  * 1. 读取启用的 Shopify 配置
  * 2. 拉取订单原始 JSON（status=open&financial_status=paid）
- * 3. 逐单：去重 → 留底 → 转换 → 创建销售订单（免审批）→ 库存分配
+ * 3. 逐单：去重 → 留底 → 匹配既有客户/SKU → 创建待审批销售订单
  * 4. 留底状态回写：PROCESSED / FAILED / SKIPPED
  *
  * 已知待办（批次2）：
@@ -56,7 +55,6 @@ public class ShopifyIntegrationService {
     private final SalesOrderRepository salesOrderRepository;
     private final CustomerRepository customerRepository;
     private final SalesSubmissionService salesSubmissionService;
-    private final AllocationService allocationService;
     private final ChannelRawEventService rawEventService;
     private final ChannelSkuResolver skuResolver;
     private final PendingSkuMappingService pendingSkuMappingService;
@@ -216,8 +214,8 @@ public class ShopifyIntegrationService {
                     ));
         }
 
-        // b. 客户匹配/创建
-        Customer customer = matchOrCreateCustomer(order);
+        // b. 只匹配既有客户；渠道导入无权创建客户主数据
+        Customer customer = matchExistingCustomer(order);
 
         // c+d. 行解析（P1-B2 四层 SKU 漏斗）并构建订单请求
         //      未知 SKU 进待映射队列并阻断本单（报文保留 FAILED，映射后自动重试放行）
@@ -226,18 +224,7 @@ public class ShopifyIntegrationService {
         // e. 创建销售订单
         Long salesOrderId = createSalesOrderForShopify(request, order);
 
-        // f. 触发库存分配
-        try {
-            log.info("触发库存分配: salesOrderId={}, externalOrderNo={}", salesOrderId, externalOrderNo);
-            allocationService.allocateInventory(salesOrderId);
-            log.info("库存分配成功: salesOrderId={}, externalOrderNo={}", salesOrderId, externalOrderNo);
-        } catch (Exception e) {
-            log.error("库存分配失败: salesOrderId={}, externalOrderNo={}, error={}",
-                    salesOrderId, externalOrderNo, e.getMessage());
-            throw e;
-        }
-
-        log.info("订单处理成功: externalOrderNo={}, salesOrderId={}", externalOrderNo, salesOrderId);
+        log.info("订单补录成功并进入待审批: externalOrderNo={}, salesOrderId={}", externalOrderNo, salesOrderId);
     }
 
     /**
@@ -246,7 +233,7 @@ public class ShopifyIntegrationService {
      * @param order Shopify 订单
      * @return 客户实体
      */
-    private Customer matchOrCreateCustomer(ShopifyOrderDto order) {
+    private Customer matchExistingCustomer(ShopifyOrderDto order) {
         String email = order.getEmail();
 
         if (!StringUtils.hasText(email)) {
@@ -259,48 +246,18 @@ public class ShopifyIntegrationService {
                     ));
         }
 
-        // 根据邮箱查询客户
-        Optional<Customer> existingCustomer = customerRepository.findByEmail(email);
-
-        if (existingCustomer.isPresent()) {
-            log.info("找到匹配的客户: email={}, customerId={}", email, existingCustomer.get().getId());
-            return existingCustomer.get();
-        }
-
-        // 创建新客户
-        log.info("创建新客户: email={}", email);
-
-        String firstName = "";
-        String lastName = "";
-        if (order.getCustomer() != null) {
-            if (StringUtils.hasText(order.getCustomer().getFirstName())) {
-                firstName = order.getCustomer().getFirstName().trim();
-            }
-            if (StringUtils.hasText(order.getCustomer().getLastName())) {
-                lastName = order.getCustomer().getLastName().trim();
-            }
-        }
-        String phone = order.getCustomer() != null ? order.getCustomer().getPhone() : "";
-        Long shopifyCustomerId = order.getCustomer() != null ? order.getCustomer().getId() : order.getId();
-
-        String customerName = (firstName + " " + lastName).trim();
-        if (!StringUtils.hasText(customerName)) {
-            customerName = email; // 如果没有名字，使用邮箱作为名字
-        }
-
-        Customer newCustomer = Customer.builder()
-                .code("SHOPIFY_" + shopifyCustomerId)
-                .name(customerName)
-                .email(email)
-                .phone(phone)
-                .isActive(true)
-                .creditLimit(BigDecimal.ZERO)
-                .build();
-
-        newCustomer = customerRepository.save(newCustomer);
-        log.info("新客户创建成功: customerId={}, code={}, email={}", newCustomer.getId(), newCustomer.getCode(), email);
-
-        return newCustomer;
+        Customer customer = customerRepository.findByEmail(email)
+            .filter(Customer::getIsActive)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.VALIDATION_FAILED,
+                Map.of(
+                    "field", "customer.email",
+                    "value", email,
+                    "constraint", "渠道补单只能匹配已存在且启用的客户，禁止自动创建客户"
+                )
+            ));
+        log.info("找到既有客户: email={}, customerId={}", email, customer.getId());
+        return customer;
     }
 
     /**
@@ -347,8 +304,8 @@ public class ShopifyIntegrationService {
             switch (resolution.getType()) {
                 case PRODUCT -> {
                     items.add(toItemData(lineItem, resolution, order, effectiveSku));
-                    log.info("SKU 解析成功: sku='{}' → productId={}, ratio={}",
-                        effectiveSku, resolution.getProduct().getId(), resolution.getQuantityRatio());
+                    log.info("SKU 解析成功: sku='{}' → productSkuId={}, ratio={}",
+                        effectiveSku, resolution.getProductSku().getId(), resolution.getQuantityRatio());
                 }
                 case VIRTUAL -> log.info("虚拟行跳过履约: externalOrderNo={}, sku='{}', title={}",
                     order.getName(), effectiveSku, lineItem.getName());
@@ -402,7 +359,7 @@ public class ShopifyIntegrationService {
         BigDecimal channelPrice = parsePrice(lineItem.getPrice());
 
         CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
-        itemData.setProductId(resolution.getProduct().getId());
+        itemData.setProductSkuId(resolution.getProductSku().getId());
         itemData.setQuantity(lineItem.getQuantity() * ratio);
         itemData.setUnitPrice(ratio == 1
             ? channelPrice
@@ -458,33 +415,19 @@ public class ShopifyIntegrationService {
      * @return 销售单 ID
      */
     private Long createSalesOrderForShopify(CreateSalesOrderRequest request, ShopifyOrderDto order) {
-        // 调用 SalesSubmissionService 创建订单
-        var response = salesSubmissionService.createSalesOrder(
+        var response = salesSubmissionService.createChannelOrderPendingApproval(
                 request,
                 1L, // 系统用户 ID
-                "Shopify Integration"
+                "Shopify Integration",
+                CHANNEL,
+                String.valueOf(order.getId()),
+                order.getName()
         );
 
-        // 获取创建的订单
-        SalesOrder salesOrder = salesOrderRepository.findById(response.getId())
-                .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_NOT_FOUND,
-                        Map.of("salesOrderId", response.getId())));
-
-        // 设置渠道信息
-        salesOrder.setChannel(CHANNEL);
-        salesOrder.setExternalOrderId(String.valueOf(order.getId()));
-        salesOrder.setExternalOrderNo(order.getName());
-
-        // 强制设置状态为 APPROVED_AWAITING_SHIPMENT（跳过审批）
-        salesOrder.setStatus(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT);
-
-        // 保存订单
-        salesOrder = salesOrderRepository.save(salesOrder);
-
         log.info("销售订单创建成功: salesOrderId={}, orderNo={}, externalOrderNo={}",
-                salesOrder.getId(), salesOrder.getOrderNo(), order.getName());
+                response.getId(), response.getOrderNo(), order.getName());
 
-        return salesOrder.getId();
+        return response.getId();
     }
 
     /**

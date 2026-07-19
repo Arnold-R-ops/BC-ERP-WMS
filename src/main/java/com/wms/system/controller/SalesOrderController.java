@@ -109,7 +109,7 @@ public class SalesOrderController {
      * Permission: sales:create
      *
      * Parameters:
-     * - productId: Product ID
+     * - productSkuId: ProductSku ID
      * - quantity: Required quantity
      * - rejectNearExpiry: Reject near expiry batches (optional)
      *
@@ -118,14 +118,14 @@ public class SalesOrderController {
     @PostMapping("/batch-options")
     @PreAuthorize("hasAnyAuthority('sales:create', 'SUPER_ADMIN')")
     public ResponseEntity<List<BatchOptionDto>> getBatchOptions(
-        @RequestParam("productId") Long productId,
+        @RequestParam("productSkuId") Long productSkuId,
         @RequestParam("quantity") Integer quantity,
         @RequestParam(value = "rejectNearExpiry", required = false) Boolean rejectNearExpiry
     ) {
-        log.info("API调用: getBatchOptions - productId: {}, quantity: {}, rejectNearExpiry: {}",
-            productId, quantity, rejectNearExpiry);
+        log.info("API调用: getBatchOptions - productSkuId: {}, quantity: {}, rejectNearExpiry: {}",
+            productSkuId, quantity, rejectNearExpiry);
 
-        List<BatchOptionDto> options = salesEntryService.getBatchOptions(productId, quantity, rejectNearExpiry);
+        List<BatchOptionDto> options = salesEntryService.getBatchOptions(productSkuId, quantity, rejectNearExpiry);
 
         log.info("API响应: getBatchOptions - 批次选项数: {}", options.size());
 

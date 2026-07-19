@@ -2,6 +2,8 @@ package com.wms.system.service;
 
 import com.wms.system.entity.ChannelRawEvent;
 import com.wms.system.repository.ChannelRawEventRepository;
+import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Map;
 
 /**
  * 渠道报文留底服务（P1 批次1）
@@ -35,6 +38,32 @@ public class ChannelRawEventService {
     @Transactional(readOnly = true)
     public Optional<ChannelRawEvent> findLatest(String channel, String eventType, String externalId) {
         return repository.findFirstByChannelAndEventTypeAndExternalIdOrderByIdDesc(channel, eventType, externalId);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ChannelRawEvent> findLatest(
+        String channel,
+        String storeIdentifier,
+        String source,
+        String eventType,
+        String externalId
+    ) {
+        return repository.findFirstByChannelAndStoreIdentifierAndSourceAndEventTypeAndExternalIdOrderByIdDesc(
+            channel,
+            storeIdentifier,
+            source,
+            eventType,
+            externalId
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public ChannelRawEvent requireById(Long eventId) {
+        return repository.findById(eventId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.RESOURCE_NOT_FOUND,
+                Map.of("resourceType", "ChannelRawEvent", "resourceId", eventId)
+            ));
     }
 
     /**

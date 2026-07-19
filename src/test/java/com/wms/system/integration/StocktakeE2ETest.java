@@ -58,10 +58,13 @@ class StocktakeE2ETest {
     private LocationRepository locationRepository;
 
     @Autowired
+    private ProductSkuRepository productSkuRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private InventoryBatchRepository inventoryBatchRepository;
@@ -77,8 +80,8 @@ class StocktakeE2ETest {
 
     private Warehouse testWarehouse;
     private Location testLocation;
-    private Product testProduct1;
-    private Product testProduct2;
+    private ProductSku testProduct1;
+    private ProductSku testProduct2;
     private InventoryBatch testBatch1;
     private InventoryBatch testBatch2;
 
@@ -90,8 +93,8 @@ class StocktakeE2ETest {
         stocktakeTaskRepository.deleteAll();
         inventoryBatchRepository.deleteAll();
         locationRepository.deleteAll();
+        productSkuRepository.deleteAll();
         productRepository.deleteAll();
-        productSpuRepository.deleteAll();
         warehouseRepository.deleteAll();
 
         // 1. Create warehouse
@@ -114,42 +117,44 @@ class StocktakeE2ETest {
         testLocation = locationRepository.save(testLocation);
 
         // 3. Create product SPU
-        ProductSpu productSpu = ProductSpu.builder()
-            .spuCode("SPU001")
-            .spuName("Test Product SPU")
-            .category("Electronics")
+        Product product = Product.builder()
+            .productCode("SPU001")
+            .productName("Test ProductSku SPU")
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .brand("Test Brand")
             .build();
-        productSpu = productSpuRepository.save(productSpu);
+        product = productRepository.save(product);
 
         // 4. Create products
-        testProduct1 = Product.builder()
-            .spu(productSpu)
+        testProduct1 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(product)
             .skuName("SKU001")
             .barcode("1234567890")
-            .name("Test Product 1")
+            .name("Test ProductSku 1")
             .specification("Standard")
             .unitPrice(new java.math.BigDecimal("20.00"))
             .nearExpiryDays(30)
             .enabled(true)
             .build();
-        testProduct1 = productRepository.save(testProduct1);
-        testProduct2 = Product.builder()
-            .spu(productSpu)
+        testProduct1 = productSkuRepository.save(testProduct1);
+        testProduct2 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(product)
             .skuName("SKU002")
             .barcode("0987654321")
-            .name("Test Product 2")
+            .name("Test ProductSku 2")
             .specification("Standard")
             .unitPrice(new java.math.BigDecimal("30.00"))
             .nearExpiryDays(30)
             .enabled(true)
             .build();
-        testProduct2 = productRepository.save(testProduct2);
+        testProduct2 = productSkuRepository.save(testProduct2);
 
         // 5. Create inventory batches
         testBatch1 = InventoryBatch.builder()
             .batchCode("BATCH001")
-            .product(testProduct1)
+            .productSku(testProduct1)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(100)
@@ -161,7 +166,7 @@ class StocktakeE2ETest {
         testBatch1 = inventoryBatchRepository.save(testBatch1);
         testBatch2 = InventoryBatch.builder()
             .batchCode("BATCH002")
-            .product(testProduct2)
+            .productSku(testProduct2)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(50)
@@ -328,25 +333,25 @@ class StocktakeE2ETest {
 
         // Verify loss transaction
         StockTransaction lossTransaction = transactions.stream()
-            .filter(t -> t.getProduct().getId().equals(testProduct1.getId()))
+            .filter(t -> t.getProductSku().getId().equals(testProduct1.getId()))
             .findFirst()
             .orElseThrow();
 
         assertThat(lossTransaction.getSourceType()).isEqualTo(SourceType.INVENTORY_LOSS);
         assertThat(lossTransaction.getTransactionType()).isEqualTo(TransactionType.OUT);
         assertThat(lossTransaction.getQuantity()).isEqualTo(5);
-        assertThat(lossTransaction.getProduct().getId()).isEqualTo(testProduct1.getId());
+        assertThat(lossTransaction.getProductSku().getId()).isEqualTo(testProduct1.getId());
 
         // Verify gain transaction
         StockTransaction gainTransaction = transactions.stream()
-            .filter(t -> t.getProduct().getId().equals(testProduct2.getId()))
+            .filter(t -> t.getProductSku().getId().equals(testProduct2.getId()))
             .findFirst()
             .orElseThrow();
 
         assertThat(gainTransaction.getSourceType()).isEqualTo(SourceType.INVENTORY_GAIN);
         assertThat(gainTransaction.getTransactionType()).isEqualTo(TransactionType.IN);
         assertThat(gainTransaction.getQuantity()).isEqualTo(5);  // Gain
-        assertThat(gainTransaction.getProduct().getId()).isEqualTo(testProduct2.getId());
+        assertThat(gainTransaction.getProductSku().getId()).isEqualTo(testProduct2.getId());
     }
 
     @Test

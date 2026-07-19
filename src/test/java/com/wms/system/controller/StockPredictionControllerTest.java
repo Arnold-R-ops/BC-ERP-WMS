@@ -39,10 +39,10 @@ class StockPredictionControllerTest {
     @Autowired private MockMvc mockMvc;
     @MockBean private StockPredictionService predictionService;
 
-    private ReorderSuggestion buildSuggestion(Long productId, String urgency) {
+    private ReorderSuggestion buildSuggestion(Long productSkuId, String urgency) {
         ReorderSuggestion s = ReorderSuggestion.builder()
-                .productId(productId)
-                .productName("Product " + productId)
+                .productSkuId(productSkuId)
+                .productName("ProductSku " + productSkuId)
                 .currentStock(10)
                 .minStock(50)
                 .leadTime(7)
@@ -56,7 +56,7 @@ class StockPredictionControllerTest {
         return s;
     }
 
-    // ========== GET /api/predictions/reorder/{productId} ==========
+    // ========== GET /api/predictions/reorder/{productSkuId} ==========
 
     @Test
     @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
@@ -69,7 +69,7 @@ class StockPredictionControllerTest {
 
         mockMvc.perform(get("/api/predictions/reorder/1").param("days", "30"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.productSkuId").value(1))
                 .andExpect(jsonPath("$.currentStock").value(10))
                 .andExpect(jsonPath("$.suggestedReorderQuantity").value(85));
     }
@@ -94,7 +94,7 @@ class StockPredictionControllerTest {
     @DisplayName("getReorderSuggestion - returns 404 when product not found")
     void testGetReorderSuggestion_NotFound() throws Exception {
         when(predictionService.getReorderSuggestion(99L, 30)).thenThrow(
-                new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND, Map.of("productId", 99L))
+                new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND, Map.of("productSkuId", 99L))
         );
 
         mockMvc.perform(get("/api/predictions/reorder/99").param("days", "30"))

@@ -52,7 +52,7 @@ public class UpdateSalesOrderRequest {
          * 产品ID
          */
         @NotNull(message = "产品ID不能为空")
-        private Long productId;
+        private Long productSkuId;
 
         /**
          * 销售数量

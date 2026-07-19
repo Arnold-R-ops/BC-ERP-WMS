@@ -71,7 +71,7 @@ class PurchaseOrderControllerTest {
         String requestJson = """
                 {
                   "supplier": "Test Supplier",
-                  "items": [{"productId": 1, "orderedQuantity": 100}],
+                  "items": [{"productSkuId": 1, "orderedQuantity": 100}],
                   "expectedDate": "2026-06-01",
                   "operatorId": 1,
                   "operatorName": "admin"
@@ -92,7 +92,7 @@ class PurchaseOrderControllerTest {
     void testUploadExcel_Success() throws Exception {
         PurchaseOrderService.PurchaseOrderItemData item =
                 PurchaseOrderService.PurchaseOrderItemData.builder()
-                        .productId(1L)
+                        .productSkuId(1L)
                         .orderedQuantity(100)
                         .build();
         PurchaseOrder order = buildPurchaseOrder();
@@ -197,7 +197,7 @@ class PurchaseOrderControllerTest {
         String requestJson = """
                 {
                   "supplier": "Test Supplier",
-                  "items": [{"productId": 1, "orderedQuantity": 100}],
+                  "items": [{"productSkuId": 1, "orderedQuantity": 100}],
                   "expectedDate": "2026-06-01",
                   "operatorId": 1,
                   "operatorName": "admin"
@@ -299,7 +299,7 @@ class PurchaseOrderControllerTest {
     @DisplayName("getPurchaseOrders - returns 200 with list")
     void testGetPurchaseOrders_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
-        when(purchaseOrderService.findByStatus(isNull(), any())).thenReturn(List.of(order));
+        when(purchaseOrderService.findAll(any())).thenReturn(List.of(order));
 
         mockMvc.perform(get("/api/purchase-orders"))
                 .andExpect(status().isOk())

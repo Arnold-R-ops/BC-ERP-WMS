@@ -53,6 +53,7 @@ public class ChannelRawEvent extends BaseEntity {
     public static final String TYPE_ORDER_CANCELLED = "ORDER_CANCELLED";
     public static final String TYPE_ORDER_UPDATED = "ORDER_UPDATED";
     public static final String TYPE_REFUND = "REFUND";
+    public static final String TYPE_RECONCILE_REPORT = "RECONCILE_REPORT";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

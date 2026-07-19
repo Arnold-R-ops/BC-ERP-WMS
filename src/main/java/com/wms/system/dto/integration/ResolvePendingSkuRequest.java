@@ -28,7 +28,7 @@ public class ResolvePendingSkuRequest {
     /**
      * 内部商品 ID（action=MAP 时必填）
      */
-    private Long productId;
+    private Long productSkuId;
 
     /**
      * 数量换算：1 外部单位 = N 内部单位（默认 1）

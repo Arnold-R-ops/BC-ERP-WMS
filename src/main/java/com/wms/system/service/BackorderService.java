@@ -39,7 +39,7 @@ public class BackorderService {
         BackorderLine line = BackorderLine.builder()
             .salesOrderId(item.getSalesOrderId())
             .salesOrderItemId(item.getId())
-            .productId(item.getProductId())
+            .productSkuId(item.getProductSkuId())
             .requestedQty(shortageQty)
             .remainingQty(shortageQty)
             .allocatedQty(0)
@@ -49,18 +49,19 @@ public class BackorderService {
             .build();
         BackorderLine saved = backorderLineRepository.save(line);
         domainOutboxService.append("BACKORDER_CREATED", "BackorderLine", saved.getId(), Map.of(
+            "schemaVersion", 2,
             "backorderId", saved.getId(),
             "salesOrderId", saved.getSalesOrderId(),
-            "productId", saved.getProductId(),
+            "productSkuId", saved.getProductSkuId(),
             "remainingQty", saved.getRemainingQty()
         ));
         return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public int wakeProduct(Long productId) {
-        List<BackorderLine> lines = backorderLineRepository.findOpenByProductForWakeup(
-            productId,
+    public int wakeProduct(Long productSkuId) {
+        List<BackorderLine> lines = backorderLineRepository.findOpenByProductSkuForWakeup(
+            productSkuId,
             EnumSet.of(BackorderStatus.OPEN, BackorderStatus.PARTIAL)
         );
 
@@ -88,6 +89,7 @@ public class BackorderService {
 
             createdTasks++;
             domainOutboxService.append("BACKORDER_ALLOCATED", "BackorderLine", line.getId(), Map.of(
+                "schemaVersion", 2,
                 "backorderId", line.getId(),
                 "allocatedQty", allocated,
                 "remainingQty", line.getRemainingQty()
@@ -102,16 +104,16 @@ public class BackorderService {
     }
 
     @Transactional(readOnly = true)
-    public List<BackorderLineResponse> listByProduct(Long productId) {
-        return backorderLineRepository.findOpenByProductForWakeup(
-            productId,
+    public List<BackorderLineResponse> listByProductSku(Long productSkuId) {
+        return backorderLineRepository.findOpenByProductSkuForWakeup(
+            productSkuId,
             EnumSet.of(BackorderStatus.OPEN, BackorderStatus.PARTIAL, BackorderStatus.FULFILLED)
         ).stream().map(this::toResponse).toList();
     }
 
     private int reserveAvailable(SalesOrderItem item, int requestedQty) {
         int remaining = requestedQty;
-        List<InventoryBatch> batches = inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(item.getProductId(), true)
+        List<InventoryBatch> batches = inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(item.getProductSkuId(), true)
             .stream()
             .filter(batch -> batch.getAvailableQuantity() > 0)
             .toList();
@@ -128,7 +130,7 @@ public class BackorderService {
                 .salesOrderId(item.getSalesOrderId())
                 .salesOrderItemId(item.getId())
                 .inventoryBatchId(savedBatch.getId())
-                .productId(item.getProductId())
+                .productSkuId(item.getProductSkuId())
                 .locationId(savedBatch.getLocation().getId())
                 .reservedQty(toReserve)
                 .sourceType("BACKORDER")
@@ -170,7 +172,7 @@ public class BackorderService {
             .id(line.getId())
             .salesOrderId(line.getSalesOrderId())
             .salesOrderItemId(line.getSalesOrderItemId())
-            .productId(line.getProductId())
+            .productSkuId(line.getProductSkuId())
             .requestedQty(line.getRequestedQty())
             .remainingQty(line.getRemainingQty())
             .allocatedQty(line.getAllocatedQty())

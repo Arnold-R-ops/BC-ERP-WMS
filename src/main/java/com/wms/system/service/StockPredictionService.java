@@ -1,12 +1,12 @@
 package com.wms.system.service;
 
 import com.wms.system.dto.ReorderSuggestion;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +66,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StockPredictionService {
 
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransactionRepository stockTransactionRepository;
 
@@ -102,27 +102,27 @@ public class StockPredictionService {
      * - Convert to London timezone before grouping by date
      * - Ensures accurate daily statistics for UK business
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param calculationPeriod Calculation period in days (e.g., 7/14/30/60/90)
      * @return ReorderSuggestion Reorder suggestion
      * @throws BusinessException with error key if product not found
      */
     @Transactional(readOnly = true)
-    public ReorderSuggestion getReorderSuggestion(Long productId, Integer calculationPeriod) {
-        log.info("Generating reorder suggestion: productId={}, calculationPeriod={} days",
-            productId, calculationPeriod);
+    public ReorderSuggestion getReorderSuggestion(Long productSkuId, Integer calculationPeriod) {
+        log.info("Generating reorder suggestion: productSkuId={}, calculationPeriod={} days",
+            productSkuId, calculationPeriod);
 
         // 1. Query product information
-        Product product = productRepository.findById(productId)
+        ProductSku product = productSkuRepository.findById(productSkuId)
             .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PRODUCT_NOT_FOUND,
-                Map.of("productId", productId)
+                ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                Map.of("productSkuId", productSkuId)
             ));
 
         // 2. Query current total stock (sum across all locations)
         // Single source of truth is inventory_batch (V3.0 architecture decision);
         // the legacy Inventory table is no longer maintained by inbound/outbound flows.
-        Integer currentStock = inventoryBatchRepository.sumQuantityByProduct(productId);
+        Integer currentStock = inventoryBatchRepository.sumQuantityByProductSku(productSkuId);
         if (currentStock == null) {
             currentStock = 0;
         }
@@ -141,9 +141,9 @@ public class StockPredictionService {
             utcStartDate, utcEndDate);
 
         List<StockTransaction> outboundTransactions = stockTransactionRepository
-            .findMovementHistory(productId, utcStartDate, utcEndDate);
+            .findMovementHistory(productSkuId, utcStartDate, utcEndDate);
 
-        log.info("Product {} has {} outbound transactions in last {} days (London timezone)",
+        log.info("ProductSku {} has {} outbound transactions in last {} days (London timezone)",
             product.getName(), outboundTransactions.size(), calculationPeriod);
 
         // 4. Calculate daily average outbound (with timezone conversion)
@@ -158,17 +158,14 @@ public class StockPredictionService {
         );
 
         // 6. Calculate estimated days until stockout
-        double estimatedDaysUntilStockout = 0.0;
+        Double estimatedDaysUntilStockout = null;
         if (dailyAverageOutbound > 0) {
             estimatedDaysUntilStockout = currentStock / dailyAverageOutbound;
-        } else {
-            // No outbound activity - stock will not run out
-            estimatedDaysUntilStockout = Double.MAX_VALUE;
         }
 
         // 7. Build ReorderSuggestion object
         ReorderSuggestion suggestion = ReorderSuggestion.builder()
-            .productId(product.getId())
+            .productSkuId(product.getId())
             .barcode(product.getBarcode())
             .productName(product.getName())
             .specification(product.getSpecification())
@@ -196,7 +193,7 @@ public class StockPredictionService {
             String.format("%.2f", dailyAverageOutbound),
             suggestedQuantity,
             suggestion.getUrgencyLevel().getDescription(),
-            String.format("%.1f", estimatedDaysUntilStockout)
+            estimatedDaysUntilStockout == null ? "N/A" : String.format("%.1f", estimatedDaysUntilStockout)
         );
 
         return suggestion;
@@ -205,12 +202,12 @@ public class StockPredictionService {
     /**
      * Get reorder suggestion using default calculation period (30 days)
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return ReorderSuggestion Reorder suggestion
      */
     @Transactional(readOnly = true)
-    public ReorderSuggestion getReorderSuggestion(Long productId) {
-        return getReorderSuggestion(productId, DEFAULT_CALCULATION_PERIOD);
+    public ReorderSuggestion getReorderSuggestion(Long productSkuId) {
+        return getReorderSuggestion(productSkuId, DEFAULT_CALCULATION_PERIOD);
     }
 
     /**
@@ -233,7 +230,7 @@ public class StockPredictionService {
         log.info("Generating batch reorder suggestions: calculationPeriod={} days", calculationPeriod);
 
         // 1. Query all low stock products
-        List<Product> lowStockProducts = productRepository.findLowStockProducts();
+        List<ProductSku> lowStockProducts = productSkuRepository.findLowStockProducts();
         log.info("Found {} low stock products", lowStockProducts.size());
 
         // 2. Generate reorder suggestion for each product
@@ -242,7 +239,7 @@ public class StockPredictionService {
                 try {
                     return getReorderSuggestion(product.getId(), calculationPeriod);
                 } catch (Exception e) {
-                    log.error("Failed to generate reorder suggestion: productId={}, productName={}",
+                    log.error("Failed to generate reorder suggestion: productSkuId={}, productName={}",
                         product.getId(), product.getName(), e);
                     return null;
                 }
@@ -251,7 +248,10 @@ public class StockPredictionService {
             .filter(ReorderSuggestion::needsReorder)  // Filter products that don't need reordering
             .sorted(Comparator
                 .comparing((ReorderSuggestion s) -> s.getUrgencyLevel().getPriority())  // Sort by urgency
-                .thenComparing(ReorderSuggestion::getEstimatedDaysUntilStockout)  // Then by stockout days
+                .thenComparing(
+                    ReorderSuggestion::getEstimatedDaysUntilStockout,
+                    Comparator.nullsLast(Comparator.naturalOrder())
+                )  // No outbound history sorts last within the same urgency
             )
             .collect(Collectors.toList());
 
@@ -302,12 +302,12 @@ public class StockPredictionService {
     /**
      * Get outbound trend for a product (for chart display)
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param days Number of days
      * @return List<StockTransaction> Historical outbound records
      */
     @Transactional(readOnly = true)
-    public List<StockTransaction> getOutboundTrend(Long productId, Integer days) {
+    public List<StockTransaction> getOutboundTrend(Long productSkuId, Integer days) {
         // Define time range in London timezone
         ZonedDateTime londonNow = ZonedDateTime.now(BUSINESS_TIMEZONE);
         ZonedDateTime londonStartDate = londonNow.minusDays(days);
@@ -316,7 +316,7 @@ public class StockPredictionService {
         LocalDateTime utcEndDate = londonNow.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
         LocalDateTime utcStartDate = londonStartDate.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
 
-        return stockTransactionRepository.findMovementHistory(productId, utcStartDate, utcEndDate);
+        return stockTransactionRepository.findMovementHistory(productSkuId, utcStartDate, utcEndDate);
     }
 
     /**

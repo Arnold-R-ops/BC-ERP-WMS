@@ -1,7 +1,7 @@
 package com.wms.system.service;
 
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
-import com.wms.system.entity.ProductSpu;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.InboundOrderItemRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,25 +43,26 @@ class SpuSkuDateBatchCodeGeneratorTest {
     @InjectMocks
     private SpuSkuDateBatchCodeGenerator batchCodeGenerator;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private LocalDate testDate;
 
     @BeforeEach
     void setUp() {
         testDate = LocalDate.of(2026, 1, 26);
 
-        ProductSpu spu = ProductSpu.builder()
+        Product spu = Product.builder()
                 .id(1L)
-                .spuCode("SPU001")
-                .spuName("Test SPU")
+                .productCode("SPU001")
+                .productName("Test SPU")
                 .build();
 
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode("SKU00000001")
                 .id(1L)
-                .name("Test Product")
+                .name("Test ProductSku")
                 .barcode("SKU001")
                 .skuName("Test SKU")
-                .spu(spu)
+                .product(spu)
                 .build();
     }
 
@@ -71,64 +72,64 @@ class SpuSkuDateBatchCodeGeneratorTest {
     @DisplayName("case-2")
     void generateUnique_NoCollision() {
         // Given
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126"))
                 .thenReturn(false);
 
         // When
         String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
 
         // Then
-        assertThat(batchCode).isEqualTo("SPU001-SKU001-20260126");
-        verify(inboundOrderItemRepository).existsByBatchCode("SPU001-SKU001-20260126");
+        assertThat(batchCode).isEqualTo("SPU001-SKU00000001-20260126");
+        verify(inboundOrderItemRepository).existsByBatchCode("SPU001-SKU00000001-20260126");
     }
 
     @Test
     @DisplayName("case-3")
     void generateUnique_WithCollision_AddSequence01() {
         // Given
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-01"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-01"))
                 .thenReturn(false);
 
         // When
         String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
 
         // Then
-        assertThat(batchCode).isEqualTo("SPU001-SKU001-20260126-01");
-        verify(inboundOrderItemRepository).existsByBatchCode("SPU001-SKU001-20260126");
-        verify(inboundOrderItemRepository).existsByBatchCode("SPU001-SKU001-20260126-01");
+        assertThat(batchCode).isEqualTo("SPU001-SKU00000001-20260126-01");
+        verify(inboundOrderItemRepository).existsByBatchCode("SPU001-SKU00000001-20260126");
+        verify(inboundOrderItemRepository).existsByBatchCode("SPU001-SKU00000001-20260126-01");
     }
 
     @Test
     @DisplayName("case-4")
     void generateUnique_MultipleCollisions_AddSequence05() {
         // Given
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-01"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-01"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-02"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-02"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-03"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-03"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-04"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-04"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-05"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-05"))
                 .thenReturn(false);
 
         // When
         String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
 
         // Then
-        assertThat(batchCode).isEqualTo("SPU001-SKU001-20260126-05");
+        assertThat(batchCode).isEqualTo("SPU001-SKU00000001-20260126-05");
     }
 
     @Test
     @DisplayName("case-5")
     void generateUnique_SequenceExhausted_ThrowsException() {
         // Given
-        String baseBatchCode = "SPU001-SKU001-20260126";
+        String baseBatchCode = "SPU001-SKU00000001-20260126";
         when(inboundOrderItemRepository.existsByBatchCode(anyString())).thenReturn(true);
 
         // When & Then
@@ -143,23 +144,22 @@ class SpuSkuDateBatchCodeGeneratorTest {
     @DisplayName("case-6")
     void generateUnique_ProductWithoutSpu_UseDefault() {
         // Given
-        testProduct.setSpu(null);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU1-SKU001-20260126"))
+        testProduct.setProduct(null);
+        when(inboundOrderItemRepository.existsByBatchCode("SPU1-SKU00000001-20260126"))
                 .thenReturn(false);
 
         // When
         String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
 
         // Then
-        assertThat(batchCode).isEqualTo("SPU1-SKU001-20260126");
+        assertThat(batchCode).isEqualTo("SPU1-SKU00000001-20260126");
     }
 
     @Test
     @DisplayName("case-7")
     void generateUnique_ProductWithoutSku_UseDefault() {
         // Given
-        testProduct.setBarcode(null);
-        testProduct.setSkuName(null);
+        testProduct.setSkuCode(null);
         when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU1-20260126"))
                 .thenReturn(false);
 
@@ -172,18 +172,17 @@ class SpuSkuDateBatchCodeGeneratorTest {
 
     @Test
     @DisplayName("case-8")
-    void generateUnique_UseSkuName() {
+    void generateUnique_BarcodeDoesNotChangeInternalBatchCode() {
         // Given
-        testProduct.setBarcode(null);
-        testProduct.setSkuName("Test-SKU-Name");
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-TestSKUName-20260126"))
+        testProduct.setBarcode("A-VERY-LONG-CHANGEABLE-BARCODE");
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126"))
                 .thenReturn(false);
 
         // When
         String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
 
         // Then
-        assertThat(batchCode).isEqualTo("SPU001-TestSKUName-20260126");
+        assertThat(batchCode).isEqualTo("SPU001-SKU00000001-20260126");
     }
 
     // ==================== 妤犲矁鐦夐幍瑙勵偧閻焦鐗稿蹇旂ゴ鐠?====================
@@ -264,9 +263,9 @@ class SpuSkuDateBatchCodeGeneratorTest {
         LocalDate date1 = LocalDate.of(2026, 1, 26);
         LocalDate date2 = LocalDate.of(2026, 1, 27);
 
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126"))
                 .thenReturn(false);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260127"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260127"))
                 .thenReturn(false);
 
         // When
@@ -274,8 +273,8 @@ class SpuSkuDateBatchCodeGeneratorTest {
         String batchCode2 = batchCodeGenerator.generateUnique(testProduct, date2);
 
         // Then
-        assertThat(batchCode1).isEqualTo("SPU001-SKU001-20260126");
-        assertThat(batchCode2).isEqualTo("SPU001-SKU001-20260127");
+        assertThat(batchCode1).isEqualTo("SPU001-SKU00000001-20260126");
+        assertThat(batchCode2).isEqualTo("SPU001-SKU00000001-20260127");
         assertThat(batchCode1).isNotEqualTo(batchCode2);
     }
 
@@ -283,9 +282,9 @@ class SpuSkuDateBatchCodeGeneratorTest {
     @DisplayName("case-17")
     void generateUnique_SequenceFormat_TwoDigits() {
         // Given
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126"))
                 .thenReturn(true);
-        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU001-20260126-01"))
+        when(inboundOrderItemRepository.existsByBatchCode("SPU001-SKU00000001-20260126-01"))
                 .thenReturn(false);
 
         // When
@@ -294,5 +293,18 @@ class SpuSkuDateBatchCodeGeneratorTest {
         // Then
         assertThat(batchCode).endsWith("-01"); // 娑撱倓缍呴弫鐗堢壐瀵?
         assertThat(batchCode).doesNotEndWith("-1"); // 娑撳秵妲告稉鈧担宥嗘殶
+    }
+
+    @Test
+    @DisplayName("long product codes stay within the database batch-code limit")
+    void generateUnique_LongProductCode_IsBounded() {
+        testProduct.getProduct().setProductCode("PRODUCT-CODE-WITH-A-VERY-LONG-HUMAN-READABLE-NAME-999");
+        when(inboundOrderItemRepository.existsByBatchCode(anyString())).thenReturn(false);
+
+        String batchCode = batchCodeGenerator.generateUnique(testProduct, testDate);
+
+        assertThat(batchCode).hasSizeLessThanOrEqualTo(47);
+        assertThat(batchCode).contains("-SKU00000001-20260126");
+        assertThat(batchCodeGenerator.isValidFormat(batchCode)).isTrue();
     }
 }

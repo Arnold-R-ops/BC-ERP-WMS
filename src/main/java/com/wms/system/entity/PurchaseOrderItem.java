@@ -27,7 +27,7 @@ import java.util.List;
 @Entity
 @Table(name = "purchase_order_item", indexes = {
     @Index(name = "idx_purchase_order_id", columnList = "purchase_order_id"),
-    @Index(name = "idx_po_item_product_id", columnList = "product_id"),
+    @Index(name = "idx_po_item_product_sku_id", columnList = "product_sku_id"),
     @Index(name = "idx_expiry_date", columnList = "expiry_date")  // FIFO 查询优化
 })
 @Getter
@@ -55,8 +55,8 @@ public class PurchaseOrderItem extends BaseEntity {
      * FetchType: LAZY（延迟加载）
      * Optional: false（必须关联到产品�?     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_po_item_product"))
-    private Product product;
+    @JoinColumn(name = "product_sku_id", nullable = false, foreignKey = @ForeignKey(name = "fk_po_item_product"))
+    private ProductSku productSku;
 
     /**
      * 订单数量（采购订单中的数量）

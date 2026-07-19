@@ -39,7 +39,7 @@ public class StocktakeItemDetailResponse extends StocktakeItemResponse {
     public StocktakeItemDetailResponse(
         Long id,
         Long taskId,
-        Long productId,
+        Long productSkuId,
         String productName,
         String productBarcode,
         Long batchId,
@@ -55,7 +55,7 @@ public class StocktakeItemDetailResponse extends StocktakeItemResponse {
         Integer snapshotQty,
         Integer differenceQty
     ) {
-        super(id, taskId, productId, productName, productBarcode, batchId, batchCode,
+        super(id, taskId, productSkuId, productName, productBarcode, batchId, batchCode,
             locationId, locationCode, countedQty, isCounted, countedBy, countedByName,
             countedAt, remark);
         this.snapshotQty = snapshotQty;

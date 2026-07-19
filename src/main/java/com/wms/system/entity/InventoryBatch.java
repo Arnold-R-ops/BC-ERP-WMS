@@ -47,7 +47,7 @@ import java.time.LocalDateTime;
 @Table(name = "inventory_batch", indexes = {
     @Index(name = "idx_batch_code", columnList = "batch_code"),  // V3.3: 移除 unique 约束
     @Index(name = "idx_batch_location", columnList = "batch_code, location_code"),  // V3.3: 复合索引
-    @Index(name = "idx_product_expiry_active", columnList = "product_id, expiry_date, active"),  // FIFO 查询核心
+    @Index(name = "idx_product_expiry_active", columnList = "product_sku_id, expiry_date, active"),  // FIFO 查询核心
     @Index(name = "idx_location_id", columnList = "location_id"),
     @Index(name = "idx_location_code", columnList = "location_code"),  // V3.3: 库位编号索引
     @Index(name = "idx_active", columnList = "active"),
@@ -68,7 +68,7 @@ public class InventoryBatch extends BaseEntity {
      * 系统批次码（Hashids 生成，全局唯一）
      *
      * 生成规则:
-     * - 输入: productId + timestamp + randomSeed
+     * - 输入: productSkuId + timestamp + randomSeed
      * - 输出: 6字符字母数字码（如 R7M4K9）
      * - 算法: Hashids 1.0.3
      * - Salt: ${BATCH_SALT} 环境变量
@@ -134,11 +134,11 @@ public class InventoryBatch extends BaseEntity {
     /**
      * 关联产品（多对一）
      *
-     * 冗余设计: 方便直接查询（无需通过 purchaseOrderItem.product）
+     * 冗余设计: 方便直接查询（无需通过 purchaseOrderItem.productSku）
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_batch_product"))
-    private Product product;
+    @JoinColumn(name = "product_sku_id", nullable = false, foreignKey = @ForeignKey(name = "fk_batch_product"))
+    private ProductSku productSku;
 
     /**
      * 关联库位（多对一）
@@ -165,7 +165,7 @@ public class InventoryBatch extends BaseEntity {
      *
      * 查询总库存:
      * SELECT SUM(quantity) FROM inventory_batch
-     * WHERE product_id = ? AND active = true
+     * WHERE product_sku_id = ? AND active = true
      */
     @Column(name = "quantity", nullable = false)
     private Integer quantity;

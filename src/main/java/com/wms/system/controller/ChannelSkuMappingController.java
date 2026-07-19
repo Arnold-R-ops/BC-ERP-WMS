@@ -4,7 +4,7 @@ import com.wms.system.dto.integration.ChannelSkuMappingRequest;
 import com.wms.system.dto.integration.ChannelSkuMappingResponse;
 import com.wms.system.dto.integration.ResolvePendingSkuRequest;
 import com.wms.system.entity.PendingSkuMapping;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.ChannelSkuMappingService;
@@ -91,7 +91,7 @@ public class ChannelSkuMappingController {
                 .map(u -> u.getId()).orElse(0L);
         }
         return ResponseEntity.ok(pendingService.resolve(
-            id, request.getAction(), request.getProductId(), request.getQuantityRatio(), operatorId));
+            id, request.getAction(), request.getProductSkuId(), request.getQuantityRatio(), operatorId));
     }
 
     /**
@@ -99,10 +99,10 @@ public class ChannelSkuMappingController {
      */
     @GetMapping("/pending/{id}/suggestions")
     public ResponseEntity<List<Map<String, Object>>> suggestions(@PathVariable("id") Long id) {
-        List<Product> candidates = pendingService.suggestions(id);
+        List<ProductSku> candidates = pendingService.suggestions(id);
         List<Map<String, Object>> result = candidates.stream()
             .<Map<String, Object>>map(p -> Map.of(
-                "productId", p.getId(),
+                "productSkuId", p.getId(),
                 "barcode", p.getBarcode() == null ? "" : p.getBarcode(),
                 "skuName", p.getSkuName() == null ? "" : p.getSkuName(),
                 "name", p.getName() == null ? "" : p.getName()))

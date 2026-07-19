@@ -2,12 +2,12 @@ package com.wms.system.service;
 
 import com.wms.system.entity.ChannelSkuMapping;
 import com.wms.system.entity.PendingSkuMapping;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.ChannelSkuMappingRepository;
 import com.wms.system.repository.PendingSkuMappingRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class PendingSkuMappingService {
 
     private final PendingSkuMappingRepository pendingRepository;
     private final ChannelSkuMappingRepository mappingRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
 
     public static final String ACTION_MAP = "MAP";
     public static final String ACTION_VIRTUAL = "VIRTUAL";
@@ -101,7 +101,7 @@ public class PendingSkuMappingService {
      * 订单在下一轮同步中自动重试放行。
      */
     @Transactional(rollbackFor = Exception.class)
-    public PendingSkuMapping resolve(Long pendingId, String action, Long productId,
+    public PendingSkuMapping resolve(Long pendingId, String action, Long productSkuId,
                                      Integer quantityRatio, Long operatorId) {
         PendingSkuMapping pending = pendingRepository.findById(pendingId)
             .orElseThrow(() -> new BusinessException(ErrorKeys.RESOURCE_NOT_FOUND,
@@ -109,12 +109,12 @@ public class PendingSkuMappingService {
 
         switch (action == null ? "" : action.toUpperCase()) {
             case ACTION_MAP -> {
-                if (productId == null) {
-                    throw new BusinessException(ErrorKeys.PARAMETER_REQUIRED, Map.of("parameter", "productId"));
+                if (productSkuId == null) {
+                    throw new BusinessException(ErrorKeys.PARAMETER_REQUIRED, Map.of("parameter", "productSkuId"));
                 }
-                Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND,
-                        Map.of("productId", productId)));
+                ProductSku product = productSkuRepository.findById(productSkuId)
+                    .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                        Map.of("productSkuId", productSkuId)));
                 int ratio = (quantityRatio == null || quantityRatio < 1) ? 1 : quantityRatio;
                 upsertMapping(pending, ChannelSkuMapping.TYPE_PRODUCT, product, ratio);
                 closePending(pending, PendingSkuMapping.RESOLUTION_MAPPED, operatorId);
@@ -145,7 +145,7 @@ public class PendingSkuMappingService {
      * 做条码前缀/名称关键词匹配
      */
     @Transactional(readOnly = true)
-    public List<Product> suggestions(Long pendingId) {
+    public List<ProductSku> suggestions(Long pendingId) {
         PendingSkuMapping pending = pendingRepository.findById(pendingId)
             .orElseThrow(() -> new BusinessException(ErrorKeys.RESOURCE_NOT_FOUND,
                 Map.of("resourceType", "PendingSkuMapping", "resourceId", String.valueOf(pendingId))));
@@ -154,11 +154,11 @@ public class PendingSkuMappingService {
         if (!StringUtils.hasText(keyword)) {
             return List.of();
         }
-        return productRepository
+        return productSkuRepository
             .findTop10ByBarcodeStartingWithIgnoreCaseOrSkuNameContainingIgnoreCase(keyword, keyword);
     }
 
-    private void upsertMapping(PendingSkuMapping pending, String type, Product product, int ratio) {
+    private void upsertMapping(PendingSkuMapping pending, String type, ProductSku product, int ratio) {
         ChannelSkuMapping mapping = mappingRepository
             .findByChannelAndExternalSkuAndStatus(pending.getChannel(), pending.getExternalSku(),
                 ChannelSkuMapping.STATUS_ACTIVE)
@@ -171,7 +171,7 @@ public class PendingSkuMappingService {
                 .build());
 
         mapping.setMappingType(type);
-        mapping.setProduct(product);
+        mapping.setProductSku(product);
         mapping.setQuantityRatio(ratio);
         mapping.setSource(ChannelSkuMapping.SOURCE_MANUAL);
         mappingRepository.save(mapping);

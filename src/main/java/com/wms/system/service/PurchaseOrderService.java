@@ -62,7 +62,7 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final BatchCodeGenerator batchCodeGenerator;
@@ -129,16 +129,16 @@ public class PurchaseOrderService {
 
         for (PurchaseOrderItemData itemData : items) {
             // Validate product exists
-            Product product = productRepository.findById(itemData.getProductId())
+            ProductSku product = productSkuRepository.findById(itemData.getProductSkuId())
                 .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.PRODUCT_NOT_FOUND,
-                    Map.of("productId", itemData.getProductId())
+                    ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                    Map.of("productSkuId", itemData.getProductSkuId())
                 ));
 
             // Create item
             PurchaseOrderItem item = PurchaseOrderItem.builder()
                 .purchaseOrder(purchaseOrder)
-                .product(product)
+                .productSku(product)
                 .orderedQuantity(itemData.getOrderedQuantity())
                 .receivedQuantity(0)  // Initially 0
                 .unitCost(itemData.getUnitCost())
@@ -237,15 +237,15 @@ public class PurchaseOrderService {
 
             // Validate expiry_date is present (required at Stage 2)
             if (item.getExpiryDate() == null) {
-                log.error("Expiry date missing for item: itemId={}, productId={}",
-                    item.getId(), item.getProduct().getId());
+                log.error("Expiry date missing for item: itemId={}, productSkuId={}",
+                    item.getId(), item.getProductSku().getId());
 
                 throw new BusinessException(
                     ErrorKeys.PO_EXPIRY_DATE_REQUIRED,
                     Map.of(
                         "itemId", item.getId(),
-                        "productId", item.getProduct().getId(),
-                        "productName", item.getProduct().getName()
+                        "productSkuId", item.getProductSku().getId(),
+                        "productName", item.getProductSku().getName()
                     )
                 );
             }
@@ -255,19 +255,19 @@ public class PurchaseOrderService {
         for (PurchaseOrderItem item : purchaseOrder.getItems()) {
             // Generate unique batch code with collision detection
             String batchCode = batchCodeGenerator.generateUnique(
-                item.getProduct().getId(),
+                item.getProductSku().getId(),
                 item.getId(),
                 inventoryBatchRepository
             );
 
-            log.info("Generated batch code: itemId={}, productId={}, batchCode={}",
-                item.getId(), item.getProduct().getId(), batchCode);
+            log.info("Generated batch code: itemId={}, productSkuId={}, batchCode={}",
+                item.getId(), item.getProductSku().getId(), batchCode);
 
             // Create InventoryBatch record (Stage 2: location = null, entryDate = null)
             InventoryBatch batch = InventoryBatch.builder()
                 .batchCode(batchCode)
                 .purchaseOrderItem(item)
-                .product(item.getProduct())
+                .productSku(item.getProductSku())
                 .location(null)  // Stage 2: Not assigned yet
                 .locationCode("UNASSIGNED")
                 .quantity(item.getOrderedQuantity())  // Initial quantity
@@ -282,8 +282,8 @@ public class PurchaseOrderService {
 
             inventoryBatchRepository.save(batch);
 
-            log.info("✅ Batch created: batchCode={}, productId={}, quantity={}, expiryDate={}",
-                batchCode, item.getProduct().getId(), batch.getQuantity(), batch.getExpiryDate());
+            log.info("✅ Batch created: batchCode={}, productSkuId={}, quantity={}, expiryDate={}",
+                batchCode, item.getProductSku().getId(), batch.getQuantity(), batch.getExpiryDate());
         }
 
         // 5. Update PO status to IN_TRANSIT
@@ -368,7 +368,7 @@ public class PurchaseOrderService {
 
         // 3. Process each batch receipt
         int totalReceivedInThisBatch = 0;
-        java.util.Set<Long> receivedProductIds = new java.util.HashSet<>();
+        java.util.Set<Long> receivedProductSkuIds = new java.util.HashSet<>();
 
         for (BatchReceiptData receipt : receiptData) {
             // Query batch by batch code (V3.3: returns List, get first one)
@@ -400,7 +400,7 @@ public class PurchaseOrderService {
                     Map.of("locationId", receipt.getLocationId())
                 ));
 
-            locationOccupancyService.validateCanStore(location, batch.getProduct(), batch.getBatchCode());
+            locationOccupancyService.validateCanStore(location, batch.getProductSku(), batch.getBatchCode());
 
             // Record quantity before (for audit)
             Integer quantityBefore = batch.getQuantity();
@@ -418,7 +418,7 @@ public class PurchaseOrderService {
 
             // Generate stock transaction (V3.0: No Inventory table update)
             StockTransaction transaction = StockTransaction.builder()
-                .product(batch.getProduct())
+                .productSku(batch.getProductSku())
                 .location(location)
                 .transactionType(TransactionType.IN)
                 .sourceType(SourceType.PURCHASE_IN)
@@ -441,7 +441,7 @@ public class PurchaseOrderService {
             // Update item receivedQuantity
             PurchaseOrderItem item = batch.getPurchaseOrderItem();
             item.increaseReceivedQuantity(savedBatch.getQuantity());
-            receivedProductIds.add(item.getProduct().getId());
+            receivedProductSkuIds.add(item.getProductSku().getId());
 
             totalReceivedInThisBatch += savedBatch.getQuantity();
         }
@@ -473,13 +473,14 @@ public class PurchaseOrderService {
         log.info("✅ Physical receipt completed: poNumber={}, status={}, operator={}",
             savedOrder.getPoNumber(), savedOrder.getStatus(), operatorName);
 
-        for (Long productId : receivedProductIds) {
-            domainOutboxService.append("INVENTORY_AVAILABLE", "Product", productId, Map.of(
-                "productId", productId,
+        for (Long productSkuId : receivedProductSkuIds) {
+            domainOutboxService.append("INVENTORY_AVAILABLE", "ProductSku", productSkuId, Map.of(
+                "schemaVersion", 2,
+                "productSkuId", productSkuId,
                 "source", "PURCHASE_ORDER",
                 "purchaseOrderId", savedOrder.getId()
             ));
-            backorderService.wakeProduct(productId);
+            backorderService.wakeProduct(productSkuId);
         }
 
         return savedOrder;
@@ -812,7 +813,7 @@ public class PurchaseOrderService {
     @lombok.Data
     @lombok.Builder
     public static class PurchaseOrderItemData {
-        private Long productId;
+        private Long productSkuId;
         private Integer orderedQuantity;
         private java.math.BigDecimal unitCost;
         private LocalDate expiryDate;  // Optional at Stage 1

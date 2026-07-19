@@ -56,13 +56,13 @@ class BatchCodeGeneratorTest {
     // ========== decode ==========
 
     @Test
-    @DisplayName("decode - decodes to 3 elements [productId, timestamp, random]")
+    @DisplayName("decode - decodes to 3 elements [productSkuId, timestamp, random]")
     void testDecode_Returns3Elements() {
         String code = batchCodeGenerator.generate(42L, 7L);
         long[] decoded = batchCodeGenerator.decode(code);
 
         assertThat(decoded).hasSize(3);
-        assertThat(decoded[0]).isEqualTo(42L); // productId
+        assertThat(decoded[0]).isEqualTo(42L); // productSkuId
     }
 
     @Test

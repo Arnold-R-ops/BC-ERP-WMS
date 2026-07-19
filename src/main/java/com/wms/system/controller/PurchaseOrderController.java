@@ -66,7 +66,7 @@ public class PurchaseOrderController {
      *   "supplier": "XX Supplier",
      *   "items": [
      *     {
-     *       "productId": 1,
+     *       "productSkuId": 1,
      *       "orderedQuantity": 100,
      *       "unitCost": 10.50,
      *       "expiryDate": "2025-12-31",
@@ -98,7 +98,7 @@ public class PurchaseOrderController {
         // Convert DTO to Service input format
         List<PurchaseOrderService.PurchaseOrderItemData> itemsData = request.getItems().stream()
             .map(item -> PurchaseOrderService.PurchaseOrderItemData.builder()
-                .productId(item.getProductId())
+                .productSkuId(item.getProductSkuId())
                 .orderedQuantity(item.getOrderedQuantity())
                 .unitCost(item.getUnitCost())
                 .expiryDate(item.getExpiryDate())
@@ -142,7 +142,7 @@ public class PurchaseOrderController {
      * - expectedDate: Expected delivery date (optional, format: yyyy-MM-dd)
      *
      * Excel Format:
-     * | productId | quantity | unitCost | expiryDate | productionDate | externalBatchCode | remark |
+     * | productSkuId | quantity | unitCost | expiryDate | productionDate | externalBatchCode | remark |
      *
      * Success Response (201 Created):
      * Returns PurchaseOrderResponse with ORDERING status
@@ -511,9 +511,9 @@ public class PurchaseOrderController {
     private PurchaseOrderItemResponse mapToItemResponse(PurchaseOrderItem item, boolean isStaff) {
         return PurchaseOrderItemResponse.builder()
             .id(item.getId())
-            .productId(item.getProduct().getId())
-            .productName(item.getProduct().getName())
-            .productBarcode(item.getProduct().getBarcode())
+            .productSkuId(item.getProductSku().getId())
+            .productName(item.getProductSku().getName())
+            .productBarcode(item.getProductSku().getBarcode())
             .orderedQuantity(item.getOrderedQuantity())
             .receivedQuantity(item.getReceivedQuantity())
             .unitCost(isStaff ? null : item.getUnitCost())  // Privacy masking
@@ -540,9 +540,9 @@ public class PurchaseOrderController {
         return InventoryBatchResponse.builder()
             .id(batch.getId())
             .batchCode(batch.getBatchCode())
-            .productId(batch.getProduct().getId())
-            .productName(batch.getProduct().getName())
-            .productBarcode(batch.getProduct().getBarcode())
+            .productSkuId(batch.getProductSku().getId())
+            .productName(batch.getProductSku().getName())
+            .productBarcode(batch.getProductSku().getBarcode())
             .quantity(batch.getQuantity())
             .reservedQuantity(batch.getReservedQuantity())
             .availableQuantity(batch.getAvailableQuantity())

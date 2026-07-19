@@ -26,7 +26,7 @@ public class ChannelSkuMappingResponse {
     private String storeIdentifier;
     private String externalSku;
     private String mappingType;
-    private Long productId;
+    private Long productSkuId;
     private String productName;
     private String productBarcode;
     private Integer quantityRatio;
@@ -43,9 +43,9 @@ public class ChannelSkuMappingResponse {
             .storeIdentifier(m.getStoreIdentifier())
             .externalSku(m.getExternalSku())
             .mappingType(m.getMappingType())
-            .productId(m.getProduct() == null ? null : m.getProduct().getId())
-            .productName(m.getProduct() == null ? null : m.getProduct().getName())
-            .productBarcode(m.getProduct() == null ? null : m.getProduct().getBarcode())
+            .productSkuId(m.getProductSku() == null ? null : m.getProductSku().getId())
+            .productName(m.getProductSku() == null ? null : m.getProductSku().getName())
+            .productBarcode(m.getProductSku() == null ? null : m.getProductSku().getBarcode())
             .quantityRatio(m.getQuantityRatio())
             .status(m.getStatus())
             .source(m.getSource())

@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
  *
  * 核心字段：
  * - taskId: 盘点任务ID
- * - productId: 产品ID
+ * - productSkuId: 产品ID
  * - batchId: 批次ID
  * - locationId: 库位ID
  * - snapshotQty: 快照数量（账面数 - 不可变）
@@ -44,7 +44,7 @@ import java.time.LocalDateTime;
     name = "stocktake_items",
     indexes = {
         @Index(name = "idx_stocktake_item_task", columnList = "task_id"),
-        @Index(name = "idx_stocktake_item_product", columnList = "product_id"),
+        @Index(name = "idx_stocktake_item_product", columnList = "product_sku_id"),
         @Index(name = "idx_stocktake_item_batch", columnList = "batch_id"),
         @Index(name = "idx_stocktake_item_location", columnList = "location_id"),
         @Index(name = "idx_stocktake_item_counted", columnList = "is_counted")
@@ -77,15 +77,15 @@ public class StocktakeItem extends BaseEntity {
      * 产品ID
      */
     @NotNull(message = "产品ID不能为空")
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @Column(name = "product_sku_id", nullable = false)
+    private Long productSkuId;
 
     /**
      * 产品实体（懒加载）
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", insertable = false, updatable = false)
-    private Product product;
+    @JoinColumn(name = "product_sku_id", insertable = false, updatable = false)
+    private ProductSku productSku;
 
     /**
      * 批次ID

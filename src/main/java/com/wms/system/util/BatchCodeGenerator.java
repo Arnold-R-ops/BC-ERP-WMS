@@ -17,7 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Generates unique batch codes using Hashids algorithm.
  *
  * Algorithm:
- * - Input: productId + timestamp (milliseconds) + randomSeed
+ * - Input: productSkuId + timestamp (milliseconds) + randomSeed
  * - Output: 6-character alphanumeric code (e.g., R7M4K9)
  * - Salt: Loaded from environment variable ${BATCH_SALT}
  * - Length: Minimum 6 characters
@@ -31,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  * Usage Example:
  * <pre>
- * String batchCode = batchCodeGenerator.generateUnique(productId, itemId, repository);
+ * String batchCode = batchCodeGenerator.generateUnique(productSkuId, itemId, repository);
  * // Output: "R7M4K9"
  * </pre>
  *
@@ -75,16 +75,16 @@ public class BatchCodeGenerator {
      * Algorithm:
      * 1. Get current timestamp (milliseconds)
      * 2. Generate random seed (0-999999)
-     * 3. Encode: productId + timestamp + randomSeed → Hashids
+     * 3. Encode: productSkuId + timestamp + randomSeed → Hashids
      *
      * ⚠️ Note: This method does NOT check uniqueness in database.
      * Use generateUnique() for production code.
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param purchaseOrderItemId Purchase order item ID (for future tracking)
      * @return Batch code (e.g., "R7M4K9")
      */
-    public String generate(Long productId, Long purchaseOrderItemId) {
+    public String generate(Long productSkuId, Long purchaseOrderItemId) {
         // 1. Get current timestamp (milliseconds since epoch)
         long timestamp = System.currentTimeMillis();
 
@@ -92,12 +92,12 @@ public class BatchCodeGenerator {
         int randomSeed = ThreadLocalRandom.current().nextInt(1000000);
 
         // 3. Encode to Hashids
-        // Input: [productId, timestamp, randomSeed]
+        // Input: [productSkuId, timestamp, randomSeed]
         // Output: 6-character alphanumeric code (e.g., "R7M4K9")
-        String batchCode = hashids.encode(productId, timestamp, randomSeed);
+        String batchCode = hashids.encode(productSkuId, timestamp, randomSeed);
 
-        log.debug("Generated batch code: productId={}, itemId={}, timestamp={}, random={}, code={}",
-                  productId, purchaseOrderItemId, timestamp, randomSeed, batchCode);
+        log.debug("Generated batch code: productSkuId={}, itemId={}, timestamp={}, random={}, code={}",
+                  productSkuId, purchaseOrderItemId, timestamp, randomSeed, batchCode);
 
         return batchCode;
     }
@@ -119,14 +119,14 @@ public class BatchCodeGenerator {
      * - UNIQUE constraint on inventory_batch.batch_code
      * - Final safety net against duplicates
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param purchaseOrderItemId Purchase order item ID
      * @param batchRepository Repository for uniqueness check
      * @return Unique batch code (guaranteed not to exist in database)
      * @throws BusinessException if generation fails after 3 attempts
      */
     public String generateUnique(
-        Long productId,
+        Long productSkuId,
         Long purchaseOrderItemId,
         InventoryBatchRepository batchRepository
     ) {
@@ -134,7 +134,7 @@ public class BatchCodeGenerator {
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             // Generate batch code
-            String batchCode = generate(productId, purchaseOrderItemId);
+            String batchCode = generate(productSkuId, purchaseOrderItemId);
 
             // Check uniqueness in database
             boolean exists = batchRepository.existsByBatchCode(batchCode);
@@ -151,13 +151,13 @@ public class BatchCodeGenerator {
         }
 
         // All attempts failed (extremely rare)
-        log.error("❌ Batch code generation FAILED after {} attempts: productId={}, itemId={}",
-                  MAX_ATTEMPTS, productId, purchaseOrderItemId);
+        log.error("❌ Batch code generation FAILED after {} attempts: productSkuId={}, itemId={}",
+                  MAX_ATTEMPTS, productSkuId, purchaseOrderItemId);
 
         throw new BusinessException(
             ErrorKeys.BATCH_CODE_GENERATION_FAILED,
             Map.of(
-                "productId", productId,
+                "productSkuId", productSkuId,
                 "itemId", purchaseOrderItemId,
                 "attempts", MAX_ATTEMPTS
             )
@@ -173,7 +173,7 @@ public class BatchCodeGenerator {
      * Mainly for debugging or verification purposes.
      *
      * @param batchCode Batch code (e.g., "R7M4K9")
-     * @return Array of decoded numbers [productId, timestamp, randomSeed]
+     * @return Array of decoded numbers [productSkuId, timestamp, randomSeed]
      */
     public long[] decode(String batchCode) {
         return hashids.decode(batchCode);
@@ -194,7 +194,7 @@ public class BatchCodeGenerator {
 
         try {
             long[] decoded = hashids.decode(batchCode);
-            return decoded.length == 3;  // Should decode to [productId, timestamp, random]
+            return decoded.length == 3;  // Should decode to [productSkuId, timestamp, random]
         } catch (Exception e) {
             log.warn("Invalid batch code format: code={}, error={}", batchCode, e.getMessage());
             return false;

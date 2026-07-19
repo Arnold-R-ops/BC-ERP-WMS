@@ -20,12 +20,12 @@ public interface BackorderLineRepository extends JpaRepository<BackorderLine, Lo
     @Query("""
         SELECT b
         FROM BackorderLine b
-        WHERE b.productId = :productId
+        WHERE b.productSkuId = :productSkuId
           AND b.status IN :statuses
         ORDER BY b.priority ASC, b.createdAt ASC, b.id ASC
         """)
-    List<BackorderLine> findOpenByProductForWakeup(
-        @Param("productId") Long productId,
+    List<BackorderLine> findOpenByProductSkuForWakeup(
+        @Param("productSkuId") Long productSkuId,
         @Param("statuses") Collection<BackorderStatus> statuses
     );
 }

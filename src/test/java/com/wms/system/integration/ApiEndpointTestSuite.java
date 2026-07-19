@@ -70,10 +70,13 @@ class ApiEndpointTestSuite {
     private CustomerRepository customerRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private ProductRepository productRepository;
 
     @Autowired
-    private ProductRepository productRepository;
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ProductSkuRepository productSkuRepository;
 
     @Autowired
     private InventoryBatchRepository inventoryBatchRepository;
@@ -531,7 +534,7 @@ class ApiEndpointTestSuite {
         @Test
         @WithMockUser(username = "buyer", authorities = {"purchase:create"})
         void testCreatePurchaseOrder() throws Exception {
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             JsonNode poJson = createPurchaseOrderApi(product.getId());
             assertFalse(poJson.path("id").isMissingNode());
         }
@@ -539,7 +542,7 @@ class ApiEndpointTestSuite {
         @Test
         @WithMockUser(username = "buyer", authorities = {"purchase:edit"})
         void testConfirmAsn() throws Exception {
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             JsonNode createJson = createPurchaseOrderApi(product.getId());
             long orderId = createJson.path("id").asLong();
             long itemId = createJson.path("items").get(0).path("id").asLong();
@@ -562,7 +565,7 @@ class ApiEndpointTestSuite {
         @Test
         @WithMockUser(username = "warehouse", authorities = {"purchase:receive"})
         void testReceiveGoods() throws Exception {
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             Location location = createLocation(createWarehouse());
 
             JsonNode createJson = createPurchaseOrderApi(product.getId());
@@ -626,7 +629,7 @@ class ApiEndpointTestSuite {
         @Test
         @WithMockUser(username = "warehouse", authorities = {"inventory:view"})
         void testGetInventoryDetails() throws Exception {
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             Location location = createLocation(createWarehouse());
             createInventoryBatch(product, location, 30, 365);
 
@@ -648,11 +651,11 @@ class ApiEndpointTestSuite {
         @Test
         @WithMockUser(username = "warehouse", authorities = {"inventory:adjust"})
         void testAdjustInventory() throws Exception {
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             Location location = createLocation(createWarehouse());
 
             String adjustRequest = json(Map.of(
-                "productId", product.getId(),
+                "productSkuId", product.getId(),
                 "locationId", location.getId(),
                 "quantity", 10,
                 "transactionType", "ADJUST",
@@ -666,7 +669,7 @@ class ApiEndpointTestSuite {
                     .content(adjustRequest))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productId").value(product.getId()));
+                .andExpect(jsonPath("$.productSkuId").value(product.getId()));
         }
     }
 
@@ -687,12 +690,12 @@ class ApiEndpointTestSuite {
         @WithMockUser(username = "sales", authorities = {"sales:create"})
         void testCreateSalesOrder() throws Exception {
             Customer customer = createCustomer(ensureUser("sales"));
-            Product product = createProduct(new BigDecimal("100.00"));
+            ProductSku product = createProduct(new BigDecimal("100.00"));
 
             String createRequest = json(Map.of(
                 "customerId", customer.getId(),
                 "items", List.of(Map.of(
-                    "productId", product.getId(),
+                    "productSkuId", product.getId(),
                     "quantity", 10,
                     "unitPrice", 6000.00
                 ))
@@ -710,7 +713,7 @@ class ApiEndpointTestSuite {
         @WithMockUser(username = "manager", authorities = {"sales:create", "sales:approve"})
         void testApproveSalesOrder() throws Exception {
             Customer customer = createCustomer(ensureUser("sales"));
-            Product product = createProduct(new BigDecimal("200.00"));
+            ProductSku product = createProduct(new BigDecimal("200.00"));
             Location location = createLocation(createWarehouse());
             createInventoryBatch(product, location, 200, 365);
 
@@ -830,7 +833,7 @@ class ApiEndpointTestSuite {
         void testSubmitCount() throws Exception {
             Warehouse warehouse = createWarehouse();
             Location location = createLocation(warehouse);
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             InventoryBatch batch = createInventoryBatch(product, location, 50, 365);
 
             JsonNode task = createStocktakeTaskApi(warehouse.getId(), "QUARTERLY");
@@ -859,7 +862,7 @@ class ApiEndpointTestSuite {
         void testReviewStocktake() throws Exception {
             Warehouse warehouse = createWarehouse();
             Location location = createLocation(warehouse);
-            Product product = createProduct(BigDecimal.ZERO);
+            ProductSku product = createProduct(BigDecimal.ZERO);
             createInventoryBatch(product, location, 20, 365);
 
             JsonNode task = createStocktakeTaskApi(warehouse.getId(), "QUARTERLY");
@@ -923,12 +926,12 @@ class ApiEndpointTestSuite {
         }
     }
 
-    private JsonNode createPurchaseOrderApi(Long productId) throws Exception {
+    private JsonNode createPurchaseOrderApi(Long productSkuId) throws Exception {
         User buyer = ensureUser("buyer");
         String request = json(Map.of(
             "supplier", "Supplier-" + nextId(),
             "items", List.of(Map.of(
-                "productId", productId,
+                "productSkuId", productSkuId,
                 "orderedQuantity", 10,
                 "unitCost", new BigDecimal("10.00")
             )),
@@ -946,11 +949,11 @@ class ApiEndpointTestSuite {
         return readJson(result);
     }
 
-    private JsonNode createSalesOrderApi(Long customerId, Long productId, BigDecimal unitPrice, int quantity) throws Exception {
+    private JsonNode createSalesOrderApi(Long customerId, Long productSkuId, BigDecimal unitPrice, int quantity) throws Exception {
         String request = json(Map.of(
             "customerId", customerId,
             "items", List.of(Map.of(
-                "productId", productId,
+                "productSkuId", productSkuId,
                 "quantity", quantity,
                 "unitPrice", unitPrice
             ))
@@ -981,7 +984,7 @@ class ApiEndpointTestSuite {
     private OutboundTask createPendingOutboundTask(int planQty) {
         User salesUser = ensureUser("sales");
         Customer customer = createCustomer(salesUser);
-        Product product = createProduct(new BigDecimal("12.50"));
+        ProductSku product = createProduct(new BigDecimal("12.50"));
         Warehouse warehouse = createWarehouse();
         Location location = createLocation(warehouse);
         InventoryBatch batch = createInventoryBatch(product, location, Math.max(planQty, 1) + 20, 365);
@@ -998,7 +1001,7 @@ class ApiEndpointTestSuite {
 
         SalesOrderItem item = salesOrderItemRepository.save(SalesOrderItem.builder()
             .salesOrderId(salesOrder.getId())
-            .productId(product.getId())
+            .productSkuId(product.getId())
             .quantity(planQty)
             .unitPrice(new BigDecimal("12.50"))
             .subtotal(new BigDecimal(planQty).multiply(new BigDecimal("12.50")))
@@ -1094,22 +1097,23 @@ class ApiEndpointTestSuite {
             .build());
     }
 
-    private Product createProduct(BigDecimal unitPrice) {
-        ProductSpu spu = productSpuRepository.save(ProductSpu.builder()
-            .spuCode("SPU-" + nextId())
-            .spuName("SPU-" + nextId())
-            .category("TEST")
+    private ProductSku createProduct(BigDecimal unitPrice) {
+        Product spu = productRepository.save(Product.builder()
+            .productCode("SPU-" + nextId())
+            .productName("SPU-" + nextId())
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .description("Created by ApiEndpointTestSuite")
             .enabled(true)
             .brand("WMS")
             .build());
 
-        return productRepository.save(Product.builder()
-            .spu(spu)
+        return productSkuRepository.save(ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(spu)
             .skuName("SKU-" + nextId())
             .specs("spec")
             .barcode("BC-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now()) + "-" + nextId())
-            .name("Product-" + nextId())
+            .name("ProductSku-" + nextId())
             .specification("unit")
             .unitPrice(unitPrice)
             .minStock(0)
@@ -1117,18 +1121,17 @@ class ApiEndpointTestSuite {
             .safetyStock(0)
             .description("Created by ApiEndpointTestSuite")
             .enabled(true)
-            .category("TEST")
             .supplier("TEST-SUPPLIER")
             .packUnit("Box")
             .conversionRate(1)
             .build());
     }
 
-    private InventoryBatch createInventoryBatch(Product product, Location location, int quantity, int expiryDays) {
+    private InventoryBatch createInventoryBatch(ProductSku product, Location location, int quantity, int expiryDays) {
         return inventoryBatchRepository.save(InventoryBatch.builder()
             .batchCode("BATCH-" + nextId())
             .locationCode(location.getLocationCode() != null ? location.getLocationCode() : location.getWarehouseCode() + "-TEMP-" + nextId())
-            .product(product)
+            .productSku(product)
             .location(location)
             .quantity(quantity)
             .initialQuantity(quantity)

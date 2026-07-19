@@ -65,7 +65,7 @@ public class AllocationService {
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final OutboundTaskRepository outboundTaskRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final BackorderService backorderService;
@@ -120,8 +120,8 @@ public class AllocationService {
         List<OutboundTask> allTasks = new ArrayList<>();
 
         for (SalesOrderItem item : orderItems) {
-            log.info("🔄 Allocating order item: itemId={}, productId={}, quantity={}",
-                item.getId(), item.getProductId(), item.getQuantity());
+            log.info("🔄 Allocating order item: itemId={}, productSkuId={}, quantity={}",
+                item.getId(), item.getProductSkuId(), item.getQuantity());
 
             List<OutboundTask> itemTasks = allocateOrderItem(item, salesOrder);
             allTasks.addAll(itemTasks);
@@ -169,17 +169,17 @@ public class AllocationService {
      * @throws BusinessException if product not found or insufficient stock
      */
     private List<OutboundTask> allocateOrderItem(SalesOrderItem item, SalesOrder salesOrder) {
-        log.debug("📊 Starting allocation for item: itemId={}, productId={}, quantity={}",
-            item.getId(), item.getProductId(), item.getQuantity());
+        log.debug("📊 Starting allocation for item: itemId={}, productSkuId={}, quantity={}",
+            item.getId(), item.getProductSkuId(), item.getQuantity());
 
         // 1. Validate product exists
-        Product product = productRepository.findById(item.getProductId())
+        ProductSku product = productSkuRepository.findById(item.getProductSkuId())
             .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PRODUCT_NOT_FOUND,
-                Map.of("productId", item.getProductId())
+                ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                Map.of("productSkuId", item.getProductSkuId())
             ));
 
-        log.debug("📦 Product info: name={}, perPackQty={}, nearExpiryDays={}",
+        log.debug("📦 ProductSku info: name={}, perPackQty={}, nearExpiryDays={}",
             product.getName(), product.getPerPackQty(), product.getNearExpiryDays());
 
         // 2. Check if user specified batches
@@ -190,7 +190,7 @@ public class AllocationService {
 
         // 3. Query available batches with filtering
         List<InventoryBatch> availableBatches = getAvailableBatches(
-            item.getProductId(),
+            item.getProductSkuId(),
             item.getRejectNearExpiry(),
             product.getNearExpiryDays()
         );
@@ -207,13 +207,13 @@ public class AllocationService {
             : salesOrder.getAllocationPolicy();
 
         if (totalAvailable < item.getQuantity() && policy == AllocationPolicy.FULL_ONLY) {
-            log.error("❌ Insufficient stock: productId={}, requested={}, available={}, shortage={}",
-                item.getProductId(), item.getQuantity(), totalAvailable, item.getQuantity() - totalAvailable);
+            log.error("❌ Insufficient stock: productSkuId={}, requested={}, available={}, shortage={}",
+                item.getProductSkuId(), item.getQuantity(), totalAvailable, item.getQuantity() - totalAvailable);
 
             throw new BusinessException(
                 ErrorKeys.BATCH_STOCK_INSUFFICIENT,
                 Map.of(
-                    "productId", item.getProductId(),
+                    "productSkuId", item.getProductSkuId(),
                     "productName", product.getName(),
                     "requestedQuantity", item.getQuantity(),
                     "availableQuantity", totalAvailable,
@@ -256,7 +256,7 @@ public class AllocationService {
      */
     private List<BatchAllocation> planPackAwareAllocation(
         SalesOrderItem item,
-        Product product,
+        ProductSku product,
         List<InventoryBatch> availableBatches
     ) {
         int packSize = product.getPerPackQty() == null || product.getPerPackQty() <= 0
@@ -313,7 +313,7 @@ public class AllocationService {
             throw new BusinessException(
                 ErrorKeys.BATCH_STOCK_INSUFFICIENT,
                 Map.of(
-                    "productId", item.getProductId(),
+                    "productSkuId", item.getProductSkuId(),
                     "productName", product.getName(),
                     "requestedQuantity", item.getQuantity(),
                     "availableQuantity", eligibleQuantity,
@@ -423,7 +423,7 @@ public class AllocationService {
             .salesOrderId(item.getSalesOrderId())
             .salesOrderItemId(item.getId())
             .inventoryBatchId(savedBatch.getId())
-            .productId(item.getProductId())
+            .productSkuId(item.getProductSkuId())
             .locationId(savedBatch.getLocation().getId())
             .reservedQty(quantity)
             .sourceType("SALES_ORDER")
@@ -459,11 +459,11 @@ public class AllocationService {
      * - Still check stock sufficiency
      *
      * @param item Sales order item
-     * @param product Product entity
+     * @param product ProductSku entity
      * @return List<OutboundTask> Generated outbound tasks
      * @throws BusinessException if batch not found or insufficient stock
      */
-    private List<OutboundTask> allocateFromSpecifiedBatches(SalesOrderItem item, Product product) {
+    private List<OutboundTask> allocateFromSpecifiedBatches(SalesOrderItem item, ProductSku product) {
         log.info("🎯 Allocating from specified batches: itemId={}, specifiedBatchIds={}",
             item.getId(), item.getSpecifiedBatchIds());
 
@@ -512,15 +512,15 @@ public class AllocationService {
             }
 
             // Validate batch belongs to the correct product
-            if (!batch.getProduct().getId().equals(item.getProductId())) {
-                log.error("❌ Specified batch belongs to different product: batchId={}, batchProductId={}, expectedProductId={}",
-                    batchId, batch.getProduct().getId(), item.getProductId());
+            if (!batch.getProductSku().getId().equals(item.getProductSkuId())) {
+                log.error("❌ Specified batch belongs to different product: batchId={}, batchProductSkuId={}, expectedProductSkuId={}",
+                    batchId, batch.getProductSku().getId(), item.getProductSkuId());
                 throw new BusinessException(
                     ErrorKeys.BATCH_NOT_FOUND,
                     Map.of(
                         "batchId", batchId,
-                        "expectedProductId", item.getProductId(),
-                        "actualProductId", batch.getProduct().getId()
+                        "expectedProductSkuId", item.getProductSkuId(),
+                        "actualProductSkuId", batch.getProductSku().getId()
                     )
                 );
             }
@@ -540,7 +540,7 @@ public class AllocationService {
             throw new BusinessException(
                 ErrorKeys.BATCH_STOCK_INSUFFICIENT,
                 Map.of(
-                    "productId", item.getProductId(),
+                    "productSkuId", item.getProductSkuId(),
                     "productName", product.getName(),
                     "requestedQuantity", item.getQuantity(),
                     "availableQuantity", totalAvailable,
@@ -567,13 +567,13 @@ public class AllocationService {
      * 3. Generate outbound task for each batch allocation
      *
      * @param item Sales order item
-     * @param product Product entity
+     * @param product ProductSku entity
      * @param sortedBatches Sorted batches (by expiry date ASC)
      * @return List<OutboundTask> Generated outbound tasks
      */
     private List<OutboundTask> allocateFromBatches(
         SalesOrderItem item,
-        Product product,
+        ProductSku product,
         List<InventoryBatch> sortedBatches
     ) {
         log.debug("🔄 Starting FEFO allocation: itemId={}, requestedQty={}, batchCount={}",
@@ -608,7 +608,7 @@ public class AllocationService {
             throw new BusinessException(
                 ErrorKeys.BATCH_STOCK_INSUFFICIENT,
                 Map.of(
-                    "productId", item.getProductId(),
+                    "productSkuId", item.getProductSkuId(),
                     "productName", product.getName(),
                     "requestedQuantity", item.getQuantity(),
                     "allocatedQuantity", item.getQuantity() - remaining,
@@ -653,27 +653,27 @@ public class AllocationService {
      * Get available batches with filtering
      *
      * Filters:
-     * 1. product_id = ?
+     * 1. product_sku_id = ?
      * 2. active = true
      * 3. quantity > 0
      * 4. If reject_near_expiry = true, filter out near-expiry batches
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param rejectNearExpiry Reject near-expiry flag
      * @param nearExpiryDays Near-expiry threshold (days)
      * @return List<InventoryBatch> Available batches
      */
     private List<InventoryBatch> getAvailableBatches(
-        Long productId,
+        Long productSkuId,
         Boolean rejectNearExpiry,
         Integer nearExpiryDays
     ) {
-        log.debug("🔍 Querying available batches: productId={}, rejectNearExpiry={}, nearExpiryDays={}",
-            productId, rejectNearExpiry, nearExpiryDays);
+        log.debug("🔍 Querying available batches: productSkuId={}, rejectNearExpiry={}, nearExpiryDays={}",
+            productSkuId, rejectNearExpiry, nearExpiryDays);
 
         // Query all active batches for product
         List<InventoryBatch> batches = inventoryBatchRepository
-            .findByProductIdAndActiveOrderByExpiryDateAsc(productId, true);
+            .findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
 
         // Filter out batches with quantity = 0
         batches = batches.stream()

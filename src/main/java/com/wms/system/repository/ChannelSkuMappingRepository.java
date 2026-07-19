@@ -26,9 +26,4 @@ public interface ChannelSkuMappingRepository extends JpaRepository<ChannelSkuMap
     List<ChannelSkuMapping> findByChannelOrderByIdDesc(String channel);
 
     boolean existsByChannelAndExternalSku(String channel, String externalSku);
-
-    /**
-     * 库存回写扫描对象（P1-B4）：某渠道全部生效的商品映射
-     */
-    List<ChannelSkuMapping> findByChannelAndMappingTypeAndStatus(String channel, String mappingType, String status);
 }

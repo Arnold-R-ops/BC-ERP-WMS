@@ -68,7 +68,7 @@ public class SalesSubmissionService {
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final OutboundTaskRepository outboundTaskRepository;
     private final CustomerService customerService;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final SystemConfigService systemConfigService;
     private final AllocationService allocationService;
     private final InventoryReservationService inventoryReservationService;
@@ -102,6 +102,62 @@ public class SalesSubmissionService {
         Long applicantId,
         String applicantName
     ) {
+        return createSalesOrderInternal(
+            request,
+            applicantId,
+            applicantName,
+            false,
+            null,
+            null,
+            null
+        );
+    }
+
+    /**
+     * Creates a channel-recovered order in PENDING_APPROVAL without allocating
+     * inventory. This restricted entry point is used by reconciliation repair:
+     * the caller must already have matched an existing customer and existing
+     * product SKU mappings.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SalesOrderResponse createChannelOrderPendingApproval(
+        CreateSalesOrderRequest request,
+        Long applicantId,
+        String applicantName,
+        String channel,
+        String externalOrderId,
+        String externalOrderNo
+    ) {
+        salesOrderRepository.findByExternalOrderId(externalOrderId).ifPresent(existing -> {
+            throw new BusinessException(
+                ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,
+                Map.of(
+                    "externalOrderId", externalOrderId,
+                    "salesOrderId", existing.getId()
+                )
+            );
+        });
+
+        return createSalesOrderInternal(
+            request,
+            applicantId,
+            applicantName,
+            true,
+            channel,
+            externalOrderId,
+            externalOrderNo
+        );
+    }
+
+    private SalesOrderResponse createSalesOrderInternal(
+        CreateSalesOrderRequest request,
+        Long applicantId,
+        String applicantName,
+        boolean forcePendingApproval,
+        String channel,
+        String externalOrderId,
+        String externalOrderNo
+    ) {
         log.info("🚀 Creating sales order: customerId={}, applicantId={}, applicantName={}, itemCount={}",
             request.getCustomerId(), applicantId, applicantName, request.getItems().size());
 
@@ -127,6 +183,11 @@ public class SalesSubmissionService {
         if (org.springframework.util.StringUtils.hasText(request.getChannel())) {
             salesOrder.setChannel(request.getChannel().trim().toUpperCase());
         }
+        if (org.springframework.util.StringUtils.hasText(channel)) {
+            salesOrder.setChannel(channel.trim().toUpperCase());
+        }
+        salesOrder.setExternalOrderId(externalOrderId);
+        salesOrder.setExternalOrderNo(externalOrderNo);
 
         // Save order first to get ID
         salesOrder = salesOrderRepository.save(salesOrder);
@@ -136,10 +197,10 @@ public class SalesSubmissionService {
         List<SalesOrderItem> items = new ArrayList<>();
         for (CreateSalesOrderRequest.SalesOrderItemData itemData : request.getItems()) {
             // Validate product exists
-            Product product = productRepository.findById(itemData.getProductId())
+            ProductSku product = productSkuRepository.findById(itemData.getProductSkuId())
                 .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.PRODUCT_NOT_FOUND,
-                    Map.of("productId", itemData.getProductId())
+                    ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                    Map.of("productSkuId", itemData.getProductSkuId())
                 ));
 
             // Calculate subtotal
@@ -149,7 +210,7 @@ public class SalesSubmissionService {
             // Create item
             SalesOrderItem item = SalesOrderItem.builder()
                 .salesOrderId(salesOrder.getId())
-                .productId(itemData.getProductId())
+                .productSkuId(itemData.getProductSkuId())
                 .quantity(itemData.getQuantity())
                 .requestedQty(itemData.getQuantity())
                 .allocatedQty(0)
@@ -179,6 +240,14 @@ public class SalesSubmissionService {
 
         // 6. Risk control check
         checkRiskControl(salesOrder, items);
+
+        if (forcePendingApproval) {
+            salesOrder.setStatus(SalesOrderStatus.PENDING_APPROVAL);
+            salesOrder.setCommercialStatus(CommercialStatus.PENDING_APPROVAL);
+            salesOrder.setFulfillmentStatus(FulfillmentStatus.UNALLOCATED);
+            salesOrder.setApprovedAt(null);
+            salesOrder.setReviewReason("渠道对账补单，必须人工审批后才能分配库存");
+        }
 
         // 7. Save order with updated status
         salesOrder = salesOrderRepository.save(salesOrder);
@@ -415,10 +484,10 @@ public class SalesSubmissionService {
         List<SalesOrderItem> items = new ArrayList<>();
         for (UpdateSalesOrderRequest.SalesOrderItemData itemData : request.getItems()) {
             // Validate product exists
-            Product product = productRepository.findById(itemData.getProductId())
+            ProductSku product = productSkuRepository.findById(itemData.getProductSkuId())
                 .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.PRODUCT_NOT_FOUND,
-                    Map.of("productId", itemData.getProductId())
+                    ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                    Map.of("productSkuId", itemData.getProductSkuId())
                 ));
 
             // Calculate subtotal
@@ -428,7 +497,7 @@ public class SalesSubmissionService {
             // Create item
             SalesOrderItem item = SalesOrderItem.builder()
                 .salesOrderId(orderId)
-                .productId(itemData.getProductId())
+                .productSkuId(itemData.getProductSkuId())
                 .quantity(itemData.getQuantity())
                 .requestedQty(itemData.getQuantity())
                 .allocatedQty(0)
@@ -743,18 +812,18 @@ public class SalesSubmissionService {
 
         // Check 1: Unit price below minimum sales price
         for (SalesOrderItem item : items) {
-            Product product = productRepository.findById(item.getProductId())
+            ProductSku product = productSkuRepository.findById(item.getProductSkuId())
                 .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.PRODUCT_NOT_FOUND,
-                    Map.of("productId", item.getProductId())
+                    ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                    Map.of("productSkuId", item.getProductSkuId())
                 ));
 
             if (item.getUnitPrice().compareTo(product.getMinSalesPrice()) < 0) {
                 String reason = String.format("产品 [%s] 单价 %.2f 低于最低限价 %.2f",
                     product.getName(), item.getUnitPrice(), product.getMinSalesPrice());
                 reviewReasons.add(reason);
-                log.warn("⚠️ Price below minimum: productId={}, unitPrice={}, minSalesPrice={}",
-                    item.getProductId(), item.getUnitPrice(), product.getMinSalesPrice());
+                log.warn("⚠️ Price below minimum: productSkuId={}, unitPrice={}, minSalesPrice={}",
+                    item.getProductSkuId(), item.getUnitPrice(), product.getMinSalesPrice());
             }
         }
 
@@ -798,7 +867,7 @@ public class SalesSubmissionService {
         // Convert items to response
         List<SalesOrderResponse.SalesOrderItemResponse> itemResponses = items.stream()
             .map(item -> {
-                Product product = productRepository.findById(item.getProductId()).orElse(null);
+                ProductSku product = productSkuRepository.findById(item.getProductSkuId()).orElse(null);
 
                 List<Long> specifiedBatchIds = null;
                 if (item.hasSpecifiedBatches()) {
@@ -814,7 +883,7 @@ public class SalesSubmissionService {
 
                 return SalesOrderResponse.SalesOrderItemResponse.builder()
                     .id(item.getId())
-                    .productId(item.getProductId())
+                    .productSkuId(item.getProductSkuId())
                     .productName(product != null ? product.getName() : "Unknown")
                     .productBarcode(product != null ? product.getBarcode() : "")
                     .quantity(item.getQuantity())

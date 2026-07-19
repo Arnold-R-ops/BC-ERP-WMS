@@ -42,7 +42,7 @@ public class InventoryQueryService {
     }
 
     public List<InventoryDetailDto> getDetailsBySkuId(Long skuId) {
-        return inventoryBatchRepository.findActiveDetailRowsByProductId(skuId).stream()
+        return inventoryBatchRepository.findActiveDetailRowsByProductSkuId(skuId).stream()
             .map(this::buildInventoryDetail)
             .toList();
     }
@@ -78,11 +78,12 @@ public class InventoryQueryService {
             .image(null)
             .name(row.getProductName())
             .skuCode(row.getSkuCode())
+            .barcode(row.getBarcode())
             .specs(row.getSpecs())
             .build();
 
         return InventorySummaryDto.builder()
-            .productId(row.getProductId())
+            .productSkuId(row.getProductSkuId())
             .skuInfo(skuInfo)
             .warehouseNames(parseWarehouseNames(row.getWarehouseNames()))
             .displayQuantity(formatQuantity(totalQuantity, conversionRate, row.getPackUnit()))

@@ -70,9 +70,6 @@ class ShopifyIntegrationServiceTest {
     private SalesSubmissionService salesSubmissionService;
 
     @Mock
-    private AllocationService allocationService;
-
-    @Mock
     private ChannelRawEventService rawEventService;
 
     @Mock
@@ -87,7 +84,7 @@ class ShopifyIntegrationServiceTest {
     private IntegrationConfig config;
     private ShopifyOrderDto shopifyOrder;
     private Customer customer;
-    private Product product;
+    private ProductSku product;
     private SalesOrder salesOrder;
     private ChannelRawEvent rawEvent;
 
@@ -112,7 +109,7 @@ class ShopifyIntegrationServiceTest {
         ShopifyLineItemDto lineItem = new ShopifyLineItemDto();
         lineItem.setId(1L);
         lineItem.setSku("TEST-SKU-001");
-        lineItem.setName("Test Product");
+        lineItem.setName("Test ProductSku");
         lineItem.setQuantity(10);
         lineItem.setPrice("99.99");
 
@@ -132,10 +129,11 @@ class ShopifyIntegrationServiceTest {
                 .isActive(true)
                 .build();
 
-        product = Product.builder()
+        product = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
                 .id(1L)
                 .barcode("TEST-SKU-001")
-                .name("Test Product")
+                .name("Test ProductSku")
                 .minSalesPrice(BigDecimal.valueOf(50.00))
                 .build();
 
@@ -207,7 +205,7 @@ class ShopifyIntegrationServiceTest {
     }
 
     private ChannelSkuResolver.Resolution resolutionOfProduct(int ratio) {
-        return ChannelSkuResolver.Resolution.product(product, ratio);
+        return ChannelSkuResolver.Resolution.productSku(product, ratio);
     }
 
     // ===== 用例 =====
@@ -238,18 +236,18 @@ class ShopifyIntegrationServiceTest {
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
+        when(salesSubmissionService.createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isEqualTo(1);
         assertThat(result.getFailedCount()).isZero();
         verify(integrationConfigRepository).save(config);
-        verify(allocationService).allocateInventory(1L);
+        verify(salesSubmissionService).createChannelOrderPendingApproval(
+                any(), eq(1L), eq("Shopify Integration"), eq("SHOPIFY"), eq("12345"), eq("#1001"));
+        verify(customerRepository, never()).save(any(Customer.class));
         // 报文留底状态回写
         verify(rawEventService).record(eq("SHOPIFY"), eq("test-store.myshopify.com"),
                 eq(ChannelRawEvent.SOURCE_POLL), eq(ChannelRawEvent.TYPE_ORDER), eq("12345"), anyString());
@@ -271,7 +269,8 @@ class ShopifyIntegrationServiceTest {
         assertThat(result.getSkippedCount()).isEqualTo(1);
         assertThat(result.getFailedCount()).isZero();
         verify(rawEventService).markSkipped(eq(10L), anyString());
-        verify(salesSubmissionService, never()).createSalesOrder(any(), anyLong(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -291,7 +290,8 @@ class ShopifyIntegrationServiceTest {
         assertThat(result.getSkippedCount()).isEqualTo(1);
         verify(rawEventService, never()).record(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
         verify(rawEventService, never()).markSkipped(anyLong(), anyString());
-        verify(salesSubmissionService, never()).createSalesOrder(any(), anyLong(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -313,11 +313,9 @@ class ShopifyIntegrationServiceTest {
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
+        when(salesSubmissionService.createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
@@ -346,11 +344,12 @@ class ShopifyIntegrationServiceTest {
         verify(pendingSkuMappingService).recordMiss(eq("SHOPIFY"), anyString(), eq("TEST-SKU-001"),
                 anyString(), any(), eq("#1001"));
         verify(rawEventService).markFailed(eq(10L), anyString());
-        verify(salesSubmissionService, never()).createSalesOrder(any(), anyLong(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
-    void syncOrders_CreateNewCustomer() {
+    void syncOrders_UnmatchedCustomerBlockedWithoutCreatingMasterData() {
         stubActiveConfig();
         when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
         stubNewRawEvent();
@@ -359,30 +358,14 @@ class ShopifyIntegrationServiceTest {
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        Customer newCustomer = Customer.builder()
-                .id(2L)
-                .code("SHOPIFY_100")
-                .name("John Doe")
-                .email("test@example.com")
-                .isActive(true)
-                .build();
-        when(customerRepository.save(any(Customer.class))).thenReturn(newCustomer);
-
-        stubSkuResolved(1);
-
-        SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
-        salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
-                .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
-
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
-        assertThat(result.getSuccessCount()).isEqualTo(1);
-        verify(customerRepository).save(any(Customer.class));
-        verify(allocationService).allocateInventory(1L);
+        assertThat(result.getSuccessCount()).isZero();
+        assertThat(result.getFailedCount()).isEqualTo(1);
+        verify(customerRepository, never()).save(any(Customer.class));
+        verify(skuResolver, never()).resolve(anyString(), anyString(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -394,7 +377,8 @@ class ShopifyIntegrationServiceTest {
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isZero();
-        verify(salesSubmissionService, never()).createSalesOrder(any(), anyLong(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -492,21 +476,19 @@ class ShopifyIntegrationServiceTest {
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
+        when(salesSubmissionService.createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isEqualTo(1);
-        verify(salesSubmissionService).createSalesOrder(argThat(req -> {
+        verify(salesSubmissionService).createChannelOrderPendingApproval(argThat(req -> {
             var item = req.getItems().get(0);
             // 10 件 ×20 = 200 内部单位；99.99 ÷ 20 = 5.00（HALF_UP 到分）
             return item.getQuantity() == 200
                 && item.getUnitPrice().compareTo(new BigDecimal("5.00")) == 0;
-        }), anyLong(), anyString());
+        }), anyLong(), anyString(), eq("SHOPIFY"), eq("12345"), eq("#1001"));
     }
 
     @Test
@@ -523,11 +505,9 @@ class ShopifyIntegrationServiceTest {
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
         salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
+        when(salesSubmissionService.createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
@@ -536,7 +516,7 @@ class ShopifyIntegrationServiceTest {
     }
 
     @Test
-    void syncOrders_AllocationServiceThrowsException() {
+    void syncOrders_OrderCreationFailureMarksRawEventFailed() {
         stubActiveConfig();
         when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
         stubNewRawEvent();
@@ -546,14 +526,9 @@ class ShopifyIntegrationServiceTest {
         when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
         stubSkuResolved(1);
 
-        SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
-        salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
-                .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong()))
-                .thenThrow(new BusinessException(ErrorKeys.STOCK_INSUFFICIENT));
+        when(salesSubmissionService.createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new BusinessException(ErrorKeys.VALIDATION_FAILED));
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
@@ -572,11 +547,12 @@ class ShopifyIntegrationServiceTest {
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
-        verify(salesSubmissionService, never()).createSalesOrder(any(), anyLong(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
-    void syncOrders_CustomerWithoutName() {
+    void syncOrders_InactiveCustomerBlocked() {
         stubActiveConfig();
         shopifyOrder.getCustomer().setFirstName(null);
         shopifyOrder.getCustomer().setLastName(null);
@@ -585,30 +561,15 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-
-        Customer newCustomer = Customer.builder()
-                .id(2L)
-                .code("SHOPIFY_100")
-                .name("test@example.com")
-                .email("test@example.com")
-                .isActive(true)
-                .build();
-        when(customerRepository.save(any(Customer.class))).thenReturn(newCustomer);
-
-        stubSkuResolved(1);
-
-        SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
-        salesOrderResponse.setId(1L);
-        when(salesSubmissionService.createSalesOrder(any(), anyLong(), anyString()))
-                .thenReturn(salesOrderResponse);
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(salesOrder));
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenReturn(salesOrder);
-        when(allocationService.allocateInventory(anyLong())).thenReturn(Collections.emptyList());
+        customer.setIsActive(false);
+        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
-        assertThat(result.getSuccessCount()).isEqualTo(1);
-        verify(customerRepository).save(argThat(c -> c.getName().equals("test@example.com")));
+        assertThat(result.getSuccessCount()).isZero();
+        assertThat(result.getFailedCount()).isEqualTo(1);
+        verify(customerRepository, never()).save(any(Customer.class));
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+                any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 }

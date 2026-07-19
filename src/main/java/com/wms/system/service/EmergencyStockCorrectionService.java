@@ -25,7 +25,7 @@ public class EmergencyStockCorrectionService {
 
     private final EmergencyStockCorrectionRepository correctionRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final DomainOutboxService domainOutboxService;
@@ -34,8 +34,8 @@ public class EmergencyStockCorrectionService {
 
     @Transactional(rollbackFor = Exception.class)
     public EmergencyStockCorrectionResponse create(EmergencyStockCorrectionRequest request, Long operatorId) {
-        Product product = productRepository.findById(request.getProductId())
-            .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND, Map.of("productId", request.getProductId())));
+        ProductSku product = productSkuRepository.findById(request.getProductSkuId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND, Map.of("productSkuId", request.getProductSkuId())));
         Location location = locationRepository.findById(request.getLocationId())
             .orElseThrow(() -> new BusinessException(ErrorKeys.LOCATION_NOT_FOUND, Map.of("locationId", request.getLocationId())));
 
@@ -53,7 +53,7 @@ public class EmergencyStockCorrectionService {
 
         EmergencyStockCorrection correction = EmergencyStockCorrection.builder()
             .correctionNo(nextCorrectionNo())
-            .productId(product.getId())
+            .productSkuId(product.getId())
             .locationId(location.getId())
             .inventoryBatchId(batch == null ? null : batch.getId())
             .batchCode(batch == null ? request.getBatchCode() : batch.getBatchCode())
@@ -125,8 +125,8 @@ public class EmergencyStockCorrectionService {
         EmergencyStockCorrection correction = load(id);
         requireStatus(correction, EmergencyCorrectionStatus.APPROVED);
 
-        Product product = productRepository.findById(correction.getProductId())
-            .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND, Map.of("productId", correction.getProductId())));
+        ProductSku product = productSkuRepository.findById(correction.getProductSkuId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND, Map.of("productSkuId", correction.getProductSkuId())));
         Location location = locationRepository.findById(correction.getLocationId())
             .orElseThrow(() -> new BusinessException(ErrorKeys.LOCATION_NOT_FOUND, Map.of("locationId", correction.getLocationId())));
 
@@ -150,7 +150,7 @@ public class EmergencyStockCorrectionService {
             : SourceType.INVENTORY_LOSS;
 
         StockTransaction transaction = StockTransaction.builder()
-            .product(product)
+            .productSku(product)
             .location(location)
             .transactionType(TransactionType.ADJUST)
             .sourceType(stockTransactionSourceType)
@@ -172,8 +172,9 @@ public class EmergencyStockCorrectionService {
         correction.setAppliedAt(LocalDateTime.now());
         EmergencyStockCorrection saved = correctionRepository.save(correction);
 
-        domainOutboxService.append("INVENTORY_AVAILABLE", "Product", product.getId(), Map.of(
-            "productId", product.getId(),
+        domainOutboxService.append("INVENTORY_AVAILABLE", "ProductSku", product.getId(), Map.of(
+            "schemaVersion", 2,
+            "productSkuId", product.getId(),
             "source", "EMERGENCY_CORRECTION",
             "correctionId", saved.getId()
         ));
@@ -213,10 +214,10 @@ public class EmergencyStockCorrectionService {
         ));
     }
 
-    private InventoryBatch createCorrectionBatch(EmergencyStockCorrection correction, Product product, Location location) {
+    private InventoryBatch createCorrectionBatch(EmergencyStockCorrection correction, ProductSku product, Location location) {
         InventoryBatch batch = InventoryBatch.builder()
             .batchCode(correction.getBatchCode())
-            .product(product)
+            .productSku(product)
             .location(location)
             .locationCode(location.getLocationCode())
             .quantity(0)
@@ -246,7 +247,7 @@ public class EmergencyStockCorrectionService {
         return EmergencyStockCorrectionResponse.builder()
             .id(c.getId())
             .correctionNo(c.getCorrectionNo())
-            .productId(c.getProductId())
+            .productSkuId(c.getProductSkuId())
             .locationId(c.getLocationId())
             .inventoryBatchId(c.getInventoryBatchId())
             .batchCode(c.getBatchCode())

@@ -2,12 +2,12 @@ package com.wms.system.service;
 
 import com.wms.system.entity.ChannelSkuMapping;
 import com.wms.system.entity.PendingSkuMapping;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.ChannelSkuMappingRepository;
 import com.wms.system.repository.PendingSkuMappingRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,13 +40,13 @@ class PendingSkuMappingServiceTest {
     private ChannelSkuMappingRepository mappingRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @InjectMocks
     private PendingSkuMappingService service;
 
     private PendingSkuMapping pending;
-    private Product product;
+    private ProductSku product;
 
     @BeforeEach
     void setUp() {
@@ -55,14 +55,15 @@ class PendingSkuMappingServiceTest {
             .externalSku("TOP0002 - 2-20KG").externalTitle("Tapioca Pearl 20KG")
             .occurrenceCount(3).status(PendingSkuMapping.STATUS_PENDING)
             .build();
-        product = Product.builder().id(9L).barcode("TOP0002").name("木薯珍珠").build();
+        product = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode()).id(9L).barcode("TOP0002").name("木薯珍珠").build();
     }
 
     @Test
     void recordMiss_CreatesNewEntry() {
         when(pendingRepository.findByChannelAndExternalSku("SHOPIFY", "NEW-SKU")).thenReturn(Optional.empty());
 
-        service.recordMiss("SHOPIFY", "store", "NEW-SKU", "New Product", new BigDecimal("9.99"), "#1001");
+        service.recordMiss("SHOPIFY", "store", "NEW-SKU", "New ProductSku", new BigDecimal("9.99"), "#1001");
 
         ArgumentCaptor<PendingSkuMapping> captor = ArgumentCaptor.forClass(PendingSkuMapping.class);
         verify(pendingRepository).save(captor.capture());
@@ -111,7 +112,7 @@ class PendingSkuMappingServiceTest {
     void resolve_Map_CreatesMappingAndCloses() {
         when(pendingRepository.findById(1L)).thenReturn(Optional.of(pending));
         when(pendingRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(productRepository.findById(9L)).thenReturn(Optional.of(product));
+        when(productSkuRepository.findById(9L)).thenReturn(Optional.of(product));
         when(mappingRepository.findByChannelAndExternalSkuAndStatus(anyString(), anyString(), anyString()))
             .thenReturn(Optional.empty());
 
@@ -120,7 +121,7 @@ class PendingSkuMappingServiceTest {
         ArgumentCaptor<ChannelSkuMapping> captor = ArgumentCaptor.forClass(ChannelSkuMapping.class);
         verify(mappingRepository).save(captor.capture());
         assertThat(captor.getValue().getMappingType()).isEqualTo(ChannelSkuMapping.TYPE_PRODUCT);
-        assertThat(captor.getValue().getProduct().getId()).isEqualTo(9L);
+        assertThat(captor.getValue().getProductSku().getId()).isEqualTo(9L);
         assertThat(captor.getValue().getQuantityRatio()).isEqualTo(20);
         assertThat(captor.getValue().getSource()).isEqualTo(ChannelSkuMapping.SOURCE_MANUAL);
         assertThat(captor.getValue().getNormalizedSku()).isEqualTo("TOP0002-2-20KG");
@@ -131,7 +132,7 @@ class PendingSkuMappingServiceTest {
     }
 
     @Test
-    void resolve_Map_RequiresProductId() {
+    void resolve_Map_RequiresProductSkuId() {
         when(pendingRepository.findById(1L)).thenReturn(Optional.of(pending));
 
         assertThatThrownBy(() -> service.resolve(1L, "MAP", null, null, 5L))
@@ -152,7 +153,7 @@ class PendingSkuMappingServiceTest {
         ArgumentCaptor<ChannelSkuMapping> captor = ArgumentCaptor.forClass(ChannelSkuMapping.class);
         verify(mappingRepository).save(captor.capture());
         assertThat(captor.getValue().getMappingType()).isEqualTo(ChannelSkuMapping.TYPE_VIRTUAL);
-        assertThat(captor.getValue().getProduct()).isNull();
+        assertThat(captor.getValue().getProductSku()).isNull();
         assertThat(result.getResolution()).isEqualTo(PendingSkuMapping.RESOLUTION_VIRTUAL);
     }
 
@@ -179,7 +180,7 @@ class PendingSkuMappingServiceTest {
     @Test
     void suggestions_UsesFirstCodeToken() {
         when(pendingRepository.findById(1L)).thenReturn(Optional.of(pending));
-        when(productRepository.findTop10ByBarcodeStartingWithIgnoreCaseOrSkuNameContainingIgnoreCase("TOP0002", "TOP0002"))
+        when(productSkuRepository.findTop10ByBarcodeStartingWithIgnoreCaseOrSkuNameContainingIgnoreCase("TOP0002", "TOP0002"))
             .thenReturn(java.util.List.of(product));
 
         var result = service.suggestions(1L);

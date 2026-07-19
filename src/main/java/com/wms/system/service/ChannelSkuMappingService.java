@@ -3,11 +3,11 @@ package com.wms.system.service;
 import com.wms.system.dto.integration.ChannelSkuMappingRequest;
 import com.wms.system.dto.integration.ChannelSkuMappingResponse;
 import com.wms.system.entity.ChannelSkuMapping;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.ChannelSkuMappingRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ import java.util.Map;
 public class ChannelSkuMappingService {
 
     private final ChannelSkuMappingRepository mappingRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
 
     @Transactional(readOnly = true)
     public List<ChannelSkuMappingResponse> list(String channel) {
@@ -63,12 +63,12 @@ public class ChannelSkuMappingService {
             .source(ChannelSkuMapping.SOURCE_MANUAL)
             .remark(request.getRemark())
             .build();
-        applyTypeAndProduct(mapping, request.getMappingType(), request.getProductId(), request.getQuantityRatio());
+        applyTypeAndProduct(mapping, request.getMappingType(), request.getProductSkuId(), request.getQuantityRatio());
 
         mapping = mappingRepository.save(mapping);
-        log.info("SKU 映射创建: channel={}, externalSku='{}', type={}, productId={}",
+        log.info("SKU 映射创建: channel={}, externalSku='{}', type={}, productSkuId={}",
             channel, mapping.getExternalSku(), mapping.getMappingType(),
-            mapping.getProduct() == null ? null : mapping.getProduct().getId());
+            mapping.getProductSku() == null ? null : mapping.getProductSku().getId());
         return ChannelSkuMappingResponse.from(mapping);
     }
 
@@ -78,16 +78,16 @@ public class ChannelSkuMappingService {
             .orElseThrow(() -> new BusinessException(ErrorKeys.RESOURCE_NOT_FOUND,
                 Map.of("resourceType", "ChannelSkuMapping", "resourceId", String.valueOf(id))));
 
-        if (StringUtils.hasText(request.getMappingType()) || request.getProductId() != null
+        if (StringUtils.hasText(request.getMappingType()) || request.getProductSkuId() != null
                 || request.getQuantityRatio() != null) {
             String type = StringUtils.hasText(request.getMappingType())
                 ? request.getMappingType() : mapping.getMappingType();
-            Long productId = request.getProductId() != null
-                ? request.getProductId()
-                : (mapping.getProduct() == null ? null : mapping.getProduct().getId());
+            Long productSkuId = request.getProductSkuId() != null
+                ? request.getProductSkuId()
+                : (mapping.getProductSku() == null ? null : mapping.getProductSku().getId());
             Integer ratio = request.getQuantityRatio() != null
                 ? request.getQuantityRatio() : mapping.getQuantityRatio();
-            applyTypeAndProduct(mapping, type, productId, ratio);
+            applyTypeAndProduct(mapping, type, productSkuId, ratio);
         }
         if (StringUtils.hasText(request.getStatus())) {
             mapping.setStatus(request.getStatus());
@@ -102,25 +102,25 @@ public class ChannelSkuMappingService {
         return ChannelSkuMappingResponse.from(mapping);
     }
 
-    private void applyTypeAndProduct(ChannelSkuMapping mapping, String mappingType, Long productId, Integer ratio) {
+    private void applyTypeAndProduct(ChannelSkuMapping mapping, String mappingType, Long productSkuId, Integer ratio) {
         String type = StringUtils.hasText(mappingType) ? mappingType.toUpperCase() : ChannelSkuMapping.TYPE_PRODUCT;
 
         if (ChannelSkuMapping.TYPE_VIRTUAL.equals(type)) {
             mapping.setMappingType(ChannelSkuMapping.TYPE_VIRTUAL);
-            mapping.setProduct(null);
+            mapping.setProductSku(null);
             mapping.setQuantityRatio(1);
             return;
         }
 
-        if (productId == null) {
-            throw new BusinessException(ErrorKeys.PARAMETER_REQUIRED, Map.of("parameter", "productId"));
+        if (productSkuId == null) {
+            throw new BusinessException(ErrorKeys.PARAMETER_REQUIRED, Map.of("parameter", "productSkuId"));
         }
-        Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND,
-                Map.of("productId", productId)));
+        ProductSku product = productSkuRepository.findById(productSkuId)
+            .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                Map.of("productSkuId", productSkuId)));
 
         mapping.setMappingType(ChannelSkuMapping.TYPE_PRODUCT);
-        mapping.setProduct(product);
+        mapping.setProductSku(product);
         mapping.setQuantityRatio(ratio == null || ratio < 1 ? 1 : ratio);
     }
 }

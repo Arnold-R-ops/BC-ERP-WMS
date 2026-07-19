@@ -145,7 +145,7 @@ public class SalesOrderResponse {
         /**
          * 产品ID
          */
-        private Long productId;
+        private Long productSkuId;
 
         /**
          * 产品名称

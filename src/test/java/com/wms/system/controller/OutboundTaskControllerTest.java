@@ -75,8 +75,8 @@ class OutboundTaskControllerTest {
                 .batchCode("BATCH001")
                 .locationId(1L)
                 .locationCode("A-01-01")
-                .productId(1L)
-                .productName("Product A")
+                .productSkuId(1L)
+                .productName("ProductSku A")
                 .productBarcode("1234567890")
                 .planQty(100)
                 .status("PENDING")
@@ -92,8 +92,8 @@ class OutboundTaskControllerTest {
                 .batchCode("BATCH002")
                 .locationId(2L)
                 .locationCode("A-01-02")
-                .productId(2L)
-                .productName("Product B")
+                .productSkuId(2L)
+                .productName("ProductSku B")
                 .productBarcode("0987654321")
                 .planQty(50)
                 .status("PENDING")
@@ -115,7 +115,7 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$[0].status").value("PENDING"))
             .andExpect(jsonPath("$[0].planQty").value(100))
             .andExpect(jsonPath("$[1].id").value(2))
-            .andExpect(jsonPath("$[1].productName").value("Product B"));
+            .andExpect(jsonPath("$[1].productName").value("ProductSku B"));
 
         verify(outboundService).listOutboundTasks(null, null);
     }
@@ -164,8 +164,8 @@ class OutboundTaskControllerTest {
             .batchCode("BATCH001")
             .locationId(1L)
             .locationCode("A-01-01")
-            .productId(1L)
-            .productName("Product A")
+            .productSkuId(1L)
+            .productName("ProductSku A")
             .productBarcode("1234567890")
             .planQty(100)
             .actualQty(null)
@@ -187,7 +187,7 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$.salesOrderNo").value("SO202601290001"))
             .andExpect(jsonPath("$.batchCode").value("BATCH001"))
             .andExpect(jsonPath("$.locationCode").value("A-01-01"))
-            .andExpect(jsonPath("$.productName").value("Product A"))
+            .andExpect(jsonPath("$.productName").value("ProductSku A"))
             .andExpect(jsonPath("$.planQty").value(100))
             .andExpect(jsonPath("$.status").value("PENDING"))
             .andExpect(jsonPath("$.remark").value("Test remark"));
@@ -214,8 +214,8 @@ class OutboundTaskControllerTest {
             .batchCode("BATCH001")
             .locationId(1L)
             .locationCode("A-01-01")
-            .productId(1L)
-            .productName("Product A")
+            .productSkuId(1L)
+            .productName("ProductSku A")
             .planQty(100)
             .actualQty(100)
             .status("COMPLETED")
@@ -226,7 +226,7 @@ class OutboundTaskControllerTest {
             .remark("Picked successfully")
             .build();
 
-        when(outboundService.confirmPicking(eq(1L), eq(100), anyLong(), anyString()))
+        when(outboundService.confirmPicking(eq(1L), eq(100), isNull(), isNull(), isNull(), anyLong(), anyString()))
             .thenReturn(response);
 
         // When & Then
@@ -242,7 +242,7 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$.pickedAt").exists())
             .andExpect(jsonPath("$.remark").value("Picked successfully"));
 
-        verify(outboundService).confirmPicking(eq(1L), eq(100), anyLong(), anyString());
+        verify(outboundService).confirmPicking(eq(1L), eq(100), isNull(), isNull(), isNull(), anyLong(), anyString());
     }
 
     @Test
@@ -269,7 +269,7 @@ class OutboundTaskControllerTest {
             .remark("Only 80 available")
             .build();
 
-        when(outboundService.confirmPicking(eq(1L), eq(80), anyLong(), anyString()))
+        when(outboundService.confirmPicking(eq(1L), eq(80), isNull(), isNull(), isNull(), anyLong(), anyString()))
             .thenReturn(response);
 
         // When & Then
@@ -281,7 +281,7 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$.actualQty").value(80))
             .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        verify(outboundService).confirmPicking(eq(1L), eq(80), anyLong(), anyString());
+        verify(outboundService).confirmPicking(eq(1L), eq(80), isNull(), isNull(), isNull(), anyLong(), anyString());
     }
 
     @Test
@@ -363,7 +363,7 @@ class OutboundTaskControllerTest {
             .andDo(print())
             .andExpect(status().isForbidden());
 
-        verify(outboundService, never()).confirmPicking(anyLong(), anyInt(), anyLong(), anyString());
+        verify(outboundService, never()).confirmPicking(anyLong(), anyInt(), any(), any(), any(), anyLong(), anyString());
     }
 
     @Test
@@ -382,6 +382,6 @@ class OutboundTaskControllerTest {
             .andDo(print())
             .andExpect(status().isBadRequest());
 
-        verify(outboundService, never()).confirmPicking(anyLong(), anyInt(), anyLong(), anyString());
+        verify(outboundService, never()).confirmPicking(anyLong(), anyInt(), any(), any(), any(), anyLong(), anyString());
     }
 }

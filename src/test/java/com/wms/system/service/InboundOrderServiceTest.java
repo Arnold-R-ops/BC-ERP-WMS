@@ -54,7 +54,7 @@ class InboundOrderServiceTest {
     private SupplierRepository supplierRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @Mock
     private WarehouseRepository warehouseRepository;
@@ -71,11 +71,23 @@ class InboundOrderServiceTest {
     @Mock
     private SpuSkuDateBatchCodeGenerator batchCodeGenerator;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private DomainOutboxService domainOutboxService;
+
+    @Mock
+    private BackorderService backorderService;
+
+    @Mock
+    private LocationOccupancyService locationOccupancyService;
+
     @InjectMocks
     private InboundOrderService inboundOrderService;
 
     private Supplier testSupplier;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
     private InboundOrder testOrder;
@@ -91,11 +103,12 @@ class InboundOrderServiceTest {
                 .isActive(true)
                 .build();
 
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
                 .id(1L)
-                .name("Test Product")
+                .name("Test ProductSku")
                 .barcode("BARCODE001")
-                .spu(ProductSpu.builder().id(1L).spuCode("SPU001").spuName("Test SPU").build())
+                .product(Product.builder().id(1L).productCode("SPU001").productName("Test SPU").build())
                 .build();
 
         testWarehouse = Warehouse.builder()
@@ -113,7 +126,7 @@ class InboundOrderServiceTest {
 
         testItem = InboundOrderItem.builder()
                 .id(1L)
-                .product(testProduct)
+                .productSku(testProduct)
                 .planQty(100)
                 .confirmedQty(null)
                 .actualQty(0)
@@ -146,14 +159,14 @@ class InboundOrderServiceTest {
         request.setRemark("Test order");
 
         CreateInboundOrderRequest.InboundOrderItemRequest itemReq = new CreateInboundOrderRequest.InboundOrderItemRequest();
-        itemReq.setProductId(1L);
+        itemReq.setProductSkuId(1L);
         itemReq.setPlanQty(100);
         itemReq.setTargetWarehouseId(1L);
         itemReq.setTargetLocationId(1L);
         request.setItems(List.of(itemReq));
 
         when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
         when(inboundOrderRepository.save(any(InboundOrder.class))).thenReturn(testOrder);
@@ -170,7 +183,7 @@ class InboundOrderServiceTest {
 
         // Verify
         verify(supplierRepository).findById(1L);
-        verify(productRepository).findById(1L);
+        verify(productSkuRepository).findById(1L);
         verify(inboundOrderRepository).save(any(InboundOrder.class));
     }
 
@@ -220,18 +233,18 @@ class InboundOrderServiceTest {
         request.setSupplierId(1L);
 
         CreateInboundOrderRequest.InboundOrderItemRequest itemReq = new CreateInboundOrderRequest.InboundOrderItemRequest();
-        itemReq.setProductId(999L);
+        itemReq.setProductSkuId(999L);
         itemReq.setPlanQty(100);
         request.setItems(List.of(itemReq));
 
         when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+        when(productSkuRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> inboundOrderService.createInboundOrder(
                 request, 1L, "Test User"))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorKey", "PRODUCT_NOT_FOUND");
+                .hasFieldOrPropertyWithValue("errorKey", "PRODUCT_SKU_NOT_FOUND");
     }
 
     // ==================== 闂佽鍓濆畷鐢靛垝閿熺姵鍋犻柛鈩冾殢閸氣偓闂侀€涚祷椤绮婄€靛憡瀚?====================
@@ -313,7 +326,7 @@ class InboundOrderServiceTest {
         when(inboundOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
-        when(batchCodeGenerator.generateUnique(any(Product.class), any(LocalDate.class)))
+        when(batchCodeGenerator.generateUnique(any(ProductSku.class), any(LocalDate.class)))
                 .thenReturn("SPU001-SKU001-20260126");
         when(inboundOrderRepository.save(any(InboundOrder.class))).thenReturn(testOrder);
 

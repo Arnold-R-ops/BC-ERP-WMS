@@ -40,10 +40,10 @@ public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, 
     /**
      * 根据产品ID查询明细列表
      *
-     * @param productId 产品ID
+     * @param productSkuId 产品ID
      * @return 包含该产品的所有订单明细
      */
-    List<SalesOrderItem> findByProductId(Long productId);
+    List<SalesOrderItem> findByProductSkuId(Long productSkuId);
 
     /**
      * 根据销售订单ID删除所有明细

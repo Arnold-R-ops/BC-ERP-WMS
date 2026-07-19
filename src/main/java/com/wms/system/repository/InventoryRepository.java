@@ -2,7 +2,7 @@ package com.wms.system.repository;
 
 import com.wms.system.entity.Inventory;
 import com.wms.system.entity.Location;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,7 +33,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     /**
      * ⭐核心方法：根据商品和库位精确查询库存
-     * 方法命名规范：findBy + 字段1（Product） + And + 字段2（Location）
+     * 方法命名规范：findBy + 字段1（ProductSku） + And + 字段2（Location）
      *
      * 使用场景：
      * 1. 入库时：检查该库位是否已有该商品的库存
@@ -46,11 +46,11 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * @param location 库位对象
      * @return Optional<Inventory> 库存对象（可能为空）
      */
-    Optional<Inventory> findByProductAndLocation(Product product, Location location);
+    Optional<Inventory> findByProductSkuAndLocation(ProductSku product, Location location);
 
     /**
      * 根据商品查询所有库存记录（查询某商品的库存分布）
-     * 方法命名规范：findBy + 字段名（Product）
+     * 方法命名规范：findBy + 字段名（ProductSku）
      *
      * 使用场景：
      * 查询某商品分布在哪些库位，每个库位有多少库存
@@ -65,16 +65,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * @param product 商品对象
      * @return 该商品的所有库存记录
      */
-    List<Inventory> findByProduct(Product product);
+    List<Inventory> findByProductSku(ProductSku product);
 
     /**
      * 根据商品ID查询所有库存记录
-     * 方法命名规范：findBy + 字段名（Product） + _ + 子字段（Id）
+     * 方法命名规范：findBy + 字段名（ProductSku） + _ + 子字段（Id）
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @return 该商品的所有库存记录
      */
-    List<Inventory> findByProduct_Id(Long productId);
+    List<Inventory> findByProductSku_Id(Long productSkuId);
 
     /**
      * 根据库位查询所有库存记录（查询某库位存放了哪些商品）
@@ -106,7 +106,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * JPQL 语法说明：
      * 1. SELECT SUM(i.quantity): 汇总库存数量
      * 2. FROM Inventory i: 从 Inventory 表查询
-     * 3. WHERE i.product.id = :productId: 筛选指定商品
+     * 3. WHERE i.productSku.id = :productSkuId: 筛选指定商品
      * 4. 返回值可能为 null（如果商品没有任何库存记录）
      *
      * 使用场景：
@@ -121,11 +121,11 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * - 库位3：200 件
      * 总库存：350 件
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @return 总库存数量（如果没有库存记录，返回 null）
      */
-    @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.product.id = :productId")
-    Integer sumTotalQuantityByProduct(@Param("productId") Long productId);
+    @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.productSku.id = :productSkuId")
+    Integer sumTotalQuantityByProductSku(@Param("productSkuId") Long productSkuId);
 
     /**
      * 计算某商品在指定仓库的总库存（Phase 3.4 更新）
@@ -137,14 +137,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * - 参数从 warehouseCode (String) 改为 warehouseId (Long)
      * - JPQL 查询从 i.location.warehouseCode 改为 i.location.warehouse.id
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param warehouseId 仓库ID
      * @return 该商品在该仓库的总库存
      */
     @Query("SELECT SUM(i.quantity) FROM Inventory i " +
-           "WHERE i.product.id = :productId " +
+           "WHERE i.productSku.id = :productSkuId " +
            "AND i.location.warehouse.id = :warehouseId")
-    Integer sumTotalQuantityByProductAndWarehouse(@Param("productId") Long productId,
+    Integer sumTotalQuantityByProductSkuAndWarehouse(@Param("productSkuId") Long productSkuId,
                                                     @Param("warehouseId") Long warehouseId);
 
     /**
@@ -153,14 +153,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * 业务场景：
      * 查询高频商品在 ZONE_A（快速拣货区）的库存分布
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param zone 库位区域
      * @return 该商品在该区域的所有库存记录
      */
     @Query("SELECT i FROM Inventory i " +
-           "WHERE i.product.id = :productId " +
+           "WHERE i.productSku.id = :productSkuId " +
            "AND i.location.zone = :zone")
-    List<Inventory> findByProductAndZone(@Param("productId") Long productId,
+    List<Inventory> findByProductSkuAndZone(@Param("productSkuId") Long productSkuId,
                                           @Param("zone") String zone);
 
     /**
@@ -180,7 +180,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * 方法命名规范：findBy + 字段名（Quantity） + 比较条件（LessThan）
      *
      * 使用场景：
-     * 1. 配合 Product.minStock 字段，查询需要补货的库存记录
+     * 1. 配合 ProductSku.minStock 字段，查询需要补货的库存记录
      * 2. 库存预警功能
      *
      * @param threshold 库存阈值
@@ -198,7 +198,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * 1. SELECT i: 查询 Inventory 实体
      * 2. FROM Inventory i: 从 Inventory 表查询
      * 3. WHERE (...): 使用子查询计算总库存
-     * 4. < i.product.minStock: 总库存 < 安全库存
+     * 4. < i.productSku.minStock: 总库存 < 安全库存
      *
      * 使用场景：
      * 1. 库存预警页面展示
@@ -209,8 +209,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query("SELECT i FROM Inventory i " +
            "WHERE (" +
            "  SELECT SUM(i2.quantity) FROM Inventory i2 " +
-           "  WHERE i2.product = i.product" +
-           ") < i.product.minStock")
+           "  WHERE i2.productSku = i.productSku" +
+           ") < i.productSku.minStock")
     List<Inventory> findLowStockInventories();
 
     /**
@@ -234,16 +234,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * - 参数从 warehouseCode (String) 改为 warehouseId (Long)
      * - JPQL 查询从 i.location.warehouseCode 改为 i.location.warehouse.id
      *
-     * @param productId 商品ID
+     * @param productSkuId 商品ID
      * @param warehouseId 仓库ID
      * @param zone 库位区域
      * @return 符合条件的库存记录
      */
     @Query("SELECT i FROM Inventory i " +
-           "WHERE i.product.id = :productId " +
+           "WHERE i.productSku.id = :productSkuId " +
            "AND i.location.warehouse.id = :warehouseId " +
            "AND i.location.zone = :zone")
-    List<Inventory> findByProductAndWarehouseAndZone(@Param("productId") Long productId,
+    List<Inventory> findByProductSkuAndWarehouseAndZone(@Param("productSkuId") Long productSkuId,
                                                        @Param("warehouseId") Long warehouseId,
                                                        @Param("zone") String zone);
 }

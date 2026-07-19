@@ -52,8 +52,8 @@ class StocktakeItemRepositoryTest {
     private Warehouse testWarehouse;
     private Location testLocation1;
     private Location testLocation2;
-    private Product testProduct1;
-    private Product testProduct2;
+    private ProductSku testProduct1;
+    private ProductSku testProduct2;
     private InventoryBatch testBatch1;
     private InventoryBatch testBatch2;
     private StocktakeTask testTask1;
@@ -96,27 +96,30 @@ class StocktakeItemRepositoryTest {
         entityManager.persist(testLocation2);
 
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔煎箲閹邦啩婊堟煕閿旇骞愰柛瀣崌閺佹劖鎯旈垾宕囶啋婵犲痉銈呯毢妞ゎ厼鐗撳﹢浣糕攽閻樻瑥鎳庡瓭闂佸摜鍣ラ崹鍫曠嵁?
-                ProductSpu testSpu = ProductSpu.builder()
-                .spuCode("SPU001")
-                .spuName("Test SPU")
+                Product testSpu = Product.builder()
+                .category(com.wms.system.support.TestCatalogFactory.persistLeafCategory(entityManager))
+                .productCode("SPU001")
+                .productName("Test SPU")
                 .enabled(true)
                 .build();
         entityManager.persist(testSpu);
 
-        testProduct1 = Product.builder()
-                .spu(testSpu)
+        testProduct1 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(testSpu)
                 .skuName("PROD001")
-                .name("Test Product A")
+                .name("Test ProductSku A")
                 .barcode("6900000000001")
                 .unitPrice(new BigDecimal("100.00"))
                 .nearExpiryDays(90)
                 .enabled(true)
                 .build();
 
-        testProduct2 = Product.builder()
-                .spu(testSpu)
+        testProduct2 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(testSpu)
                 .skuName("PROD002")
-                .name("Test Product B")
+                .name("Test ProductSku B")
                 .barcode("6900000000002")
                 .unitPrice(new BigDecimal("50.00"))
                 .nearExpiryDays(60)
@@ -128,7 +131,7 @@ class StocktakeItemRepositoryTest {
 
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔煎箲閹邦啩婊堟煕閿旇骞愰柛瀣崌閺佹劖鎯旈垾宕囶啋婵犵鈧啿绾ч柟顔煎€垮濠氭偄閸涘﹤顎撻梺鍛婂姉閸嬫挾绱為崼婵愭富?
                 testBatch1 = InventoryBatch.builder()
-                .product(testProduct1)
+                .productSku(testProduct1)
                 .batchCode("BATCH001")
                 .location(testLocation1)
                 .locationCode(testLocation1.getLocationCode())
@@ -139,7 +142,7 @@ class StocktakeItemRepositoryTest {
                 .build();
 
         testBatch2 = InventoryBatch.builder()
-                .product(testProduct2)
+                .productSku(testProduct2)
                 .batchCode("BATCH002")
                 .location(testLocation2)
                 .locationCode(testLocation2.getLocationCode())
@@ -186,7 +189,7 @@ class StocktakeItemRepositoryTest {
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔兼倷椤掆偓婢ь垶鏌涢悢閿嬪殗闁哄被鍊楅崰濠囧础閻愬樊娼界紓浣稿⒔閸嬫捇骞冮崒鐐茶摕闁挎繂顦粻娑欍亜閺嶇數绋荤紓宥呯墕閳规垿鍨鹃崘鑼獓闂佹悶鍔屽﹢鍗炍? - 闂傚倷娴囧畷鍨叏閻㈢绀夌憸蹇曞垝婵犳艾绠ｉ柨鏃囨娴犻箖姊洪崨濠冨闁搞劑浜跺畷鏇熸償閵婏妇鍘卞┑鐘绘涧鐎氼剟宕濋幘顔界厱?
         countedItem1 = StocktakeItem.builder()
                 .taskId(testTask1.getId())
-                .productId(testProduct1.getId())
+                .productSkuId(testProduct1.getId())
                 .batchId(testBatch1.getId())
                 .locationId(testLocation1.getId())
                 .snapshotQty(100)
@@ -201,7 +204,7 @@ class StocktakeItemRepositoryTest {
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔兼倷椤掆偓婢ь垶鏌涢悢閿嬪殗闁哄被鍊楅崰濠囧础閻愬樊娼界紓浣稿⒔閸嬫捇骞冮崒鐐茶摕闁挎繂顦粻娑欍亜閺嶇數绋荤紓宥呯墕閳规垿鍨鹃崘鑼獓闂佹悶鍔屽﹢鍗炍? - 闂傚倸鍊风粈渚€骞栭锔藉亱闁糕剝铔嬮崶顒夋晬婵綀鍋愰崰鎰崲濠靛纾奸柕鍫濇噺椤撳潡姊绘担渚劸闁活厼顦版穱濠囧炊閳哄啰鐒奸梺鍛婃处閸ㄩ亶鎮￠悢鍏肩厓闁告繂瀚禍鐐烘煟閹烘洖袚缂佺粯绋掑鍕幢濡崵褰嬮梻?
                 countedItem2 = StocktakeItem.builder()
                 .taskId(testTask1.getId())
-                .productId(testProduct2.getId())
+                .productSkuId(testProduct2.getId())
                 .batchId(testBatch2.getId())
                 .locationId(testLocation2.getId())
                 .snapshotQty(50)
@@ -217,7 +220,7 @@ class StocktakeItemRepositoryTest {
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔煎箲閹伴潧娈柣搴㈣壘椤︿即濡甸崟顔剧杸闁圭偓鎯屽Λ锛勭磼閸撗冧壕闁诡喖鍊垮濠氭晲婢跺﹦鐤€濡炪倖鐗徊鍓х礊閸績鏀介柍銉ュ暱缁狙囨煕閵娿儲璐℃俊?
         uncountedItem = StocktakeItem.builder()
                 .taskId(testTask1.getId())
-                .productId(testProduct1.getId())
+                .productSkuId(testProduct1.getId())
                 .batchId(testBatch1.getId())
                 .locationId(testLocation2.getId())
                 .snapshotQty(80)
@@ -229,7 +232,7 @@ class StocktakeItemRepositoryTest {
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔煎箲閹伴潧娈柣搴㈣壘椤︻垶鈥︾捄銊﹀磯闁绘艾鐡ㄩ弫楣冩⒑瀹曞洨甯涙繛鍙夌矒閸┾偓妞ゆ帊绶￠崯蹇涙煕閻樺磭澧电€规洘鍔欓幃鐑藉箯閺冩挾绉鐐差儔閹晠鎮界喊澶屽簥闂傚倷鑳剁涵璺何ｉ崨鏉戝偍闁告挆鍛劶闂佸憡娲﹂崹閬嶆偂閻斿吋鐓冮柛婵嗗缁辨牠鏌ゅù瀣珗濠殿喛娅曢妵鍕箻閸楃偟浠鹃梺?
                 itemWithDifference = StocktakeItem.builder()
                 .taskId(testTask1.getId())
-                .productId(testProduct2.getId())
+                .productSkuId(testProduct2.getId())
                 .batchId(testBatch2.getId())
                 .locationId(testLocation1.getId())
                 .snapshotQty(30)
@@ -245,7 +248,7 @@ class StocktakeItemRepositoryTest {
         // 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔煎箚瑜滈崵鐔搞亜閳哄啫鍘撮柟顔肩秺瀹曞爼濡搁妷褏銈锋俊?闂傚倸鍊烽悞锕傛儑瑜版帒绀夌€光偓閳ь剟鍩€椤掍礁鍤柛妯煎帶瀹撳嫰姊洪悷閭﹀殶濠殿噣顥撴竟?
         StocktakeItem task2Item = StocktakeItem.builder()
                 .taskId(testTask2.getId())
-                .productId(testProduct1.getId())
+                .productSkuId(testProduct1.getId())
                 .batchId(testBatch1.getId())
                 .locationId(testLocation1.getId())
                 .snapshotQty(120)
@@ -369,7 +372,7 @@ class StocktakeItemRepositoryTest {
         // Given: 闂傚倸鍊风粈渚€骞夐敍鍕殰婵°倕鍟伴惌娆撴煙鐎电啸缁惧彞绮欓弻鐔煎箲閹伴潧娈┑鈽嗗亝閿曘垽寮婚悢灏佹灁闁割煈鍠楅悘宥囩磼閸撗冧壕闁诡喖鍊垮濠氭晲婢跺﹦鐤€濡炪倖鐗徊鍓х礊閸績鏀介柍銉ュ暱缁狙囨煕閵娿儲璐℃俊?
         StocktakeItem newItem = StocktakeItem.builder()
                 .taskId(testTask2.getId())
-                .productId(testProduct2.getId())
+                .productSkuId(testProduct2.getId())
                 .batchId(testBatch2.getId())
                 .locationId(testLocation2.getId())
                 .snapshotQty(60)

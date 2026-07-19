@@ -64,7 +64,7 @@ class StocktakeServiceTest {
     private StockTransactionRepository stockTransactionRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @Mock
     private LocationRepository locationRepository;
@@ -76,7 +76,7 @@ class StocktakeServiceTest {
     private StocktakeService stocktakeService;
 
     private Warehouse testWarehouse;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Location testLocation;
     private InventoryBatch testBatch;
     private StocktakeTask testTask;
@@ -99,9 +99,10 @@ class StocktakeServiceTest {
             .build();
 
         // Create test product
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
             .id(1L)
-            .name("Test Product")
+            .name("Test ProductSku")
             .barcode("TEST001")
             .build();
 
@@ -109,7 +110,7 @@ class StocktakeServiceTest {
         testBatch = InventoryBatch.builder()
             .id(1L)
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .quantity(100)
             .initialQuantity(100)
@@ -212,7 +213,7 @@ class StocktakeServiceTest {
 
         StockTransaction recentTransaction = StockTransaction.builder()
             .id(1L)
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .transactionType(TransactionType.IN)
             .sourceType(SourceType.PURCHASE_IN)
@@ -291,7 +292,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)
@@ -311,7 +312,7 @@ class StocktakeServiceTest {
         when(stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(1L, 0)).thenReturn(1L);
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
 
@@ -339,7 +340,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)
@@ -358,7 +359,7 @@ class StocktakeServiceTest {
         when(stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(1L, 0)).thenReturn(1L);
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
 
@@ -380,7 +381,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)
@@ -399,7 +400,7 @@ class StocktakeServiceTest {
         when(stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(1L, 0)).thenReturn(1L);
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
 
@@ -425,7 +426,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)
@@ -443,7 +444,7 @@ class StocktakeServiceTest {
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
 
@@ -467,7 +468,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)
@@ -543,7 +544,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)
@@ -591,7 +592,7 @@ class StocktakeServiceTest {
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
             .taskId(1L)
-            .productId(1L)
+            .productSkuId(1L)
             .batchId(1L)
             .locationId(1L)
             .snapshotQty(100)

@@ -23,7 +23,7 @@ import java.util.Map;
  * {
  *   "errorKey": "STOCK_INSUFFICIENT",
  *   "params": {
- *     "productId": 123,
+ *     "productSkuId": 123,
  *     "currentStock": 50,
  *     "requestedQuantity": 100,
  *     "shortage": 50
@@ -49,13 +49,13 @@ public class ErrorResponse {
 
     /**
      * Error key for frontend i18n translation
-     * Examples: "STOCK_INSUFFICIENT", "PRODUCT_NOT_FOUND"
+     * Examples: "STOCK_INSUFFICIENT", "PRODUCT_SKU_NOT_FOUND"
      */
     private String errorKey;
 
     /**
      * Dynamic parameters for error message interpolation
-     * Examples: {"productId": 123, "currentStock": 50}
+     * Examples: {"productSkuId": 123, "currentStock": 50}
      */
     @Builder.Default
     private Map<String, Object> params = new HashMap<>();

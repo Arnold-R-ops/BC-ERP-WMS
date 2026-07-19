@@ -75,7 +75,7 @@ class ExcelImportServiceTest {
         var result = excelImportService.importPurchaseOrderFromExcel(file);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getProductId()).isEqualTo(1L);
+        assertThat(result.get(0).getProductSkuId()).isEqualTo(1L);
         assertThat(result.get(0).getOrderedQuantity()).isEqualTo(100);
     }
 
@@ -115,7 +115,7 @@ class ExcelImportServiceTest {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Sheet1");
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("productId");
+        header.createCell(0).setCellValue("productSkuId");
         header.createCell(1).setCellValue("orderedQuantity");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
@@ -128,11 +128,11 @@ class ExcelImportServiceTest {
         Sheet sheet = workbook.createSheet("Sheet1");
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("productId");
+        header.createCell(0).setCellValue("productSkuId");
         header.createCell(1).setCellValue("orderedQuantity");
         // Data row
         Row data = sheet.createRow(1);
-        data.createCell(0).setCellValue(1.0);   // productId
+        data.createCell(0).setCellValue(1.0);   // productSkuId
         data.createCell(1).setCellValue(100.0); // orderedQuantity
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
@@ -145,7 +145,7 @@ class ExcelImportServiceTest {
         Sheet sheet = workbook.createSheet("Sheet1");
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("productId");
+        header.createCell(0).setCellValue("productSkuId");
         // Empty row 1 (null row)
         // Valid data row 2
         Row data = sheet.createRow(2);
@@ -162,10 +162,10 @@ class ExcelImportServiceTest {
         Sheet sheet = workbook.createSheet("Sheet1");
         // Header
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("productId");
-        // Invalid data: productId is text, not numeric
+        header.createCell(0).setCellValue("productSkuId");
+        // Invalid data: productSkuId is text, not numeric
         Row data = sheet.createRow(1);
-        data.createCell(0).setCellValue("NOT_A_NUMBER"); // invalid productId
+        data.createCell(0).setCellValue("NOT_A_NUMBER"); // invalid productSkuId
         data.createCell(1).setCellValue(100.0);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);

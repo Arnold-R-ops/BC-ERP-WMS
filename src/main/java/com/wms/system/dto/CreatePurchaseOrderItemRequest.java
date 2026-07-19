@@ -17,7 +17,7 @@ import java.time.LocalDate;
  * Represents a single line item in a purchase order.
  *
  * Business Rules:
- * - productId: required
+ * - productSkuId: required
  * - orderedQuantity: required, must be > 0
  * - unitCost: optional (can be null for non-financial staff)
  * - expiryDate: optional at Stage 1, required at Stage 2
@@ -26,7 +26,7 @@ import java.time.LocalDate;
  * - remark: optional
  *
  * Validation:
- * - productId: required
+ * - productSkuId: required
  * - orderedQuantity: required, >= 1
  * - unitCost: optional, >= 0 if provided
  *
@@ -41,10 +41,10 @@ import java.time.LocalDate;
 public class CreatePurchaseOrderItemRequest {
 
     /**
-     * Product ID (required)
+     * ProductSku ID (required)
      */
-    @NotNull(message = "Product ID is required")
-    private Long productId;
+    @NotNull(message = "ProductSku ID is required")
+    private Long productSkuId;
 
     /**
      * Ordered quantity (required, must be > 0)

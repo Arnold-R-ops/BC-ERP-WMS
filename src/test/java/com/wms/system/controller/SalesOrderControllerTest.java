@@ -109,13 +109,13 @@ class SalesOrderControllerTest {
 
         List<CreateSalesOrderRequest.SalesOrderItemData> items = Arrays.asList(
             CreateSalesOrderRequest.SalesOrderItemData.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .quantity(100)
                 .unitPrice(new BigDecimal("10.50"))
                 .rejectNearExpiry(false)
                 .build(),
             CreateSalesOrderRequest.SalesOrderItemData.builder()
-                .productId(2L)
+                .productSkuId(2L)
                 .quantity(50)
                 .unitPrice(new BigDecimal("20.00"))
                 .rejectNearExpiry(true)
@@ -130,10 +130,10 @@ class SalesOrderControllerTest {
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$", hasSize(2)))
-            .andExpect(jsonPath("$[0].productId").value(1))
+            .andExpect(jsonPath("$[0].productSkuId").value(1))
             .andExpect(jsonPath("$[0].quantity").value(100))
             .andExpect(jsonPath("$[0].unitPrice").value(10.50))
-            .andExpect(jsonPath("$[1].productId").value(2))
+            .andExpect(jsonPath("$[1].productSkuId").value(2))
             .andExpect(jsonPath("$[1].quantity").value(50))
             .andExpect(jsonPath("$[1].rejectNearExpiry").value(true));
 
@@ -164,7 +164,7 @@ class SalesOrderControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders/batch-options")
-                .param("productId", "1")
+                .param("productSkuId", "1")
                 .param("quantity", "80")
                 .param("rejectNearExpiry", "false"))
             .andDo(print())
@@ -187,7 +187,7 @@ class SalesOrderControllerTest {
             .customerId(1L)
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(1L)
+                    .productSkuId(1L)
                     .quantity(100)
                     .unitPrice(new BigDecimal("10.00"))
                     .rejectNearExpiry(false)
@@ -315,8 +315,8 @@ class SalesOrderControllerTest {
             .items(Arrays.asList(
                 SalesOrderResponse.SalesOrderItemResponse.builder()
                     .id(1L)
-                    .productId(1L)
-                    .productName("Product A")
+                    .productSkuId(1L)
+                    .productName("ProductSku A")
                     .quantity(100)
                     .unitPrice(new BigDecimal("10.00"))
                     .subtotal(new BigDecimal("1000.00"))
@@ -335,7 +335,7 @@ class SalesOrderControllerTest {
             .andExpect(jsonPath("$.orderNo").value("SO202601290001"))
             .andExpect(jsonPath("$.status").value("APPROVED_AWAITING_SHIPMENT"))
             .andExpect(jsonPath("$.items", hasSize(1)))
-            .andExpect(jsonPath("$.items[0].productName").value("Product A"))
+            .andExpect(jsonPath("$.items[0].productName").value("ProductSku A"))
             .andExpect(jsonPath("$.items[0].quantity").value(100));
 
         verify(salesSubmissionService).getSalesOrder(1L);
@@ -349,7 +349,7 @@ class SalesOrderControllerTest {
         UpdateSalesOrderRequest request = UpdateSalesOrderRequest.builder()
             .items(Arrays.asList(
                 UpdateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(1L)
+                    .productSkuId(1L)
                     .quantity(150)
                     .unitPrice(new BigDecimal("10.00"))
                     .build()
@@ -503,7 +503,7 @@ class SalesOrderControllerTest {
             .customerId(1L)
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(1L).quantity(10).unitPrice(new BigDecimal("10.00"))
+                    .productSkuId(1L).quantity(10).unitPrice(new BigDecimal("10.00"))
                     .rejectNearExpiry(false).build()
             ))
             .build();
@@ -528,7 +528,7 @@ class SalesOrderControllerTest {
             .customerId(1L)
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(1L)
+                    .productSkuId(1L)
                     .quantity(100)
                     .unitPrice(new BigDecimal("10.00"))
                     .build()

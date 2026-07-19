@@ -75,10 +75,13 @@ class InboundOrderControllerIntegrationTest {
     private SupplierRepository supplierRepository;
 
     @Autowired
+    private ProductSkuRepository productSkuRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private WarehouseRepository warehouseRepository;
@@ -108,7 +111,7 @@ class InboundOrderControllerIntegrationTest {
     private JwtUtil jwtUtil;
 
     private Supplier testSupplier;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
 
@@ -131,8 +134,8 @@ class InboundOrderControllerIntegrationTest {
         stockTransactionRepository.deleteAll();
         locationRepository.deleteAll();
         warehouseRepository.deleteAll();
+        productSkuRepository.deleteAll();
         productRepository.deleteAll();
-        productSpuRepository.deleteAll();
         supplierRepository.deleteAll();
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
@@ -147,16 +150,18 @@ class InboundOrderControllerIntegrationTest {
                 .build());
 
         // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡茬霉濠х姴鍟幆?
-        ProductSpu spu = productSpuRepository.save(ProductSpu.builder()
-                .spuCode("SPU001")
-                .spuName("Test SPU")
+        Product spu = productRepository.save(Product.builder()
+                .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
+                .productCode("SPU001")
+                .productName("Test SPU")
                 .build());
 
-        testProduct = productRepository.save(Product.builder()
-                .name("Test Product")
+        testProduct = productSkuRepository.save(ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .name("Test ProductSku")
                 .barcode("SKU001")
                 .skuName("Test SKU")
-                .spu(spu)
+                .product(spu)
                 .unitPrice(BigDecimal.valueOf(100.00))  // 婵炶揪缍€濞夋洟寮?BigDecimal
                 .enabled(true)
                 .build());
@@ -277,8 +282,8 @@ class InboundOrderControllerIntegrationTest {
         stockTransactionRepository.deleteAll();
         locationRepository.deleteAll();
         warehouseRepository.deleteAll();
+        productSkuRepository.deleteAll();
         productRepository.deleteAll();
-        productSpuRepository.deleteAll();
         supplierRepository.deleteAll();
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
@@ -296,7 +301,7 @@ class InboundOrderControllerIntegrationTest {
         createRequest.setRemark("Test inbound order");
 
         CreateInboundOrderRequest.InboundOrderItemRequest itemReq = new CreateInboundOrderRequest.InboundOrderItemRequest();
-        itemReq.setProductId(testProduct.getId());
+        itemReq.setProductSkuId(testProduct.getId());
         itemReq.setPlanQty(100);
         itemReq.setTargetWarehouseId(testWarehouse.getId());
         itemReq.setTargetLocationId(testLocation.getId());
@@ -421,7 +426,7 @@ class InboundOrderControllerIntegrationTest {
         request.setExpectedDate(LocalDate.now().plusDays(7));
 
         CreateInboundOrderRequest.InboundOrderItemRequest itemReq = new CreateInboundOrderRequest.InboundOrderItemRequest();
-        itemReq.setProductId(testProduct.getId());
+        itemReq.setProductSkuId(testProduct.getId());
         itemReq.setPlanQty(100);
         itemReq.setTargetWarehouseId(testWarehouse.getId());
         itemReq.setTargetLocationId(testLocation.getId());
@@ -455,7 +460,7 @@ class InboundOrderControllerIntegrationTest {
 
         // 濠电儑缍€椤曆勬叏閻愬鈻旈柍褜鍓氱粙澶愵敂閸涱喚鐣抽梺杞扮閻楀繐鈻?item闂佹寧绋戦惌鍌涘閳哄懎绀傜€广儱顦卞畷锝夋偣閸ワ妇绐旈柡浣革功閹?
         CreateInboundOrderRequest.InboundOrderItemRequest itemReq = new CreateInboundOrderRequest.InboundOrderItemRequest();
-        itemReq.setProductId(testProduct.getId());
+        itemReq.setProductSkuId(testProduct.getId());
         itemReq.setPlanQty(100);
         itemReq.setTargetWarehouseId(testWarehouse.getId());
         itemReq.setTargetLocationId(testLocation.getId());

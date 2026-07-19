@@ -17,10 +17,13 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.time.OffsetDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 /**
@@ -82,6 +85,27 @@ class ShopifyApiClientTest {
         stubGet(ORDERS_JSON);
 
         assertThat(shopifyApiClient.fetchOrdersRaw(config)).isEqualTo(ORDERS_JSON);
+    }
+
+    @Test
+    void fetchOrdersForReconciliationRaw_FollowsPaginationAndCombinesPages() throws Exception {
+        HttpHeaders firstHeaders = new HttpHeaders();
+        firstHeaders.set(HttpHeaders.LINK,
+            "<https://test-store.myshopify.com/admin/api/2026-07/orders.json?page_info=next>; rel=\"next\"");
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+            .thenReturn(new ResponseEntity<>("{\"orders\":[{\"id\":1}]}", firstHeaders, HttpStatus.OK))
+            .thenReturn(ResponseEntity.ok("{\"orders\":[{\"id\":2}]}"));
+
+        String raw = shopifyApiClient.fetchOrdersForReconciliationRaw(
+            config,
+            OffsetDateTime.parse("2026-07-16T00:00:00Z")
+        );
+
+        assertThat(objectMapper.readTree(raw).path("orders")).hasSize(2);
+        verify(restTemplate, times(2)).exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class));
+        verify(restTemplate).exchange(
+            eq("https://test-store.myshopify.com/admin/api/2026-07/orders.json?page_info=next"),
+            eq(HttpMethod.GET), any(), eq(String.class));
     }
 
     @Test

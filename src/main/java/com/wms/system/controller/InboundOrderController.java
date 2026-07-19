@@ -54,7 +54,7 @@ public class InboundOrderController {
      *   "expectedDate": "2026-02-15",
      *   "items": [
      *     {
-     *       "productId": 101,
+     *       "productSkuId": 101,
      *       "planQty": 100,
      *       "unitCost": 10.50,
      *       "targetWarehouseId": 1,

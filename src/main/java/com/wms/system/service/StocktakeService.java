@@ -49,7 +49,7 @@ public class StocktakeService {
     private final StocktakeItemRepository stocktakeItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransactionRepository stockTransactionRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final WarehouseRepository warehouseRepository;
 
@@ -132,7 +132,7 @@ public class StocktakeService {
         for (InventoryBatch batch : selectedBatches) {
             StocktakeItem item = StocktakeItem.builder()
                 .taskId(savedTask.getId())
-                .productId(batch.getProduct().getId())
+                .productSkuId(batch.getProductSku().getId())
                 .batchId(batch.getId())
                 .locationId(batch.getLocation().getId())
                 .snapshotQty(batch.getQuantity())
@@ -385,7 +385,7 @@ public class StocktakeService {
             SourceType sourceType = adjustment > 0 ? SourceType.INVENTORY_GAIN : SourceType.INVENTORY_LOSS;
 
             StockTransaction transaction = StockTransaction.builder()
-                .product(batch.getProduct())
+                .productSku(batch.getProductSku())
                 .location(batch.getLocation())
                 .transactionType(transactionType)
                 .sourceType(sourceType)
@@ -540,8 +540,8 @@ public class StocktakeService {
             .collect(Collectors.toList());
 
         // Extract unique batch IDs from transactions
-        List<Long> recentBatchProductIds = recentTransactions.stream()
-            .map(t -> t.getProduct().getId())
+        List<Long> recentBatchProductSkuIds = recentTransactions.stream()
+            .map(t -> t.getProductSku().getId())
             .distinct()
             .collect(Collectors.toList());
 
@@ -550,7 +550,7 @@ public class StocktakeService {
             .filter(b -> b.getActive())
             .filter(b -> b.getLocation() != null && b.getLocation().getWarehouse() != null)
             .filter(b -> b.getLocation().getWarehouse().getId().equals(warehouseId))
-            .filter(b -> recentBatchProductIds.contains(b.getProduct().getId()))
+            .filter(b -> recentBatchProductSkuIds.contains(b.getProductSku().getId()))
             .limit(MONTHLY_MAX_BATCHES)
             .collect(Collectors.toList());
 
@@ -617,14 +617,14 @@ public class StocktakeService {
      * Convert StocktakeItem to StocktakeItemResponse (blind count - no snapshot qty)
      */
     private StocktakeItemResponse convertToItemResponse(StocktakeItem item) {
-        Product product = productRepository.findById(item.getProductId()).orElse(null);
+        ProductSku product = productSkuRepository.findById(item.getProductSkuId()).orElse(null);
         InventoryBatch batch = inventoryBatchRepository.findById(item.getBatchId()).orElse(null);
         Location location = locationRepository.findById(item.getLocationId()).orElse(null);
 
         return StocktakeItemResponse.builder()
             .id(item.getId())
             .taskId(item.getTaskId())
-            .productId(item.getProductId())
+            .productSkuId(item.getProductSkuId())
             .productName(product != null ? product.getName() : null)
             .productBarcode(product != null ? product.getBarcode() : null)
             .batchId(item.getBatchId())
@@ -644,14 +644,14 @@ public class StocktakeService {
      * Convert StocktakeItem to StocktakeItemDetailResponse (review version - with snapshot qty)
      */
     private StocktakeItemDetailResponse convertToItemDetailResponse(StocktakeItem item) {
-        Product product = productRepository.findById(item.getProductId()).orElse(null);
+        ProductSku product = productSkuRepository.findById(item.getProductSkuId()).orElse(null);
         InventoryBatch batch = inventoryBatchRepository.findById(item.getBatchId()).orElse(null);
         Location location = locationRepository.findById(item.getLocationId()).orElse(null);
 
         return StocktakeItemDetailResponse.detailBuilder()
             .id(item.getId())
             .taskId(item.getTaskId())
-            .productId(item.getProductId())
+            .productSkuId(item.getProductSkuId())
             .productName(product != null ? product.getName() : null)
             .productBarcode(product != null ? product.getBarcode() : null)
             .batchId(item.getBatchId())

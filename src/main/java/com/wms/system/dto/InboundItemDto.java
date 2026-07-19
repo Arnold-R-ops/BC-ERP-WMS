@@ -27,7 +27,7 @@ import java.time.LocalDate;
  * - quantity 字段使用"最小单位"（基础单位）
  * - 例如：SKU 换算率 conversionRate = 12（1箱=12盒）
  *   - 入库 60 箱 = quantity = 60 * 12 = 720 盒
- *   - 前端可调用 Product.formatQuantity(720) 显示为 "60 Box"
+ *   - 前端可调用 ProductSku.formatQuantity(720) 显示为 "60 Box"
  *
  * @author WMS Team
  * @since V3.3
@@ -40,7 +40,7 @@ import java.time.LocalDate;
 public class InboundItemDto {
 
     /**
-     * SKU ID（Product 表主键）
+     * SKU ID（ProductSku 表主键）
      *
      * 用途：
      * - 关联到具体的 SKU 商品

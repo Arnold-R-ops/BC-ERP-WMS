@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
     indexes = {
         @Index(name = "idx_emergency_correction_no", columnList = "correction_no"),
         @Index(name = "idx_emergency_correction_status", columnList = "status"),
-        @Index(name = "idx_emergency_correction_product", columnList = "product_id")
+        @Index(name = "idx_emergency_correction_product", columnList = "product_sku_id")
     },
     uniqueConstraints = {
         @UniqueConstraint(name = "uk_emergency_correction_company_no", columnNames = {"company_id", "correction_no"})
@@ -33,8 +33,8 @@ public class EmergencyStockCorrection extends BaseEntity {
     @Column(name = "correction_no", nullable = false, length = 40)
     private String correctionNo;
 
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @Column(name = "product_sku_id", nullable = false)
+    private Long productSkuId;
 
     @Column(name = "location_id", nullable = false)
     private Long locationId;

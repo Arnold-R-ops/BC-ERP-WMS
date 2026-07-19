@@ -2,7 +2,7 @@ package com.wms.system.service;
 
 import com.wms.system.entity.InventoryBatch;
 import com.wms.system.entity.Location;
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.SourceType;
 import com.wms.system.entity.enums.TransactionType;
@@ -10,7 +10,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +39,7 @@ import java.util.Map;
  * - InventoryBatch is the ONLY inventory data source (Single Source of Truth)
  * - No Inventory aggregation table
  * - All stock queries aggregate from InventoryBatch with WHERE active = true
- * - Stock aggregation: SELECT SUM(quantity) WHERE product_id = ? AND active = true
+ * - Stock aggregation: SELECT SUM(quantity) WHERE product_sku_id = ? AND active = true
  *
  * FIFO Logic:
  * - Query: ORDER BY expiryDate ASC (earliest expiry first)
@@ -63,7 +63,7 @@ import java.util.Map;
 public class InventoryBatchService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final ProductRepository productRepository;
+    private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final LocationOccupancyService locationOccupancyService;
@@ -101,7 +101,7 @@ public class InventoryBatchService {
      * - InventoryBatch.quantity is directly decremented
      * - Stock transactions record batch_code for traceability
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param requestedQuantity Requested outbound quantity
      * @param sourceType Source type (e.g., SALE_OUT, PRODUCTION_OUT)
      * @param sourceOrderId Source order ID (e.g., SO-20250113-001)
@@ -118,21 +118,21 @@ public class InventoryBatchService {
         backoff = @Backoff(delay = 1000)
     )
     public List<StockTransaction> outboundWithFifo(
-        Long productId,
+        Long productSkuId,
         Integer requestedQuantity,
         SourceType sourceType,
         String sourceOrderId,
         Long operatorId,
         String operatorName
     ) {
-        log.info("🚀 V3.1 FIFO outbound started: productId={}, requestedQty={}, sourceType={}, sourceOrder={}",
-            productId, requestedQuantity, sourceType, sourceOrderId);
+        log.info("🚀 V3.1 FIFO outbound started: productSkuId={}, requestedQty={}, sourceType={}, sourceOrder={}",
+            productSkuId, requestedQuantity, sourceType, sourceOrderId);
 
         // 1. Validate product exists
-        Product product = productRepository.findById(productId)
+        ProductSku product = productSkuRepository.findById(productSkuId)
             .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PRODUCT_NOT_FOUND,
-                Map.of("productId", productId)
+                ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                Map.of("productSkuId", productSkuId)
             ));
 
         if (requestedQuantity == null || requestedQuantity <= 0) {
@@ -146,7 +146,7 @@ public class InventoryBatchService {
             );
         }
 
-        log.info("📦 Product info: name={}, packUnit={}, conversionRate={}, formattedRequest={}",
+        log.info("📦 ProductSku info: name={}, packUnit={}, conversionRate={}, formattedRequest={}",
             product.getName(), product.getPackUnit(), product.getConversionRate(),
             product.formatQuantity(requestedQuantity));
 
@@ -155,7 +155,7 @@ public class InventoryBatchService {
 
         // Stage 1: Query loose batches first (零头批次优先)
         List<InventoryBatch> looseBatches = inventoryBatchRepository
-            .findLooseBatchesByProductOrderByExpiryDateAsc(productId, product.getConversionRate(), true);
+            .findLooseBatchesByProductSkuOrderByExpiryDateAsc(productSkuId, product.getConversionRate(), true);
 
         if (!looseBatches.isEmpty()) {
             allBatches.addAll(looseBatches);
@@ -171,7 +171,7 @@ public class InventoryBatchService {
         // Stage 2: Query full pack batches only when loose batches are insufficient
         if (looseAvailable < requestedQuantity) {
             List<InventoryBatch> fullPackBatches = inventoryBatchRepository
-                .findFullPackBatchesByProductOrderByExpiryDateAsc(productId, product.getConversionRate(), true);
+                .findFullPackBatchesByProductSkuOrderByExpiryDateAsc(productSkuId, product.getConversionRate(), true);
 
             if (!fullPackBatches.isEmpty()) {
                 allBatches.addAll(fullPackBatches);
@@ -185,19 +185,19 @@ public class InventoryBatchService {
         }
 
         List<InventoryBatch> activeBatchesForCheck = inventoryBatchRepository
-            .findByProductIdAndActiveOrderByExpiryDateAsc(productId, true);
+            .findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
         if (activeBatchesForCheck == null || activeBatchesForCheck.isEmpty()) {
             activeBatchesForCheck = allBatches;
         }
 
         // Validate we have batches
         if (allBatches.isEmpty()) {
-            log.error("❌ No active batches found: productId={}", productId);
+            log.error("❌ No active batches found: productSkuId={}", productSkuId);
 
             throw new BusinessException(
                 ErrorKeys.INSUFFICIENT_STOCK,
                 Map.of(
-                    "productId", productId,
+                    "productSkuId", productSkuId,
                     "productName", product.getName(),
                     "requestedQuantity", requestedQuantity,
                     "availableQuantity", 0,
@@ -222,7 +222,7 @@ public class InventoryBatchService {
                 Map.of(
                     "batchCode", firstExpired.getBatchCode(),
                     "expiryDate", firstExpired.getExpiryDate().toString(),
-                    "productId", productId,
+                    "productSkuId", productSkuId,
                     "productName", product.getName()
                 )
             );
@@ -233,13 +233,13 @@ public class InventoryBatchService {
             .sum();
 
         if (totalAvailable < requestedQuantity) {
-            log.error("Insufficient stock before deduction: productId={}, requested={}, available={}",
-                productId, requestedQuantity, totalAvailable);
+            log.error("Insufficient stock before deduction: productSkuId={}, requested={}, available={}",
+                productSkuId, requestedQuantity, totalAvailable);
 
             throw new BusinessException(
                 ErrorKeys.INSUFFICIENT_STOCK,
                 Map.of(
-                    "productId", productId,
+                    "productSkuId", productSkuId,
                     "productName", product.getName(),
                     "requestedQuantity", requestedQuantity,
                     "availableQuantity", totalAvailable,
@@ -293,7 +293,7 @@ public class InventoryBatchService {
 
             // Generate stock transaction
             StockTransaction transaction = StockTransaction.builder()
-                .product(product)
+                .productSku(product)
                 .location(batch.getLocation())
                 .transactionType(TransactionType.OUT)
                 .sourceType(sourceType)
@@ -322,13 +322,13 @@ public class InventoryBatchService {
                 .mapToInt(InventoryBatch::getQuantity)
                 .sum();
 
-            log.error("❌ Insufficient stock: productId={}, requested={}, available={}, shortage={}",
-                productId, requestedQuantity, availableQuantity, remaining);
+            log.error("❌ Insufficient stock: productSkuId={}, requested={}, available={}, shortage={}",
+                productSkuId, requestedQuantity, availableQuantity, remaining);
 
             throw new BusinessException(
                 ErrorKeys.INSUFFICIENT_STOCK,
                 Map.of(
-                    "productId", productId,
+                    "productSkuId", productSkuId,
                     "productName", product.getName(),
                     "requestedQuantity", requestedQuantity,
                     "availableQuantity", availableQuantity,
@@ -337,8 +337,8 @@ public class InventoryBatchService {
             );
         }
 
-        log.info("✅ V3.1 FIFO outbound completed: productId={}, quantity={}, looseBatches={}, fullPackBatches={}, totalTransactions={}",
-            productId, product.formatQuantity(requestedQuantity), looseBatchesUsed, fullPackBatchesUsed, transactions.size());
+        log.info("✅ V3.1 FIFO outbound completed: productSkuId={}, quantity={}, looseBatches={}, fullPackBatches={}, totalTransactions={}",
+            productSkuId, product.formatQuantity(requestedQuantity), looseBatchesUsed, fullPackBatchesUsed, transactions.size());
 
         return transactions;
     }
@@ -347,38 +347,38 @@ public class InventoryBatchService {
      * ⭐ Get total stock for product (V3.0: Real-time aggregation)
      *
      * V3.0 Architecture:
-     * - Query: SELECT SUM(quantity) FROM inventory_batch WHERE product_id = ? AND active = true
+     * - Query: SELECT SUM(quantity) FROM inventory_batch WHERE product_sku_id = ? AND active = true
      * - No Inventory table lookup
      * - Real-time aggregation for accuracy
      *
      * Performance Optimization (Future):
-     * - Redis cache for hot products: stock:product:{productId}:total
+     * - Redis cache for hot products: stock:product:{productSkuId}:total
      * - Cache invalidation on stock changes
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return Integer Total stock (0 if no active batches)
      */
     @Transactional(readOnly = true)
-    public Integer getTotalStock(Long productId) {
-        productRepository.findById(productId)
+    public Integer getTotalStock(Long productSkuId) {
+        productSkuRepository.findById(productSkuId)
             .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PRODUCT_NOT_FOUND,
-                Map.of("productId", productId)
+                ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                Map.of("productSkuId", productSkuId)
             ));
 
-        Integer totalStock = inventoryBatchRepository.sumQuantityByProduct(productId);
+        Integer totalStock = inventoryBatchRepository.sumQuantityByProductSku(productSkuId);
         return totalStock != null ? totalStock : 0;
     }
 
     /**
      * Query all active batches for a product
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return List<InventoryBatch> Active batches (sorted by expiry date ASC)
      */
     @Transactional(readOnly = true)
-    public List<InventoryBatch> getActiveBatchesByProduct(Long productId) {
-        return inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(productId, true);
+    public List<InventoryBatch> getActiveBatchesByProductSku(Long productSkuId) {
+        return inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
     }
 
     /**
@@ -471,12 +471,12 @@ public class InventoryBatchService {
     /**
      * Count active batches for a product
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return long Batch count
      */
     @Transactional(readOnly = true)
-    public long countActiveBatchesByProduct(Long productId) {
-        return inventoryBatchRepository.countByProductIdAndActive(productId, true);
+    public long countActiveBatchesByProductSku(Long productSkuId) {
+        return inventoryBatchRepository.countByProductSkuIdAndActive(productSkuId, true);
     }
 
     /**
@@ -555,7 +555,7 @@ public class InventoryBatchService {
         TransactionType transactionType = adjustmentQuantity > 0 ? TransactionType.IN : TransactionType.OUT;
 
         StockTransaction transaction = StockTransaction.builder()
-            .product(batch.getProduct())
+            .productSku(batch.getProductSku())
             .location(batch.getLocation())
             .transactionType(transactionType)
             .sourceType(sourceType)

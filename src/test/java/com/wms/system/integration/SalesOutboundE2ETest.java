@@ -61,10 +61,13 @@ class SalesOutboundE2ETest {
     private CustomerRepository customerRepository;
 
     @Autowired
+    private ProductSkuRepository productSkuRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private WarehouseRepository warehouseRepository;
@@ -91,7 +94,7 @@ class SalesOutboundE2ETest {
     private SystemConfigRepository systemConfigRepository;
 
     private Customer testCustomer;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
     private InventoryBatch testBatch;
@@ -105,8 +108,8 @@ class SalesOutboundE2ETest {
         salesOrderRepository.deleteAll();
         inventoryBatchRepository.deleteAll();
         locationRepository.deleteAll();
+        productSkuRepository.deleteAll();
         productRepository.deleteAll();
-        productSpuRepository.deleteAll();
         customerRepository.deleteAll();
         warehouseRepository.deleteAll();
         systemConfigRepository.deleteAll();
@@ -161,32 +164,33 @@ class SalesOutboundE2ETest {
         testLocation = locationRepository.save(testLocation);
 
         // 4. Create product SPU
-        ProductSpu productSpu = ProductSpu.builder()
-            .spuCode("SPU001")
-            .spuName("Test Product SPU")
-            .category("Electronics")
+        Product product = Product.builder()
+            .productCode("SPU001")
+            .productName("Test ProductSku SPU")
+            .category(com.wms.system.support.TestCatalogFactory.saveLeafCategory(categoryRepository))
             .brand("Test Brand")
             .build();
-        productSpu = productSpuRepository.save(productSpu);
+        product = productRepository.save(product);
 
         // 5. Create product
-        testProduct = Product.builder()
-            .spu(productSpu)
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(product)
             .skuName("SKU001")
             .barcode("1234567890")
-            .name("Test Product")
+            .name("Test ProductSku")
             .specification("Standard")
             .unitPrice(new BigDecimal("15.00"))
             .minSalesPrice(new BigDecimal("10.00"))
             .nearExpiryDays(30)
             .enabled(true)
             .build();
-        testProduct = productRepository.save(testProduct);
+        testProduct = productSkuRepository.save(testProduct);
 
         // 6. Create inventory batch with sufficient stock
         testBatch = InventoryBatch.builder()
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(200)
@@ -206,7 +210,7 @@ class SalesOutboundE2ETest {
             .customerId(testCustomer.getId())
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(testProduct.getId())
+                    .productSkuId(testProduct.getId())
                     .quantity(100)
                     .unitPrice(new BigDecimal("8.00"))  // Below min price (10.00)
                     .rejectNearExpiry(false)
@@ -291,7 +295,7 @@ class SalesOutboundE2ETest {
         assertThat(transaction.getSourceType()).isEqualTo(SourceType.SALE_OUT);
         assertThat(transaction.getTransactionType()).isEqualTo(TransactionType.OUT);
         assertThat(transaction.getQuantity()).isEqualTo(100);
-        assertThat(transaction.getProduct().getId()).isEqualTo(testProduct.getId());
+        assertThat(transaction.getProductSku().getId()).isEqualTo(testProduct.getId());
         assertThat(transaction.getLocation().getId()).isEqualTo(testLocation.getId());
     }
 
@@ -303,7 +307,7 @@ class SalesOutboundE2ETest {
             .customerId(testCustomer.getId())
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(testProduct.getId())
+                    .productSkuId(testProduct.getId())
                     .quantity(50)
                     .unitPrice(new BigDecimal("15.00"))  // Standard price
                     .rejectNearExpiry(false)
@@ -346,7 +350,7 @@ class SalesOutboundE2ETest {
             .customerId(testCustomer.getId())
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(testProduct.getId())
+                    .productSkuId(testProduct.getId())
                     .quantity(100)
                     .unitPrice(new BigDecimal("5.00"))  // Very low price
                     .rejectNearExpiry(false)
@@ -393,7 +397,7 @@ class SalesOutboundE2ETest {
             .customerId(testCustomer.getId())
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(testProduct.getId())
+                    .productSkuId(testProduct.getId())
                     .quantity(100)
                     .unitPrice(new BigDecimal("15.00"))
                     .rejectNearExpiry(false)
@@ -439,21 +443,22 @@ class SalesOutboundE2ETest {
     @DisplayName("case-6")
     void testSalesOutboundWorkflowMultipleItems() {
         // Create second product and batch
-        Product product2 = Product.builder()
-            .spu(testProduct.getSpu())
+        ProductSku product2 = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .product(testProduct.getProduct())
             .skuName("SKU002")
             .barcode("0987654321")
-            .name("Test Product 2")
+            .name("Test ProductSku 2")
             .specification("Standard")
             .unitPrice(new BigDecimal("25.00"))
             .minSalesPrice(new BigDecimal("20.00"))
             .nearExpiryDays(30)
             .enabled(true)
             .build();
-        product2 = productRepository.save(product2);
+        product2 = productSkuRepository.save(product2);
         InventoryBatch batch2 = InventoryBatch.builder()
             .batchCode("BATCH002")
-            .product(product2)
+            .productSku(product2)
             .location(testLocation)
             .locationCode(testLocation.getLocationCode())
             .quantity(100)
@@ -469,12 +474,12 @@ class SalesOutboundE2ETest {
             .customerId(testCustomer.getId())
             .items(Arrays.asList(
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(testProduct.getId())
+                    .productSkuId(testProduct.getId())
                     .quantity(50)
                     .unitPrice(new BigDecimal("15.00"))
                     .build(),
                 CreateSalesOrderRequest.SalesOrderItemData.builder()
-                    .productId(product2.getId())
+                    .productSkuId(product2.getId())
                     .quantity(30)
                     .unitPrice(new BigDecimal("25.00"))
                     .build()

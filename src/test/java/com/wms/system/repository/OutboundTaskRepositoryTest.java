@@ -57,10 +57,10 @@ class OutboundTaskRepositoryTest {
     private TestEntityManager entityManager;
 
     @Autowired
-    private ProductSpuRepository productSpuRepository;
+    private ProductRepository productRepository;
 
     private Customer testCustomer;
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation1;
     private Location testLocation2;
@@ -88,16 +88,18 @@ class OutboundTaskRepositoryTest {
         entityManager.persist(testCustomer);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵¤尙顭堥湁婵犙呭Т閸燁垶骞?
-        ProductSpu testSpu = ProductSpu.builder()
-                .spuCode("SPU001")
-                .spuName("Test SPU")
+        Product testSpu = Product.builder()
+                .category(com.wms.system.support.TestCatalogFactory.persistLeafCategory(entityManager))
+                .productCode("SPU001")
+                .productName("Test SPU")
                 .enabled(true)
                 .build();
-        testSpu = productSpuRepository.save(testSpu);
-        testProduct = Product.builder()
-                .spu(testSpu)
+        testSpu = productRepository.save(testSpu);
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .product(testSpu)
                 .skuName("PROD001")
-                .name("Test Product")
+                .name("Test ProductSku")
                 .barcode("6900000000001")
                 .unitPrice(new BigDecimal("100.00"))
                 .nearExpiryDays(90)
@@ -131,7 +133,7 @@ class OutboundTaskRepositoryTest {
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻鐔告媴閸愮偓缍堝?
         testBatch1 = InventoryBatch.builder()
-                .product(testProduct)
+                .productSku(testProduct)
                 .batchCode("BATCH001")
                 .location(testLocation1)
                 .locationCode(testLocation1.getLocationCode())
@@ -142,7 +144,7 @@ class OutboundTaskRepositoryTest {
                 .build();
 
         testBatch2 = InventoryBatch.builder()
-                .product(testProduct)
+                .productSku(testProduct)
                 .batchCode("BATCH002")
                 .location(testLocation2)
                 .locationCode(testLocation2.getLocationCode())
@@ -180,8 +182,8 @@ class OutboundTaskRepositoryTest {
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞幃瑙勬媴闂堟稓浠奸悗瑙勬礈閸犳牕顕ｉ悧鍫熷劅闁挎繂娲ㄩ悡?
         testOrderItem1 = SalesOrderItem.builder()
                 .salesOrderId(testOrder1.getId())
-                .product(testProduct)
-                .productId(testProduct.getId())
+                .productSku(testProduct)
+                .productSkuId(testProduct.getId())
                 .quantity(10)
                 .unitPrice(new BigDecimal("120.00"))
                 .subtotal(new BigDecimal("1200.00"))
@@ -190,8 +192,8 @@ class OutboundTaskRepositoryTest {
 
         testOrderItem2 = SalesOrderItem.builder()
                 .salesOrderId(testOrder2.getId())
-                .product(testProduct)
-                .productId(testProduct.getId())
+                .productSku(testProduct)
+                .productSkuId(testProduct.getId())
                 .quantity(15)
                 .unitPrice(new BigDecimal("110.00"))
                 .subtotal(new BigDecimal("1650.00"))

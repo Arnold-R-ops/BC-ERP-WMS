@@ -1,6 +1,6 @@
 package com.wms.system.service;
 
-import com.wms.system.entity.Product;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.InboundOrderItemRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * SPU-SKU-DATE 批次码生成器
  *
- * 批次码格式：{SPU}-{SKU}-{YYYYMMDD}
+ * 批次码格式：{PRODUCT}-{SKU_CODE}-{YYYYMMDD}
  * 示例：SPU001-SKU123-20260125
  *
  * 如果同一天同一产品有多个批次，添加序号后缀：
@@ -34,6 +34,8 @@ public class SpuSkuDateBatchCodeGenerator {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final int MAX_SEQUENCE = 99;
+    private static final int PRODUCT_TOKEN_MAX_LENGTH = 20;
+    private static final int SKU_TOKEN_MAX_LENGTH = 17;
 
     /**
      * 生成唯一的 SPU-SKU-DATE 格式批次码
@@ -43,10 +45,10 @@ public class SpuSkuDateBatchCodeGenerator {
      * @return 唯一的批次码
      * @throws BusinessException 如果批次码生成失败（超过最大序号）
      */
-    public String generateUnique(Product product, LocalDate date) {
+    public String generateUnique(ProductSku product, LocalDate date) {
         // 获取 SPU 和 SKU
-        String spu = getSpu(product);
-        String sku = getSku(product);
+        String spu = normalizeToken(getSpu(product), "P" + product.getId(), PRODUCT_TOKEN_MAX_LENGTH);
+        String sku = normalizeToken(getSku(product), "SKU" + product.getId(), SKU_TOKEN_MAX_LENGTH);
         String dateStr = date.format(DATE_FORMATTER);
 
         // 生成基础批次码
@@ -82,28 +84,30 @@ public class SpuSkuDateBatchCodeGenerator {
      * 获取 SPU 编码
      * 如果产品没有 SPU，使用 "SPU" + 产品ID
      */
-    private String getSpu(Product product) {
-        if (product.getSpu() != null && product.getSpu().getSpuCode() != null) {
-            return product.getSpu().getSpuCode().trim();
+    private String getSpu(ProductSku product) {
+        if (product.getProduct() != null && product.getProduct().getProductCode() != null) {
+            return product.getProduct().getProductCode().trim();
         }
         return "SPU" + product.getId();
     }
 
     /**
      * 获取 SKU 编码
-     * 使用产品的 barcode 或 skuName 作为 SKU 标识
-     * 如果都没有，使用 "SKU" + 产品ID
+     * 使用不可变的内部 skuCode，避免条码变更或长条码影响批次身份。
      */
-    private String getSku(Product product) {
-        // 优先使用 barcode
-        if (product.getBarcode() != null && !product.getBarcode().trim().isEmpty()) {
-            return product.getBarcode().trim();
-        }
-        // 其次使用 skuName
-        if (product.getSkuName() != null && !product.getSkuName().trim().isEmpty()) {
-            return product.getSkuName().trim().replaceAll("[^A-Za-z0-9]", "");
+    private String getSku(ProductSku product) {
+        if (product.getSkuCode() != null && !product.getSkuCode().trim().isEmpty()) {
+            return product.getSkuCode().trim();
         }
         return "SKU" + product.getId();
+    }
+
+    private String normalizeToken(String value, String fallback, int maxLength) {
+        String normalized = value == null ? "" : value.trim().replaceAll("[^A-Za-z0-9]", "");
+        if (normalized.isEmpty()) {
+            normalized = fallback;
+        }
+        return normalized.length() <= maxLength ? normalized : normalized.substring(0, maxLength);
     }
 
     /**

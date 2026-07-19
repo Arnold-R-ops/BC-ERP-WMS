@@ -29,7 +29,7 @@ class InboundRequestValidationTest {
     void createRequestRejectsMissingTargetLocation() {
         CreateInboundOrderRequest.InboundOrderItemRequest item =
             CreateInboundOrderRequest.InboundOrderItemRequest.builder()
-                .productId(1L)
+                .productSkuId(1L)
                 .planQty(10)
                 .targetWarehouseId(1L)
                 .build();

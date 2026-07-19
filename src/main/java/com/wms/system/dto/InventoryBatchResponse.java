@@ -51,17 +51,17 @@ public class InventoryBatchResponse {
     private String batchCode;
 
     /**
-     * Product ID
+     * ProductSku ID
      */
-    private Long productId;
+    private Long productSkuId;
 
     /**
-     * Product name (for display)
+     * ProductSku name (for display)
      */
     private String productName;
 
     /**
-     * Product barcode (for display)
+     * ProductSku barcode (for display)
      */
     private String productBarcode;
 

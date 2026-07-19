@@ -2,8 +2,8 @@ package com.wms.system.service;
 
 import com.wms.system.entity.InventoryBatch;
 import com.wms.system.entity.Location;
+import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
-import com.wms.system.entity.ProductSpu;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.SourceType;
@@ -12,7 +12,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
-import com.wms.system.repository.ProductRepository;
+import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.StockTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,7 +55,7 @@ class InventoryBatchServiceTest {
     private InventoryBatchRepository inventoryBatchRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductSkuRepository productSkuRepository;
 
     @Mock
     private LocationRepository locationRepository;
@@ -63,10 +63,13 @@ class InventoryBatchServiceTest {
     @Mock
     private StockTransactionRepository stockTransactionRepository;
 
+    @Mock
+    private LocationOccupancyService locationOccupancyService;
+
     @InjectMocks
     private InventoryBatchService inventoryBatchService;
 
-    private Product testProduct;
+    private ProductSku testProduct;
     private Warehouse testWarehouse;
     private Location testLocation;
     private InventoryBatch looseBatch;
@@ -74,7 +77,7 @@ class InventoryBatchServiceTest {
     private InventoryBatch expiredBatch;
 
     private void mockActiveBatches(List<InventoryBatch> batches) {
-        when(inventoryBatchRepository.findByProductIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
             .thenReturn(batches);
     }
 
@@ -101,11 +104,12 @@ class InventoryBatchServiceTest {
             .build();
 
         // 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幑鎰滈柛锔诲幐閸嬫捇鏁愭惔鈥崇濠德ゅ皺椤牓婀佸┑鐘欏懎孝闁哥噥鍨堕獮鍡涘磼閻愬鍙?缂?= 12闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤?
-        testProduct = Product.builder()
+        testProduct = ProductSku.builder()
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
             .id(1L)
             .barcode("6901234567890")
             .name("濠电姷鏁搁崑鐐差焽濞嗘搩鏁勯柛顐犲劜閸庡﹥銇勯弽顐沪闁搞倖鍨块幃褰掑传閸曨剚鍎撴俊?")
-            .spu(ProductSpu.builder().id(1L).spuCode("SPU001").spuName("Test SPU").build())
+            .product(Product.builder().id(1L).productCode("SPU001").productName("Test SPU").build())
             .packUnit("闂?")
             .conversionRate(12)
             .safetyStock(50)
@@ -119,7 +123,7 @@ class InventoryBatchServiceTest {
         looseBatch = InventoryBatch.builder()
             .id(1L)
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode("WH01-ZONE_A-A-01-001")
             .quantity(8)  // 8闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柛鈩冪☉濮规煡骞栨潏鍓хɑ閻?
@@ -133,7 +137,7 @@ class InventoryBatchServiceTest {
         fullPackBatch = InventoryBatch.builder()
             .id(2L)
             .batchCode("BATCH002")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode("WH01-ZONE_A-A-01-001")
             .quantity(24)  // 24闂?= 2缂?
@@ -147,7 +151,7 @@ class InventoryBatchServiceTest {
         expiredBatch = InventoryBatch.builder()
             .id(3L)
             .batchCode("BATCH003")
-            .product(testProduct)
+            .productSku(testProduct)
             .location(testLocation)
             .locationCode("WH01-ZONE_A-A-01-001")
             .quantity(12)
@@ -164,8 +168,8 @@ class InventoryBatchServiceTest {
     @DisplayName("case-2")
     void fifoOutbound_OnlyLooseBatch() {
         // Given - 闂備浇宕垫慨鏉懨洪銏犵哗闂侇剙绉甸崕?5闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑卞剰闁哄绶氶弻銊モ攽閸℃瑥顤€閻熸粎澧楅惄顖炲蓟閻斿憡濯撮柛鎰亾缂嶅牆顪冮妶鍡楀闁靛牏顭堥?8闂?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(looseBatch));
         mockActiveBatches(Collections.singletonList(looseBatch));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenReturn(looseBatch);
@@ -188,10 +192,10 @@ class InventoryBatchServiceTest {
     @DisplayName("case-3")
     void fifoOutbound_LooseInsufficientNeedUnpack() {
         // Given - 闂備浇宕垫慨鏉懨洪銏犵哗闂侇剙绉甸崕?20闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑卞剰闁哄绶氶弻銊モ攽閸℃瑥顤€閻?8闂?+ 闂傚倸鍊搁崐绋棵洪悩璇茬；闁瑰墽绮崑锟犳煛閸ャ劍鐨戦柛鏂跨Т閳?1缂傚倸鍊烽懗鑸垫叏閻㈢鑸归柤濮愬€栭～?2闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(looseBatch));
-        when(inventoryBatchRepository.findFullPackBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(inventoryBatchRepository.findFullPackBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(fullPackBatch));
         mockActiveBatches(Arrays.asList(looseBatch, fullPackBatch));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenAnswer(i -> i.getArgument(0));
@@ -214,10 +218,10 @@ class InventoryBatchServiceTest {
     @DisplayName("case-4")
     void fifoOutbound_OnlyFullPackBatch() {
         // Given - 闂備浇宕垫慨鏉懨洪銏犵哗闂侇剙绉甸崕?12闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑欘棏闁哄矉绠撻弻宥夊煛娴ｅ憡娈茬紓浣哄У鐢繝寮婚埄鍐懝濠电姴瀚ⅲ闂備線鈧稓涓茬紓宥勭窔瀵偄顓奸崶锔藉媰闂佽姤锚椤︿即鏌ㄩ銏♀拺闁告繂瀚晶鏇熴亜閿斿灝宓嗙€殿喗濞婇弫鎰板炊閳衡偓缁?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.emptyList());
-        when(inventoryBatchRepository.findFullPackBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(inventoryBatchRepository.findFullPackBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(fullPackBatch));
         mockActiveBatches(Collections.singletonList(fullPackBatch));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenReturn(fullPackBatch);
@@ -238,10 +242,10 @@ class InventoryBatchServiceTest {
     @DisplayName("case-5")
     void fifoOutbound_InsufficientStock() {
         // Given - 闂備浇宕垫慨鏉懨洪銏犵哗闂侇剙绉甸崕?100闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑欏濠殿垱鎸抽弻娑㈠焺閸忥附宀稿畷鎴﹀箻閼搁潧鐝伴梺鑲┾拡閸撴岸鎯冮幋锔界厽閹兼番鍨婚埊鏇㈡煥濮樿鲸鍠愰柟璺猴工濞层倗鈧?32闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤? + 24闂?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(looseBatch));
-        when(inventoryBatchRepository.findFullPackBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(inventoryBatchRepository.findFullPackBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(fullPackBatch));
 
         // When & Then
@@ -260,22 +264,22 @@ class InventoryBatchServiceTest {
     @DisplayName("case-6")
     void fifoOutbound_ProductNotFound() {
         // Given
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+        when(productSkuRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> inventoryBatchService.outboundWithFifo(
             999L, 10, SourceType.SALE_OUT, "SO-005", 1L, "濠电姷鏁搁崑鐐差焽濞嗘搩鏁勯柛顐犲劜閸庡﹥銇勯弽顐粶鐎瑰憡绻冩穱濠囶敍濠靛洢鈧啰绱?"
         ))
             .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_NOT_FOUND);
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_SKU_NOT_FOUND);
     }
 
     @Test
     @DisplayName("case-7")
     void fifoOutbound_ExpiredBatchDetected() {
         // Given - 闂傚倷绀侀幖顐︽偋閸℃蛋鍥х暦閸ャ劌搴婇梺鍛婂姦閸犳牜鈧艾顦甸弻锝夊籍閸屻倗鍔稿銈冨劜椤ㄥ棛鎹?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(expiredBatch));
         mockActiveBatches(Collections.singletonList(expiredBatch));
 
@@ -293,8 +297,8 @@ class InventoryBatchServiceTest {
     @DisplayName("case-8")
     void looseItemFirst_PreferLooseBatch() {
         // Given - 闂傚倷绀侀幖顐︽偋閸℃蛋鍥ㄥ閺夋垶杈堥柟鑹版彧缁插墽鈧俺宕甸幉绋款吋婢跺﹦顔嗘繛鏉戝悑濞兼瑩寮告笟鈧幃妤呮濞戞﹩妫岄梺鍝ュ仦閹倿寮婚妸銉㈡婵☆垵鍋愰崝顔碱渻閵堝棙澶勯柛鎾寸懄閺呫儵姊虹粙璺ㄧ伇闁稿绋戦埢宥夊Χ婢跺鍘卞┑鐐叉閿氶柣蹇曞枎闇夋繝濠傚濞搭噣鏌熼鍨撴繛鐓庣箻婵℃悂鏁傞悾灞剧€梻浣藉吹婵敻宕滈鍕妞ゆ劏鎳ｅ鑸电厽?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(looseBatch));
         mockActiveBatches(Collections.singletonList(looseBatch));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenReturn(looseBatch);
@@ -307,18 +311,18 @@ class InventoryBatchServiceTest {
         );
 
         // Then - 闂傚倷绀侀幉锟犳偡椤栨稓顩叉繝闈涱儐閸嬪倿鏌ㄥ☉妯侯仾閻庢碍纰嶉妵鍕敃椤愩垹绠婚梺鍝ュ枎閿曨亪寮婚埄鍐懝濠电姴瀚ⅲ闂備線鈧稓涓茬紓宥勭窔閻涱喖顓奸崶銊ユ瀭闂佸憡娲熷褎绂掕ぐ鎺撯拺闁圭娴烽埥澶愭煛閸偄澧撮柟顖楀亾闂佸憡绋掑娆戔偓姘槸椤法鎹勬笟顖氬壋闂佸憡鐟㈤崑鎾绘⒑閼姐倕孝婵炲眰鍨藉畷鐟懊洪鍕緢闂佹寧绻傚ú銊︾▔瀹ュ绾ч柛顐ｇ☉婵″吋銇勯妷锔绘畷缂?
-        verify(inventoryBatchRepository).findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true);
-        verify(inventoryBatchRepository, never()).findFullPackBatchesByProductOrderByExpiryDateAsc(anyLong(), anyInt(), anyBoolean());
+        verify(inventoryBatchRepository).findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true);
+        verify(inventoryBatchRepository, never()).findFullPackBatchesByProductSkuOrderByExpiryDateAsc(anyLong(), anyInt(), anyBoolean());
     }
 
     @Test
     @DisplayName("case-9")
     void looseItemFirst_UnpackOnlyWhenNecessary() {
         // Given - 闂傚倷娴囧銊ф閵堝洨绀婇柍褜鍓熼弻?8闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑氬閻庢碍宀稿娲垂椤曞懎鍓冲┑鐘亾?10闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑卞剱妞ゃ儱妫濋弻宥堫檨闁告挻鐩獮澶愭偋閸喎顎撻梺鑽ゅ枛閸嬪﹪鍩€?1闂?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(looseBatch));
-        when(inventoryBatchRepository.findFullPackBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(inventoryBatchRepository.findFullPackBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(fullPackBatch));
         mockActiveBatches(Arrays.asList(looseBatch, fullPackBatch));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenAnswer(i -> i.getArgument(0));
@@ -345,7 +349,7 @@ class InventoryBatchServiceTest {
         InventoryBatch looseBatch1 = InventoryBatch.builder()
             .id(1L)
             .batchCode("BATCH001")
-            .product(testProduct)
+            .productSku(testProduct)
             .quantity(5)
             .expiryDate(LocalDate.now().plusMonths(2))  // 闂備礁鎼ˇ顖炴偋閸℃稑鐤い鏍嚤濞戙埄鏁囬柣鏃堟櫜濮橈箓姊洪幖鐐插姌闁告柨绉瑰畷?
             .active(true)
@@ -354,14 +358,14 @@ class InventoryBatchServiceTest {
         InventoryBatch looseBatch2 = InventoryBatch.builder()
             .id(2L)
             .batchCode("BATCH002")
-            .product(testProduct)
+            .productSku(testProduct)
             .quantity(5)
             .expiryDate(LocalDate.now().plusMonths(4))  // 闂備礁鎼ˇ顖炴偋閸℃稑鐤い鏍ㄥ焹閺嬪秹鏌涢弴銊ュ濞存嚎鍊濋弻娑㈠Ψ閿濆懎顬夐梺?
             .active(true)
             .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Arrays.asList(looseBatch1, looseBatch2));  // 闂佽楠稿﹢閬嶁€﹂崼婵愬殨闁告挷璁查崑鎾诲垂椤愩倗鐓夐悗娈垮枛閻忔艾顕ラ崟顓涘亾閿濆骸浜濋柣婵撶節濮婃椽宕崟顓炩叡闂佸摜濮甸崝妤呭极椤曗偓楠炴鈧稒锚閸?
         mockActiveBatches(Arrays.asList(looseBatch1, looseBatch2));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenAnswer(i -> i.getArgument(0));
@@ -385,7 +389,7 @@ class InventoryBatchServiceTest {
     @DisplayName("case-11")
     void outbound_ZeroQuantity() {
         // Given
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
 
         // When & Then
         assertThatThrownBy(() -> inventoryBatchService.outboundWithFifo(
@@ -397,7 +401,7 @@ class InventoryBatchServiceTest {
     @DisplayName("case-12")
     void outbound_NegativeQuantity() {
         // Given
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
 
         // When & Then
         assertThatThrownBy(() -> inventoryBatchService.outboundWithFifo(
@@ -409,10 +413,10 @@ class InventoryBatchServiceTest {
     @DisplayName("case-13")
     void outbound_NoBatches() {
         // Given
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.emptyList());
-        when(inventoryBatchRepository.findFullPackBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(inventoryBatchRepository.findFullPackBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.emptyList());
         mockActiveBatches(Collections.emptyList());
 
@@ -428,8 +432,8 @@ class InventoryBatchServiceTest {
     @DisplayName("case-14")
     void outbound_ExactMatch() {
         // Given - 闂傚倷娴囧銊ф閵堝洨绀婇柍褜鍓熼弻?8闂備浇宕甸崑鐐烘嚌妤ｅ喚鏁勯柟瀵稿У椤洘绻濋棃娑氬閻庢碍宀稿娲垂椤曞懎鍓冲┑鐘亾?8闂?
-        when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findLooseBatchesByProductOrderByExpiryDateAsc(1L, 12, true))
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findLooseBatchesByProductSkuOrderByExpiryDateAsc(1L, 12, true))
             .thenReturn(Collections.singletonList(looseBatch));
         mockActiveBatches(Collections.singletonList(looseBatch));
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenReturn(looseBatch);

@@ -35,9 +35,10 @@ import java.util.Optional;
 public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, Long> {
 
     interface InventorySummaryRow {
-        Long getProductId();
+        Long getProductSkuId();
         String getProductName();
         String getSkuCode();
+        String getBarcode();
         String getSpecs();
         String getPackUnit();
         Number getConversionRate();
@@ -63,9 +64,10 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query(
         value = """
             SELECT
-                p.id AS "productId",
+                p.id AS "productSkuId",
                 p.name AS "productName",
-                p.barcode AS "skuCode",
+                p.sku_code AS "skuCode",
+                p.barcode AS "barcode",
                 p.specs AS "specs",
                 p.pack_unit AS "packUnit",
                 p.conversion_rate AS "conversionRate",
@@ -75,32 +77,34 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity - b.reserved_quantity ELSE 0 END), 0) AS "totalAvailableQuantity",
                 MAX(b.expiry_date) AS "furthestExpiryDate",
                 COALESCE(string_agg(DISTINCT w.name, ','), '') AS "warehouseNames"
-            FROM products p
+            FROM product_skus p
+            CROSS JOIN (SELECT LOWER(CAST(:search AS TEXT)) AS term) filter
             LEFT JOIN inventory_batch b
-                ON b.product_id = p.id
+                ON b.product_sku_id = p.id
                 AND b.active = true
                 AND b.quantity > 0
             LEFT JOIN locations l ON l.id = b.location_id
             LEFT JOIN warehouses w ON w.id = l.warehouse_id
             WHERE p.is_deleted = false
               AND (
-                :search IS NULL
-                OR :search = ''
-                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(p.barcode) LIKE LOWER(CONCAT('%', :search, '%'))
+                filter.term = ''
+                OR LOWER(p.name) LIKE CONCAT('%', filter.term, '%')
+                OR LOWER(p.sku_code) LIKE CONCAT('%', filter.term, '%')
+                OR LOWER(p.barcode) LIKE CONCAT('%', filter.term, '%')
               )
-            GROUP BY p.id, p.name, p.barcode, p.specs, p.pack_unit, p.conversion_rate, p.safety_stock
+            GROUP BY p.id, p.name, p.sku_code, p.barcode, p.specs, p.pack_unit, p.conversion_rate, p.safety_stock
             ORDER BY p.id
             """,
         countQuery = """
             SELECT COUNT(*)
-            FROM products p
+            FROM product_skus p
+            CROSS JOIN (SELECT LOWER(CAST(:search AS TEXT)) AS term) filter
             WHERE p.is_deleted = false
               AND (
-                :search IS NULL
-                OR :search = ''
-                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(p.barcode) LIKE LOWER(CONCAT('%', :search, '%'))
+                filter.term = ''
+                OR LOWER(p.name) LIKE CONCAT('%', filter.term, '%')
+                OR LOWER(p.sku_code) LIKE CONCAT('%', filter.term, '%')
+                OR LOWER(p.barcode) LIKE CONCAT('%', filter.term, '%')
               )
             """,
         nativeQuery = true
@@ -121,15 +125,15 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             b.expiryDate AS expiryDate,
             p.conversionRate AS conversionRate
         FROM InventoryBatch b
-        JOIN b.product p
+        JOIN b.productSku p
         LEFT JOIN b.location l
         LEFT JOIN l.warehouse w
-        WHERE b.product.id = :productId
+        WHERE b.productSku.id = :productSkuId
           AND b.active = true
           AND b.quantity > 0
         ORDER BY b.expiryDate DESC
         """)
-    List<InventoryDetailRow> findActiveDetailRowsByProductId(@Param("productId") Long productId);
+    List<InventoryDetailRow> findActiveDetailRowsByProductSkuId(@Param("productSkuId") Long productSkuId);
 
     @Query("""
         SELECT
@@ -142,7 +146,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             b.expiryDate AS expiryDate,
             p.conversionRate AS conversionRate
         FROM InventoryBatch b
-        JOIN b.product p
+        JOIN b.productSku p
         LEFT JOIN b.location l
         LEFT JOIN l.warehouse w
         WHERE b.locationCode = :locationCode
@@ -164,23 +168,23 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      * ⭐ FIFO Query: Find active batches by product (ORDER BY expiryDate ASC)
      *
      * Core FIFO Logic:
-     * - Filter: product_id = ? AND active = true AND quantity > 0
+     * - Filter: product_sku_id = ? AND active = true AND quantity > 0
      * - Sort: ORDER BY expiry_date ASC (earliest expiry first)
      *
      * Usage: Automatic FIFO outbound (先进先出出库)
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param active Active flag (true for valid batches)
      * @return List of batches sorted by expiry date (earliest first)
      */
     @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.product.id = :productId " +
+           "WHERE b.productSku.id = :productSkuId " +
            "AND b.active = :active " +
            "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
            "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
-    List<InventoryBatch> findByProductIdAndActiveOrderByExpiryDateAsc(
-        @Param("productId") Long productId,
+    List<InventoryBatch> findByProductSkuIdAndActiveOrderByExpiryDateAsc(
+        @Param("productSkuId") Long productSkuId,
         @Param("active") Boolean active
     );
 
@@ -189,35 +193,35 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      *
      * V3.0 Core Query: SUM(quantity) WHERE active = true
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @return Total stock (null if no batches)
      */
     @Query("SELECT SUM(b.quantity) FROM InventoryBatch b " +
-           "WHERE b.product.id = :productId " +
+           "WHERE b.productSku.id = :productSkuId " +
            "AND b.location IS NOT NULL " +
            "AND b.active = true")
-    Integer sumQuantityByProduct(@Param("productId") Long productId);
+    Integer sumQuantityByProductSku(@Param("productSkuId") Long productSkuId);
 
     @Query("SELECT SUM(b.reservedQuantity) FROM InventoryBatch b " +
-           "WHERE b.product.id = :productId " +
+           "WHERE b.productSku.id = :productSkuId " +
            "AND b.location IS NOT NULL " +
            "AND b.active = true")
-    Integer sumReservedQuantityByProduct(@Param("productId") Long productId);
+    Integer sumReservedQuantityByProductSku(@Param("productSkuId") Long productSkuId);
 
     @Query("SELECT SUM(b.quantity - b.reservedQuantity) FROM InventoryBatch b " +
-           "WHERE b.product.id = :productId " +
+           "WHERE b.productSku.id = :productSkuId " +
            "AND b.location IS NOT NULL " +
            "AND b.active = true")
-    Integer sumAvailableQuantityByProduct(@Param("productId") Long productId);
+    Integer sumAvailableQuantityByProductSku(@Param("productSkuId") Long productSkuId);
 
     /**
      * Find all active batches by product
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param active Active flag
      * @return List of batches
      */
-    List<InventoryBatch> findByProductIdAndActive(Long productId, Boolean active);
+    List<InventoryBatch> findByProductSkuIdAndActive(Long productSkuId, Boolean active);
 
     /**
      * Find batches by location
@@ -304,11 +308,11 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     /**
      * Count active batches by product
      *
-     * @param productId Product ID
+     * @param productSkuId ProductSku ID
      * @param active Active flag
      * @return Count
      */
-    long countByProductIdAndActive(Long productId, Boolean active);
+    long countByProductSkuIdAndActive(Long productSkuId, Boolean active);
 
     // ========== V3.3 多库位批次管理查询 (Multi-Location Batch Queries) ==========
 
@@ -377,21 +381,21 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      *
      * Usage: outboundWithFifo() 第一阶段查询
      *
-     * @param productId Product ID
-     * @param conversionRate Conversion rate (from Product entity)
+     * @param productSkuId ProductSku ID
+     * @param conversionRate Conversion rate (from ProductSku entity)
      * @param active Active flag (true for valid batches)
      * @return List of loose batches sorted by expiry date (earliest first)
      * @since V3.1
      */
     @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.product.id = :productId " +
+           "WHERE b.productSku.id = :productSkuId " +
            "AND b.active = :active " +
            "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
            "AND MOD(b.quantity, :conversionRate) <> 0 " +  // 零头批次（已开箱）
            "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
-    List<InventoryBatch> findLooseBatchesByProductOrderByExpiryDateAsc(
-        @Param("productId") Long productId,
+    List<InventoryBatch> findLooseBatchesByProductSkuOrderByExpiryDateAsc(
+        @Param("productSkuId") Long productSkuId,
         @Param("conversionRate") Integer conversionRate,
         @Param("active") Boolean active
     );
@@ -409,21 +413,21 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      *
      * Usage: outboundWithFifo() 第二阶段查询
      *
-     * @param productId Product ID
-     * @param conversionRate Conversion rate (from Product entity)
+     * @param productSkuId ProductSku ID
+     * @param conversionRate Conversion rate (from ProductSku entity)
      * @param active Active flag (true for valid batches)
      * @return List of full pack batches sorted by expiry date (earliest first)
      * @since V3.1
      */
     @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.product.id = :productId " +
+           "WHERE b.productSku.id = :productSkuId " +
            "AND b.active = :active " +
            "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
            "AND MOD(b.quantity, :conversionRate) = 0 " +  // 整箱批次（未开箱）
            "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
-    List<InventoryBatch> findFullPackBatchesByProductOrderByExpiryDateAsc(
-        @Param("productId") Long productId,
+    List<InventoryBatch> findFullPackBatchesByProductSkuOrderByExpiryDateAsc(
+        @Param("productSkuId") Long productSkuId,
         @Param("conversionRate") Integer conversionRate,
         @Param("active") Boolean active
     );
@@ -457,11 +461,11 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
 
     @Query("SELECT b FROM InventoryBatch b " +
            "WHERE b.location.id = :locationId " +
-           "AND b.product.id = :productId " +
+           "AND b.productSku.id = :productSkuId " +
            "AND b.active = true " +
            "AND b.quantity > 0")
     List<InventoryBatch> findPositiveActiveBatchesByLocationAndProduct(
         @Param("locationId") Long locationId,
-        @Param("productId") Long productId
+        @Param("productSkuId") Long productSkuId
     );
 }

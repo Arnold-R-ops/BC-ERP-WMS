@@ -1,8 +1,12 @@
+param(
+    [string]$HostUrl = "http://127.0.0.1:8080"
+)
+
 $ErrorActionPreference = "Stop"
 
-$HostUrl = "http://127.0.0.1:8080"
 $RunId = [DateTimeOffset]::Now.ToUnixTimeSeconds()
 $ResultPath = Join-Path $PSScriptRoot "v45-hardening-result.json"
+$script:ProductSequence = 0
 
 $checks = New-Object System.Collections.Generic.List[object]
 $artifacts = [ordered]@{}
@@ -122,19 +126,31 @@ function New-Location {
     return $r.body
 }
 
-function New-Product {
+function New-ProductSku {
     param(
         [string]$Prefix,
         [decimal]$MinSalesPrice = 1.00,
         [string]$BatchTrackingMode = "PRINTED_LABEL",
         [string]$BarcodeOverride = $null
     )
+    $script:ProductSequence++
     $barcode = if ($BarcodeOverride) { $BarcodeOverride } else { "$Prefix-$RunId" }
-    $r = Invoke-Api POST "/api/products" @{
+    $product = Invoke-Api POST "/api/products" @{
+        productCode = "$Prefix-SPU-$RunId-$($script:ProductSequence)"
+        productName = "$Prefix Hardening Product"
+        categoryId = $CategoryId
+        brand = "Codex"
+        description = "hardening"
+        enabled = $true
+    } $Auth
+    if ($product.status -ne 201) {
+        return $product
+    }
+    return Invoke-Api POST "/api/product-skus" @{
+        productId = $product.body.id
         barcode = $barcode
         name = "$Prefix Hardening Product"
         skuName = "$Prefix-SKU"
-        spuId = 1
         specs = "hardening"
         unitPrice = 10.00
         minSalesPrice = $MinSalesPrice
@@ -142,11 +158,9 @@ function New-Product {
         conversionRate = 1
         packUnit = "box"
         nearExpiryDays = 30
-        category = "hardening"
         batchTrackingMode = $BatchTrackingMode
         enabled = $true
     } $Auth
-    return $r
 }
 
 function New-Customer {
@@ -167,7 +181,7 @@ function New-Customer {
 
 function Add-Stock {
     param(
-        [long]$ProductId,
+        [long]$ProductSkuId,
         [long]$WarehouseId,
         [long]$LocationId,
         [int]$Quantity,
@@ -175,10 +189,10 @@ function Add-Stock {
     )
     $inbound = Invoke-Api POST "/api/inbound-orders" @{
         supplierId = 1
-        expectedDate = "2026-07-05"
+        expectedDate = "2026-12-01"
         remark = "$Scenario stock setup"
         items = @(@{
-            productId = $ProductId
+            productSkuId = $ProductSkuId
             planQty = $Quantity
             unitCost = 5.00
             targetWarehouseId = $WarehouseId
@@ -219,7 +233,7 @@ function Add-Stock {
 function New-SalesOrder {
     param(
         [long]$CustomerId,
-        [long]$ProductId,
+        [long]$ProductSkuId,
         [int]$Quantity,
         [decimal]$UnitPrice,
         [string]$Scenario
@@ -227,7 +241,7 @@ function New-SalesOrder {
     $r = Invoke-Api POST "/api/sales-orders" @{
         customerId = $CustomerId
         items = @(@{
-            productId = $ProductId
+            productSkuId = $ProductSkuId
             quantity = $Quantity
             unitPrice = $UnitPrice
             rejectNearExpiry = $false
@@ -304,17 +318,33 @@ Assert-Check "preflight" "admin login succeeds" ($login.status -eq 200 -and $log
 $Token = $login.body.token
 $Auth = @{ Authorization = "Bearer $Token" }
 
+$rootCategory = Invoke-Api POST "/api/categories" @{
+    categoryCode = "HARD_ROOT_$RunId"
+    categoryName = "V4.5 Hardening Root $RunId"
+    sortOrder = 300
+} $Auth
+Assert-Check "setup" "create hardening root category" ($rootCategory.status -eq 201) @{ status = $rootCategory.status; body = $rootCategory.body }
+
+$leafCategory = Invoke-Api POST "/api/categories" @{
+    categoryCode = "HARD_LEAF_$RunId"
+    categoryName = "V4.5 Hardening Leaf $RunId"
+    parentId = $rootCategory.body.id
+    sortOrder = 300
+} $Auth
+Assert-Check "setup" "create hardening leaf category" ($leafCategory.status -eq 201) @{ status = $leafCategory.status; body = $leafCategory.body }
+$CategoryId = [long]$leafCategory.body.id
+
 # 1. Concurrency oversell hardening
 $scenario = "1-concurrency"
 $warehouse = New-Warehouse "HC"
 $location = New-Location $warehouse.id "ZONE_A" "A" "01"
-$productResp = New-Product "HC-PROD" 10.00
-Assert-Check $scenario "create concurrency product" ($productResp.status -eq 201) @{ status = $productResp.status; body = $productResp.body }
-$product = $productResp.body
+$productSkuResp = New-ProductSku "HC-PROD" 10.00
+Assert-Check $scenario "create concurrency ProductSku" ($productSkuResp.status -eq 201) @{ status = $productSkuResp.status; body = $productSkuResp.body }
+$productSku = $productSkuResp.body
 $customer = New-Customer "HC"
-Add-Stock $product.id $warehouse.id $location.id 100 $scenario
-$orderA = New-SalesOrder $customer.id $product.id 100 1.00 $scenario
-$orderB = New-SalesOrder $customer.id $product.id 100 1.00 $scenario
+Add-Stock $productSku.id $warehouse.id $location.id 100 $scenario
+$orderA = New-SalesOrder $customer.id $productSku.id 100 1.00 $scenario
+$orderB = New-SalesOrder $customer.id $productSku.id 100 1.00 $scenario
 Assert-Check $scenario "orders wait for approval before allocation" ($orderA.status -eq "PENDING_APPROVAL" -and $orderB.status -eq "PENDING_APPROVAL") @{ orderA = $orderA.status; orderB = $orderB.status }
 
 $jobA = Invoke-ApproveJob $orderA.id
@@ -331,7 +361,7 @@ $unsafeConcurrencyResponses = @($approveResults | Where-Object { $_.status -noti
 Assert-Check $scenario "concurrent approval never leaks internal 500" ($unsafeConcurrencyResponses.Count -eq 0) $approveResults
 $openReserved = Sum-OpenReservations @([long]$orderA.id, [long]$orderB.id)
 $outboundPlan = Sum-OutboundPlan @([long]$orderA.id, [long]$orderB.id)
-$stock = Invoke-Api GET "/api/inventory/total-stock/$($product.id)" $null $Auth
+$stock = Invoke-Api GET "/api/inventory/total-stock/$($productSku.id)" $null $Auth
 Assert-Check $scenario "open reservation never exceeds on-hand stock" ($openReserved -le 100) @{ openReserved = $openReserved }
 Assert-Check $scenario "outbound plan never exceeds on-hand stock" ($outboundPlan -le 100) @{ outboundPlan = $outboundPlan }
 Assert-Check $scenario "available stock is not negative" ($stock.status -eq 200 -and [int]$stock.body.availableStock -ge 0) @{ status = $stock.status; body = $stock.body }
@@ -340,12 +370,12 @@ Assert-Check $scenario "available stock is not negative" ($stock.status -eq 200 
 $scenario = "2-idempotency"
 $warehouse2 = New-Warehouse "HI"
 $location2 = New-Location $warehouse2.id "ZONE_A" "B" "01"
-$product2Resp = New-Product "HI-PROD" 10.00
-Assert-Check $scenario "create idempotency product" ($product2Resp.status -eq 201) @{ status = $product2Resp.status; body = $product2Resp.body }
-$product2 = $product2Resp.body
+$productSku2Resp = New-ProductSku "HI-PROD" 10.00
+Assert-Check $scenario "create idempotency ProductSku" ($productSku2Resp.status -eq 201) @{ status = $productSku2Resp.status; body = $productSku2Resp.body }
+$productSku2 = $productSku2Resp.body
 $customer2 = New-Customer "HI"
-Add-Stock $product2.id $warehouse2.id $location2.id 5 $scenario
-$idemOrder = New-SalesOrder $customer2.id $product2.id 2 1.00 $scenario
+Add-Stock $productSku2.id $warehouse2.id $location2.id 5 $scenario
+$idemOrder = New-SalesOrder $customer2.id $productSku2.id 2 1.00 $scenario
 $approve1 = Invoke-Api POST "/api/sales-orders/$($idemOrder.id)/approve" @{ comment = "first approve"; allocationPolicy = "FULL_ONLY" } $Auth
 Assert-Check $scenario "first approval succeeds" ($approve1.status -eq 200) @{ status = $approve1.status; body = $approve1.body }
 $approve2 = Invoke-Api POST "/api/sales-orders/$($idemOrder.id)/approve" @{ comment = "replay approve"; allocationPolicy = "FULL_ONLY" } $Auth
@@ -355,9 +385,9 @@ Assert-Check $scenario "approval generated outbound task" ($taskList.status -eq 
 $task = @($taskList.body)[0]
 $confirm1 = Invoke-Api POST "/api/outbound-tasks/$($task.id)/confirm" @{ actualQty = $task.planQty } $Auth
 Assert-Check $scenario "first outbound confirm succeeds" ($confirm1.status -eq 200 -and $confirm1.body.status -eq "COMPLETED") @{ status = $confirm1.status; body = $confirm1.body }
-$stockAfterFirst = Invoke-Api GET "/api/inventory/total-stock/$($product2.id)" $null $Auth
+$stockAfterFirst = Invoke-Api GET "/api/inventory/total-stock/$($productSku2.id)" $null $Auth
 $confirm2 = Invoke-Api POST "/api/outbound-tasks/$($task.id)/confirm" @{ actualQty = $task.planQty } $Auth
-$stockAfterReplay = Invoke-Api GET "/api/inventory/total-stock/$($product2.id)" $null $Auth
+$stockAfterReplay = Invoke-Api GET "/api/inventory/total-stock/$($productSku2.id)" $null $Auth
 Assert-Check $scenario "duplicate outbound confirm is rejected" ($confirm2.status -in @(400,409)) @{ status = $confirm2.status; body = $confirm2.body }
 Assert-Check $scenario "duplicate outbound confirm does not deduct stock twice" ([int]$stockAfterReplay.body.totalStock -eq [int]$stockAfterFirst.body.totalStock) @{ afterFirst = $stockAfterFirst.body; afterReplay = $stockAfterReplay.body }
 
@@ -383,9 +413,9 @@ Assert-Check $scenario "fake token is rejected" ($fakeToken.status -in @(401,403
 # 4. SaaS tenant/data isolation placeholder hardening
 $scenario = "4-data-isolation"
 $dupBarcode = "HD-DUP-$RunId"
-$dup1 = New-Product "HD-DUP" 1.00 "PRINTED_LABEL" $dupBarcode
-Assert-Check $scenario "first product with unique barcode succeeds" ($dup1.status -eq 201) @{ status = $dup1.status; body = $dup1.body }
-$dup2 = New-Product "HD-DUP" 1.00 "PRINTED_LABEL" $dupBarcode
+$dup1 = New-ProductSku "HD-DUP" 1.00 "PRINTED_LABEL" $dupBarcode
+Assert-Check $scenario "first ProductSku with unique barcode succeeds" ($dup1.status -eq 201) @{ status = $dup1.status; body = $dup1.body }
+$dup2 = New-ProductSku "HD-DUP" 1.00 "PRINTED_LABEL" $dupBarcode
 Assert-Check $scenario "same-company duplicate barcode is rejected" ($dup2.status -in @(400,409)) @{ status = $dup2.status; body = $dup2.body }
 $dupWhCode = "HDW$RunId"
 if ($dupWhCode.Length -gt 20) { $dupWhCode = $dupWhCode.Substring(0, 20) }
@@ -411,7 +441,7 @@ $scenario = "5-boundary"
 $badQty = Invoke-Api POST "/api/sales-orders" @{
     customerId = $customer.id
     items = @(@{
-        productId = $product.id
+        productSkuId = $productSku.id
         quantity = 0
         unitPrice = 1.00
         rejectNearExpiry = $false
@@ -420,7 +450,7 @@ $badQty = Invoke-Api POST "/api/sales-orders" @{
 Assert-Check $scenario "zero sales quantity is rejected" ($badQty.status -eq 400) @{ status = $badQty.status; body = $badQty.body }
 $missingCustomer = Invoke-Api POST "/api/sales-orders" @{
     items = @(@{
-        productId = $product.id
+        productSkuId = $productSku.id
         quantity = 1
         unitPrice = 1.00
         rejectNearExpiry = $false
@@ -430,7 +460,7 @@ Assert-Check $scenario "missing customer is rejected" ($missingCustomer.status -
 $missingProduct = Invoke-Api POST "/api/sales-orders" @{
     customerId = $customer.id
     items = @(@{
-        productId = 999999999
+        productSkuId = 999999999
         quantity = 1
         unitPrice = 1.00
         rejectNearExpiry = $false
@@ -438,7 +468,7 @@ $missingProduct = Invoke-Api POST "/api/sales-orders" @{
 } $Auth
 Assert-Check $scenario "non-existent product is rejected" ($missingProduct.status -in @(400,404)) @{ status = $missingProduct.status; body = $missingProduct.body }
 $badAdjust = Invoke-Api POST "/api/inventory/adjust" @{
-    productId = $product.id
+    productSkuId = $productSku.id
     locationId = $location.id
     transactionType = "ADJUST"
     sourceType = "MANUAL_ADJUST"

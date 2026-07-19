@@ -35,10 +35,10 @@ import lombok.NoArgsConstructor;
 public class StockAdjustmentRequest {
 
     /**
-     * Product ID (required)
+     * ProductSku ID (required)
      */
-    @NotNull(message = "Product ID is required")
-    private Long productId;
+    @NotNull(message = "ProductSku ID is required")
+    private Long productSkuId;
 
     /**
      * Location ID (required)
