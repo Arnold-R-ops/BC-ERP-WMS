@@ -11,7 +11,7 @@ import {
   type InventorySummary,
 } from '../../api/inventory';
 import { toProTablePage, toSpringPage } from '../../api/pagination';
-import { listProducts, PRODUCTS_QUERY_KEY } from '../../api/products';
+import { listProductSkus, PRODUCT_SKUS_QUERY_KEY } from '../../api/productSkus';
 import { InventoryDetailsDrawer } from './InventoryDetailsDrawer';
 import { getFreshnessStatus } from './inventoryUtils';
 import { LocationInventoryDrawer } from './LocationInventoryDrawer';
@@ -32,18 +32,18 @@ export function InventoryPage(): JSX.Element {
   const { message } = AntdApp.useApp();
   const { i18n, t } = useTranslation();
 
-  const productsQuery = useQuery({
-    queryKey: PRODUCTS_QUERY_KEY,
-    queryFn: () => listProducts(),
+  const productSkusQuery = useQuery({
+    queryKey: PRODUCT_SKUS_QUERY_KEY,
+    queryFn: () => listProductSkus(),
   });
 
   const nearExpiryThresholds = useMemo(
     () => new Map(
-      (productsQuery.data ?? [])
-        .filter((product) => product.id !== undefined)
-        .map((product) => [product.id as number, product.nearExpiryDays ?? 90]),
+      (productSkusQuery.data ?? [])
+        .filter((productSku) => productSku.id !== undefined)
+        .map((productSku) => [productSku.id as number, productSku.nearExpiryDays ?? 90]),
     ),
-    [productsQuery.data],
+    [productSkusQuery.data],
   );
 
   const formatDate = (value?: string): string =>
@@ -142,7 +142,7 @@ export function InventoryPage(): JSX.Element {
         width: 180,
         render: (_, record) => {
           const expiryDate = record.furthestExpiryDate;
-          const threshold = nearExpiryThresholds.get(record.productId ?? -1) ?? 90;
+          const threshold = nearExpiryThresholds.get(record.productSkuId ?? -1) ?? 90;
           const status = getFreshnessStatus(expiryDate, threshold);
           return (
             <Space size={4}>
@@ -210,7 +210,7 @@ export function InventoryPage(): JSX.Element {
             return { data: [], success: false, total: 0 };
           }
         }}
-        rowKey="productId"
+        rowKey="productSkuId"
         scroll={{ x: 1550 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
         toolBarRender={() => [
@@ -228,7 +228,7 @@ export function InventoryPage(): JSX.Element {
       />
 
       <InventoryDetailsDrawer
-        nearExpiryDays={nearExpiryThresholds.get(selectedSummary?.productId ?? -1)}
+        nearExpiryDays={nearExpiryThresholds.get(selectedSummary?.productSkuId ?? -1)}
         onClose={() => setSelectedSummary(undefined)}
         open={selectedSummary !== undefined}
         summary={selectedSummary}

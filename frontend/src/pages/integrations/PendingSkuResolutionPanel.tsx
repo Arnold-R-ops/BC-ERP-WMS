@@ -4,17 +4,17 @@ import { App as AntdApp, Button, Empty, InputNumber, Radio, Select, Space, Tag }
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPendingSkuSuggestions, type PendingSkuMapping, type ResolvePendingSkuPayload } from '../../api/integrations';
-import type { Product } from '../../api/products';
+import type { ProductSku } from '../../api/productSkus';
 
 interface PendingSkuResolutionPanelProps {
   item: PendingSkuMapping;
   loading: boolean;
-  products: Product[];
+  products: ProductSku[];
   onResolve: (item: PendingSkuMapping, payload: ResolvePendingSkuPayload) => void;
 }
 
 export function PendingSkuResolutionPanel({ item, loading, products, onResolve }: PendingSkuResolutionPanelProps): JSX.Element {
-  const [productId, setProductId] = useState<number>();
+  const [productSkuId, setProductSkuId] = useState<number>();
   const [quantityRatio, setQuantityRatio] = useState(1);
   const { message } = AntdApp.useApp();
   const { t } = useTranslation();
@@ -25,21 +25,21 @@ export function PendingSkuResolutionPanel({ item, loading, products, onResolve }
   });
 
   useEffect(() => {
-    setProductId(undefined);
+    setProductSkuId(undefined);
     setQuantityRatio(1);
   }, [item.id]);
 
-  const productOptions = useMemo(() => products.map((product) => ({
-    label: `${product.barcode ?? '-'} · ${product.name ?? product.skuName ?? `#${product.id}`}`,
-    value: product.id as number,
+  const productOptions = useMemo(() => products.map((productSku) => ({
+    label: `${productSku.skuCode ?? productSku.barcode ?? '-'} · ${productSku.name ?? productSku.skuName ?? `#${productSku.id}`}`,
+    value: productSku.id as number,
   })), [products]);
 
   const map = (): void => {
-    if (productId === undefined) {
+    if (productSkuId === undefined) {
       message.warning(t('integrations.pending.validation.productRequired'));
       return;
     }
-    onResolve(item, { action: 'MAP', productId, quantityRatio });
+    onResolve(item, { action: 'MAP', productSkuId, quantityRatio });
   };
 
   return (
@@ -50,11 +50,11 @@ export function PendingSkuResolutionPanel({ item, loading, products, onResolve }
           <Tag>{suggestionsQuery.data?.length ?? 0}</Tag>
         </div>
         {suggestionsQuery.data && suggestionsQuery.data.length > 0 ? (
-          <Radio.Group onChange={(event) => setProductId(event.target.value as number)} value={productId}>
+          <Radio.Group onChange={(event) => setProductSkuId(event.target.value as number)} value={productSkuId}>
             <Space direction="vertical" size={8}>
               {suggestionsQuery.data.map((suggestion) => (
-                <Radio key={suggestion.productId} value={suggestion.productId}>
-                  <strong>{suggestion.name || suggestion.skuName || `#${suggestion.productId}`}</strong>
+                <Radio key={suggestion.productSkuId} value={suggestion.productSkuId}>
+                  <strong>{suggestion.name || suggestion.skuName || `#${suggestion.productSkuId}`}</strong>
                   <span className="table-secondary mapping-suggestion-code">{suggestion.barcode || '-'}</span>
                 </Radio>
               ))}
@@ -69,12 +69,12 @@ export function PendingSkuResolutionPanel({ item, loading, products, onResolve }
         <label htmlFor={`pending-product-${item.id}`}>{t('integrations.pending.manualProduct')}</label>
         <Select
           id={`pending-product-${item.id}`}
-          onChange={setProductId}
+          onChange={setProductSkuId}
           optionFilterProp="label"
           options={productOptions}
           placeholder={t('integrations.pending.productPlaceholder')}
           showSearch
-          value={productId}
+          value={productSkuId}
         />
         <label htmlFor={`pending-ratio-${item.id}`}>{t('integrations.fields.quantityRatio')}</label>
         <InputNumber

@@ -27,8 +27,8 @@ export async function getInventorySummary(
   return apiRequest<InventorySummaryPage>(`/api/inventory/summary?${search.toString()}`);
 }
 
-export async function getInventoryDetails(productId: number): Promise<InventoryDetail[]> {
-  return apiRequest<InventoryDetail[]>(`/api/inventory/details/${productId}`);
+export async function getInventoryDetails(productSkuId: number): Promise<InventoryDetail[]> {
+  return apiRequest<InventoryDetail[]>(`/api/inventory/details/${productSkuId}`);
 }
 
 export async function getLocationInventory(locationCode: string): Promise<LocationInventory> {

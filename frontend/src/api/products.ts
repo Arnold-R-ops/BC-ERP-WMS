@@ -2,7 +2,8 @@ import type { components } from './schema';
 import { apiRequest } from './http';
 
 export type Product = components['schemas']['ProductResponse'];
-export type ProductPayload = components['schemas']['CreateProductRequest'];
+export type CreateProductPayload = components['schemas']['CreateProductRequest'];
+export type UpdateProductPayload = components['schemas']['UpdateProductRequest'];
 
 export const PRODUCTS_QUERY_KEY = ['products'] as const;
 
@@ -20,16 +21,22 @@ export async function getProduct(id: number): Promise<Product> {
   return apiRequest<Product>(`/api/products/${id}`);
 }
 
-export async function createProduct(payload: ProductPayload): Promise<Product> {
+export async function createProduct(payload: CreateProductPayload): Promise<Product> {
   return apiRequest<Product>('/api/products', {
     method: 'POST',
     body: payload,
   });
 }
 
-export async function updateProduct(id: number, payload: ProductPayload): Promise<Product> {
+export async function updateProduct(id: number, payload: UpdateProductPayload): Promise<Product> {
   return apiRequest<Product>(`/api/products/${id}`, {
     method: 'PUT',
     body: payload,
+  });
+}
+
+export async function setProductEnabled(id: number, enabled: boolean): Promise<Product> {
+  return apiRequest<Product>(`/api/products/${id}/${enabled ? 'activate' : 'deactivate'}`, {
+    method: 'PUT',
   });
 }

@@ -81,7 +81,7 @@ export function InboundOrderDrawer({ orderId, onApprove, onClose, onConfirmOrder
             ]}
             size="small"
           />
-          <Table columns={columns} dataSource={order.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productId ?? 0} scroll={{ x: 1555 }} size="small" />
+          <Table columns={columns} dataSource={order.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productSkuId ?? 0} scroll={{ x: 1555 }} size="small" />
         </>
       )}
     </Drawer>

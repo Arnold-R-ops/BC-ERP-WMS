@@ -8,13 +8,13 @@ import {
 } from '@ant-design/pro-components';
 import { useTranslation } from 'react-i18next';
 import type { ChannelSkuMapping, ChannelSkuMappingPayload } from '../../api/integrations';
-import type { Product } from '../../api/products';
+import type { ProductSku } from '../../api/productSkus';
 
 interface SkuMappingFormModalProps {
   loading: boolean;
   mapping?: ChannelSkuMapping;
   open: boolean;
-  products: Product[];
+  products: ProductSku[];
   onClose: () => void;
   onSubmit: (payload: ChannelSkuMappingPayload) => Promise<boolean>;
 }
@@ -23,7 +23,7 @@ export function SkuMappingFormModal({ loading, mapping, open, products, onClose,
   const { t } = useTranslation();
   const editing = mapping?.id !== undefined;
   const productOptions = products.filter((product) => product.id !== undefined).map((product) => ({
-    label: `${product.barcode ?? '-'} · ${product.name ?? product.skuName ?? `#${product.id}`}`,
+    label: `${product.skuCode ?? product.barcode ?? '-'} · ${product.name ?? product.skuName ?? `#${product.id}`}`,
     value: product.id as number,
   }));
 
@@ -35,7 +35,7 @@ export function SkuMappingFormModal({ loading, mapping, open, products, onClose,
         storeIdentifier: mapping?.storeIdentifier,
         externalSku: mapping?.externalSku ?? '',
         mappingType: mapping?.mappingType ?? 'PRODUCT',
-        productId: mapping?.productId,
+        productSkuId: mapping?.productSkuId,
         quantityRatio: mapping?.quantityRatio ?? 1,
         status: mapping?.status ?? 'ACTIVE',
         remark: mapping?.remark,
@@ -75,7 +75,7 @@ export function SkuMappingFormModal({ loading, mapping, open, products, onClose,
             <ProFormSelect
               fieldProps={{ optionFilterProp: 'label', showSearch: true }}
               label={t('integrations.fields.internalProduct')}
-              name="productId"
+              name="productSkuId"
               options={productOptions}
               rules={[{ required: true, message: t('integrations.mappings.validation.productRequired') }]}
             />

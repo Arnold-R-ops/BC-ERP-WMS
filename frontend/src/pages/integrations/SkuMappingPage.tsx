@@ -14,7 +14,7 @@ import {
   type ChannelSkuMappingPayload,
 } from '../../api/integrations';
 import { paginateArray } from '../../api/pagination';
-import { listProducts } from '../../api/products';
+import { listProductSkus } from '../../api/productSkus';
 import { ChannelTag } from '../../components/ChannelTag';
 import { formatDateTime } from '../workflowUtils';
 import { SkuMappingFormModal } from './SkuMappingFormModal';
@@ -29,7 +29,7 @@ export function SkuMappingPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
-  const productsQuery = useQuery({ queryKey: ['products', 'integration-mapping'], queryFn: () => listProducts(true) });
+  const productsQuery = useQuery({ queryKey: ['product-skus', 'integration-mapping'], queryFn: () => listProductSkus({ enabledOnly: true }) });
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: ChannelSkuMappingPayload }) =>
       id === undefined ? createSkuMapping(payload) : updateSkuMapping(id, payload),
@@ -63,7 +63,7 @@ export function SkuMappingPage(): JSX.Element {
           channel: mapping.channel,
           externalSku: mapping.externalSku,
           mappingType: mapping.mappingType,
-          productId: mapping.productId,
+          productSkuId: mapping.productSkuId,
           quantityRatio: mapping.quantityRatio,
           status: active ? 'ACTIVE' : 'DISABLED',
           remark: mapping.remark,

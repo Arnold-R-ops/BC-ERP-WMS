@@ -19,11 +19,11 @@ export function InventoryDetailsDrawer({
   onClose,
 }: InventoryDetailsDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
-  const productId = summary?.productId;
+  const productSkuId = summary?.productSkuId;
   const detailsQuery = useQuery({
-    queryKey: ['inventory', 'details', productId],
-    queryFn: () => getInventoryDetails(productId as number),
-    enabled: open && productId !== undefined,
+    queryKey: ['inventory', 'details', productSkuId],
+    queryFn: () => getInventoryDetails(productSkuId as number),
+    enabled: open && productSkuId !== undefined,
   });
 
   const formatDate = (value?: string): string =>

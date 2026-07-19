@@ -65,7 +65,7 @@ export function PurchaseConfirmModal({
       zIndex={WORKFLOW_MODAL_Z_INDEX}
     >
       <p className="modal-description">{t('purchasing.confirm.notice')}</p>
-      <Table columns={columns} dataSource={order?.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productId ?? 0} size="small" />
+      <Table columns={columns} dataSource={order?.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productSkuId ?? 0} size="small" />
       <Form className="workflow-form-list" form={form} layout="vertical">
         <Form.List name="items">
           {(fields) => fields.map((field, index) => (

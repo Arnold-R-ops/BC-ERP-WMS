@@ -336,8 +336,8 @@ export function DashboardPage(): JSX.Element {
       title: t('dashboard.reorder.stockoutDays'),
       width: 120,
       align: 'right',
-      render: (value: number | undefined) => value === undefined
-        ? '-'
+      render: (value: number | null | undefined) => value == null
+        ? <Tooltip title={t('dashboard.reorder.stockoutUnavailable')}><span>—</span></Tooltip>
         : t('common.daysValue', { count: Number(value.toFixed(1)) }),
     },
     {
@@ -432,7 +432,7 @@ export function DashboardPage(): JSX.Element {
               loading={urgentReorderQuery.isLoading}
               locale={{ emptyText: <Empty description={t('dashboard.emptyUrgentReorders')} image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
               pagination={false}
-              rowKey={(suggestion) => String(suggestion.productId ?? suggestion.barcode)}
+              rowKey={(suggestion) => String(suggestion.productSkuId ?? suggestion.barcode)}
               scroll={{ x: 780 }}
               size="small"
             />

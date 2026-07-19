@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { listProducts } from '../../api/products';
+import { listProductSkus } from '../../api/productSkus';
 import type { PurchaseOrderPayload } from '../../api/purchasing';
 
 export type PurchaseOrderFormValues = Omit<PurchaseOrderPayload, 'operatorId' | 'operatorName'>;
@@ -27,14 +27,14 @@ export function PurchaseOrderFormDrawer({
   onSubmit,
 }: PurchaseOrderFormDrawerProps): JSX.Element {
   const { t } = useTranslation();
-  const productsQuery = useQuery({
-    queryKey: ['products', 'active'],
-    queryFn: () => listProducts(true),
+  const productSkusQuery = useQuery({
+    queryKey: ['product-skus', 'active'],
+    queryFn: () => listProductSkus({ enabledOnly: true }),
     enabled: open,
   });
-  const productOptions = (productsQuery.data ?? []).map((product) => ({
-    label: `${product.name ?? '-'} (${product.barcode ?? '-'})`,
-    value: product.id,
+  const productSkuOptions = (productSkusQuery.data ?? []).map((productSku) => ({
+    label: `${productSku.name ?? '-'} · ${productSku.skuName ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`,
+    value: productSku.id,
   }));
 
   return (
@@ -69,10 +69,10 @@ export function PurchaseOrderFormDrawer({
         name="items"
       >
         <ProFormSelect
-          fieldProps={{ loading: productsQuery.isLoading, optionFilterProp: 'label', showSearch: true }}
+          fieldProps={{ loading: productSkusQuery.isLoading, optionFilterProp: 'label', showSearch: true }}
           label={t('purchasing.fields.product')}
-          name="productId"
-          options={productOptions}
+          name="productSkuId"
+          options={productSkuOptions}
           rules={[{ required: true, message: t('purchasing.validation.productRequired') }]}
           width="md"
         />

@@ -155,8 +155,88 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getProduct"];
-        put: operations["updateProduct"];
+        get: operations["get"];
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["deactivate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["activate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product-skus/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getProductSku"];
+        put: operations["updateProductSku"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product-skus/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["deactivate_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product-skus/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["activate_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -236,7 +316,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -251,8 +331,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
-        put: operations["update_1"];
+        get: operations["get_2"];
+        put: operations["update_2"];
         post?: never;
         delete: operations["delete"];
         options?: never;
@@ -268,7 +348,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["deactivate"];
+        put: operations["deactivate_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -284,7 +364,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["activate"];
+        put: operations["activate_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -303,6 +383,70 @@ export interface paths {
         put: operations["updateCustomer"];
         post?: never;
         delete: operations["deleteCustomer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_4"];
+        put: operations["update_3"];
+        post?: never;
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["move"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["deactivate_3"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["activate_3"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -619,9 +763,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["listProducts"];
+        get: operations["list"];
         put?: never;
-        post: operations["createProduct"];
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product-skus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listProductSkus"];
+        put?: never;
+        post: operations["createProductSku"];
         delete?: never;
         options?: never;
         head?: never;
@@ -747,9 +907,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -795,9 +955,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -907,9 +1067,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1012,7 +1172,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/backorders/wake/product/{productId}": {
+    "/api/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backorders/wake/product/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1252,7 +1428,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/predictions/reorder/{productId}": {
+    "/api/predictions/reorder/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1380,7 +1556,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/total-stock/{productId}": {
+    "/api/inventory/total-stock/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1508,7 +1684,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/batches/total-stock/{productId}": {
+    "/api/inventory/batches/total-stock/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1524,14 +1700,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/batches/product/{productId}": {
+    "/api/inventory/batches/product/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getActiveBatchesByProduct"];
+        get: operations["getActiveBatchesByProductSku"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1604,7 +1780,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/atp/product/{productId}": {
+    "/api/inventory/atp/product/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1659,7 +1835,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1675,7 +1851,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
+        get: operations["get_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1803,7 +1979,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
+        get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tree"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1828,14 +2020,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/backorders/product/{productId}": {
+    "/api/backorders/product/{productSkuId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listByProduct"];
+        get: operations["listByProductSku"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1932,7 +2124,7 @@ export interface components {
         };
         SalesOrderItemData: {
             /** Format: int64 */
-            productId: number;
+            productSkuId: number;
             /** Format: int32 */
             quantity: number;
             unitPrice: number;
@@ -1949,7 +2141,7 @@ export interface components {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int32 */
@@ -2015,7 +2207,7 @@ export interface components {
             id?: number;
             batchCode?: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int32 */
@@ -2042,19 +2234,19 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            expiringSoon?: boolean;
-            exhausted?: boolean;
-            /** Format: int64 */
-            daysUntilExpiry?: number;
-            expired?: boolean;
             /** Format: double */
             usageRate?: number;
+            expired?: boolean;
+            /** Format: int64 */
+            daysUntilExpiry?: number;
+            exhausted?: boolean;
+            expiringSoon?: boolean;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int32 */
@@ -2129,12 +2321,45 @@ export interface components {
             /** Format: date */
             productionDate?: string;
         };
-        CreateProductRequest: {
+        UpdateProductRequest: {
+            productName?: string;
+            /** Format: int64 */
+            categoryId?: number;
+            brand?: string;
+            description?: string;
+        };
+        ProductResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            version?: number;
+            productCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            categoryId?: number;
+            categoryCode?: string;
+            categoryName?: string;
+            /** Format: int64 */
+            parentCategoryId?: number;
+            parentCategoryName?: string;
+            brand?: string;
+            description?: string;
+            enabled?: boolean;
+            /** Format: int64 */
+            skuCount?: number;
+            /** Format: int64 */
+            enabledSkuCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateProductSkuRequest: {
             barcode: string;
             name: string;
             skuName: string;
             /** Format: int64 */
-            spuId: number;
+            productId: number;
             specs?: string;
             specification?: string;
             unitPrice: number;
@@ -2152,26 +2377,26 @@ export interface components {
             packUnit?: string;
             /** Format: int32 */
             nearExpiryDays?: number;
-            category?: string;
             supplier?: string;
             description?: string;
             /** @enum {string} */
             batchTrackingMode?: "PRINTED_LABEL" | "LOCATION_VISUAL";
             enabled?: boolean;
         };
-        ProductResponse: {
+        ProductSkuResponse: {
             /** Format: int64 */
             id?: number;
             /** Format: int32 */
             version?: number;
+            skuCode?: string;
             barcode?: string;
             name?: string;
             skuName?: string;
             specs?: string;
             specification?: string;
             /** Format: int64 */
-            spuId?: number;
-            spuName?: string;
+            productId?: number;
+            productName?: string;
             unitPrice?: number;
             minSalesPrice?: number;
             /** Format: int32 */
@@ -2187,7 +2412,10 @@ export interface components {
             packUnit?: string;
             /** Format: int32 */
             nearExpiryDays?: number;
-            category?: string;
+            /** Format: int64 */
+            categoryId?: number;
+            categoryCode?: string;
+            categoryName?: string;
             supplier?: string;
             description?: string;
             /** @enum {string} */
@@ -2231,7 +2459,7 @@ export interface components {
             externalSku: string;
             mappingType?: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             /** Format: int32 */
             quantityRatio?: number;
             status?: string;
@@ -2245,7 +2473,7 @@ export interface components {
             externalSku?: string;
             mappingType?: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int32 */
@@ -2308,6 +2536,37 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        UpdateCategoryRequest: {
+            categoryName?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            description?: string;
+        };
+        CategoryResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            companyId?: number;
+            /** Format: int64 */
+            parentId?: number;
+            categoryCode?: string;
+            categoryName?: string;
+            /** Format: int32 */
+            level?: number;
+            /** Format: int32 */
+            sortOrder?: number;
+            enabled?: boolean;
+            description?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            children?: components["schemas"]["CategoryResponse"][];
+        };
+        MoveCategoryRequest: {
+            /** Format: int64 */
+            parentId?: number;
         };
         CreateWarehouseRequest: {
             code: string;
@@ -2385,7 +2644,7 @@ export interface components {
             /** Format: int64 */
             taskId?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int64 */
@@ -2444,7 +2703,7 @@ export interface components {
         };
         CreatePurchaseOrderItemRequest: {
             /** Format: int64 */
-            productId: number;
+            productSkuId: number;
             /** Format: int32 */
             orderedQuantity: number;
             unitCost?: number;
@@ -2464,6 +2723,15 @@ export interface components {
             operatorId: number;
             operatorName: string;
             remark?: string;
+        };
+        CreateProductRequest: {
+            productCode: string;
+            productName: string;
+            /** Format: int64 */
+            categoryId: number;
+            brand?: string;
+            description?: string;
+            enabled?: boolean;
         };
         DomainOutbox: {
             /** Format: int64 */
@@ -2512,7 +2780,7 @@ export interface components {
             locationId?: number;
             locationCode?: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int32 */
@@ -2552,7 +2820,7 @@ export interface components {
             inventoryBatchId?: number;
             batchCode?: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             /** Format: int64 */
             locationId?: number;
@@ -2579,7 +2847,7 @@ export interface components {
         };
         StockAdjustmentRequest: {
             /** Format: int64 */
-            productId: number;
+            productSkuId: number;
             /** Format: int64 */
             locationId: number;
             /** @enum {string} */
@@ -2593,15 +2861,15 @@ export interface components {
             operatorId?: number;
             operatorName?: string;
             remark?: string;
-            inbound?: boolean;
-            outbound?: boolean;
             adjustment?: boolean;
+            outbound?: boolean;
+            inbound?: boolean;
         };
         StockTransactionResponse: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int64 */
@@ -2630,7 +2898,7 @@ export interface components {
         ResolvePendingSkuRequest: {
             action: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             /** Format: int32 */
             quantityRatio?: number;
         };
@@ -2670,7 +2938,7 @@ export interface components {
         };
         InboundOrderItemRequest: {
             /** Format: int64 */
-            productId: number;
+            productSkuId: number;
             /** Format: int32 */
             planQty: number;
             unitCost?: number;
@@ -2684,10 +2952,10 @@ export interface components {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
-            productSpu?: string;
+            productCode?: string;
             productSku?: string;
             /** Format: int32 */
             planQty?: number;
@@ -2774,7 +3042,7 @@ export interface components {
         };
         EmergencyStockCorrectionRequest: {
             /** Format: int64 */
-            productId: number;
+            productSkuId: number;
             /** Format: int64 */
             locationId: number;
             /** Format: int64 */
@@ -2797,7 +3065,7 @@ export interface components {
             id?: number;
             correctionNo?: string;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             /** Format: int64 */
             locationId?: number;
             /** Format: int64 */
@@ -2846,6 +3114,15 @@ export interface components {
         EmergencyStockCorrectionActionRequest: {
             comment?: string;
         };
+        CreateCategoryRequest: {
+            categoryCode: string;
+            categoryName: string;
+            /** Format: int64 */
+            parentId?: number;
+            /** Format: int32 */
+            sortOrder?: number;
+            description?: string;
+        };
         SwitchRoleRequest: {
             targetRoleCode: string;
         };
@@ -2877,7 +3154,7 @@ export interface components {
             /** Format: int64 */
             taskId?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             productBarcode?: string;
             /** Format: int64 */
@@ -2930,7 +3207,7 @@ export interface components {
         };
         ReorderSuggestion: {
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             barcode?: string;
             productName?: string;
             specification?: string;
@@ -2957,7 +3234,7 @@ export interface components {
         };
         InventorySummaryDto: {
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             skuInfo?: components["schemas"]["SkuInfoDto"];
             warehouseNames?: string[];
             displayQuantity?: string;
@@ -2978,14 +3255,14 @@ export interface components {
             totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["InventorySummaryDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -2995,17 +3272,18 @@ export interface components {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
-            /** Format: int32 */
-            pageNumber?: number;
+            unpaged?: boolean;
             /** Format: int32 */
             pageSize?: number;
+            /** Format: int32 */
+            pageNumber?: number;
             paged?: boolean;
-            unpaged?: boolean;
         };
         SkuInfoDto: {
             image?: string;
             name?: string;
             skuCode?: string;
+            barcode?: string;
             specs?: string;
         };
         SortObject: {
@@ -3042,7 +3320,7 @@ export interface components {
             /** Format: int64 */
             purchaseOrderItemId?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             productName?: string;
             /** Format: date */
             expectedDate?: string;
@@ -3061,14 +3339,14 @@ export interface components {
             totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["RawEventSummary"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -3118,7 +3396,7 @@ export interface components {
             /** Format: int64 */
             salesOrderItemId?: number;
             /** Format: int64 */
-            productId?: number;
+            productSkuId?: number;
             /** Format: int32 */
             requestedQty?: number;
             /** Format: int32 */
@@ -3429,7 +3707,7 @@ export interface operations {
             };
         };
     };
-    getProduct: {
+    get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3451,7 +3729,7 @@ export interface operations {
             };
         };
     };
-    updateProduct: {
+    update: {
         parameters: {
             query?: never;
             header?: never;
@@ -3462,7 +3740,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateProductRequest"];
+                "application/json": components["schemas"]["UpdateProductRequest"];
             };
         };
         responses: {
@@ -3473,6 +3751,142 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    deactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    getProductSku: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSkuResponse"];
+                };
+            };
+        };
+    };
+    updateProductSku: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProductSkuRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSkuResponse"];
+                };
+            };
+        };
+    };
+    deactivate_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSkuResponse"];
+                };
+            };
+        };
+    };
+    activate_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSkuResponse"];
                 };
             };
         };
@@ -3600,7 +4014,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3626,7 +4040,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3648,7 +4062,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3694,7 +4108,7 @@ export interface operations {
             };
         };
     };
-    deactivate: {
+    deactivate_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3716,7 +4130,7 @@ export interface operations {
             };
         };
     };
-    activate: {
+    activate_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3803,6 +4217,144 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    move: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"];
+                };
+            };
+        };
+    };
+    deactivate_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"];
+                };
+            };
+        };
+    };
+    activate_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"];
+                };
             };
         };
     };
@@ -4296,7 +4848,7 @@ export interface operations {
     getBatchOptions: {
         parameters: {
             query: {
-                productId: number;
+                productSkuId: number;
                 quantity: number;
                 rejectNearExpiry?: boolean;
             };
@@ -4396,7 +4948,7 @@ export interface operations {
             };
         };
     };
-    listProducts: {
+    list: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -4418,7 +4970,7 @@ export interface operations {
             };
         };
     };
-    createProduct: {
+    create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4438,6 +4990,53 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    listProductSkus: {
+        parameters: {
+            query?: {
+                enabledOnly?: boolean;
+                productId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSkuResponse"][];
+                };
+            };
+        };
+    };
+    createProductSku: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProductSkuRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSkuResponse"];
                 };
             };
         };
@@ -4563,7 +5162,7 @@ export interface operations {
     fifoOutbound: {
         parameters: {
             query: {
-                productId: number;
+                productSkuId: number;
                 quantity: number;
                 sourceType: "PURCHASE_IN" | "INBOUND_IN" | "SALE_OUT" | "RETURN_IN" | "PRODUCTION_OUT" | "PRODUCTION_IN" | "TRANSFER_OUT" | "TRANSFER_IN" | "INVENTORY_GAIN" | "INVENTORY_LOSS" | "SCRAP_OUT" | "GIFT_OUT" | "SAMPLE_OUT" | "MANUAL_ADJUST" | "EMERGENCY_CORRECTION";
                 sourceOrderId: string;
@@ -4613,7 +5212,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query?: {
                 channel?: string;
@@ -4635,7 +5234,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4707,7 +5306,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4727,7 +5326,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4903,7 +5502,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -4925,7 +5524,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5121,12 +5720,58 @@ export interface operations {
             };
         };
     };
+    list_5: {
+        parameters: {
+            query?: {
+                enabledOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"];
+                };
+            };
+        };
+    };
     wakeProduct: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };
@@ -5459,7 +6104,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };
@@ -5632,7 +6277,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };
@@ -5807,7 +6452,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };
@@ -5826,12 +6471,12 @@ export interface operations {
             };
         };
     };
-    getActiveBatchesByProduct: {
+    getActiveBatchesByProductSku: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };
@@ -5937,7 +6582,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };
@@ -6001,7 +6646,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 channel?: string;
@@ -6026,7 +6671,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6194,7 +6839,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -6212,6 +6857,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EmergencyStockCorrectionResponse"];
+                };
+            };
+        };
+    };
+    tree: {
+        parameters: {
+            query?: {
+                enabledOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"][];
                 };
             };
         };
@@ -6238,12 +6905,12 @@ export interface operations {
             };
         };
     };
-    listByProduct: {
+    listByProductSku: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                productId: number;
+                productSkuId: number;
             };
             cookie?: never;
         };

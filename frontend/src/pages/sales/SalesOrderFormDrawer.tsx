@@ -10,7 +10,7 @@ import { Alert } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listCustomers } from '../../api/masterData';
-import { listProducts } from '../../api/products';
+import { listProductSkus } from '../../api/productSkus';
 import type { SalesOrderItemPayload, SalesOrderPayload } from '../../api/sales';
 
 interface SalesOrderFormDrawerProps {
@@ -34,9 +34,9 @@ export function SalesOrderFormDrawer({
     queryFn: () => listCustomers(true),
     enabled: open,
   });
-  const productsQuery = useQuery({
-    queryKey: ['products', 'active'],
-    queryFn: () => listProducts(true),
+  const productSkusQuery = useQuery({
+    queryKey: ['product-skus', 'active'],
+    queryFn: () => listProductSkus({ enabledOnly: true }),
     enabled: open,
   });
 
@@ -44,9 +44,9 @@ export function SalesOrderFormDrawer({
     label: `${customer.name ?? '-'} (${customer.code ?? '-'})`,
     value: customer.id,
   }));
-  const productOptions = (productsQuery.data ?? []).map((product) => ({
-    label: `${product.name ?? '-'} (${product.barcode ?? '-'})`,
-    value: product.id,
+  const productSkuOptions = (productSkusQuery.data ?? []).map((productSku) => ({
+    label: `${productSku.name ?? '-'} · ${productSku.skuName ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`,
+    value: productSku.id,
   }));
 
   return (
@@ -103,10 +103,10 @@ export function SalesOrderFormDrawer({
         name="items"
       >
         <ProFormSelect
-          fieldProps={{ loading: productsQuery.isLoading, showSearch: true, optionFilterProp: 'label' }}
+          fieldProps={{ loading: productSkusQuery.isLoading, showSearch: true, optionFilterProp: 'label' }}
           label={t('sales.fields.product')}
-          name="productId"
-          options={productOptions}
+          name="productSkuId"
+          options={productSkuOptions}
           rules={[{ required: true, message: t('sales.validation.productRequired') }]}
           width="md"
         />

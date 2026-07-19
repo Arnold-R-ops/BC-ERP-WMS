@@ -29,7 +29,7 @@ export interface ShopifySyncResult {
 }
 
 export interface ProductSuggestion {
-  productId: number;
+  productSkuId: number;
   barcode: string;
   skuName: string;
   name: string;

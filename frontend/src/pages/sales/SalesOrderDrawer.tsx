@@ -136,7 +136,7 @@ export function SalesOrderDrawer({
             columns={columns}
             dataSource={order.items ?? []}
             pagination={false}
-            rowKey={(item) => item.id ?? `${item.productId}-${item.quantity}`}
+            rowKey={(item) => item.id ?? `${item.productSkuId}-${item.quantity}`}
             scroll={{ x: 1170 }}
             size="small"
           />

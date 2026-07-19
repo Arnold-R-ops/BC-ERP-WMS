@@ -19,6 +19,9 @@ const DashboardPage = lazy(() =>
 const ProductPage = lazy(() =>
   import('./pages/products/ProductPage').then((module) => ({ default: module.ProductPage })),
 );
+const CategoryPage = lazy(() =>
+  import('./pages/categories/CategoryPage').then((module) => ({ default: module.CategoryPage })),
+);
 const InventoryPage = lazy(() =>
   import('./pages/inventory/InventoryPage').then((module) => ({ default: module.InventoryPage })),
 );
@@ -85,6 +88,11 @@ function AppRoutes(): JSX.Element {
             <Route
               element={<ModuleRoute module="products"><ProductPage /></ModuleRoute>}
               path="products"
+            />
+            <Route element={<ModuleRoute module="products"><Navigate replace to="/products" /></ModuleRoute>} path="catalog" />
+            <Route
+              element={<ModuleRoute module="products"><CategoryPage /></ModuleRoute>}
+              path="categories"
             />
             <Route
               element={<ModuleRoute module="inventory"><InventoryPage /></ModuleRoute>}

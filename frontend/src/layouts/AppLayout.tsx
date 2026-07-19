@@ -11,12 +11,13 @@ import {
   SettingOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
+  TagsOutlined,
   TruckOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { ProLayout, type MenuDataItem } from '@ant-design/pro-components';
 import { Button, Tag, Tooltip } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { canAccessModule, type AppModule } from '../access';
@@ -36,7 +37,13 @@ interface MenuDefinition {
 
 const menuDefinitions: MenuDefinition[] = [
   { path: '/', module: 'dashboard', nameKey: 'menu.dashboard', icon: <AppstoreOutlined />, delivered: true },
-  { path: '/products', module: 'products', nameKey: 'menu.products', icon: <ProductOutlined />, delivered: true },
+  {
+    path: '/catalog', module: 'products', nameKey: 'menu.productOperations', icon: <ProductOutlined />, delivered: true,
+    children: [
+      { path: '/products', module: 'products', nameKey: 'menu.products', icon: <ProductOutlined />, delivered: true },
+      { path: '/categories', module: 'products', nameKey: 'menu.categories', icon: <TagsOutlined />, delivered: true },
+    ],
+  },
   { path: '/inventory', module: 'inventory', nameKey: 'menu.inventory', icon: <DatabaseOutlined />, delivered: true },
   { path: '/sales', module: 'sales', nameKey: 'menu.sales', icon: <ShoppingCartOutlined />, delivered: true },
   { path: '/purchasing', module: 'purchasing', nameKey: 'menu.purchasing', icon: <TruckOutlined />, delivered: true },
@@ -55,6 +62,7 @@ const menuDefinitions: MenuDefinition[] = [
 export function AppLayout(): JSX.Element {
   const { session, logout } = useAuth();
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [openMenuKeys, setOpenMenuKeys] = useState<string[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -74,6 +82,13 @@ export function AppLayout(): JSX.Element {
           .map((child) => ({ path: child.path, name: t(child.nameKey), icon: child.icon })),
       }));
   }, [session, t]);
+
+  useEffect(() => {
+    const activeRoot = menuDefinitions.find((item) =>
+      item.children?.some((child) => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`)),
+    );
+    setOpenMenuKeys(activeRoot ? [activeRoot.path] : []);
+  }, [location.pathname]);
 
   if (!session) {
     return <Outlet />;
@@ -124,6 +139,14 @@ export function AppLayout(): JSX.Element {
         location={{ pathname: location.pathname }}
         logo={false}
         menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
+        menuProps={{
+          openKeys: openMenuKeys,
+          onOpenChange: (keys) => {
+            const nextKeys = keys.map(String);
+            const newlyOpened = nextKeys.find((key) => !openMenuKeys.includes(key));
+            setOpenMenuKeys(newlyOpened ? [newlyOpened] : []);
+          },
+        }}
         navTheme="realDark"
         route={{ path: '/', routes }}
         siderWidth={232}

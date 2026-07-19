@@ -46,7 +46,7 @@ describe('dashboard workspace', () => {
         return Promise.resolve(jsonResponse({ content: [{ id: 1 }], totalElements: 1 }));
       }
       if (url.includes('/api/predictions/reorder/urgent')) {
-        return Promise.resolve(jsonResponse({ suggestions: [{ productId: 1 }], totalCount: 1, totalCost: 800 }));
+        return Promise.resolve(jsonResponse({ suggestions: [{ productSkuId: 1 }], totalCount: 1, totalCost: 800 }));
       }
       return Promise.reject(new Error(`Unexpected request: ${url}`));
     });

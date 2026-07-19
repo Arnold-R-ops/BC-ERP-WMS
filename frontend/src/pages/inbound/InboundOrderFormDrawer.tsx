@@ -11,7 +11,7 @@ import { Alert } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listActiveWarehouses, listLocationsByWarehouse } from '../../api/masterData';
-import { listProducts } from '../../api/products';
+import { listProductSkus } from '../../api/productSkus';
 import type { InboundOrderPayload } from '../../api/inbound';
 
 function LocationSelect({ warehouseId }: { warehouseId?: number }): JSX.Element {
@@ -43,9 +43,9 @@ interface InboundOrderFormDrawerProps {
 
 export function InboundOrderFormDrawer({ loading, open, onClose, onSubmit }: InboundOrderFormDrawerProps): JSX.Element {
   const { t } = useTranslation();
-  const productsQuery = useQuery({ queryKey: ['products', 'active'], queryFn: () => listProducts(true), enabled: open });
+  const productSkusQuery = useQuery({ queryKey: ['product-skus', 'active'], queryFn: () => listProductSkus({ enabledOnly: true }), enabled: open });
   const warehousesQuery = useQuery({ queryKey: ['warehouses', 'active'], queryFn: listActiveWarehouses, enabled: open });
-  const productOptions = (productsQuery.data ?? []).map((product) => ({ label: `${product.name ?? '-'} (${product.barcode ?? '-'})`, value: product.id }));
+  const productSkuOptions = (productSkusQuery.data ?? []).map((productSku) => ({ label: `${productSku.name ?? '-'} · ${productSku.skuName ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`, value: productSku.id }));
   const warehouseOptions = (warehousesQuery.data ?? []).map((warehouse) => ({ label: warehouse.name ?? warehouse.code ?? `#${warehouse.id}`, value: warehouse.id }));
 
   return (
@@ -72,17 +72,17 @@ export function InboundOrderFormDrawer({ loading, open, onClose, onSubmit }: Inb
 
       <ProFormList copyIconProps={false} creatorButtonProps={{ creatorButtonText: t('inbound.form.addItem') }} label={t('inbound.form.items')} min={1} name="items">
         <ProFormSelect
-          fieldProps={{ loading: productsQuery.isLoading, optionFilterProp: 'label', showSearch: true }}
+          fieldProps={{ loading: productSkusQuery.isLoading, optionFilterProp: 'label', showSearch: true }}
           label={t('inbound.fields.product')}
-          name="productId"
-          options={productOptions}
+          name="productSkuId"
+          options={productSkuOptions}
           rules={[{ required: true, message: t('inbound.validation.productRequired') }]}
           width="md"
         />
         <ProFormDigit fieldProps={{ min: 1, precision: 0 }} label={t('inbound.fields.planQty')} name="planQty" rules={[{ required: true, message: t('inbound.validation.quantityRequired') }]} width="xs" />
         <ProFormDigit fieldProps={{ min: 0, precision: 2 }} label={t('inbound.fields.unitCost')} name="unitCost" width="sm" />
         <ProFormSelect label={t('inbound.fields.targetWarehouse')} name="targetWarehouseId" options={warehouseOptions} rules={[{ required: true, message: t('inbound.validation.warehouseRequired') }]} width="md" />
-        <ProFormDependency name={['targetWarehouseId']}>
+        <ProFormDependency key="target-location-dependency" name={['targetWarehouseId']}>
           {({ targetWarehouseId }) => <LocationSelect warehouseId={targetWarehouseId as number | undefined} />}
         </ProFormDependency>
         <ProFormText label={t('common.remark')} name="remark" width="md" />

@@ -14,7 +14,7 @@ import {
   type ResolvePendingSkuPayload,
 } from '../../api/integrations';
 import { paginateArray } from '../../api/pagination';
-import { listProducts } from '../../api/products';
+import { listProductSkus } from '../../api/productSkus';
 import { ChannelTag } from '../../components/ChannelTag';
 import { formatDateTime, formatMoney } from '../workflowUtils';
 import { isNoSkuExternal } from './integrationUtils';
@@ -32,7 +32,7 @@ export function PendingSkuMappingPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const { message, modal } = AntdApp.useApp();
   const queryClient = useQueryClient();
-  const productsQuery = useQuery({ queryKey: ['products', 'integration-mapping'], queryFn: () => listProducts(true) });
+  const productsQuery = useQuery({ queryKey: ['product-skus', 'integration-mapping'], queryFn: () => listProductSkus({ enabledOnly: true }) });
   const resolveMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ResolvePendingSkuPayload }) => resolvePendingSku(id, payload),
   });

@@ -29,26 +29,25 @@
 - 影响：`POST /api/users` 需要角色 ID，但前端无法通过公开 API 发现经理、采购、仓库、销售等角色 ID，因此无法按 `03_LOCAL_DEV.md` 独立创建多角色联调账号。
 - 建议：暴露只读角色目录端点，至少返回 `id/roleCode/roleName/active`。角色切换本身已通过现有接口及前端状态转换测试验证，切换到不同角色的真实端到端验证待该测试数据条件补齐。
 
-## BE-005：商品创建接口的 OpenAPI 成功状态码与真实实现不一致
+## BE-005：产品与 SKU 创建接口的 OpenAPI 成功状态码与真实实现不一致
 
 - 状态：待修订 OpenAPI 注解
-- 真实实现：`POST /api/products` 成功返回 `201 Created`。
-- `openapi.json`：声明为 `200 OK`。
-- 前端处理：按任意 2xx 成功处理，不影响商品创建，但生成契约无法准确表达接口语义。
+- 真实实现：`POST /api/products` 与 `POST /api/product-skus` 成功返回 `201 Created`。
+- `openapi.json`：若未补充明确的 `@ApiResponse`，Springdoc 仍可能声明为 `200 OK`。
+- 前端处理：按任意 2xx 成功处理，不影响创建，但生成契约无法准确表达接口语义。
 
-## BE-006：缺少 SPU 目录查询接口
+## BE-006：旧模型缺少 SPU 目录查询接口
 
-- 状态：限制商品新建体验
-- 现象：`POST/PUT /api/products` 强制要求 `spuId`，数据库和后端存在 `ProductSpu`，但 Controller/OpenAPI 没有只读 SPU 列表或搜索接口。
-- 影响：前端只能从已有商品响应中的 `spuId/spuName` 去重生成选择项，因此无法选择“尚未被任何商品使用”的 SPU，也无法在空商品库中创建第一个商品。
-- 建议：提供分页或轻量只读端点，至少返回 `id/spuCode/spuName/enabled`。
+- 状态：已由 P1.5 数据模型正名解决。
+- 处理：`/api/products` 已成为正式 Product（SPU）目录，具体规格由 `/api/product-skus` 管理；类别由 `/api/categories` 管理。
+- 兼容边界：旧 SKU 语义的 `/api/products` 不保留，前后端必须同版本发布。
 
-## BE-007：商品列表缺少服务端搜索和分页
+## BE-007：产品与 SKU 列表缺少服务端搜索和分页
 
 - 状态：当前数据量可用，规模增长后需修复
-- 现象：页面规格要求按名称/条码搜索；实际 `GET /api/products` 仅支持 `enabledOnly`，并一次性返回完整数组。
-- 影响：第 2 步前端暂时在浏览器内完成名称、SKU 名称、条码及启停状态筛选和分页。商品量较大时会增加网络、内存和渲染开销。
-- 建议：升级为 Spring Data 分页，支持 `page/size/search/enabled`，返回 `content/totalElements`。
+- 现象：`GET /api/products` 与 `GET /api/product-skus` 当前仍一次性返回数组；SKU 接口仅增加 `productId/enabledOnly` 过滤。
+- 影响：前端暂时在浏览器内完成名称、编码、条码及启停状态筛选和分页。数据量较大时会增加网络、内存和渲染开销。
+- 建议：两个目录均升级为 Spring Data 分页，支持 `page/size/search/enabled`，返回 `content/totalElements`。
 
 ## BE-008：库存汇总无法完整表达近效期风险
 

@@ -74,7 +74,7 @@ export function PurchaseOrderDrawer({ orderId, onClose, onConfirmAsn, onReceive,
             ]}
             size="small"
           />
-          <Table columns={columns} dataSource={order.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productId ?? 0} scroll={{ x: 1165 }} size="small" />
+          <Table columns={columns} dataSource={order.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productSkuId ?? 0} scroll={{ x: 1165 }} size="small" />
         </>
       )}
     </Drawer>

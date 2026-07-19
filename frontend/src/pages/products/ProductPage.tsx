@@ -1,7 +1,7 @@
-import { EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined, PoweroffOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { App as AntdApp, Button, Space, Tag } from 'antd';
+import { App as AntdApp, Button, Popconfirm, Progress, Space, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
@@ -10,12 +10,13 @@ import {
   createProduct,
   listProducts,
   PRODUCTS_QUERY_KEY,
+  setProductEnabled,
   updateProduct,
   type Product,
-  type ProductPayload,
 } from '../../api/products';
-import { ProductFormDrawer } from './ProductFormDrawer';
-import { filterProducts, getSpuOptions, type SpuOption } from './productUtils';
+import { ProductFormDrawer, type ProductFormValues } from './ProductFormDrawer';
+import { ProductSkuDrawer } from './ProductSkuDrawer';
+import { filterProducts } from './productUtils';
 
 interface ProductTableParams {
   current?: number;
@@ -24,49 +25,42 @@ interface ProductTableParams {
   enabledStatus?: 'enabled' | 'disabled';
 }
 
-interface SaveProductVariables {
-  id?: number;
-  payload: ProductPayload;
-}
-
 export function ProductPage(): JSX.Element {
   const actionRef = useRef<ActionType>();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product>();
-  const [spuOptions, setSpuOptions] = useState<SpuOption[]>([]);
+  const [skuProduct, setSkuProduct] = useState<Product>();
   const queryClient = useQueryClient();
   const { message } = AntdApp.useApp();
   const { i18n, t } = useTranslation();
 
   const saveMutation = useMutation({
-    mutationFn: ({ id, payload }: SaveProductVariables) =>
-      id === undefined ? createProduct(payload) : updateProduct(id, payload),
+    mutationFn: ({ id, values }: { id?: number; values: ProductFormValues }) => {
+      if (id === undefined) return createProduct(values);
+      return updateProduct(id, {
+        productName: values.productName,
+        categoryId: values.categoryId,
+        brand: values.brand,
+        description: values.description,
+      });
+    },
+  });
+  const statusMutation = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) => setProductEnabled(id, enabled),
   });
 
-  const closeDrawer = (): void => {
-    setDrawerOpen(false);
-    setEditingProduct(undefined);
+  const reload = async (): Promise<void> => {
+    await queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
+    actionRef.current?.reload();
   };
 
-  const openCreateDrawer = (): void => {
-    setEditingProduct(undefined);
-    setDrawerOpen(true);
-  };
-
-  const openEditDrawer = (product: Product): void => {
-    setEditingProduct(product);
-    setDrawerOpen(true);
-  };
-
-  const saveProduct = async (payload: ProductPayload): Promise<boolean> => {
+  const saveProduct = async (values: ProductFormValues): Promise<boolean> => {
     try {
-      await saveMutation.mutateAsync({ id: editingProduct?.id, payload });
-      message.success(
-        editingProduct ? t('products.messages.updated') : t('products.messages.created'),
-      );
-      await queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
-      actionRef.current?.reload();
-      closeDrawer();
+      await saveMutation.mutateAsync({ id: editingProduct?.id, values });
+      message.success(editingProduct ? t('products.messages.updated') : t('products.messages.created'));
+      setFormOpen(false);
+      setEditingProduct(undefined);
+      await reload();
       return true;
     } catch (error) {
       message.error(getErrorMessage(error, t));
@@ -74,145 +68,61 @@ export function ProductPage(): JSX.Element {
     }
   };
 
-  const formatMoney = (value?: number): string =>
-    new Intl.NumberFormat(i18n.language, {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value ?? 0);
+  const changeStatus = async (product: Product): Promise<void> => {
+    if (product.id === undefined) return;
+    try {
+      await statusMutation.mutateAsync({ id: product.id, enabled: !product.enabled });
+      message.success(t('products.messages.statusUpdated'));
+      await reload();
+    } catch (error) {
+      message.error(getErrorMessage(error, t));
+    }
+  };
 
-  const formatDateTime = (value?: string): string =>
-    value ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
+  const formatDateTime = (value?: string): string => value
+    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+    : '-';
 
-  const columns = useMemo<ProColumns<Product>[]>(
-    () => [
-      {
-        title: t('common.search'),
-        dataIndex: 'search',
-        hideInTable: true,
-        fieldProps: { placeholder: t('products.searchPlaceholder') },
+  const columns = useMemo<ProColumns<Product>[]>(() => [
+    { title: t('common.search'), dataIndex: 'search', hideInTable: true, fieldProps: { placeholder: t('products.searchPlaceholder') } },
+    {
+      title: t('products.fields.enabled'), dataIndex: 'enabledStatus', hideInTable: true, valueType: 'select',
+      valueEnum: { enabled: { text: t('common.enabled') }, disabled: { text: t('common.disabled') } },
+    },
+    { title: t('products.fields.productCode'), dataIndex: 'productCode', width: 150, search: false, copyable: true, fixed: 'left' },
+    {
+      title: t('products.fields.productName'), dataIndex: 'productName', width: 220, search: false,
+      render: (_, record) => <Space direction="vertical" size={0}><strong>{record.productName ?? '-'}</strong><span className="table-secondary">{record.brand ?? t('products.noBrand')}</span></Space>,
+    },
+    {
+      title: t('products.fields.category'), dataIndex: 'categoryName', width: 210, search: false,
+      renderText: (_, record) => [record.parentCategoryName, record.categoryName].filter(Boolean).join(' / ') || '-',
+    },
+    {
+      title: t('products.fields.skuCount'), dataIndex: 'skuCount', width: 170, search: false,
+      render: (_, record) => {
+        const total = Number(record.skuCount ?? 0);
+        const enabled = Number(record.enabledSkuCount ?? 0);
+        const percent = total > 0 ? Math.round((enabled / total) * 100) : 0;
+        return <Space direction="vertical" size={0}><span>{t('products.skuCountValue', { enabled, total })}</span><Progress percent={percent} showInfo={false} size="small" /></Space>;
       },
-      {
-        title: t('products.fields.enabled'),
-        dataIndex: 'enabledStatus',
-        hideInTable: true,
-        valueType: 'select',
-        valueEnum: {
-          enabled: { text: t('common.enabled') },
-          disabled: { text: t('common.disabled') },
-        },
-      },
-      {
-        title: t('products.fields.name'),
-        dataIndex: 'name',
-        width: 220,
-        search: false,
-        fixed: 'left',
-        render: (_, record) => (
-          <Space direction="vertical" size={0}>
-            <strong>{record.name ?? '-'}</strong>
-            <span className="table-secondary">{record.skuName ?? '-'}</span>
-          </Space>
-        ),
-      },
-      {
-        title: t('products.fields.barcode'),
-        dataIndex: 'barcode',
-        width: 190,
-        search: false,
-        copyable: true,
-      },
-      {
-        title: t('products.fields.spu'),
-        dataIndex: 'spuName',
-        width: 180,
-        search: false,
-        renderText: (_, record) => record.spuName ?? `#${record.spuId ?? '-'}`,
-      },
-      {
-        title: t('products.fields.unitPrice'),
-        dataIndex: 'unitPrice',
-        width: 120,
-        search: false,
-        align: 'right',
-        renderText: (value) => formatMoney(value as number | undefined),
-      },
-      {
-        title: t('products.fields.minSalesPrice'),
-        dataIndex: 'minSalesPrice',
-        width: 130,
-        search: false,
-        align: 'right',
-        renderText: (value) => formatMoney(value as number | undefined),
-      },
-      {
-        title: t('products.fields.packaging'),
-        dataIndex: 'conversionRate',
-        width: 170,
-        search: false,
-        renderText: (_, record) =>
-          t('products.packagingValue', {
-            quantity: record.conversionRate ?? record.perPackQty ?? 1,
-            unit: record.packUnit ?? t('common.unit'),
-          }),
-      },
-      {
-        title: t('products.fields.nearExpiryDays'),
-        dataIndex: 'nearExpiryDays',
-        width: 120,
-        search: false,
-        renderText: (value) => t('common.daysValue', { count: value ?? 0 }),
-      },
-      {
-        title: t('products.fields.batchTrackingMode'),
-        dataIndex: 'batchTrackingMode',
-        width: 150,
-        search: false,
-        render: (_, record) => (
-          <Tag color={record.batchTrackingMode === 'LOCATION_VISUAL' ? 'gold' : 'blue'}>
-            {t(`products.batchTracking.${record.batchTrackingMode ?? 'PRINTED_LABEL'}`)}
-          </Tag>
-        ),
-      },
-      {
-        title: t('products.fields.enabled'),
-        dataIndex: 'enabled',
-        width: 90,
-        search: false,
-        render: (_, record) => (
-          <Tag color={record.enabled ? 'success' : 'default'}>
-            {record.enabled ? t('common.enabled') : t('common.disabled')}
-          </Tag>
-        ),
-      },
-      {
-        title: t('common.updatedAt'),
-        dataIndex: 'updatedAt',
-        width: 180,
-        search: false,
-        renderText: (value) => formatDateTime(value as string | undefined),
-      },
-      {
-        title: t('common.actions'),
-        valueType: 'option',
-        width: 90,
-        fixed: 'right',
-        render: (_, record) => [
-          <Button
-            icon={<EditOutlined />}
-            key="edit"
-            onClick={() => openEditDrawer(record)}
-            size="small"
-            type="link"
-          >
-            {t('common.edit')}
-          </Button>,
-        ],
-      },
-    ],
-    [i18n.language, t],
-  );
+    },
+    {
+      title: t('products.fields.enabled'), dataIndex: 'enabled', width: 90, search: false,
+      render: (_, record) => <Tag color={record.enabled ? 'success' : 'default'}>{record.enabled ? t('common.enabled') : t('common.disabled')}</Tag>,
+    },
+    { title: t('common.updatedAt'), dataIndex: 'updatedAt', width: 180, search: false, renderText: (value) => formatDateTime(value as string | undefined) },
+    {
+      title: t('common.actions'), valueType: 'option', width: 255, fixed: 'right',
+      render: (_, record) => [
+        <Button icon={<UnorderedListOutlined />} key="skus" onClick={() => setSkuProduct(record)} size="small" type="link">{t('products.actions.manageSkus')}</Button>,
+        <Button icon={<EditOutlined />} key="edit" onClick={() => { setEditingProduct(record); setFormOpen(true); }} size="small" type="link">{t('common.edit')}</Button>,
+        <Popconfirm key="status" onConfirm={() => void changeStatus(record)} title={record.enabled ? t('products.confirmations.deactivate') : t('products.confirmations.activate')}>
+          <Button danger={Boolean(record.enabled)} icon={<PoweroffOutlined />} size="small" type="link">{record.enabled ? t('common.disabled') : t('common.enabled')}</Button>
+        </Popconfirm>,
+      ],
+    },
+  ], [i18n.language, t]);
 
   return (
     <section className="data-page">
@@ -225,43 +135,29 @@ export function ProductPage(): JSX.Element {
         pagination={{ defaultPageSize: 20, showSizeChanger: true }}
         request={async (params) => {
           try {
-            const products = await queryClient.fetchQuery({
-              queryKey: PRODUCTS_QUERY_KEY,
-              queryFn: () => listProducts(),
-            });
-            setSpuOptions(getSpuOptions(products));
-            const enabled = params.enabledStatus === 'enabled'
-              ? true
-              : params.enabledStatus === 'disabled'
-                ? false
-                : undefined;
-            return paginateArray(
-              filterProducts(products, { search: params.search, enabled }),
-              params,
-            );
+            const products = await queryClient.fetchQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: () => listProducts() });
+            const enabled = params.enabledStatus === 'enabled' ? true : params.enabledStatus === 'disabled' ? false : undefined;
+            return paginateArray(filterProducts(products, { search: params.search, enabled }), params);
           } catch (error) {
             message.error(getErrorMessage(error, t));
             return { data: [], success: false, total: 0 };
           }
         }}
         rowKey="id"
-        scroll={{ x: 1650 }}
+        scroll={{ x: 1400 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
         toolBarRender={() => [
-          <Button icon={<PlusOutlined />} key="create" onClick={openCreateDrawer} type="primary">
-            {t('products.create')}
-          </Button>,
+          <Button icon={<PlusOutlined />} key="create" onClick={() => { setEditingProduct(undefined); setFormOpen(true); }} type="primary">{t('products.create')}</Button>,
         ]}
       />
-
       <ProductFormDrawer
-        onClose={closeDrawer}
+        onClose={() => { setFormOpen(false); setEditingProduct(undefined); }}
         onSubmit={saveProduct}
-        open={drawerOpen}
+        open={formOpen}
         product={editingProduct}
-        spuOptions={spuOptions}
         submitting={saveMutation.isPending}
       />
+      <ProductSkuDrawer onClose={() => setSkuProduct(undefined)} open={Boolean(skuProduct)} product={skuProduct} />
     </section>
   );
 }
