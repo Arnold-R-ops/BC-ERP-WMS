@@ -226,6 +226,24 @@ class ShopifyReconciliationServiceTest {
             any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
+    @Test
+    void repair_BlocksNonReconciliationEventWithoutChangingAuditStatus() {
+        ChannelRawEvent event = repairEvent(301L, ORDER_JSON);
+        event.setSource(ChannelRawEvent.SOURCE_WEBHOOK);
+        event.setStatus(ChannelRawEvent.STATUS_PROCESSED);
+        when(rawEventService.requireById(301L)).thenReturn(event);
+
+        var result = reconciliationService.repair(List.of(301L), 77L, "repair-operator");
+
+        assertThat(result.getCreated()).isZero();
+        assertThat(result.getBlocked()).isEqualTo(1);
+        assertThat(result.getItems().get(0).getStatus()).isEqualTo("BLOCKED");
+        assertThat(event.getStatus()).isEqualTo(ChannelRawEvent.STATUS_PROCESSED);
+        verify(rawEventService, never()).markFailed(anyLong(), anyString());
+        verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
+            any(), anyLong(), anyString(), anyString(), anyString(), anyString());
+    }
+
     private ChannelRawEvent repairEvent(Long id, String payload) {
         return ChannelRawEvent.builder()
             .id(id)

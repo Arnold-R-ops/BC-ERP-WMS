@@ -376,6 +376,19 @@ public class GlobalExceptionHandler {
         String rootCauseMessage = ex.getRootCause() != null ? ex.getRootCause().getMessage().toLowerCase() : "";
         String fullMessage = message + " " + rootCauseMessage;
 
+        if (fullMessage.contains("uq_sales_orders_company_channel_external_order")) {
+            log.warn("External order duplicate detected: {}", ex.getMessage());
+
+            ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorKey(ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED)
+                .params(Map.of("message", "该渠道订单已同步，请勿重复提交"))
+                .path(request.getRequestURI())
+                .status(HttpStatus.CONFLICT.value())
+                .build();
+
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        }
+
         // 检测是否为唯一约束违反
         if (fullMessage.contains("unique")
             || fullMessage.contains("duplicate")

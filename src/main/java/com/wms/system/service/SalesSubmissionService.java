@@ -15,8 +15,10 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -63,6 +65,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SalesSubmissionService {
+
+    private static final String EXTERNAL_ORDER_DEDUP_CONSTRAINT =
+        "uq_sales_orders_company_channel_external_order";
 
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
@@ -190,7 +195,7 @@ public class SalesSubmissionService {
         salesOrder.setExternalOrderNo(externalOrderNo);
 
         // Save order first to get ID
-        salesOrder = salesOrderRepository.save(salesOrder);
+        salesOrder = saveNewSalesOrder(salesOrder, externalOrderId);
         log.info("✅ Sales order created: orderId={}, orderNo={}", salesOrder.getId(), salesOrder.getOrderNo());
 
         // 4. Create SalesOrderItem entities for each item
@@ -265,6 +270,36 @@ public class SalesSubmissionService {
             salesOrder.getId(), salesOrder.getOrderNo(), salesOrder.getStatus());
 
         return convertToResponse(salesOrder);
+    }
+
+    private SalesOrder saveNewSalesOrder(SalesOrder salesOrder, String externalOrderId) {
+        if (!StringUtils.hasText(externalOrderId)) {
+            return salesOrderRepository.save(salesOrder);
+        }
+
+        try {
+            return salesOrderRepository.saveAndFlush(salesOrder);
+        } catch (DataIntegrityViolationException ex) {
+            if (!isExternalOrderDedupViolation(ex)) {
+                throw ex;
+            }
+
+            throw new BusinessException(
+                ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,
+                Map.of(
+                    "channel", salesOrder.getChannel(),
+                    "externalOrderId", externalOrderId
+                )
+            );
+        }
+    }
+
+    private boolean isExternalOrderDedupViolation(DataIntegrityViolationException ex) {
+        String message = ex.getMessage() == null ? "" : ex.getMessage();
+        String rootCauseMessage = ex.getRootCause() == null ? "" : ex.getRootCause().getMessage();
+        return (message + " " + rootCauseMessage)
+            .toLowerCase()
+            .contains(EXTERNAL_ORDER_DEDUP_CONSTRAINT);
     }
 
     /**

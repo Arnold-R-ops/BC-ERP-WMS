@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -284,6 +285,11 @@ class SalesSubmissionServiceTest {
         when(customerService.getCustomerName(1L)).thenReturn("Test Customer");
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
+        when(salesOrderRepository.saveAndFlush(any(SalesOrder.class))).thenAnswer(invocation -> {
+            SalesOrder order = invocation.getArgument(0);
+            order.setId(1L);
+            return order;
+        });
         when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> {
             SalesOrder order = invocation.getArgument(0);
             order.setId(1L);
@@ -313,6 +319,47 @@ class SalesSubmissionServiceTest {
         assertThat(savedOrder.getChannel()).isEqualTo("SHOPIFY");
         verify(allocationService, never()).allocateInventory(anyLong());
         verify(outboundTaskRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Concurrent channel duplicate maps database constraint to business conflict")
+    void testCreateChannelOrderPendingApproval_DatabaseDuplicateMapsToBusinessException() {
+        CreateSalesOrderRequest request = new CreateSalesOrderRequest();
+        request.setCustomerId(1L);
+
+        CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
+        itemData.setProductSkuId(1L);
+        itemData.setQuantity(1);
+        itemData.setUnitPrice(new BigDecimal("15.00"));
+        request.setItems(List.of(itemData));
+
+        doNothing().when(customerService).validateCustomerActive(1L);
+        when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
+        when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
+        when(salesOrderRepository.saveAndFlush(any(SalesOrder.class))).thenThrow(
+            new DataIntegrityViolationException(
+                "duplicate key value violates unique constraint " +
+                    "uq_sales_orders_company_channel_external_order"
+            )
+        );
+
+        BusinessException exception = catchThrowableOfType(
+            () -> salesSubmissionService.createChannelOrderPendingApproval(
+                request,
+                77L,
+                "repair-operator",
+                "SHOPIFY",
+                "9002",
+                "#9002"
+            ),
+            BusinessException.class
+        );
+
+        assertThat(exception.getErrorKey()).isEqualTo(ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED);
+        assertThat(exception.getParams())
+            .containsEntry("channel", "SHOPIFY")
+            .containsEntry("externalOrderId", "9002");
+        verify(salesOrderItemRepository, never()).saveAll(anyList());
     }
 
     // ========== Test 5: Approve Sales Order ==========

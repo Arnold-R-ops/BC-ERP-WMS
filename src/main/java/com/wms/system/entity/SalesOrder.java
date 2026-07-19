@@ -62,7 +62,11 @@ import java.time.LocalDateTime;
         @Index(name = "idx_sales_created_at", columnList = "created_at")
     },
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_sales_orders_company_order_no", columnNames = {"company_id", "order_no"})
+        @UniqueConstraint(name = "uk_sales_orders_company_order_no", columnNames = {"company_id", "order_no"}),
+        @UniqueConstraint(
+            name = "uq_sales_orders_company_channel_external_order",
+            columnNames = {"company_id", "channel", "external_order_id"}
+        )
     }
 )
 public class SalesOrder extends BaseEntity {
@@ -221,7 +225,7 @@ public class SalesOrder extends BaseEntity {
      * - 未来可扩展其他渠道（AMAZON, EBAY 等）
      */
     @Size(max = 50, message = "订单渠道长度不能超过 50 个字符")
-    @Column(length = 50)
+    @Column(length = 50, nullable = false)
     @Builder.Default
     private String channel = "MANUAL";
 

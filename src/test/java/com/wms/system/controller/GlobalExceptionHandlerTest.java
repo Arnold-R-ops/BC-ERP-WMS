@@ -201,6 +201,26 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @WithMockUser
+    @DisplayName("External channel order unique constraint -> 409 SHOPIFY_ORDER_ALREADY_SYNCED")
+    void testDataIntegrityViolation_ExternalOrderDuplicate_Returns409() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+            new DataIntegrityViolationException(
+                "duplicate key value violates unique constraint " +
+                    "uq_sales_orders_company_channel_external_order"
+            )
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.params.message").value("该渠道订单已同步，请勿重复提交"));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("DataIntegrityViolationException (unique purchase_order) -> 409 ORDER_NUMBER_DUPLICATE")
     void testDataIntegrityViolation_PurchaseOrderDuplicate_Returns409() throws Exception {
         when(inventoryService.adjustStock(any())).thenThrow(

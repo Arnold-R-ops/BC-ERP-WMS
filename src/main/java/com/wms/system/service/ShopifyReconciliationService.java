@@ -140,8 +140,16 @@ public class ShopifyReconciliationService {
         int blocked = 0;
 
         for (Long eventId : new LinkedHashSet<>(rawEventIds)) {
+            ChannelRawEvent event;
             try {
-                ChannelRawEvent event = requireRepairCandidate(eventId);
+                event = requireRepairCandidate(eventId);
+            } catch (Exception e) {
+                items.add(blockedRepairItem(eventId, e.getMessage()));
+                blocked++;
+                continue;
+            }
+
+            try {
                 String externalId = event.getExternalId();
                 Optional<com.wms.system.entity.SalesOrder> existing =
                     salesOrderRepository.findByExternalOrderId(externalId);
@@ -177,11 +185,7 @@ public class ShopifyReconciliationService {
                 created++;
             } catch (Exception e) {
                 rawEventService.markFailed(eventId, e.getMessage());
-                items.add(ShopifyReconciliationRepairResult.Item.builder()
-                    .rawEventId(eventId)
-                    .status("BLOCKED")
-                    .message(e.getMessage())
-                    .build());
+                items.add(repairItem(event, "BLOCKED", null, e.getMessage()));
                 blocked++;
             }
         }
@@ -192,6 +196,14 @@ public class ShopifyReconciliationService {
             .skipped(skipped)
             .blocked(blocked)
             .items(items)
+            .build();
+    }
+
+    private ShopifyReconciliationRepairResult.Item blockedRepairItem(Long eventId, String message) {
+        return ShopifyReconciliationRepairResult.Item.builder()
+            .rawEventId(eventId)
+            .status("BLOCKED")
+            .message(message)
             .build();
     }
 
