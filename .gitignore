@@ -50,3 +50,14 @@ tmpclaude-*
 # 数据库文件
 *.db
 *.sqlite
+
+# 本地数据库备份（可能包含业务数据，严禁提交远程仓库）
+backups/
+
+# Codex/Claude 本机启动配置
+.claude/launch.json
+
+# 本机测试与诊断输出（正式 Markdown 报告不受影响）
+docs/history/*.html
+docs/history/COMPILE_ERRORS.txt
+src/test/scripts/*-result.json
