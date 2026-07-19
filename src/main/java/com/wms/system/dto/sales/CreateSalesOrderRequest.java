@@ -46,6 +46,30 @@ public class CreateSalesOrderRequest {
     @Size(max = 50, message = "渠道标记长度不能超过 50 个字符")
     private String channel;
 
+    @Size(max = 200)
+    private String consigneeName;
+
+    @Size(max = 50)
+    private String consigneePhone;
+
+    @Size(max = 255)
+    private String shipAddress1;
+
+    @Size(max = 255)
+    private String shipAddress2;
+
+    @Size(max = 100)
+    private String shipCity;
+
+    @Size(max = 100)
+    private String shipProvince;
+
+    @Size(max = 30)
+    private String shipZip;
+
+    @Size(max = 10)
+    private String shipCountryCode;
+
     /**
      * 订单明细数据
      */

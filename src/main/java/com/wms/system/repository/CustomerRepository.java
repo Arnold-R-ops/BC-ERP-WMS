@@ -1,6 +1,7 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.Customer;
+import com.wms.system.entity.enums.CustomerType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -70,6 +71,17 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @return Optional<Customer> 客户对象（可能为空）
      */
     Optional<Customer> findByEmail(String email);
+
+    Optional<Customer> findByCompanyIdAndCustomerTypeAndExternalCustomerId(
+        Long companyId,
+        CustomerType customerType,
+        String externalCustomerId
+    );
+
+    List<Customer> findByCompanyIdAndNormalizedEmailOrderByIdAsc(
+        Long companyId,
+        String normalizedEmail
+    );
 
     /**
      * 根据归属人ID查询客户列表（V4.1 行级隔离）

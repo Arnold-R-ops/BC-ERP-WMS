@@ -75,6 +75,14 @@ public class IntegrationConfig extends BaseEntity {
     private Boolean isActive = true;
 
     /**
+     * Allows automatic creation of lightweight retail consumers during
+     * automatic channel ingestion. It is deliberately disabled by default.
+     */
+    @Column(name = "retail_mode", nullable = false)
+    @Builder.Default
+    private Boolean retailMode = false;
+
+    /**
      * 最后同步时间
      * 记录上次成功同步的时间
      */

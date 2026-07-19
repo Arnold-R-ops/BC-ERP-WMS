@@ -3,14 +3,16 @@ package com.wms.system.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.dto.integration.ShopifyReconciliationRequest;
 import com.wms.system.dto.sales.SalesOrderResponse;
+import com.wms.system.dto.shopify.ShopifyOrderDto;
 import com.wms.system.entity.ChannelRawEvent;
 import com.wms.system.entity.ChannelSkuMapping;
 import com.wms.system.entity.Customer;
 import com.wms.system.entity.IntegrationConfig;
 import com.wms.system.entity.ProductSku;
+import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
 import com.wms.system.repository.ChannelSkuMappingRepository;
-import com.wms.system.repository.CustomerRepository;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.SalesOrderRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +59,7 @@ class ShopifyReconciliationServiceTest {
     @Mock
     private SalesOrderRepository salesOrderRepository;
     @Mock
-    private CustomerRepository customerRepository;
+    private ShopifyCustomerResolver customerResolver;
     @Mock
     private ChannelSkuMappingRepository channelSkuMappingRepository;
     @Mock
@@ -120,7 +122,6 @@ class ShopifyReconciliationServiceTest {
         assertThat(report.getMissingOrders().get(0).isRepairEligible()).isTrue();
         assertThat(report.getReportEventId()).isEqualTo(202L);
         verify(rawEventService).markProcessed(202L);
-        verify(customerRepository, never()).save(any(Customer.class));
         verify(channelSkuMappingRepository, never()).save(any(ChannelSkuMapping.class));
         verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
             any(), anyLong(), anyString(), anyString(), anyString(), anyString());
@@ -155,7 +156,7 @@ class ShopifyReconciliationServiceTest {
 
         when(rawEventService.requireById(201L)).thenReturn(event);
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail("buyer@example.com")).thenReturn(Optional.of(customer));
+        when(customerResolver.resolveExistingOnly(any(ShopifyOrderDto.class))).thenReturn(customer);
         when(channelSkuMappingRepository.findByChannelAndExternalSkuAndStatus(
             "SHOPIFY", "EXT-TEA", ChannelSkuMapping.STATUS_ACTIVE
         )).thenReturn(Optional.of(mapping));
@@ -178,7 +179,6 @@ class ShopifyReconciliationServiceTest {
             eq(77L), eq("repair-operator"), eq("SHOPIFY"), eq("9002"), eq("#9002")
         );
         verify(rawEventService).markProcessed(201L);
-        verify(customerRepository, never()).save(any(Customer.class));
         verify(channelSkuMappingRepository, never()).save(any(ChannelSkuMapping.class));
     }
 
@@ -187,13 +187,13 @@ class ShopifyReconciliationServiceTest {
         ChannelRawEvent event = repairEvent(201L, ORDER_JSON);
         when(rawEventService.requireById(201L)).thenReturn(event);
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail("buyer@example.com")).thenReturn(Optional.empty());
+        when(customerResolver.resolveExistingOnly(any(ShopifyOrderDto.class)))
+            .thenThrow(new BusinessException(ErrorKeys.VALIDATION_FAILED));
 
         var result = reconciliationService.repair(List.of(201L), 77L, "repair-operator");
 
         assertThat(result.getCreated()).isZero();
         assertThat(result.getBlocked()).isEqualTo(1);
-        verify(customerRepository, never()).save(any(Customer.class));
         verify(channelSkuMappingRepository, never()).save(any(ChannelSkuMapping.class));
         verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
             any(), anyLong(), anyString(), anyString(), anyString(), anyString());
@@ -210,7 +210,7 @@ class ShopifyReconciliationServiceTest {
             .build();
         when(rawEventService.requireById(201L)).thenReturn(event);
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail("buyer@example.com")).thenReturn(Optional.of(customer));
+        when(customerResolver.resolveExistingOnly(any(ShopifyOrderDto.class))).thenReturn(customer);
         when(channelSkuMappingRepository.findByChannelAndExternalSkuAndStatus(
             "SHOPIFY", "EXT-TEA", ChannelSkuMapping.STATUS_ACTIVE
         )).thenReturn(Optional.empty());

@@ -1,5 +1,7 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.CustomerSource;
+import com.wms.system.entity.enums.CustomerType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -7,6 +9,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 /**
  * 客户实体
@@ -46,7 +49,8 @@ import java.math.BigDecimal;
     indexes = {
         @Index(name = "idx_customer_code", columnList = "code"),
         @Index(name = "idx_customer_active", columnList = "is_active"),
-        @Index(name = "idx_customer_owner", columnList = "owner_id")
+        @Index(name = "idx_customer_owner", columnList = "owner_id"),
+        @Index(name = "idx_customer_type_active", columnList = "company_id,customer_type,is_active")
     },
     uniqueConstraints = {
         @UniqueConstraint(name = "uk_customers_company_code", columnNames = {"company_id", "code"})
@@ -85,6 +89,19 @@ public class Customer extends BaseEntity {
     @Column(nullable = false, length = 200)
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "customer_type", nullable = false, length = 20)
+    @Builder.Default
+    private CustomerType customerType = CustomerType.B2B;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private CustomerSource source = CustomerSource.MANUAL;
+
+    @Column(name = "external_customer_id", length = 64)
+    private String externalCustomerId;
+
     /**
      * 联系人
      */
@@ -106,6 +123,9 @@ public class Customer extends BaseEntity {
     @Size(max = 100, message = "电子邮箱长度不能超过 100 个字符")
     @Column(length = 100)
     private String email;
+
+    @Column(name = "normalized_email", length = 100)
+    private String normalizedEmail;
 
     /**
      * 客户地址
@@ -185,4 +205,17 @@ public class Customer extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default
     private Boolean isDeleted = false;
+
+    @PrePersist
+    @PreUpdate
+    private void refreshNormalizedEmail() {
+        normalizedEmail = normalizeEmail(email);
+    }
+
+    public static String normalizeEmail(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
 }

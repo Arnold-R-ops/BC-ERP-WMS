@@ -32,6 +32,9 @@ public class ShopifyOrderDto {
      */
     private String email;
 
+    @JsonProperty("contact_email")
+    private String contactEmail;
+
     /**
      * 支付状态（paid, pending, refunded 等）
      */
@@ -54,6 +57,9 @@ public class ShopifyOrderDto {
      * 客户信息
      */
     private ShopifyCustomerDto customer;
+
+    @JsonProperty("shipping_address")
+    private ShopifyAddressDto shippingAddress;
 
     /**
      * 订单明细列表

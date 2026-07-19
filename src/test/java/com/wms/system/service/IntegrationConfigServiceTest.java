@@ -8,6 +8,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
 import com.wms.system.integration.ShopifyTokenProvider;
 import com.wms.system.repository.IntegrationConfigRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +16,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -58,6 +64,11 @@ class IntegrationConfigServiceTest {
             .build();
     }
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void createNormalizesStoreUrl() {
         when(repository.save(any(IntegrationConfig.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -72,6 +83,7 @@ class IntegrationConfigServiceTest {
 
         assertThat(response.getStoreUrl()).isEqualTo("new-store.myshopify.com");
         assertThat(response.getAuthMode()).isEqualTo(IntegrationConfigResponse.AUTH_CLIENT_CREDENTIALS);
+        assertThat(response.getRetailMode()).isFalse();
     }
 
     @Test
@@ -150,5 +162,46 @@ class IntegrationConfigServiceTest {
         assertThat(result.get("connected")).isEqualTo(true);
         assertThat(result.get("shopName")).isEqualTo("Bubble Crush UK");
         assertThat(result.get("currency")).isEqualTo("GBP");
+    }
+
+    @Test
+    void superAdminCanEnableRetailMode() {
+        authenticateAs("SUPER_ADMIN");
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        when(repository.save(any(IntegrationConfig.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        IntegrationConfigRequest request = IntegrationConfigRequest.builder()
+            .retailMode(true)
+            .build();
+
+        IntegrationConfigResponse response = service.update(1L, request);
+
+        assertThat(response.getRetailMode()).isTrue();
+        assertThat(existing.getRetailMode()).isTrue();
+    }
+
+    @Test
+    void nonSuperAdminCannotChangeRetailMode() {
+        authenticateAs("system:admin");
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+
+        IntegrationConfigRequest request = IntegrationConfigRequest.builder()
+            .retailMode(true)
+            .build();
+
+        assertThatThrownBy(() -> service.update(1L, request))
+            .isInstanceOf(AccessDeniedException.class);
+
+        verify(repository, never()).save(any(IntegrationConfig.class));
+    }
+
+    private void authenticateAs(String authority) {
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(
+                "admin",
+                "n/a",
+                List.of(new SimpleGrantedAuthority(authority))
+            )
+        );
     }
 }

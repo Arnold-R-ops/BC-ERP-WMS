@@ -50,6 +50,7 @@ public class IntegrationConfigResponse {
     private String authMode;
 
     private Boolean isActive;
+    private Boolean retailMode;
     private LocalDateTime lastSyncAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -68,6 +69,7 @@ public class IntegrationConfigResponse {
             .hasStaticToken(hasToken)
             .authMode(mode)
             .isActive(c.getIsActive())
+            .retailMode(Boolean.TRUE.equals(c.getRetailMode()))
             .lastSyncAt(c.getLastSyncAt())
             .createdAt(c.getCreatedAt())
             .updatedAt(c.getUpdatedAt())

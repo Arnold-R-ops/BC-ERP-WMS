@@ -251,6 +251,33 @@ public class SalesOrder extends BaseEntity {
     @Column(name = "external_order_no", length = 100)
     private String externalOrderNo;
 
+    // Order-time shipping snapshot. These fields are intentionally detached
+    // from the customer master because a customer may use a different address
+    // for every order.
+    @Column(name = "consignee_name", length = 200)
+    private String consigneeName;
+
+    @Column(name = "consignee_phone", length = 50)
+    private String consigneePhone;
+
+    @Column(name = "ship_address1", length = 255)
+    private String shipAddress1;
+
+    @Column(name = "ship_address2", length = 255)
+    private String shipAddress2;
+
+    @Column(name = "ship_city", length = 100)
+    private String shipCity;
+
+    @Column(name = "ship_province", length = 100)
+    private String shipProvince;
+
+    @Column(name = "ship_zip", length = 30)
+    private String shipZip;
+
+    @Column(name = "ship_country_code", length = 10)
+    private String shipCountryCode;
+
     // ========== 审计日志 ==========
 
     /**

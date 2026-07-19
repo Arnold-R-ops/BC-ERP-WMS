@@ -13,6 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +62,7 @@ public class IntegrationConfigService {
             .clientSecret(trimToNull(request.getClientSecret()))
             .accessToken(trimToNull(request.getAccessToken()))
             .isActive(request.getIsActive() == null || request.getIsActive())
+            .retailMode(resolveRetailModeForCreate(request.getRetailMode()))
             .build();
 
         config = repository.save(config);
@@ -89,6 +93,11 @@ public class IntegrationConfigService {
         }
         if (request.getIsActive() != null) {
             config.setIsActive(request.getIsActive());
+        }
+        if (request.getRetailMode() != null
+                && !request.getRetailMode().equals(Boolean.TRUE.equals(config.getRetailMode()))) {
+            requireSuperAdminForRetailMode();
+            config.setRetailMode(request.getRetailMode());
         }
 
         config = repository.save(config);
@@ -159,5 +168,23 @@ public class IntegrationConfigService {
 
     private String trimToNull(String s) {
         return StringUtils.hasText(s) ? s.trim() : null;
+    }
+
+    private boolean resolveRetailModeForCreate(Boolean requested) {
+        boolean retailMode = Boolean.TRUE.equals(requested);
+        if (retailMode) {
+            requireSuperAdminForRetailMode();
+        }
+        return retailMode;
+    }
+
+    private void requireSuperAdminForRetailMode() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean superAdmin = authentication != null
+            && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "SUPER_ADMIN".equals(authority.getAuthority()));
+        if (!superAdmin) {
+            throw new AccessDeniedException("Only SUPER_ADMIN may change retail mode");
+        }
     }
 }

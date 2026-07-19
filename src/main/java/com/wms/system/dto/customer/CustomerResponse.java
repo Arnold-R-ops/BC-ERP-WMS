@@ -38,6 +38,12 @@ public class CustomerResponse {
      */
     private String name;
 
+    private String customerType;
+
+    private String source;
+
+    private String externalCustomerId;
+
     /**
      * 联系人
      */
@@ -52,6 +58,8 @@ public class CustomerResponse {
      * 电子邮箱
      */
     private String email;
+
+    private String normalizedEmail;
 
     /**
      * 客户地址

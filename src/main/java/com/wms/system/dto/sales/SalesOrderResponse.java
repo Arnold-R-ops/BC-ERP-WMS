@@ -78,6 +78,28 @@ public class SalesOrderResponse {
 
     private Long fulfillmentVersion;
 
+    private String channel;
+
+    private String externalOrderId;
+
+    private String externalOrderNo;
+
+    private String consigneeName;
+
+    private String consigneePhone;
+
+    private String shipAddress1;
+
+    private String shipAddress2;
+
+    private String shipCity;
+
+    private String shipProvince;
+
+    private String shipZip;
+
+    private String shipCountryCode;
+
     /**
      * 审批原因
      */

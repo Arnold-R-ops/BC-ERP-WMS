@@ -18,7 +18,6 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
 import com.wms.system.repository.ChannelSkuMappingRepository;
-import com.wms.system.repository.CustomerRepository;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.SalesOrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +41,7 @@ public class ShopifyReconciliationService {
     private final IntegrationConfigRepository integrationConfigRepository;
     private final ShopifyApiClient shopifyApiClient;
     private final SalesOrderRepository salesOrderRepository;
-    private final CustomerRepository customerRepository;
+    private final ShopifyCustomerResolver customerResolver;
     private final ChannelSkuMappingRepository channelSkuMappingRepository;
     private final ChannelRawEventService rawEventService;
     private final SalesSubmissionService salesSubmissionService;
@@ -169,7 +168,7 @@ public class ShopifyReconciliationService {
                 }
 
                 ShopifyOrderDto order = objectMapper.treeToValue(orderNode, ShopifyOrderDto.class);
-                Customer customer = requireExistingCustomer(order);
+                Customer customer = customerResolver.resolveExistingOnly(order);
                 CreateSalesOrderRequest request = buildRestrictedOrderRequest(order, customer);
                 SalesOrderResponse response = salesSubmissionService.createChannelOrderPendingApproval(
                     request,
@@ -252,21 +251,6 @@ public class ShopifyReconciliationService {
         return event;
     }
 
-    private Customer requireExistingCustomer(ShopifyOrderDto order) {
-        if (!StringUtils.hasText(order.getEmail())) {
-            throw new BusinessException(
-                ErrorKeys.VALIDATION_FAILED,
-                Map.of("message", "订单没有客户邮箱，禁止自动创建客户")
-            );
-        }
-        return customerRepository.findByEmail(order.getEmail())
-            .filter(customer -> Boolean.TRUE.equals(customer.getIsActive()))
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.VALIDATION_FAILED,
-                Map.of("message", "未匹配到已存在且启用的客户，禁止自动创建客户", "email", order.getEmail())
-            ));
-    }
-
     private CreateSalesOrderRequest buildRestrictedOrderRequest(ShopifyOrderDto order, Customer customer) {
         if (order.getLineItems() == null || order.getLineItems().isEmpty()) {
             throw new BusinessException(ErrorKeys.VALIDATION_FAILED, Map.of("message", "订单没有商品明细"));
@@ -326,6 +310,7 @@ public class ShopifyReconciliationService {
         request.setCustomerId(customer.getId());
         request.setChannel(CHANNEL);
         request.setItems(items);
+        ShopifyOrderSnapshotMapper.applyShippingSnapshot(order, request);
         return request;
     }
 

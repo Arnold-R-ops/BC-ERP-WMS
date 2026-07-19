@@ -2,6 +2,7 @@ package com.wms.system.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
+import com.wms.system.dto.shopify.ShopifyAddressDto;
 import com.wms.system.dto.shopify.ShopifyCustomerDto;
 import com.wms.system.dto.shopify.ShopifyLineItemDto;
 import com.wms.system.dto.shopify.ShopifyOrderDto;
@@ -9,6 +10,8 @@ import com.wms.system.dto.shopify.ShopifyOrdersResponse;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.Zone;
 import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CustomerSource;
+import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.repository.*;
 import com.wms.system.service.ShopifyIntegrationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -311,6 +314,65 @@ class ShopifyIntegrationE2ETest {
                 .get()
                 .extracting(InventoryBatch::getReservedQuantity)
                 .isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("retail mode creates a lightweight consumer and shipping snapshot without inventory side effects")
+    void testOrderSync_RetailModeCreatesConsumerAndPendingOrder() {
+        testConfig.setRetailMode(true);
+        integrationConfigRepository.save(testConfig);
+
+        ShopifyCustomerDto shopifyCustomer = new ShopifyCustomerDto();
+        shopifyCustomer.setId(250L);
+        shopifyCustomer.setEmail("retail@example.com");
+        shopifyCustomer.setFirstName("Retail");
+        shopifyCustomer.setLastName("Buyer");
+
+        ShopifyAddressDto address = new ShopifyAddressDto();
+        address.setName("Retail Receiver");
+        address.setPhone("+44 20 5555 0101");
+        address.setAddress1("25 Retail Road");
+        address.setCity("London");
+        address.setProvince("Greater London");
+        address.setZip("E1 1AA");
+        address.setCountryCode("GB");
+
+        ShopifyLineItemDto lineItem = new ShopifyLineItemDto();
+        lineItem.setId(25L);
+        lineItem.setSku("TEST-SKU-001");
+        lineItem.setName("Test ProductSku");
+        lineItem.setQuantity(2);
+        lineItem.setPrice("99.99");
+
+        ShopifyOrderDto order = new ShopifyOrderDto();
+        order.setId(25000L);
+        order.setName("#1025");
+        order.setEmail("retail@example.com");
+        order.setFinancialStatus("paid");
+        order.setCustomer(shopifyCustomer);
+        order.setShippingAddress(address);
+        order.setLineItems(List.of(lineItem));
+        when(shopifyApiClient.fetchOrdersRaw(any())).thenReturn(ordersJson(order));
+
+        ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
+
+        assertThat(result.getSuccessCount()).isEqualTo(1);
+        Customer consumer = customerRepository.findByEmail("retail@example.com").orElseThrow();
+        assertThat(consumer.getCustomerType()).isEqualTo(CustomerType.CONSUMER);
+        assertThat(consumer.getSource()).isEqualTo(CustomerSource.CHANNEL);
+        assertThat(consumer.getExternalCustomerId()).isEqualTo("250");
+        assertThat(consumer.getCreditLimit()).isEqualByComparingTo(BigDecimal.ZERO);
+
+        SalesOrder salesOrder = salesOrderRepository.findByExternalOrderId("25000").orElseThrow();
+        assertThat(salesOrder.getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(salesOrder.getConsigneeName()).isEqualTo("Retail Receiver");
+        assertThat(salesOrder.getShipAddress1()).isEqualTo("25 Retail Road");
+        assertThat(salesOrder.getShipCountryCode()).isEqualTo("GB");
+        assertThat(outboundTaskRepository.findBySalesOrderId(salesOrder.getId())).isEmpty();
+        assertThat(inventoryBatchRepository.findById(testBatch.getId()))
+            .get()
+            .extracting(InventoryBatch::getReservedQuantity)
+            .isEqualTo(0);
     }
 
     @Test

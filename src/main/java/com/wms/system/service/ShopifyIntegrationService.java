@@ -53,7 +53,7 @@ public class ShopifyIntegrationService {
     private final IntegrationConfigRepository integrationConfigRepository;
     private final ShopifyApiClient shopifyApiClient;
     private final SalesOrderRepository salesOrderRepository;
-    private final CustomerRepository customerRepository;
+    private final ShopifyCustomerResolver customerResolver;
     private final SalesSubmissionService salesSubmissionService;
     private final ChannelRawEventService rawEventService;
     private final ChannelSkuResolver skuResolver;
@@ -215,7 +215,7 @@ public class ShopifyIntegrationService {
         }
 
         // b. 只匹配既有客户；渠道导入无权创建客户主数据
-        Customer customer = matchExistingCustomer(order);
+        Customer customer = customerResolver.resolveForAutomatic(order, config);
 
         // c+d. 行解析（P1-B2 四层 SKU 漏斗）并构建订单请求
         //      未知 SKU 进待映射队列并阻断本单（报文保留 FAILED，映射后自动重试放行）
@@ -225,39 +225,6 @@ public class ShopifyIntegrationService {
         Long salesOrderId = createSalesOrderForShopify(request, order);
 
         log.info("订单补录成功并进入待审批: externalOrderNo={}, salesOrderId={}", externalOrderNo, salesOrderId);
-    }
-
-    /**
-     * 客户匹配/创建
-     *
-     * @param order Shopify 订单
-     * @return 客户实体
-     */
-    private Customer matchExistingCustomer(ShopifyOrderDto order) {
-        String email = order.getEmail();
-
-        if (!StringUtils.hasText(email)) {
-            log.error("订单缺少客户邮箱: externalOrderNo={}", order.getName());
-            throw new BusinessException(ErrorKeys.VALIDATION_FAILED,
-                    Map.of(
-                            "field", "email",
-                            "value", "null",
-                            "constraint", "客户邮箱不能为空"
-                    ));
-        }
-
-        Customer customer = customerRepository.findByEmail(email)
-            .filter(Customer::getIsActive)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.VALIDATION_FAILED,
-                Map.of(
-                    "field", "customer.email",
-                    "value", email,
-                    "constraint", "渠道补单只能匹配已存在且启用的客户，禁止自动创建客户"
-                )
-            ));
-        log.info("找到既有客户: email={}, customerId={}", email, customer.getId());
-        return customer;
     }
 
     /**
@@ -345,6 +312,7 @@ public class ShopifyIntegrationService {
         CreateSalesOrderRequest request = new CreateSalesOrderRequest();
         request.setCustomerId(customer.getId());
         request.setItems(items);
+        ShopifyOrderSnapshotMapper.applyShippingSnapshot(order, request);
         return request;
     }
 

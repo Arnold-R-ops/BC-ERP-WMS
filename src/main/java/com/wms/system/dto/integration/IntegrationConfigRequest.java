@@ -54,4 +54,10 @@ public class IntegrationConfigRequest {
      */
     @Builder.Default
     private Boolean isActive = true;
+
+    /**
+     * Null on update means "leave unchanged". Enabling or disabling this
+     * field requires SUPER_ADMIN authority.
+     */
+    private Boolean retailMode;
 }

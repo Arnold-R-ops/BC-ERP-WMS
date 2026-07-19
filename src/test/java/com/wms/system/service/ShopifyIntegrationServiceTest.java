@@ -2,6 +2,7 @@ package com.wms.system.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.dto.sales.SalesOrderResponse;
+import com.wms.system.dto.shopify.ShopifyAddressDto;
 import com.wms.system.dto.shopify.ShopifyCustomerDto;
 import com.wms.system.dto.shopify.ShopifyLineItemDto;
 import com.wms.system.dto.shopify.ShopifyOrderDto;
@@ -55,7 +56,7 @@ class ShopifyIntegrationServiceTest {
     private SalesOrderRepository salesOrderRepository;
 
     @Mock
-    private CustomerRepository customerRepository;
+    private ShopifyCustomerResolver customerResolver;
 
     @Mock
     private ChannelSkuResolver skuResolver;
@@ -204,6 +205,16 @@ class ShopifyIntegrationServiceTest {
                 .thenReturn(resolutionOfProduct(ratio));
     }
 
+    private void stubCustomerResolved() {
+        when(customerResolver.resolveForAutomatic(any(ShopifyOrderDto.class), any(IntegrationConfig.class)))
+            .thenReturn(customer);
+    }
+
+    private void stubCustomerResolutionFailed() {
+        when(customerResolver.resolveForAutomatic(any(ShopifyOrderDto.class), any(IntegrationConfig.class)))
+            .thenThrow(new BusinessException(ErrorKeys.VALIDATION_FAILED));
+    }
+
     private ChannelSkuResolver.Resolution resolutionOfProduct(int ratio) {
         return ChannelSkuResolver.Resolution.productSku(product, ratio);
     }
@@ -231,7 +242,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
@@ -247,7 +258,6 @@ class ShopifyIntegrationServiceTest {
         verify(integrationConfigRepository).save(config);
         verify(salesSubmissionService).createChannelOrderPendingApproval(
                 any(), eq(1L), eq("Shopify Integration"), eq("SHOPIFY"), eq("12345"), eq("#1001"));
-        verify(customerRepository, never()).save(any(Customer.class));
         // 报文留底状态回写
         verify(rawEventService).record(eq("SHOPIFY"), eq("test-store.myshopify.com"),
                 eq(ChannelRawEvent.SOURCE_POLL), eq(ChannelRawEvent.TYPE_ORDER), eq("12345"), anyString());
@@ -308,7 +318,7 @@ class ShopifyIntegrationServiceTest {
                 .thenReturn(Optional.of(failed));
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
@@ -333,7 +343,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         when(skuResolver.resolve(anyString(), anyString(), anyString()))
                 .thenReturn(ChannelSkuResolver.Resolution.miss());
 
@@ -356,13 +366,12 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        stubCustomerResolutionFailed();
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
-        verify(customerRepository, never()).save(any(Customer.class));
         verify(skuResolver, never()).resolve(anyString(), anyString(), anyString());
         verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
                 any(), anyLong(), anyString(), anyString(), anyString(), anyString());
@@ -385,18 +394,19 @@ class ShopifyIntegrationServiceTest {
     void syncOrders_OrderWithoutEmail() {
         stubActiveConfig();
         shopifyOrder.setEmail(null);
+        shopifyOrder.getCustomer().setEmail(null);
         when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
         stubNewRawEvent();
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
+        stubCustomerResolutionFailed();
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
         verify(rawEventService).markFailed(eq(10L), anyString());
-        verify(customerRepository, never()).save(any());
     }
 
     @Test
@@ -408,7 +418,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
@@ -427,7 +437,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         when(skuResolver.resolve(anyString(), anyString(), startsWith(PendingSkuMapping.NO_SKU_PREFIX)))
                 .thenReturn(ChannelSkuResolver.Resolution.miss());
 
@@ -449,7 +459,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         when(systemConfigService.getConfigValue(ShopifyIntegrationService.NO_SKU_POLICY_KEY))
                 .thenReturn(ShopifyIntegrationService.NO_SKU_POLICY_SKIP);
         when(skuResolver.resolve(anyString(), anyString(), startsWith(PendingSkuMapping.NO_SKU_PREFIX)))
@@ -471,7 +481,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         stubSkuResolved(20);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
@@ -492,6 +502,48 @@ class ShopifyIntegrationServiceTest {
     }
 
     @Test
+    void syncOrders_CopiesShippingAddressIntoOrderSnapshot() {
+        ShopifyAddressDto address = new ShopifyAddressDto();
+        address.setName("Jane Receiver");
+        address.setPhone("+44 20 1234 5678");
+        address.setAddress1("10 Market Street");
+        address.setAddress2("Unit 2");
+        address.setCity("London");
+        address.setProvince("Greater London");
+        address.setZip("SW1A 1AA");
+        address.setCountryCode("gb");
+        shopifyOrder.setShippingAddress(address);
+
+        stubActiveConfig();
+        when(shopifyApiClient.fetchOrdersRaw(config)).thenReturn(rawOrders(shopifyOrder));
+        stubNewRawEvent();
+        stubTransactionPassThrough();
+        when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
+        stubCustomerResolved();
+        stubSkuResolved(1);
+
+        SalesOrderResponse response = new SalesOrderResponse();
+        response.setId(1L);
+        when(salesSubmissionService.createChannelOrderPendingApproval(
+            any(), anyLong(), anyString(), anyString(), anyString(), anyString()
+        )).thenReturn(response);
+
+        ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
+
+        assertThat(result.getSuccessCount()).isEqualTo(1);
+        verify(salesSubmissionService).createChannelOrderPendingApproval(argThat(request ->
+            "Jane Receiver".equals(request.getConsigneeName())
+                && "+44 20 1234 5678".equals(request.getConsigneePhone())
+                && "10 Market Street".equals(request.getShipAddress1())
+                && "Unit 2".equals(request.getShipAddress2())
+                && "London".equals(request.getShipCity())
+                && "Greater London".equals(request.getShipProvince())
+                && "SW1A 1AA".equals(request.getShipZip())
+                && "GB".equals(request.getShipCountryCode())
+        ), anyLong(), anyString(), eq("SHOPIFY"), eq("12345"), eq("#1001"));
+    }
+
+    @Test
     void syncOrders_InvalidPriceFormat() {
         stubActiveConfig();
         shopifyOrder.getLineItems().get(0).setPrice("invalid-price");
@@ -500,7 +552,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         stubSkuResolved(1);
 
         SalesOrderResponse salesOrderResponse = new SalesOrderResponse();
@@ -523,7 +575,7 @@ class ShopifyIntegrationServiceTest {
         stubTransactionPassThrough();
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolved();
         stubSkuResolved(1);
 
         when(salesSubmissionService.createChannelOrderPendingApproval(
@@ -562,13 +614,12 @@ class ShopifyIntegrationServiceTest {
 
         when(salesOrderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
         customer.setIsActive(false);
-        when(customerRepository.findByEmail(anyString())).thenReturn(Optional.of(customer));
+        stubCustomerResolutionFailed();
 
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();
 
         assertThat(result.getSuccessCount()).isZero();
         assertThat(result.getFailedCount()).isEqualTo(1);
-        verify(customerRepository, never()).save(any(Customer.class));
         verify(salesSubmissionService, never()).createChannelOrderPendingApproval(
                 any(), anyLong(), anyString(), anyString(), anyString(), anyString());
     }

@@ -274,6 +274,14 @@ class SalesSubmissionServiceTest {
         CreateSalesOrderRequest request = new CreateSalesOrderRequest();
         request.setCustomerId(1L);
         request.setChannel("SHOPIFY");
+        request.setConsigneeName("Jane Receiver");
+        request.setConsigneePhone("+44 20 1234 5678");
+        request.setShipAddress1("10 Market Street");
+        request.setShipAddress2("Unit 2");
+        request.setShipCity("London");
+        request.setShipProvince("Greater London");
+        request.setShipZip("SW1A 1AA");
+        request.setShipCountryCode("GB");
 
         CreateSalesOrderRequest.SalesOrderItemData itemData = new CreateSalesOrderRequest.SalesOrderItemData();
         itemData.setProductSkuId(1L);
@@ -317,6 +325,15 @@ class SalesSubmissionServiceTest {
         assertThat(savedOrder.getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
         assertThat(savedOrder.getExternalOrderId()).isEqualTo("9002");
         assertThat(savedOrder.getChannel()).isEqualTo("SHOPIFY");
+        assertThat(savedOrder.getConsigneeName()).isEqualTo("Jane Receiver");
+        assertThat(savedOrder.getConsigneePhone()).isEqualTo("+44 20 1234 5678");
+        assertThat(savedOrder.getShipAddress1()).isEqualTo("10 Market Street");
+        assertThat(savedOrder.getShipAddress2()).isEqualTo("Unit 2");
+        assertThat(savedOrder.getShipCity()).isEqualTo("London");
+        assertThat(savedOrder.getShipProvince()).isEqualTo("Greater London");
+        assertThat(savedOrder.getShipZip()).isEqualTo("SW1A 1AA");
+        assertThat(savedOrder.getShipCountryCode()).isEqualTo("GB");
+        assertThat(response.getConsigneeName()).isEqualTo("Jane Receiver");
         verify(allocationService, never()).allocateInventory(anyLong());
         verify(outboundTaskRepository, never()).save(any());
     }
