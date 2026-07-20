@@ -32,6 +32,7 @@ import java.util.List;
     @Index(name = "idx_po_number", columnList = "po_number"),
     @Index(name = "idx_status", columnList = "status"),
     @Index(name = "idx_supplier", columnList = "supplier"),
+    @Index(name = "idx_purchase_order_supplier_id", columnList = "supplier_id"),
     @Index(name = "idx_purchase_order_created_at", columnList = "created_at")
 }, uniqueConstraints = {
     @UniqueConstraint(name = "uk_purchase_order_company_po_number", columnNames = {"company_id", "po_number"})
@@ -63,6 +64,17 @@ public class PurchaseOrder extends BaseEntity {
      */
     @Column(name = "supplier", nullable = false, length = 200)
     private String supplier;
+
+    /**
+     * Supplier master-data reference. Nullable only for irrecoverable legacy
+     * records; new orders always resolve this before creation.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "supplier_id",
+        foreignKey = @ForeignKey(name = "fk_purchase_order_supplier")
+    )
+    private Supplier supplierReference;
 
     /**
      * 采购单状�?     *

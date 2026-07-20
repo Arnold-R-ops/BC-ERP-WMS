@@ -24,7 +24,7 @@ import java.util.List;
  * 4. expiry_date is optional at this stage
  *
  * Validation:
- * - supplier: required, not blank
+ * - supplierId: required; supplier name is resolved from master data
  * - items: required, at least one item
  * - operatorId: required
  * - operatorName: required
@@ -42,10 +42,10 @@ import java.util.List;
 public class CreatePurchaseOrderRequest {
 
     /**
-     * Supplier name (required)
+     * Supplier master-data ID (required)
      */
-    @NotBlank(message = "Supplier name is required")
-    private String supplier;
+    @NotNull(message = "Supplier ID is required")
+    private Long supplierId;
 
     /**
      * Purchase order items (required, at least one item)

@@ -60,6 +60,7 @@ import java.util.Map;
 public class PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final SupplierRepository supplierRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductSkuRepository productSkuRepository;
@@ -83,7 +84,7 @@ public class PurchaseOrderService {
      * ⚠️ Note: Batch codes are NOT generated at this stage.
      * They will be generated in Stage 2 when confirming the ASN.
      *
-     * @param supplier Supplier name
+     * @param supplierId Supplier master-data ID
      * @param items List of purchase order items
      * @param expectedDate Expected delivery date
      * @param operatorId Operator user ID
@@ -94,15 +95,28 @@ public class PurchaseOrderService {
      */
     @Transactional(rollbackFor = Exception.class)
     public PurchaseOrder createPurchaseOrder(
-        String supplier,
+        Long supplierId,
         List<PurchaseOrderItemData> items,
         LocalDate expectedDate,
         Long operatorId,
         String operatorName,
         String remark
     ) {
-        log.info("Creating purchase order: supplier={}, itemCount={}, operator={}",
-            supplier, items.size(), operatorName);
+        log.info("Creating purchase order: supplierId={}, itemCount={}, operator={}",
+            supplierId, items.size(), operatorName);
+
+        Supplier supplier = supplierRepository
+            .findByIdAndCompanyIdAndIsDeletedFalse(supplierId, 1L)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.SUPPLIER_NOT_FOUND,
+                Map.of("supplierId", supplierId)
+            ));
+        if (!Boolean.TRUE.equals(supplier.getIsActive())) {
+            throw new BusinessException(
+                ErrorKeys.SUPPLIER_NOT_ACTIVE,
+                Map.of("supplierId", supplierId, "supplierCode", supplier.getCode())
+            );
+        }
 
         // 1. Generate PO number
         String poNumber = generatePoNumber();
@@ -111,7 +125,8 @@ public class PurchaseOrderService {
         // 2. Create PurchaseOrder entity
         PurchaseOrder purchaseOrder = PurchaseOrder.builder()
             .poNumber(poNumber)
-            .supplier(supplier)
+            .supplier(supplier.getName())
+            .supplierReference(supplier)
             .status(PurchaseOrderStatus.ORDERING)
             .totalQuantity(0)
             .totalCost(java.math.BigDecimal.ZERO)

@@ -30,6 +30,7 @@ import static org.mockito.Mockito.*;
 class PurchaseOrderServiceTest {
 
     @Mock private PurchaseOrderRepository purchaseOrderRepository;
+    @Mock private SupplierRepository supplierRepository;
     @Mock private PurchaseOrderItemRepository purchaseOrderItemRepository;
     @Mock private InventoryBatchRepository inventoryBatchRepository;
     @Mock private ProductSkuRepository productSkuRepository;
@@ -41,6 +42,7 @@ class PurchaseOrderServiceTest {
     private PurchaseOrderService purchaseOrderService;
 
     private ProductSku testProduct;
+    private Supplier testSupplier;
     private PurchaseOrder orderingPurchaseOrder;
 
     @BeforeEach
@@ -53,10 +55,19 @@ class PurchaseOrderServiceTest {
                 .unitPrice(new BigDecimal("10.00"))
                 .build();
 
+        testSupplier = Supplier.builder()
+                .id(1L)
+                .code("SUP-TEST")
+                .name("Test Supplier")
+                .isActive(true)
+                .isDeleted(false)
+                .build();
+
         orderingPurchaseOrder = PurchaseOrder.builder()
                 .id(1L)
                 .poNumber("PO-20260101-001")
                 .supplier("Test Supplier")
+                .supplierReference(testSupplier)
                 .status(PurchaseOrderStatus.ORDERING)
                 .totalQuantity(100)
                 .totalCost(new BigDecimal("1000.00"))
@@ -79,11 +90,13 @@ class PurchaseOrderServiceTest {
         // Mock PO number generation: findLatestByDatePrefix returns empty list
         when(purchaseOrderRepository.findLatestByDatePrefix(anyString()))
                 .thenReturn(new ArrayList<PurchaseOrder>());
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+                .thenReturn(Optional.of(testSupplier));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(orderingPurchaseOrder);
 
         PurchaseOrder result = purchaseOrderService.createPurchaseOrder(
-                "Test Supplier", List.of(itemData), LocalDate.now(), 1L, "Admin", null
+                1L, List.of(itemData), LocalDate.now(), 1L, "Admin", null
         );
 
         assertThat(result).isNotNull();
@@ -102,11 +115,42 @@ class PurchaseOrderServiceTest {
 
         when(purchaseOrderRepository.findLatestByDatePrefix(anyString()))
                 .thenReturn(new ArrayList<PurchaseOrder>());
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+                .thenReturn(Optional.of(testSupplier));
         when(productSkuRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> purchaseOrderService.createPurchaseOrder(
-                "Supplier", List.of(itemData), LocalDate.now(), 1L, "Admin", null
+                1L, List.of(itemData), LocalDate.now(), 1L, "Admin", null
         )).isInstanceOf(BusinessException.class);
+
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createPurchaseOrder - rejects missing supplier master")
+    void testCreatePurchaseOrder_SupplierNotFound() {
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(99L, 1L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> purchaseOrderService.createPurchaseOrder(
+                99L, List.of(), LocalDate.now(), 1L, "Admin", null
+        )).isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", com.wms.system.exception.ErrorKeys.SUPPLIER_NOT_FOUND);
+
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createPurchaseOrder - rejects inactive supplier master")
+    void testCreatePurchaseOrder_SupplierInactive() {
+        testSupplier.setIsActive(false);
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+                .thenReturn(Optional.of(testSupplier));
+
+        assertThatThrownBy(() -> purchaseOrderService.createPurchaseOrder(
+                1L, List.of(), LocalDate.now(), 1L, "Admin", null
+        )).isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", com.wms.system.exception.ErrorKeys.SUPPLIER_NOT_ACTIVE);
 
         verify(purchaseOrderRepository, never()).save(any());
     }

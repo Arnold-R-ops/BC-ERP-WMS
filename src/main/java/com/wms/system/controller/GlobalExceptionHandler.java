@@ -529,6 +529,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PO_ITEM_NOT_FOUND,
                  ErrorKeys.BATCH_NOT_FOUND,
                  ErrorKeys.WAREHOUSE_NOT_FOUND,  // Phase 3.4
+                 ErrorKeys.SUPPLIER_NOT_FOUND,
                  ErrorKeys.INTEGRATION_CONFIG_NOT_FOUND,  // V3.9 Shopify Integration
                  ErrorKeys.SHOPIFY_SKU_NOT_FOUND,  // V3.9 Shopify Integration
                  "INBOUND_ORDER_NOT_FOUND",  // Phase 3.5
@@ -561,7 +562,6 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PASSWORD_INCORRECT,  // P0.5 Password Management
                  ErrorKeys.PASSWORD_TOO_WEAK,  // P0.5 Password Management
                  ErrorKeys.PASSWORD_SAME_AS_OLD,  // P0.5 Password Management
-                 "SUPPLIER_NOT_FOUND",  // Phase 3.5
                  "INVALID_STATUS_FOR_APPROVAL",  // Phase 3.5
                  "INVALID_STATUS_FOR_CONFIRMATION",  // Phase 3.5
                  "INVALID_STATUS_FOR_RECEIVING",  // Phase 3.5
@@ -599,6 +599,9 @@ public class GlobalExceptionHandler {
                  ErrorKeys.USER_ALREADY_EXISTS,  // v3.3 Multi-Role System
                  ErrorKeys.BATCH_CODE_GENERATION_FAILED,
                  ErrorKeys.WAREHOUSE_ALREADY_EXISTS,  // Phase 3.4
+                 ErrorKeys.SUPPLIER_ALREADY_EXISTS,
+                 ErrorKeys.SUPPLIER_NOT_ACTIVE,
+                 ErrorKeys.SUPPLIER_IN_USE,
                  ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,  // V3.9 Shopify Integration
                  ErrorKeys.SKU_MAPPING_PENDING,  // P1-B2 Channel SKU Mapping
                  ErrorKeys.SALES_ORDER_INVALID_STATUS,

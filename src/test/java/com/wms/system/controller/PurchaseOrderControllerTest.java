@@ -3,6 +3,7 @@ package com.wms.system.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.entity.PurchaseOrder;
+import com.wms.system.entity.Supplier;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -47,10 +48,18 @@ class PurchaseOrderControllerTest {
     @MockBean private ExcelImportService excelImportService;
 
     private PurchaseOrder buildPurchaseOrder() {
+        Supplier supplier = Supplier.builder()
+                .id(1L)
+                .code("SUP-TEST")
+                .name("Test Supplier")
+                .isActive(true)
+                .isDeleted(false)
+                .build();
         return PurchaseOrder.builder()
                 .id(1L)
                 .poNumber("PO-20260101-001")
                 .supplier("Test Supplier")
+                .supplierReference(supplier)
                 .status(PurchaseOrderStatus.ORDERING)
                 .totalQuantity(100)
                 .totalCost(new BigDecimal("1000.00"))
@@ -70,7 +79,7 @@ class PurchaseOrderControllerTest {
 
         String requestJson = """
                 {
-                  "supplier": "Test Supplier",
+                  "supplierId": 1,
                   "items": [{"productSkuId": 1, "orderedQuantity": 100}],
                   "expectedDate": "2026-06-01",
                   "operatorId": 1,
@@ -109,7 +118,7 @@ class PurchaseOrderControllerTest {
 
         mockMvc.perform(multipart("/api/purchase-orders/upload")
                         .file(file)
-                        .param("supplier", "Test Supplier")
+                        .param("supplierId", "1")
                         .param("operatorId", "1")
                         .param("operatorName", "admin"))
                 .andExpect(status().isCreated());
@@ -126,7 +135,9 @@ class PurchaseOrderControllerTest {
 
         mockMvc.perform(get("/api/purchase-orders/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.poNumber").value("PO-20260101-001"));
+                .andExpect(jsonPath("$.poNumber").value("PO-20260101-001"))
+                .andExpect(jsonPath("$.supplierId").value(1))
+                .andExpect(jsonPath("$.supplierCode").value("SUP-TEST"));
     }
 
     @Test
@@ -196,7 +207,7 @@ class PurchaseOrderControllerTest {
 
         String requestJson = """
                 {
-                  "supplier": "Test Supplier",
+                  "supplierId": 1,
                   "items": [{"productSkuId": 1, "orderedQuantity": 100}],
                   "expectedDate": "2026-06-01",
                   "operatorId": 1,

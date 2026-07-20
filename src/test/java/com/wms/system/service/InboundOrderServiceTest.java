@@ -165,7 +165,7 @@ class InboundOrderServiceTest {
         itemReq.setTargetLocationId(1L);
         request.setItems(List.of(itemReq));
 
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L)).thenReturn(Optional.of(testSupplier));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
@@ -182,7 +182,7 @@ class InboundOrderServiceTest {
         assertThat(response.getTotalPlanQty()).isEqualTo(100);
 
         // Verify
-        verify(supplierRepository).findById(1L);
+        verify(supplierRepository).findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L);
         verify(productSkuRepository).findById(1L);
         verify(inboundOrderRepository).save(any(InboundOrder.class));
     }
@@ -195,7 +195,7 @@ class InboundOrderServiceTest {
         request.setSupplierId(999L);
         request.setItems(List.of());
 
-        when(supplierRepository.findById(999L)).thenReturn(Optional.empty());
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(999L, 1L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> inboundOrderService.createInboundOrder(
@@ -203,7 +203,7 @@ class InboundOrderServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", "SUPPLIER_NOT_FOUND");
 
-        verify(supplierRepository).findById(999L);
+        verify(supplierRepository).findByIdAndCompanyIdAndIsDeletedFalse(999L, 1L);
         verify(inboundOrderRepository, never()).save(any());
     }
 
@@ -216,7 +216,7 @@ class InboundOrderServiceTest {
         request.setSupplierId(1L);
         request.setItems(List.of());
 
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L)).thenReturn(Optional.of(testSupplier));
 
         // When & Then
         assertThatThrownBy(() -> inboundOrderService.createInboundOrder(
@@ -237,7 +237,7 @@ class InboundOrderServiceTest {
         itemReq.setPlanQty(100);
         request.setItems(List.of(itemReq));
 
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(testSupplier));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L)).thenReturn(Optional.of(testSupplier));
         when(productSkuRepository.findById(999L)).thenReturn(Optional.empty());
 
         // When & Then

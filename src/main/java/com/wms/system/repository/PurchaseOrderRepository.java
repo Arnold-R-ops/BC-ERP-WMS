@@ -127,4 +127,9 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
      * @return Count
      */
     long countByStatus(PurchaseOrderStatus status);
+
+    long countBySupplierReference_IdAndStatusIn(
+        Long supplierId,
+        List<PurchaseOrderStatus> statuses
+    );
 }

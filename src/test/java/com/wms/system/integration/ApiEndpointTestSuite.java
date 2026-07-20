@@ -85,6 +85,9 @@ class ApiEndpointTestSuite {
     private PurchaseOrderRepository purchaseOrderRepository;
 
     @Autowired
+    private SupplierRepository supplierRepository;
+
+    @Autowired
     private PurchaseOrderItemRepository purchaseOrderItemRepository;
 
     @Autowired
@@ -928,8 +931,15 @@ class ApiEndpointTestSuite {
 
     private JsonNode createPurchaseOrderApi(Long productSkuId) throws Exception {
         User buyer = ensureUser("buyer");
+        long supplierSequence = nextId();
+        Supplier supplier = supplierRepository.save(Supplier.builder()
+            .code("SUP-API-" + supplierSequence)
+            .name("Supplier-" + supplierSequence)
+            .isActive(true)
+            .isDeleted(false)
+            .build());
         String request = json(Map.of(
-            "supplier", "Supplier-" + nextId(),
+            "supplierId", supplier.getId(),
             "items", List.of(Map.of(
                 "productSkuId", productSkuId,
                 "orderedQuantity", 10,

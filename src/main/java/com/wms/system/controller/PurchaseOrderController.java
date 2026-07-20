@@ -63,7 +63,7 @@ public class PurchaseOrderController {
      * Request Body Example:
      * <pre>
      * {
-     *   "supplier": "XX Supplier",
+     *   "supplierId": 1,
      *   "items": [
      *     {
      *       "productSkuId": 1,
@@ -92,8 +92,8 @@ public class PurchaseOrderController {
         @Valid @RequestBody CreatePurchaseOrderRequest request,
         Authentication authentication
     ) {
-        log.info("API: Create purchase order - supplier={}, itemCount={}, operator={}",
-            request.getSupplier(), request.getItems().size(), request.getOperatorName());
+        log.info("API: Create purchase order - supplierId={}, itemCount={}, operator={}",
+            request.getSupplierId(), request.getItems().size(), request.getOperatorName());
 
         // Convert DTO to Service input format
         List<PurchaseOrderService.PurchaseOrderItemData> itemsData = request.getItems().stream()
@@ -110,7 +110,7 @@ public class PurchaseOrderController {
 
         // Call service
         PurchaseOrder purchaseOrder = purchaseOrderService.createPurchaseOrder(
-            request.getSupplier(),
+            request.getSupplierId(),
             itemsData,
             request.getExpectedDate(),
             request.getOperatorId(),
@@ -136,7 +136,7 @@ public class PurchaseOrderController {
      *
      * Form Data Parameters:
      * - file: Excel file (XLSX format, required)
-     * - supplier: Supplier name (required)
+     * - supplierId: Supplier master-data ID (required)
      * - operatorId: Operator user ID (required)
      * - operatorName: Operator user name (required)
      * - expectedDate: Expected delivery date (optional, format: yyyy-MM-dd)
@@ -148,7 +148,7 @@ public class PurchaseOrderController {
      * Returns PurchaseOrderResponse with ORDERING status
      *
      * @param file Excel file
-     * @param supplier Supplier name
+     * @param supplierId Supplier master-data ID
      * @param operatorId Operator ID
      * @param operatorName Operator name
      * @param authentication Current user authentication
@@ -157,14 +157,14 @@ public class PurchaseOrderController {
     @PostMapping("/upload")
     public ResponseEntity<PurchaseOrderResponse> uploadExcel(
         @RequestParam("file") MultipartFile file,
-        @RequestParam("supplier") String supplier,
+        @RequestParam("supplierId") Long supplierId,
         @RequestParam("operatorId") Long operatorId,
         @RequestParam("operatorName") String operatorName,
         @RequestParam(value = "expectedDate", required = false) String expectedDate,
         Authentication authentication
     ) {
-        log.info("API: Upload Excel - filename={}, supplier={}, operator={}",
-            file.getOriginalFilename(), supplier, operatorName);
+        log.info("API: Upload Excel - filename={}, supplierId={}, operator={}",
+            file.getOriginalFilename(), supplierId, operatorName);
 
         // Parse Excel file
         List<PurchaseOrderService.PurchaseOrderItemData> itemsData =
@@ -174,7 +174,7 @@ public class PurchaseOrderController {
 
         // Call service
         PurchaseOrder purchaseOrder = purchaseOrderService.createPurchaseOrder(
-            supplier,
+            supplierId,
             itemsData,
             expectedDate != null ? java.time.LocalDate.parse(expectedDate) : null,
             operatorId,
@@ -484,6 +484,12 @@ public class PurchaseOrderController {
             .id(purchaseOrder.getId())
             .poNumber(purchaseOrder.getPoNumber())
             .supplier(maskSensitiveData ? "***" : purchaseOrder.getSupplier())  // Privacy masking
+            .supplierId(purchaseOrder.getSupplierReference() == null
+                ? null
+                : purchaseOrder.getSupplierReference().getId())
+            .supplierCode(purchaseOrder.getSupplierReference() == null
+                ? null
+                : purchaseOrder.getSupplierReference().getCode())
             .status(purchaseOrder.getStatus())
             .totalQuantity(purchaseOrder.getTotalQuantity())
             .totalCost(maskSensitiveData ? null : purchaseOrder.getTotalCost())  // Privacy masking

@@ -57,6 +57,16 @@ public class PurchaseOrderResponse {
     private String supplier;
 
     /**
+     * Supplier master-data ID. Null only for unmatched legacy records.
+     */
+    private Long supplierId;
+
+    /**
+     * Current immutable supplier code from master data.
+     */
+    private String supplierCode;
+
+    /**
      * Purchase order status
      */
     private PurchaseOrderStatus status;

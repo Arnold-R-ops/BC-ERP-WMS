@@ -23,7 +23,8 @@ import lombok.*;
     name = "suppliers",
     indexes = {
         @Index(name = "idx_supplier_code", columnList = "code"),
-        @Index(name = "idx_supplier_active", columnList = "is_active")
+        @Index(name = "idx_supplier_active", columnList = "is_active"),
+        @Index(name = "idx_suppliers_company_active_deleted", columnList = "company_id,is_active,is_deleted")
     },
     uniqueConstraints = {
         @UniqueConstraint(name = "uk_suppliers_company_code", columnNames = {"company_id", "code"})
@@ -86,4 +87,20 @@ public class Supplier extends BaseEntity {
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    /**
+     * Optional master-data note.
+     */
+    @Size(max = 500, message = "供应商备注长度不能超过500")
+    @Column(name = "remark", length = 500)
+    private String remark;
+
+    /**
+     * Logical deletion is handled explicitly by SupplierService. The entity is
+     * intentionally not globally restricted so historical inbound orders can
+     * still resolve their supplier relationship for audit display.
+     */
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 }

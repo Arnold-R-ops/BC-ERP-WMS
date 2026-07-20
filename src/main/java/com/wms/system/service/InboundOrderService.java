@@ -72,15 +72,16 @@ public class InboundOrderService {
         log.info("Creating inbound order for supplier: {}, applicant: {}", request.getSupplierId(), applicantName);
 
         // 1. 验证供应商
-        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+        Supplier supplier = supplierRepository
+            .findByIdAndCompanyIdAndIsDeletedFalse(request.getSupplierId(), 1L)
             .orElseThrow(() -> new BusinessException(
-                "SUPPLIER_NOT_FOUND",
+                ErrorKeys.SUPPLIER_NOT_FOUND,
                 Map.of("supplierId", request.getSupplierId())
             ));
 
         if (!supplier.getIsActive()) {
             throw new BusinessException(
-                "SUPPLIER_NOT_ACTIVE",
+                ErrorKeys.SUPPLIER_NOT_ACTIVE,
                 Map.of("supplierId", request.getSupplierId())
             );
         }

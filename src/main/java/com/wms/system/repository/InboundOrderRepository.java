@@ -77,4 +77,9 @@ public interface InboundOrderRepository extends JpaRepository<InboundOrder, Long
      * 统计指定申请人的入库单数量
      */
     long countByApplicantId(Long applicantId);
+
+    long countBySupplier_IdAndStatusIn(
+        Long supplierId,
+        List<InboundOrderStatus> statuses
+    );
 }

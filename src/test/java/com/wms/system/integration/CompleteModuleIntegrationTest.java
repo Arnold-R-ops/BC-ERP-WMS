@@ -270,7 +270,7 @@ class CompleteModuleIntegrationTest {
     void testModule3_Purchase_CreateOrder() throws Exception {
         String requestBody = """
             {
-                "supplier": "Test Supplier",
+                "supplierId": %d,
                 "operatorId": %d,
                 "operatorName": "buyer",
                 "expectedDate": "2026-02-20",
@@ -284,7 +284,7 @@ class CompleteModuleIntegrationTest {
                     }
                 ]
             }
-            """.formatted(buyerUser.getId(), product.getId());
+            """.formatted(supplier.getId(), buyerUser.getId(), product.getId());
 
         mockMvc.perform(post("/api/purchase-orders")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -292,6 +292,7 @@ class CompleteModuleIntegrationTest {
             .andDo(print())
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.supplier").value("Test Supplier"))
+            .andExpect(jsonPath("$.supplierId").value(supplier.getId()))
             .andExpect(jsonPath("$.status").value("ORDERING"));
     }
 

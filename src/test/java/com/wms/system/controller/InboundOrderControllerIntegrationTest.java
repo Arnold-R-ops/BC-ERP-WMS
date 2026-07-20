@@ -472,7 +472,7 @@ class InboundOrderControllerIntegrationTest {
                         .header("Authorization", "Bearer " + buyerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorKey").value("SUPPLIER_NOT_FOUND"));
     }
 

@@ -111,6 +111,13 @@ public final class ErrorKeys {
      */
     public static final String WAREHOUSE_ALREADY_EXISTS = "WAREHOUSE_ALREADY_EXISTS";
 
+    // ========== Supplier Related Errors ==========
+
+    public static final String SUPPLIER_NOT_FOUND = "SUPPLIER_NOT_FOUND";
+    public static final String SUPPLIER_ALREADY_EXISTS = "SUPPLIER_ALREADY_EXISTS";
+    public static final String SUPPLIER_NOT_ACTIVE = "SUPPLIER_NOT_ACTIVE";
+    public static final String SUPPLIER_IN_USE = "SUPPLIER_IN_USE";
+
     // ========== Stock/Inventory Related Errors ==========
 
     /**
