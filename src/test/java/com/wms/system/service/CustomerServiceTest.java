@@ -4,6 +4,7 @@ import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
 import com.wms.system.entity.Customer;
 import com.wms.system.entity.User;
+import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.CustomerRepository;
 import com.wms.system.repository.UserRepository;
@@ -100,7 +101,9 @@ class CustomerServiceTest {
         assertThat(response.getCode()).isEqualTo("CUST001");
         assertThat(response.getName()).isEqualTo(CUSTOMER_NAME);
         verify(customerRepository).save(argThat(customer ->
-            customer.getOwnerId() != null && customer.getOwnerId().equals(1L)
+            customer.getOwnerId() != null
+                && customer.getOwnerId().equals(1L)
+                && customer.getCustomerType() == CustomerType.CLIENT
         ));
     }
 

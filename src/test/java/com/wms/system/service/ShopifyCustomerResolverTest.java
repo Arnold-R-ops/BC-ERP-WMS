@@ -37,19 +37,19 @@ class ShopifyCustomerResolverTest {
     private ShopifyCustomerResolver resolver;
 
     @Test
-    void retailOffReusesUniqueExistingB2bCustomer() {
+    void retailOffReusesUniqueExistingClient() {
         ShopifyOrderDto order = order(100L, " Buyer@Example.com ");
-        Customer b2b = customer(11L, CustomerType.B2B, "buyer@example.com");
+        Customer client = customer(11L, CustomerType.CLIENT, "buyer@example.com");
         when(customerRepository.findByCompanyIdAndCustomerTypeAndExternalCustomerId(
             1L, CustomerType.CONSUMER, "100"
         )).thenReturn(Optional.empty());
         when(customerRepository.findByCompanyIdAndNormalizedEmailOrderByIdAsc(
             1L, "buyer@example.com"
-        )).thenReturn(List.of(b2b));
+        )).thenReturn(List.of(client));
 
         Customer resolved = resolver.resolveForAutomatic(order, config(false));
 
-        assertThat(resolved).isSameAs(b2b);
+        assertThat(resolved).isSameAs(client);
         verify(customerRepository, never()).save(any(Customer.class));
     }
 
@@ -131,10 +131,10 @@ class ShopifyCustomerResolverTest {
     }
 
     @Test
-    void ambiguousB2bEmailIsBlockedWithoutGuessingOrCreation() {
+    void ambiguousClientEmailIsBlockedWithoutGuessingOrCreation() {
         ShopifyOrderDto order = order(null, "shared@example.com");
-        Customer first = customer(21L, CustomerType.B2B, "shared@example.com");
-        Customer second = customer(22L, CustomerType.B2B, "shared@example.com");
+        Customer first = customer(21L, CustomerType.CLIENT, "shared@example.com");
+        Customer second = customer(22L, CustomerType.CLIENT, "shared@example.com");
         when(customerRepository.findByCompanyIdAndNormalizedEmailOrderByIdAsc(
             1L, "shared@example.com"
         )).thenReturn(List.of(first, second));
@@ -206,7 +206,7 @@ class ShopifyCustomerResolverTest {
             .email(email)
             .normalizedEmail(Customer.normalizeEmail(email))
             .customerType(type)
-            .source(type == CustomerType.B2B ? CustomerSource.MANUAL : CustomerSource.CHANNEL)
+            .source(type == CustomerType.CLIENT ? CustomerSource.MANUAL : CustomerSource.CHANNEL)
             .isActive(true)
             .build();
     }

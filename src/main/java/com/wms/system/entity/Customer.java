@@ -92,7 +92,7 @@ public class Customer extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_type", nullable = false, length = 20)
     @Builder.Default
-    private CustomerType customerType = CustomerType.B2B;
+    private CustomerType customerType = CustomerType.CLIENT;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
