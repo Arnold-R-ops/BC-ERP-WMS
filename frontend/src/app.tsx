@@ -46,6 +46,18 @@ const SkuMappingPage = lazy(() =>
 const RawEventPage = lazy(() =>
   import('./pages/integrations/RawEventPage').then((module) => ({ default: module.RawEventPage })),
 );
+const ClientPage = lazy(() =>
+  import('./pages/customers/ClientPage').then((module) => ({ default: module.ClientPage })),
+);
+const ConsumerPage = lazy(() =>
+  import('./pages/customers/ConsumerPage').then((module) => ({ default: module.ConsumerPage })),
+);
+const SupplierPage = lazy(() =>
+  import('./pages/suppliers/SupplierPage').then((module) => ({ default: module.SupplierPage })),
+);
+const ReconciliationPage = lazy(() =>
+  import('./pages/integrations/ReconciliationPage').then((module) => ({ default: module.ReconciliationPage })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +110,10 @@ function AppRoutes(): JSX.Element {
               element={<ModuleRoute module="inventory"><InventoryPage /></ModuleRoute>}
               path="inventory"
             />
+            <Route element={<ModuleRoute module="masterData"><Navigate replace to="clients" /></ModuleRoute>} path="master-data" />
+            <Route element={<ModuleRoute module="customers"><ClientPage /></ModuleRoute>} path="master-data/clients" />
+            <Route element={<ModuleRoute module="customers"><ConsumerPage /></ModuleRoute>} path="master-data/consumers" />
+            <Route element={<ModuleRoute module="suppliers"><SupplierPage /></ModuleRoute>} path="master-data/suppliers" />
             <Route
               element={<ModuleRoute module="sales"><SalesOrderPage /></ModuleRoute>}
               path="sales"
@@ -115,6 +131,7 @@ function AppRoutes(): JSX.Element {
             <Route element={<ModuleRoute module="integrations"><PendingSkuMappingPage /></ModuleRoute>} path="integrations/pending" />
             <Route element={<ModuleRoute module="integrations"><SkuMappingPage /></ModuleRoute>} path="integrations/mappings" />
             <Route element={<ModuleRoute module="integrations"><RawEventPage /></ModuleRoute>} path="integrations/reviews" />
+            <Route element={<ModuleRoute module="integrations"><ReconciliationPage /></ModuleRoute>} path="integrations/reconciliation" />
           </Route>
         </Route>
         <Route element={<Navigate replace to="/" />} path="*" />

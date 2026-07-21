@@ -52,6 +52,10 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      */
     List<Customer> findByIsActiveTrue();
 
+    List<Customer> findByCustomerType(CustomerType customerType);
+
+    List<Customer> findByCustomerTypeAndIsActiveTrue(CustomerType customerType);
+
     /**
      * 根据客户名称模糊查询
      *
@@ -96,6 +100,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      */
     List<Customer> findByOwnerId(Long ownerId);
 
+    List<Customer> findByOwnerIdAndCustomerType(Long ownerId, CustomerType customerType);
+
     /**
      * 根据归属人ID查询激活的客户列表（V4.1 行级隔离）
      *
@@ -108,4 +114,9 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @since V4.1 (Customer Data Security)
      */
     List<Customer> findByOwnerIdAndIsActiveTrue(Long ownerId);
+
+    List<Customer> findByOwnerIdAndCustomerTypeAndIsActiveTrue(
+        Long ownerId,
+        CustomerType customerType
+    );
 }

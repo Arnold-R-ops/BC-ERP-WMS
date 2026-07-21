@@ -12,6 +12,7 @@ import {
   ShopOutlined,
   ShoppingCartOutlined,
   TagsOutlined,
+  TeamOutlined,
   TruckOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -44,6 +45,14 @@ const menuDefinitions: MenuDefinition[] = [
       { path: '/categories', module: 'products', nameKey: 'menu.categories', icon: <TagsOutlined />, delivered: true },
     ],
   },
+  {
+    path: '/master-data', module: 'masterData', nameKey: 'menu.masterData', icon: <TeamOutlined />, delivered: true,
+    children: [
+      { path: '/master-data/clients', module: 'customers', nameKey: 'menu.clients', icon: <TeamOutlined />, delivered: true },
+      { path: '/master-data/consumers', module: 'customers', nameKey: 'menu.consumers', icon: <UserOutlined />, delivered: true },
+      { path: '/master-data/suppliers', module: 'suppliers', nameKey: 'menu.suppliers', icon: <TruckOutlined />, delivered: true },
+    ],
+  },
   { path: '/inventory', module: 'inventory', nameKey: 'menu.inventory', icon: <DatabaseOutlined />, delivered: true },
   { path: '/sales', module: 'sales', nameKey: 'menu.sales', icon: <ShoppingCartOutlined />, delivered: true },
   { path: '/purchasing', module: 'purchasing', nameKey: 'menu.purchasing', icon: <TruckOutlined />, delivered: true },
@@ -55,6 +64,7 @@ const menuDefinitions: MenuDefinition[] = [
       { path: '/integrations/pending', module: 'integrations', nameKey: 'menu.pendingMappings', icon: <ApartmentOutlined />, delivered: true },
       { path: '/integrations/mappings', module: 'integrations', nameKey: 'menu.skuMappings', icon: <LinkOutlined />, delivered: true },
       { path: '/integrations/reviews', module: 'integrations', nameKey: 'menu.manualReviews', icon: <AuditOutlined />, delivered: true },
+      { path: '/integrations/reconciliation', module: 'integrations', nameKey: 'menu.reconciliation', icon: <SafetyCertificateOutlined />, delivered: true },
     ],
   },
 ];
@@ -138,7 +148,7 @@ export function AppLayout(): JSX.Element {
         layout="mix"
         location={{ pathname: location.pathname }}
         logo={false}
-        menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
+        menuItemRender={(item, dom) => item.children?.length ? dom : item.path ? <Link to={item.path}>{dom}</Link> : dom}
         menuProps={{
           openKeys: openMenuKeys,
           onOpenChange: (keys) => {

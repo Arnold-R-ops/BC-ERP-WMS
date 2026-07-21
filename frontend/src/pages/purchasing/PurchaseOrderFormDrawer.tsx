@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listProductSkus } from '../../api/productSkus';
 import type { PurchaseOrderPayload } from '../../api/purchasing';
+import { listSuppliers } from '../../api/suppliers';
 
 export type PurchaseOrderFormValues = Omit<PurchaseOrderPayload, 'operatorId' | 'operatorName'>;
 
@@ -32,9 +33,18 @@ export function PurchaseOrderFormDrawer({
     queryFn: () => listProductSkus({ enabledOnly: true }),
     enabled: open,
   });
+  const suppliersQuery = useQuery({
+    queryKey: ['suppliers', 'active'],
+    queryFn: () => listSuppliers(true),
+    enabled: open,
+  });
   const productSkuOptions = (productSkusQuery.data ?? []).map((productSku) => ({
     label: `${productSku.name ?? '-'} · ${productSku.skuName ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`,
     value: productSku.id,
+  }));
+  const supplierOptions = (suppliersQuery.data ?? []).map((supplier) => ({
+    label: `${supplier.name ?? '-'} (${supplier.code ?? '-'})`,
+    value: supplier.id,
   }));
 
   return (
@@ -51,10 +61,11 @@ export function PurchaseOrderFormDrawer({
       title={t('purchasing.create')}
       width={920}
     >
-      <ProFormText
-        fieldProps={{ maxLength: 200 }}
+      <ProFormSelect
+        fieldProps={{ loading: suppliersQuery.isLoading, optionFilterProp: 'label', showSearch: true }}
         label={t('purchasing.fields.supplier')}
-        name="supplier"
+        name="supplierId"
+        options={supplierOptions}
         rules={[{ required: true, message: t('purchasing.validation.supplierRequired') }]}
         width="md"
       />

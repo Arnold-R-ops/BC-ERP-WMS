@@ -58,6 +58,7 @@ Java 17 + Spring Boot 3.2.11 + PostgreSQL 单体 WMS（V4.x），采购→批次
   - 修正 `ReportSummaryScheduler` 时区（现为 Asia/Shanghai，与业务时区 Europe/London 不一致）
 - 仓库作业 PWA（PDA 扫码收货/拣货/盘点）
 - 多仓调拨、销售退货 RMA（ZONE_R 与 RETURN 已预留）
+- **多仓 SKU 经营策略下沉**：新增“公司 + SKU + 仓库”唯一策略关系，承载仓库级安全库存、补货点、采购提前期、默认库区、销售/采购开关和结构化库存策略；库存预警与补货建议改为按仓计算，同时保持批次库存真相源和 `Available = OnHand - Reserved` 不变。详细边界与验收标准见 `docs/frontend/ACCEPTANCE_NOTES.md` 的 `ARCH-REVIEW-011`。
 - ATP 纳入在途、波次拣货+路径优化（pos_x/pos_y、FEFO 碎片索引已预留，见 V4_11）
 - B2B 自助订货门户 + 客户等级价/阶梯价（新增 PriceList，复用风控审批框架）
 - **接线现成休眠代码**（勿重写）：角色管理 API（RoleService/RolePermissionService 已存在）、幂等性（IdempotencyService 已存在）、自动盘点调度（StocktakeScheduler 注解被注释）

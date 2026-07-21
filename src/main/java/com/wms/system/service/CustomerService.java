@@ -4,6 +4,7 @@ import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
 import com.wms.system.entity.Customer;
 import com.wms.system.entity.User;
+import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CustomerRepository;
@@ -102,6 +103,7 @@ public class CustomerService {
         Customer customer = Customer.builder()
             .code(request.getCode())
             .name(request.getName())
+            .customerType(CustomerType.CLIENT)
             .contact(request.getContact())
             .phone(request.getPhone())
             .email(request.getEmail())
@@ -146,6 +148,7 @@ public class CustomerService {
 
         // 查询客户
         Customer customer = getCustomerEntityById(id);
+        requireManagedClient(customer);
 
         // 更新字段（编码不可修改）
         customer.setName(request.getName());
@@ -259,6 +262,14 @@ public class CustomerService {
      * @return 客户列表（根据角色过滤）
      */
     public List<CustomerResponse> listCustomers() {
+        return listCustomers(null);
+    }
+
+    /**
+     * Query customers by business type while preserving row-level isolation.
+     * A null type retains the legacy all-customer behavior.
+     */
+    public List<CustomerResponse> listCustomers(CustomerType customerType) {
         log.debug("Querying all customers");
 
         List<Customer> customers;
@@ -267,11 +278,15 @@ public class CustomerService {
         if (isSalesRole() && !isManagerOrAdmin()) {
             // 销售员只能查看自己的客户
             Long currentUserId = getCurrentUserId();
-            customers = customerRepository.findByOwnerId(currentUserId);
+            customers = customerType == null
+                ? customerRepository.findByOwnerId(currentUserId)
+                : customerRepository.findByOwnerIdAndCustomerType(currentUserId, customerType);
             log.debug("Sales user {} querying own customers: count={}", currentUserId, customers.size());
         } else {
             // 管理员和经理可以查看所有客户
-            customers = customerRepository.findAll();
+            customers = customerType == null
+                ? customerRepository.findAll()
+                : customerRepository.findByCustomerType(customerType);
             log.debug("Admin/Manager querying all customers: count={}", customers.size());
         }
 
@@ -297,6 +312,14 @@ public class CustomerService {
      * @return 激活客户列表（根据角色过滤）
      */
     public List<CustomerResponse> listActiveCustomers() {
+        return listActiveCustomers(null);
+    }
+
+    /**
+     * Query active customers by business type while preserving row-level isolation.
+     * A null type retains the legacy all-active-customer behavior.
+     */
+    public List<CustomerResponse> listActiveCustomers(CustomerType customerType) {
         log.debug("Querying all active customers");
 
         List<Customer> customers;
@@ -305,11 +328,18 @@ public class CustomerService {
         if (isSalesRole() && !isManagerOrAdmin()) {
             // 销售员只能查看自己的激活客户
             Long currentUserId = getCurrentUserId();
-            customers = customerRepository.findByOwnerIdAndIsActiveTrue(currentUserId);
+            customers = customerType == null
+                ? customerRepository.findByOwnerIdAndIsActiveTrue(currentUserId)
+                : customerRepository.findByOwnerIdAndCustomerTypeAndIsActiveTrue(
+                    currentUserId,
+                    customerType
+                );
             log.debug("Sales user {} querying own active customers: count={}", currentUserId, customers.size());
         } else {
             // 管理员和经理可以查看所有激活客户
-            customers = customerRepository.findByIsActiveTrue();
+            customers = customerType == null
+                ? customerRepository.findByIsActiveTrue()
+                : customerRepository.findByCustomerTypeAndIsActiveTrue(customerType);
             log.debug("Admin/Manager querying all active customers: count={}", customers.size());
         }
 
@@ -341,6 +371,7 @@ public class CustomerService {
         log.info("Deleting customer (soft delete): id={}", id);
 
         Customer customer = getCustomerEntityById(id);
+        requireManagedClient(customer);
         customer.setIsActive(false);
 
         Customer deletedCustomer = customerRepository.save(customer);
@@ -379,6 +410,31 @@ public class CustomerService {
                     "customerId", customerId,
                     "customerCode", customer.getCode()
                 )
+            );
+        }
+    }
+
+    public void validateManualOrderCustomer(Long customerId) {
+        Customer customer = getCustomerEntityById(customerId);
+        if (customer.getCustomerType() != CustomerType.CLIENT) {
+            throw new BusinessException(
+                ErrorKeys.MANUAL_ORDER_REQUIRES_CLIENT,
+                Map.of("customerId", customerId, "customerType", customer.getCustomerType().name())
+            );
+        }
+        if (!customer.getIsActive()) {
+            throw new BusinessException(
+                ErrorKeys.CUSTOMER_INACTIVE,
+                Map.of("customerId", customerId, "customerCode", customer.getCode())
+            );
+        }
+    }
+
+    private void requireManagedClient(Customer customer) {
+        if (customer.getCustomerType() == CustomerType.CONSUMER) {
+            throw new BusinessException(
+                ErrorKeys.CUSTOMER_CONSUMER_READ_ONLY,
+                Map.of("customerId", customer.getId(), "source", customer.getSource().name())
             );
         }
     }
@@ -444,8 +500,8 @@ public class CustomerService {
                 .id(customer.getId())
                 .code(customer.getCode())
                 .name(MaskingUtils.maskName(customer.getName()))
-                .customerType(customer.getCustomerType().name())
-                .source(customer.getSource().name())
+                .customerType(customer.getCustomerType())
+                .source(customer.getSource())
                 .externalCustomerId(customer.getExternalCustomerId())
                 .contact(customer.getContact())
                 .phone(MaskingUtils.maskPhone(customer.getPhone()))
@@ -463,8 +519,8 @@ public class CustomerService {
                 .id(customer.getId())
                 .code(customer.getCode())
                 .name(customer.getName())
-                .customerType(customer.getCustomerType().name())
-                .source(customer.getSource().name())
+                .customerType(customer.getCustomerType())
+                .source(customer.getSource())
                 .externalCustomerId(customer.getExternalCustomerId())
                 .contact(customer.getContact())
                 .phone(customer.getPhone())

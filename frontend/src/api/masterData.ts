@@ -2,12 +2,24 @@ import type { components } from './schema';
 import { apiRequest } from './http';
 
 export type Customer = components['schemas']['CustomerResponse'];
+export type CustomerPayload = components['schemas']['CreateCustomerRequest'];
+export type CustomerType = NonNullable<Customer['customerType']>;
 export type Warehouse = components['schemas']['WarehouseResponse'];
 export type Location = components['schemas']['LocationResponse'];
 export type UserSummary = components['schemas']['UserWithRolesDTO'];
 
-export async function listCustomers(activeOnly = true): Promise<Customer[]> {
-  return apiRequest<Customer[]>(`/api/customers?activeOnly=${String(activeOnly)}`);
+export async function listCustomers(activeOnly = true, customerType?: CustomerType): Promise<Customer[]> {
+  const search = new URLSearchParams({ activeOnly: String(activeOnly) });
+  if (customerType) search.set('customerType', customerType);
+  return apiRequest<Customer[]>(`/api/customers?${search.toString()}`);
+}
+
+export async function createCustomer(payload: CustomerPayload): Promise<Customer> {
+  return apiRequest<Customer>('/api/customers', { method: 'POST', body: payload });
+}
+
+export async function updateCustomer(id: number, payload: CustomerPayload): Promise<Customer> {
+  return apiRequest<Customer>(`/api/customers/${id}`, { method: 'PUT', body: payload });
 }
 
 export async function listActiveWarehouses(): Promise<Warehouse[]> {

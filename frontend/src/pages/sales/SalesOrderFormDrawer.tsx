@@ -6,7 +6,7 @@ import {
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
-import { Alert } from 'antd';
+import { Alert, Divider } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listCustomers } from '../../api/masterData';
@@ -30,8 +30,8 @@ export function SalesOrderFormDrawer({
 }: SalesOrderFormDrawerProps): JSX.Element {
   const { t } = useTranslation();
   const customersQuery = useQuery({
-    queryKey: ['customers', 'active'],
-    queryFn: () => listCustomers(true),
+    queryKey: ['customers', 'active', 'CLIENT'],
+    queryFn: () => listCustomers(true, 'CLIENT'),
     enabled: open,
   });
   const productSkusQuery = useQuery({
@@ -93,6 +93,16 @@ export function SalesOrderFormDrawer({
         ]}
         width="sm"
       />
+
+      <Divider orientation="left" plain>{t('sales.form.shipping')}</Divider>
+      <ProFormText fieldProps={{ maxLength: 100 }} label={t('sales.fields.consigneeName')} name="consigneeName" width="md" />
+      <ProFormText fieldProps={{ maxLength: 30 }} label={t('sales.fields.consigneePhone')} name="consigneePhone" width="sm" />
+      <ProFormText fieldProps={{ maxLength: 255 }} label={t('sales.fields.shipAddress1')} name="shipAddress1" />
+      <ProFormText fieldProps={{ maxLength: 255 }} label={t('sales.fields.shipAddress2')} name="shipAddress2" />
+      <ProFormText fieldProps={{ maxLength: 100 }} label={t('sales.fields.shipCity')} name="shipCity" width="sm" />
+      <ProFormText fieldProps={{ maxLength: 100 }} label={t('sales.fields.shipProvince')} name="shipProvince" width="sm" />
+      <ProFormText fieldProps={{ maxLength: 30 }} label={t('sales.fields.shipZip')} name="shipZip" width="xs" />
+      <ProFormText fieldProps={{ maxLength: 2 }} label={t('sales.fields.shipCountryCode')} name="shipCountryCode" width="xs" />
 
       <ProFormList
         copyIconProps={false}

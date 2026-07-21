@@ -118,7 +118,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(customerService.getCustomerName(1L)).thenReturn("Test Customer");
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
         when(salesOrderRepository.save(any(SalesOrder.class)))
@@ -142,6 +141,7 @@ class SalesSubmissionServiceTest {
         assertThat(response.getApplicantName()).isEqualTo("Test User");
         assertThat(response.getCustomerName()).isEqualTo("Test Customer");
 
+        verify(customerService).validateManualOrderCustomer(1L);
         verify(salesOrderRepository, atLeastOnce()).save(any(SalesOrder.class));
         verify(salesOrderItemRepository).saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList());
     }
@@ -161,7 +161,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("8.00")); // Below min price 10.00
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> {
@@ -204,7 +203,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> {
@@ -243,7 +241,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> {
@@ -289,7 +286,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(customerService.getCustomerName(1L)).thenReturn("Test Customer");
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
@@ -350,7 +346,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());
         when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
         when(salesOrderRepository.saveAndFlush(any(SalesOrder.class))).thenThrow(
@@ -471,7 +466,6 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        doNothing().when(customerService).validateCustomerActive(1L);
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -488,6 +482,7 @@ class SalesSubmissionServiceTest {
         // Then
         assertThat(response).isNotNull();
 
+        verify(customerService).validateManualOrderCustomer(1L);
         verify(salesOrderItemRepository).deleteBySalesOrderId(1L);
         verify(salesOrderItemRepository).saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList());
         verify(salesOrderRepository, atLeastOnce()).save(any(SalesOrder.class));

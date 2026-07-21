@@ -10,6 +10,11 @@ export type PendingSkuMapping = components['schemas']['PendingSkuMapping'];
 export type ResolvePendingSkuPayload = components['schemas']['ResolvePendingSkuRequest'];
 export type RawEventSummary = components['schemas']['RawEventSummary'];
 export type ChannelRawEvent = components['schemas']['ChannelRawEvent'];
+export type ShopifyReconciliationRequest = components['schemas']['ShopifyReconciliationRequest'];
+export type ShopifyReconciliationReport = components['schemas']['ShopifyReconciliationReport'];
+export type ShopifyReconciliationRepairRequest = components['schemas']['ShopifyReconciliationRepairRequest'];
+export type ShopifyReconciliationRepairResult = components['schemas']['ShopifyReconciliationRepairResult'];
+export type ShopifyMissingOrder = components['schemas']['MissingOrder'];
 
 export interface ConnectionTestResult {
   configId?: number;
@@ -78,6 +83,14 @@ export function testIntegrationConnection(id: number): Promise<ConnectionTestRes
 
 export function syncShopifyOrders(): Promise<ShopifySyncResult> {
   return apiRequest<ShopifySyncResult>('/api/integration/shopify/sync', { method: 'POST' });
+}
+
+export function reconcileShopifyOrders(payload: ShopifyReconciliationRequest): Promise<ShopifyReconciliationReport> {
+  return apiRequest<ShopifyReconciliationReport>('/api/integration/shopify/reconcile', { method: 'POST', body: payload });
+}
+
+export function repairShopifyOrders(payload: ShopifyReconciliationRepairRequest): Promise<ShopifyReconciliationRepairResult> {
+  return apiRequest<ShopifyReconciliationRepairResult>('/api/integration/shopify/reconcile/repair', { method: 'POST', body: payload });
 }
 
 export function listSkuMappings(channel = 'SHOPIFY'): Promise<ChannelSkuMapping[]> {

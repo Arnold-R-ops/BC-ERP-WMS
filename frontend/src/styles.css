@@ -133,6 +133,72 @@ input {
   margin-bottom: 20px;
 }
 
+.workflow-subsection {
+  margin-top: 24px;
+}
+
+.workflow-subsection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.workflow-subsection-heading .ant-typography {
+  margin: 0;
+}
+
+.shipment-row-voided > td {
+  color: #94a3b8 !important;
+  text-decoration: line-through;
+}
+
+.reconciliation-page {
+  display: grid;
+  gap: 18px;
+}
+
+.reconciliation-page .page-heading h2,
+.reconciliation-page .reconciliation-table-heading h4 {
+  margin: 0;
+}
+
+.reconciliation-page .page-heading p {
+  margin: 4px 0 0;
+}
+
+.reconciliation-toolbar {
+  align-items: flex-end;
+  display: flex;
+  gap: 4px;
+}
+
+.reconciliation-summary {
+  border-block: 1px solid #e5e7eb;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+}
+
+.reconciliation-summary .ant-statistic {
+  border-inline-end: 1px solid #e5e7eb;
+  padding: 18px 20px;
+}
+
+.reconciliation-summary .ant-statistic:last-child {
+  border-inline-end: 0;
+}
+
+.reconciliation-result {
+  margin: 0;
+}
+
+.reconciliation-table-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
 .inventory-row-near-expiry > td {
   background: #fff8df !important;
 }
@@ -914,6 +980,24 @@ input {
 }
 
 @media (max-width: 900px) {
+  .reconciliation-summary {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .reconciliation-summary .ant-statistic:nth-child(2) {
+    border-inline-end: 0;
+  }
+
+  .reconciliation-summary .ant-statistic:nth-child(-n + 2) {
+    border-block-end: 1px solid #e5e7eb;
+  }
+
+  .reconciliation-table-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .dashboard-metric-grid {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }

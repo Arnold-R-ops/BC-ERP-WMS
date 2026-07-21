@@ -602,6 +602,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.SUPPLIER_ALREADY_EXISTS,
                  ErrorKeys.SUPPLIER_NOT_ACTIVE,
                  ErrorKeys.SUPPLIER_IN_USE,
+                 ErrorKeys.CUSTOMER_CONSUMER_READ_ONLY,
+                 ErrorKeys.MANUAL_ORDER_REQUIRES_CLIENT,
                  ErrorKeys.SHOPIFY_ORDER_ALREADY_SYNCED,  // V3.9 Shopify Integration
                  ErrorKeys.SKU_MAPPING_PENDING,  // P1-B2 Channel SKU Mapping
                  ErrorKeys.SALES_ORDER_INVALID_STATUS,

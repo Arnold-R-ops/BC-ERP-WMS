@@ -1,5 +1,7 @@
 package com.wms.system.dto.customer;
 
+import com.wms.system.entity.enums.CustomerSource;
+import com.wms.system.entity.enums.CustomerType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,9 +40,9 @@ public class CustomerResponse {
      */
     private String name;
 
-    private String customerType;
+    private CustomerType customerType;
 
-    private String source;
+    private CustomerSource source;
 
     private String externalCustomerId;
 

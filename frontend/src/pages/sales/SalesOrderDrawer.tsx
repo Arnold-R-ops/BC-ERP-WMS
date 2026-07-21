@@ -2,10 +2,12 @@ import { CheckOutlined, CloseOutlined, DeleteOutlined, StopOutlined } from '@ant
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Descriptions, Drawer, Dropdown, Space, Steps, Table, type MenuProps, type TableColumnsType } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import { getSalesOrder, type SalesOrder, type SalesOrderItem } from '../../api/sales';
 import { OrderStatusTag } from '../../components/OrderStatusTag';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
+import { SalesShipmentSection } from './SalesShipmentSection';
 
 export type SalesReasonAction = 'reject' | 'cancel' | 'void';
 
@@ -23,6 +25,7 @@ export function SalesOrderDrawer({
   onReasonAction,
 }: SalesOrderDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
+  const { session } = useAuth();
   const orderQuery = useQuery({
     queryKey: ['sales-order', orderId],
     queryFn: () => getSalesOrder(orderId as number),
@@ -56,6 +59,7 @@ export function SalesOrderDrawer({
   const terminalStatuses = new Set(['SHIPPED', 'REJECTED', 'CANCELLED', 'VOIDED']);
   const canApprove = order?.status === 'PENDING_APPROVAL';
   const canCancel = Boolean(order?.status && !terminalStatuses.has(order.status));
+  const canEditShipments = Boolean(session && ['SUPER_ADMIN', 'GENERAL_MANAGER', 'SALESPERSON'].includes(session.currentRole));
   const moreItems: NonNullable<MenuProps['items']> = order
     ? [
       canApprove
@@ -116,6 +120,8 @@ export function SalesOrderDrawer({
               { key: 'requested', label: t('sales.fields.requestedShipDate'), children: formatDate(order.requestedShipDate, i18n.language) },
               { key: 'promised', label: t('sales.fields.promisedShipDate'), children: formatDate(order.promisedShipDate, i18n.language) },
               { key: 'applicant', label: t('sales.fields.applicant'), children: order.applicantName ?? '-' },
+              { key: 'consignee', label: t('sales.fields.consigneeName'), children: order.consigneeName ?? '-' },
+              { key: 'shipCity', label: t('sales.fields.shipCity'), children: [order.shipCity, order.shipProvince, order.shipCountryCode].filter(Boolean).join(', ') || '-' },
             ]}
             size="small"
           />
@@ -140,6 +146,7 @@ export function SalesOrderDrawer({
             scroll={{ x: 1170 }}
             size="small"
           />
+          {order.id !== undefined && <SalesShipmentSection canEdit={canEditShipments} salesOrderId={order.id} />}
         </>
       )}
     </Drawer>

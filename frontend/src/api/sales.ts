@@ -6,6 +6,8 @@ export type SalesOrderItem = components['schemas']['SalesOrderItemResponse'];
 export type SalesOrderPayload = components['schemas']['CreateSalesOrderRequest'];
 export type SalesOrderItemPayload = components['schemas']['SalesOrderItemData'];
 export type SalesApprovalPayload = components['schemas']['ApprovalRequest'];
+export type SalesOrderShipment = components['schemas']['SalesOrderShipmentResponse'];
+export type SalesOrderShipmentPayload = components['schemas']['SalesOrderShipmentRequest'];
 export type SalesOrderStatus =
   | 'DRAFT'
   | 'PENDING_APPROVAL'
@@ -21,6 +23,7 @@ interface SalesListParams {
 }
 
 export const SALES_ORDERS_QUERY_KEY = ['sales-orders'] as const;
+export const SALES_SHIPMENTS_QUERY_KEY = ['sales-order-shipments'] as const;
 
 export async function listSalesOrders(params: SalesListParams = {}): Promise<SalesOrder[]> {
   const search = new URLSearchParams();
@@ -84,4 +87,35 @@ export async function importSalesOrderItems(file: File): Promise<SalesOrderItemP
 
 export async function downloadSalesOrderTemplate(): Promise<Blob> {
   return apiBlobRequest('/api/sales-orders/template');
+}
+
+export function listSalesOrderShipments(salesOrderId: number): Promise<SalesOrderShipment[]> {
+  return apiRequest<SalesOrderShipment[]>(`/api/sales-orders/${salesOrderId}/shipments`);
+}
+
+export function createSalesOrderShipment(
+  salesOrderId: number,
+  payload: SalesOrderShipmentPayload,
+): Promise<SalesOrderShipment> {
+  return apiRequest<SalesOrderShipment>(`/api/sales-orders/${salesOrderId}/shipments`, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateSalesOrderShipment(
+  salesOrderId: number,
+  shipmentId: number,
+  payload: SalesOrderShipmentPayload,
+): Promise<SalesOrderShipment> {
+  return apiRequest<SalesOrderShipment>(`/api/sales-orders/${salesOrderId}/shipments/${shipmentId}`, {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
+export function voidSalesOrderShipment(salesOrderId: number, shipmentId: number): Promise<SalesOrderShipment> {
+  return apiRequest<SalesOrderShipment>(`/api/sales-orders/${salesOrderId}/shipments/${shipmentId}/void`, {
+    method: 'POST',
+  });
 }

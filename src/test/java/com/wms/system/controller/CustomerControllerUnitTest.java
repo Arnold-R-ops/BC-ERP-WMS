@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
+import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.service.CustomerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -217,6 +218,33 @@ class CustomerControllerUnitTest {
             .andExpect(jsonPath("$[0].isActive").value(true));
 
         verify(customerService, times(1)).listActiveCustomers();
+    }
+
+    @Test
+    @WithMockUser(username = "testuser", authorities = {"customer:view"})
+    @DisplayName("list customers filters by customer type")
+    void testListCustomers_ByCustomerType() throws Exception {
+        List<CustomerResponse> responses = List.of(
+            CustomerResponse.builder()
+                .id(1L)
+                .code("CUST001")
+                .name("Client customer")
+                .customerType(CustomerType.CLIENT)
+                .isActive(true)
+                .build()
+        );
+        when(customerService.listActiveCustomers(CustomerType.CLIENT)).thenReturn(responses);
+
+        mockMvc.perform(get("/api/customers")
+                .param("activeOnly", "true")
+                .param("customerType", "CLIENT"))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(1)))
+            .andExpect(jsonPath("$[0].customerType").value("CLIENT"));
+
+        verify(customerService).listActiveCustomers(CustomerType.CLIENT);
+        verify(customerService, never()).listActiveCustomers();
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.wms.system.controller;
 
 import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
+import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,22 +78,28 @@ public class CustomerController {
      *
      * Optional Parameters:
      * - activeOnly: Return only active customers (default: false)
+     * - customerType: Filter by CLIENT or CONSUMER
      *
      * Returns: List<CustomerResponse>
      */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('customer:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<CustomerResponse>> listCustomers(
-        @RequestParam(required = false) Boolean activeOnly
+        @RequestParam(required = false) Boolean activeOnly,
+        @RequestParam(required = false) CustomerType customerType
     ) {
-        log.info("API调用: listCustomers - activeOnly: {}", activeOnly);
+        log.info("API调用: listCustomers - activeOnly: {}, customerType: {}", activeOnly, customerType);
 
         List<CustomerResponse> responses;
 
         if (Boolean.TRUE.equals(activeOnly)) {
-            responses = customerService.listActiveCustomers();
+            responses = customerType == null
+                ? customerService.listActiveCustomers()
+                : customerService.listActiveCustomers(customerType);
         } else {
-            responses = customerService.listCustomers();
+            responses = customerType == null
+                ? customerService.listCustomers()
+                : customerService.listCustomers(customerType);
         }
 
         log.info("API响应: listCustomers - 客户数: {}", responses.size());

@@ -19,6 +19,7 @@ import {
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
+import { useAuth } from '../../auth/AuthProvider';
 import {
   createIntegrationConfig,
   deleteIntegrationConfig,
@@ -46,6 +47,8 @@ export function IntegrationConfigPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const canManageRetailMode = session?.currentRole === 'SUPER_ADMIN';
 
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: IntegrationConfigPayload }) =>
@@ -62,7 +65,8 @@ export function IntegrationConfigPage(): JSX.Element {
 
   const save = async (payload: IntegrationConfigPayload): Promise<boolean> => {
     try {
-      await saveMutation.mutateAsync({ id: editingConfig?.id, payload });
+      const permittedPayload = canManageRetailMode ? payload : { ...payload, retailMode: undefined };
+      await saveMutation.mutateAsync({ id: editingConfig?.id, payload: permittedPayload });
       message.success(t(editingConfig ? 'integrations.config.messages.updated' : 'integrations.config.messages.created'));
       setFormOpen(false);
       setEditingConfig(undefined);
@@ -124,6 +128,14 @@ export function IntegrationConfigPage(): JSX.Element {
         />
       ),
     },
+    ...(canManageRetailMode ? [{
+      title: t('integrations.config.fields.retailMode'), dataIndex: 'retailMode', width: 150, search: false,
+      render: (_: unknown, row: IntegrationConfig) => (
+        <Tag color={row.retailMode ? 'processing' : 'default'}>
+          {t(row.retailMode ? 'common.enabled' : 'common.disabled')}
+        </Tag>
+      ),
+    } satisfies ProColumns<IntegrationConfig>] : []),
     { title: t('integrations.config.fields.lastSyncAt'), dataIndex: 'lastSyncAt', width: 180, search: false, renderText: (value) => formatDateTime(value as string | undefined, i18n.language) },
     {
       title: t('common.actions'), valueType: 'option', width: 160, fixed: 'right',
@@ -146,7 +158,7 @@ export function IntegrationConfigPage(): JSX.Element {
         </Popconfirm>,
       ],
     },
-  ], [activeMutation.isPending, deleteMutation.isPending, i18n.language, t, testMutation.isPending]);
+  ], [activeMutation.isPending, canManageRetailMode, deleteMutation.isPending, i18n.language, t, testMutation.isPending]);
 
   return (
     <section className="data-page integration-page">
@@ -176,7 +188,7 @@ export function IntegrationConfigPage(): JSX.Element {
         ]}
       />
 
-      <IntegrationConfigFormModal config={editingConfig} loading={saveMutation.isPending} onClose={() => { setFormOpen(false); setEditingConfig(undefined); }} onSubmit={save} open={formOpen} />
+      <IntegrationConfigFormModal canManageRetailMode={canManageRetailMode} config={editingConfig} loading={saveMutation.isPending} onClose={() => { setFormOpen(false); setEditingConfig(undefined); }} onSubmit={save} open={formOpen} />
 
       <Modal footer={null} onCancel={() => setConnectionResult(undefined)} open={connectionResult !== undefined} title={t('integrations.config.connection.title')}>
         <Descriptions

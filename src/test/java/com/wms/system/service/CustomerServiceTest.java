@@ -4,8 +4,10 @@ import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
 import com.wms.system.entity.Customer;
 import com.wms.system.entity.User;
+import com.wms.system.entity.enums.CustomerSource;
 import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CustomerRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.SecurityUser;
@@ -157,6 +159,19 @@ class CustomerServiceTest {
     }
 
     @Test
+    @DisplayName("listCustomers admin filters CLIENT in repository")
+    void testListCustomersAdminFiltersClient() {
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
+        when(customerRepository.findByCustomerType(CustomerType.CLIENT)).thenReturn(List.of(testCustomer));
+
+        List<CustomerResponse> responses = customerService.listCustomers(CustomerType.CLIENT);
+
+        assertThat(responses).hasSize(1);
+        verify(customerRepository).findByCustomerType(CustomerType.CLIENT);
+        verify(customerRepository, never()).findAll();
+    }
+
+    @Test
     @DisplayName("listActiveCustomers sales only own active")
     void testListActiveCustomersSalesOnlyOwnActiveCustomers() {
         mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SALESPERSON")));
@@ -181,6 +196,21 @@ class CustomerServiceTest {
         assertThat(responses).hasSize(1);
         verify(customerRepository).findByIsActiveTrue();
         assertThat(responses.get(0).getName()).isEqualTo(CUSTOMER_NAME);
+    }
+
+    @Test
+    @DisplayName("listActiveCustomers sales filters CLIENT with row isolation")
+    void testListActiveCustomersSalesFiltersClient() {
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SALESPERSON")));
+        when(customerRepository.findByOwnerIdAndCustomerTypeAndIsActiveTrue(1L, CustomerType.CLIENT))
+            .thenReturn(List.of(testCustomer));
+
+        List<CustomerResponse> responses = customerService.listActiveCustomers(CustomerType.CLIENT);
+
+        assertThat(responses).hasSize(1);
+        verify(customerRepository)
+            .findByOwnerIdAndCustomerTypeAndIsActiveTrue(1L, CustomerType.CLIENT);
+        verify(customerRepository, never()).findByIsActiveTrue();
     }
 
     @Test
@@ -277,6 +307,30 @@ class CustomerServiceTest {
     }
 
     @Test
+    @DisplayName("updateCustomer rejects channel-managed consumer")
+    void testUpdateCustomerRejectsConsumer() {
+        Customer consumer = Customer.builder()
+            .id(2L)
+            .code("CONSUMER001")
+            .name("Channel Consumer")
+            .customerType(CustomerType.CONSUMER)
+            .source(CustomerSource.CHANNEL)
+            .isActive(true)
+            .build();
+        CreateCustomerRequest request = CreateCustomerRequest.builder()
+            .code("CONSUMER001")
+            .name("Changed")
+            .build();
+        when(customerRepository.findById(2L)).thenReturn(Optional.of(consumer));
+
+        assertThatThrownBy(() -> customerService.updateCustomer(2L, request))
+            .isInstanceOf(BusinessException.class)
+            .extracting("errorKey")
+            .isEqualTo(ErrorKeys.CUSTOMER_CONSUMER_READ_ONLY);
+        verify(customerRepository, never()).save(any(Customer.class));
+    }
+
+    @Test
     @DisplayName("deleteCustomer soft delete")
     void testDeleteCustomerSuccessSoftDelete() {
         mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
@@ -287,6 +341,45 @@ class CustomerServiceTest {
 
         assertThat(response).isNotNull();
         verify(customerRepository).save(argThat(customer -> !customer.getIsActive()));
+    }
+
+    @Test
+    @DisplayName("deleteCustomer rejects channel-managed consumer")
+    void testDeleteCustomerRejectsConsumer() {
+        Customer consumer = Customer.builder()
+            .id(2L)
+            .code("CONSUMER001")
+            .name("Channel Consumer")
+            .customerType(CustomerType.CONSUMER)
+            .source(CustomerSource.CHANNEL)
+            .isActive(true)
+            .build();
+        when(customerRepository.findById(2L)).thenReturn(Optional.of(consumer));
+
+        assertThatThrownBy(() -> customerService.deleteCustomer(2L))
+            .isInstanceOf(BusinessException.class)
+            .extracting("errorKey")
+            .isEqualTo(ErrorKeys.CUSTOMER_CONSUMER_READ_ONLY);
+        verify(customerRepository, never()).save(any(Customer.class));
+    }
+
+    @Test
+    @DisplayName("manual sales order requires an active client")
+    void testValidateManualOrderCustomerRejectsConsumer() {
+        Customer consumer = Customer.builder()
+            .id(2L)
+            .code("CONSUMER001")
+            .name("Channel Consumer")
+            .customerType(CustomerType.CONSUMER)
+            .source(CustomerSource.CHANNEL)
+            .isActive(true)
+            .build();
+        when(customerRepository.findById(2L)).thenReturn(Optional.of(consumer));
+
+        assertThatThrownBy(() -> customerService.validateManualOrderCustomer(2L))
+            .isInstanceOf(BusinessException.class)
+            .extracting("errorKey")
+            .isEqualTo(ErrorKeys.MANUAL_ORDER_REQUIRES_CLIENT);
     }
 
     private void mockSecurityContext(Long userId, Collection<? extends GrantedAuthority> authorities) {

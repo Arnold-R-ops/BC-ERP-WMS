@@ -1,6 +1,9 @@
 export type AppModule =
   | 'dashboard'
   | 'products'
+  | 'masterData'
+  | 'customers'
+  | 'suppliers'
   | 'inventory'
   | 'sales'
   | 'purchasing'
@@ -8,11 +11,11 @@ export type AppModule =
   | 'integrations';
 
 const roleModules: Record<string, readonly AppModule[]> = {
-  GENERAL_MANAGER: ['dashboard', 'products', 'inventory', 'sales', 'purchasing', 'inbound', 'integrations'],
+  GENERAL_MANAGER: ['dashboard', 'products', 'masterData', 'customers', 'suppliers', 'inventory', 'sales', 'purchasing', 'inbound', 'integrations'],
   WAREHOUSE_ADMIN: ['dashboard', 'products', 'inventory', 'inbound'],
   WAREHOUSE_STAFF: ['dashboard', 'inventory', 'inbound'],
-  SALESPERSON: ['dashboard', 'products', 'inventory', 'sales'],
-  PURCHASER: ['dashboard', 'products', 'inventory', 'purchasing', 'inbound'],
+  SALESPERSON: ['dashboard', 'products', 'masterData', 'customers', 'inventory', 'sales'],
+  PURCHASER: ['dashboard', 'products', 'masterData', 'suppliers', 'inventory', 'purchasing', 'inbound'],
 };
 
 export function canAccessModule(role: string, module: AppModule): boolean {

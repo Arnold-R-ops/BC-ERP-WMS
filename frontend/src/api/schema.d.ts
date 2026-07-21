@@ -84,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put: operations["update"];
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["deactivate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["activate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales-orders/{salesOrderId}/shipments/{shipmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales-orders/{id}": {
         parameters: {
             query?: never;
@@ -155,8 +219,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
-        put: operations["update"];
+        get: operations["get_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -172,7 +236,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["deactivate"];
+        put: operations["deactivate_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -188,7 +252,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["activate"];
+        put: operations["activate_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -220,7 +284,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["deactivate_1"];
+        put: operations["deactivate_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -236,7 +300,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["activate_1"];
+        put: operations["activate_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -316,7 +380,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update_1"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -331,10 +395,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
-        put: operations["update_2"];
+        get: operations["get_3"];
+        put: operations["update_4"];
         post?: never;
-        delete: operations["delete"];
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -348,7 +412,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["deactivate_2"];
+        put: operations["deactivate_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -364,7 +428,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["activate_2"];
+        put: operations["activate_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -395,10 +459,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_4"];
-        put: operations["update_3"];
+        get: operations["get_5"];
+        put: operations["update_5"];
         post?: never;
-        delete: operations["delete_1"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -428,7 +492,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["deactivate_3"];
+        put: operations["deactivate_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -444,7 +508,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["activate_3"];
+        put: operations["activate_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -526,6 +590,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -622,6 +702,38 @@ export interface paths {
         get: operations["listSalesOrders"];
         put?: never;
         post: operations["createSalesOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales-orders/{salesOrderId}/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales-orders/{salesOrderId}/shipments/{shipmentId}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voidShipment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -763,9 +875,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_2"];
         put?: never;
-        post: operations["create"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -907,9 +1019,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_3"];
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -948,6 +1060,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/integration/shopify/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integration/shopify/reconcile/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["repair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/configs": {
         parameters: {
             query?: never;
@@ -955,9 +1099,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_5"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1067,9 +1211,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_6"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1179,9 +1323,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_7"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1835,7 +1979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1851,7 +1995,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["get_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1979,7 +2123,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2122,6 +2266,62 @@ export interface components {
             oldPassword: string;
             newPassword: string;
         };
+        UpdateSupplierRequest: {
+            name: string;
+            contact?: string;
+            address?: string;
+            email?: string;
+            phone?: string;
+            remark?: string;
+        };
+        SupplierResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            companyId?: number;
+            code?: string;
+            name?: string;
+            contact?: string;
+            address?: string;
+            email?: string;
+            phone?: string;
+            remark?: string;
+            isActive?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SalesOrderShipmentRequest: {
+            trackingNo: string;
+            carrier?: string;
+            trackingUrl?: string;
+            /** Format: date-time */
+            shippedAt?: string;
+            remark?: string;
+        };
+        SalesOrderShipmentResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            salesOrderId?: number;
+            trackingNo?: string;
+            carrier?: string;
+            trackingUrl?: string;
+            status?: string;
+            /** Format: date-time */
+            shippedAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            createdByName?: string;
+            remark?: string;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         SalesOrderItemData: {
             /** Format: int64 */
             productSkuId: number;
@@ -2186,6 +2386,17 @@ export interface components {
             shortageReason?: string;
             /** Format: int64 */
             fulfillmentVersion?: number;
+            channel?: string;
+            externalOrderId?: string;
+            externalOrderNo?: string;
+            consigneeName?: string;
+            consigneePhone?: string;
+            shipAddress1?: string;
+            shipAddress2?: string;
+            shipCity?: string;
+            shipProvince?: string;
+            shipZip?: string;
+            shipCountryCode?: string;
             reviewReason?: string;
             /** Format: int64 */
             reviewedBy?: number;
@@ -2234,13 +2445,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            expiringSoon?: boolean;
+            exhausted?: boolean;
+            expired?: boolean;
             /** Format: double */
             usageRate?: number;
-            expired?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
-            exhausted?: boolean;
-            expiringSoon?: boolean;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -2274,6 +2485,9 @@ export interface components {
             id?: number;
             poNumber?: string;
             supplier?: string;
+            /** Format: int64 */
+            supplierId?: number;
+            supplierCode?: string;
             /** @enum {string} */
             status?: "ORDERING" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CANCELLED" | "VOIDED";
             /** Format: int32 */
@@ -2493,6 +2707,7 @@ export interface components {
             clientSecret?: string;
             accessToken?: string;
             isActive?: boolean;
+            retailMode?: boolean;
         };
         IntegrationConfigResponse: {
             /** Format: int64 */
@@ -2504,6 +2719,7 @@ export interface components {
             hasStaticToken?: boolean;
             authMode?: string;
             isActive?: boolean;
+            retailMode?: boolean;
             /** Format: date-time */
             lastSyncAt?: string;
             /** Format: date-time */
@@ -2526,9 +2742,15 @@ export interface components {
             id?: number;
             code?: string;
             name?: string;
+            /** @enum {string} */
+            customerType?: "CLIENT" | "CONSUMER";
+            /** @enum {string} */
+            source?: "MANUAL" | "CHANNEL";
+            externalCustomerId?: string;
             contact?: string;
             phone?: string;
             email?: string;
+            normalizedEmail?: string;
             address?: string;
             creditLimit?: number;
             isActive?: boolean;
@@ -2592,6 +2814,15 @@ export interface components {
             username?: string;
             temporaryPassword?: string;
             mustChangePassword?: boolean;
+        };
+        CreateSupplierRequest: {
+            code: string;
+            name: string;
+            contact?: string;
+            address?: string;
+            email?: string;
+            phone?: string;
+            remark?: string;
         };
         CreateStocktakeTaskRequest: {
             /** Format: int64 */
@@ -2672,6 +2903,14 @@ export interface components {
             customerId: number;
             items: components["schemas"]["SalesOrderItemData"][];
             channel?: string;
+            consigneeName?: string;
+            consigneePhone?: string;
+            shipAddress1?: string;
+            shipAddress2?: string;
+            shipCity?: string;
+            shipProvince?: string;
+            shipZip?: string;
+            shipCountryCode?: string;
         };
         CancelOrderRequest: {
             reason: string;
@@ -2715,7 +2954,8 @@ export interface components {
             remark?: string;
         };
         CreatePurchaseOrderRequest: {
-            supplier: string;
+            /** Format: int64 */
+            supplierId: number;
             items: components["schemas"]["CreatePurchaseOrderItemRequest"][];
             /** Format: date */
             expectedDate?: string;
@@ -2861,9 +3101,9 @@ export interface components {
             operatorId?: number;
             operatorName?: string;
             remark?: string;
-            adjustment?: boolean;
-            outbound?: boolean;
             inbound?: boolean;
+            outbound?: boolean;
+            adjustment?: boolean;
         };
         StockTransactionResponse: {
             /** Format: int64 */
@@ -2927,6 +3167,64 @@ export interface components {
             resolvedBy?: number;
             /** Format: date-time */
             resolvedAt?: string;
+        };
+        ShopifyReconciliationRequest: {
+            /** Format: int64 */
+            configId: number;
+            /** Format: int32 */
+            days?: number;
+        };
+        MissingOrder: {
+            /** Format: int64 */
+            rawEventId?: number;
+            externalOrderId?: string;
+            externalOrderNo?: string;
+            financialStatus?: string;
+            fulfillmentStatus?: string;
+            repairEligible?: boolean;
+            reason?: string;
+        };
+        ShopifyReconciliationReport: {
+            /** Format: int64 */
+            reportEventId?: number;
+            /** Format: int64 */
+            configId?: number;
+            storeIdentifier?: string;
+            /** Format: int32 */
+            windowDays?: number;
+            /** Format: date-time */
+            updatedAtMin?: string;
+            /** Format: int64 */
+            localOrderCount?: number;
+            /** Format: int32 */
+            remoteOrderCount?: number;
+            /** Format: int32 */
+            missingOrderCount?: number;
+            reportOnly?: boolean;
+            missingOrders?: components["schemas"]["MissingOrder"][];
+        };
+        ShopifyReconciliationRepairRequest: {
+            rawEventIds: number[];
+        };
+        Item: {
+            /** Format: int64 */
+            rawEventId?: number;
+            externalOrderId?: string;
+            status?: string;
+            /** Format: int64 */
+            salesOrderId?: number;
+            message?: string;
+        };
+        ShopifyReconciliationRepairResult: {
+            /** Format: int32 */
+            requested?: number;
+            /** Format: int32 */
+            created?: number;
+            /** Format: int32 */
+            skipped?: number;
+            /** Format: int32 */
+            blocked?: number;
+            items?: components["schemas"]["Item"][];
         };
         CreateInboundOrderRequest: {
             /** Format: int64 */
@@ -3251,10 +3549,10 @@ export interface components {
             furthestExpiryDate?: string;
         };
         PageInventorySummaryDto: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -3273,11 +3571,11 @@ export interface components {
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
             unpaged?: boolean;
-            /** Format: int32 */
-            pageSize?: number;
+            paged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
-            paged?: boolean;
+            /** Format: int32 */
+            pageSize?: number;
         };
         SkuInfoDto: {
             image?: string;
@@ -3335,10 +3633,10 @@ export interface components {
             supplierReliabilityScore?: number;
         };
         PageRawEventSummary: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -3583,6 +3881,145 @@ export interface operations {
             };
         };
     };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSupplierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                salesOrderId: number;
+                shipmentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesOrderShipmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderShipmentResponse"];
+                };
+            };
+        };
+    };
     getSalesOrder: {
         parameters: {
             query?: never;
@@ -3707,7 +4144,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3729,7 +4166,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3755,7 +4192,7 @@ export interface operations {
             };
         };
     };
-    deactivate: {
+    deactivate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3777,7 +4214,7 @@ export interface operations {
             };
         };
     };
-    activate: {
+    activate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3847,7 +4284,7 @@ export interface operations {
             };
         };
     };
-    deactivate_1: {
+    deactivate_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3869,7 +4306,7 @@ export interface operations {
             };
         };
     };
-    activate_1: {
+    activate_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4014,7 +4451,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4040,7 +4477,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4062,7 +4499,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4088,7 +4525,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    delete_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4108,7 +4545,7 @@ export interface operations {
             };
         };
     };
-    deactivate_2: {
+    deactivate_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4130,7 +4567,7 @@ export interface operations {
             };
         };
     };
-    activate_2: {
+    activate_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4220,7 +4657,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4242,7 +4679,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4268,7 +4705,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4314,7 +4751,7 @@ export interface operations {
             };
         };
     };
-    deactivate_3: {
+    deactivate_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4336,7 +4773,7 @@ export interface operations {
             };
         };
     };
-    activate_3: {
+    activate_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4519,6 +4956,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResetPasswordResponse"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: {
+                activeOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSupplierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
                 };
             };
         };
@@ -4710,6 +5193,77 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                salesOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderShipmentResponse"][];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                salesOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesOrderShipmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderShipmentResponse"];
+                };
+            };
+        };
+    };
+    voidShipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                salesOrderId: number;
+                shipmentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderShipmentResponse"];
                 };
             };
         };
@@ -4919,7 +5473,7 @@ export interface operations {
     uploadExcel_1: {
         parameters: {
             query: {
-                supplier: string;
+                supplierId: number;
                 operatorId: number;
                 operatorName: string;
                 expectedDate?: string;
@@ -4948,7 +5502,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_2: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -4970,7 +5524,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5212,7 +5766,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_3: {
         parameters: {
             query?: {
                 channel?: string;
@@ -5234,7 +5788,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5306,7 +5860,55 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    reconcile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopifyReconciliationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopifyReconciliationReport"];
+                };
+            };
+        };
+    };
+    repair: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopifyReconciliationRepairRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopifyReconciliationRepairResult"];
+                };
+            };
+        };
+    };
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -5326,7 +5928,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -5502,7 +6104,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_6: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -5524,7 +6126,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -5678,6 +6280,7 @@ export interface operations {
         parameters: {
             query?: {
                 activeOnly?: boolean;
+                customerType?: "CLIENT" | "CONSUMER";
             };
             header?: never;
             path?: never;
@@ -5720,7 +6323,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_7: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -5742,7 +6345,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6646,7 +7249,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_4: {
         parameters: {
             query?: {
                 channel?: string;
@@ -6671,7 +7274,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6839,7 +7442,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;

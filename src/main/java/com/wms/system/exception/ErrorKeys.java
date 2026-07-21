@@ -626,6 +626,12 @@ public final class ErrorKeys {
      */
     public static final String CUSTOMER_INACTIVE = "CUSTOMER_INACTIVE";
 
+    /** Channel-managed consumer profiles cannot be changed through client master-data APIs. */
+    public static final String CUSTOMER_CONSUMER_READ_ONLY = "CUSTOMER_CONSUMER_READ_ONLY";
+
+    /** Manual sales orders may only reference managed CLIENT customers. */
+    public static final String MANUAL_ORDER_REQUIRES_CLIENT = "MANUAL_ORDER_REQUIRES_CLIENT";
+
     // ========== Sales Order Related Errors (V3.7) ==========
 
     /**

@@ -166,8 +166,12 @@ public class SalesSubmissionService {
         log.info("🚀 Creating sales order: customerId={}, applicantId={}, applicantName={}, itemCount={}",
             request.getCustomerId(), applicantId, applicantName, request.getItems().size());
 
-        // 1. Validate customer exists and is active
-        customerService.validateCustomerActive(request.getCustomerId());
+        // 1. Manual entry only accepts managed clients; channel recovery may use consumers.
+        if (forcePendingApproval) {
+            customerService.validateCustomerActive(request.getCustomerId());
+        } else {
+            customerService.validateManualOrderCustomer(request.getCustomerId());
+        }
 
         // 2. Generate order number
         String orderNo = generateOrderNumber();
@@ -515,7 +519,7 @@ public class SalesSubmissionService {
 
         // 3. Update customer if provided
         if (request.getCustomerId() != null) {
-            customerService.validateCustomerActive(request.getCustomerId());
+            customerService.validateManualOrderCustomer(request.getCustomerId());
             salesOrder.setCustomerId(request.getCustomerId());
         }
 

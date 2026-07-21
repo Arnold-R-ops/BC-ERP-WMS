@@ -15,4 +15,11 @@ describe('coarse module access', () => {
     expect(canAccessModule('CUSTOM_ROLE', 'dashboard')).toBe(true);
     expect(canAccessModule('CUSTOM_ROLE', 'products')).toBe(false);
   });
+
+  it('separates client and supplier workspaces by operational role', () => {
+    expect(canAccessModule('SALESPERSON', 'customers')).toBe(true);
+    expect(canAccessModule('SALESPERSON', 'suppliers')).toBe(false);
+    expect(canAccessModule('PURCHASER', 'customers')).toBe(false);
+    expect(canAccessModule('PURCHASER', 'suppliers')).toBe(true);
+  });
 });

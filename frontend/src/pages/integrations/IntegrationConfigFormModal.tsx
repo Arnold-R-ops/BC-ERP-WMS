@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { IntegrationConfig, IntegrationConfigPayload } from '../../api/integrations';
 
 interface IntegrationConfigFormModalProps {
+  canManageRetailMode: boolean;
   config?: IntegrationConfig;
   loading: boolean;
   open: boolean;
@@ -17,6 +18,7 @@ interface IntegrationConfigFormModalProps {
 }
 
 export function IntegrationConfigFormModal({
+  canManageRetailMode,
   config,
   loading,
   open,
@@ -36,6 +38,7 @@ export function IntegrationConfigFormModal({
         clientSecret: '',
         accessToken: '',
         isActive: config?.isActive ?? true,
+        ...(canManageRetailMode ? { retailMode: config?.retailMode ?? false } : {}),
       }}
       modalProps={{ destroyOnHidden: true, maskClosable: false }}
       onFinish={onSubmit}
@@ -87,6 +90,13 @@ export function IntegrationConfigFormModal({
         name="accessToken"
       />
       <ProFormSwitch label={t('integrations.config.fields.active')} name="isActive" />
+      {canManageRetailMode && (
+        <ProFormSwitch
+          extra={t('integrations.config.form.retailModeHint')}
+          label={t('integrations.config.fields.retailMode')}
+          name="retailMode"
+        />
+      )}
     </ModalForm>
   );
 }
