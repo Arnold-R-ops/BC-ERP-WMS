@@ -56,6 +56,7 @@ backups/
 
 # Codex/Claude 本机启动配置
 .claude/launch.json
+.claude/settings.local.json
 
 # 本机测试与诊断输出（正式 Markdown 报告不受影响）
 docs/history/*.html
