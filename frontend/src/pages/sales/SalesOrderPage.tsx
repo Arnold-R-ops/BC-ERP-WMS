@@ -221,7 +221,7 @@ export function SalesOrderPage(): JSX.Element {
           <Button
             icon={<DownloadOutlined />}
             key="template"
-            onClick={() => void downloadSalesOrderTemplate().then((blob) => saveBlob(blob, 'sales_order_template.xlsx')).catch((error) => message.error(getErrorMessage(error, t)))}
+            onClick={() => void downloadSalesOrderTemplate().then((blob) => saveBlob(blob, 'sales_order_import_template.xlsx')).catch((error) => message.error(getErrorMessage(error, t)))}
           >
             {t('sales.actions.template')}
           </Button>,

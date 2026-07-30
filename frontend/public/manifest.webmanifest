@@ -1,0 +1,19 @@
+{
+  "name": "2G WMS 仓库作业",
+  "short_name": "2G 仓库",
+  "description": "收货、拣货与盲盘移动作业台",
+  "start_url": "./#/mobile/picking",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#081313",
+  "theme_color": "#0f766e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./warehouse-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

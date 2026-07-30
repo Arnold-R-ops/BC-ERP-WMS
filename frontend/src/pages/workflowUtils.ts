@@ -1,4 +1,4 @@
-export type WorkflowDomain = 'sales' | 'purchasing' | 'inbound';
+export type WorkflowDomain = 'sales' | 'purchasing' | 'inbound' | 'outbound';
 
 const statusColors: Record<string, string> = {
   DRAFT: 'default',
@@ -11,6 +11,14 @@ const statusColors: Record<string, string> = {
   PARTIALLY_RECEIVED: 'orange',
   PARTIALLY_ALLOCATED: 'orange',
   WAITING_INBOUND: 'gold',
+  PENDING: 'gold',
+  PICKING: 'blue',
+  CREATED: 'default',
+  COUNTING: 'processing',
+  REVIEWING: 'gold',
+  PENDING_REVIEW: 'gold',
+  APPROVED: 'blue',
+  APPLIED: 'green',
   COMPLETED: 'green',
   SHIPPED: 'green',
   REJECTED: 'red',

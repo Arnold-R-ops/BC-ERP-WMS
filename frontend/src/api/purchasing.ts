@@ -1,5 +1,5 @@
 import type { components } from './schema';
-import { apiRawRequest, apiRequest } from './http';
+import { apiBlobRequest, apiRawRequest, apiRequest } from './http';
 
 export type PurchaseOrder = components['schemas']['PurchaseOrderResponse'];
 export type PurchaseOrderItem = components['schemas']['PurchaseOrderItemResponse'];
@@ -55,7 +55,7 @@ export async function rollbackPurchaseOrder(id: number, reason: string): Promise
 
 interface PurchaseImportParams {
   file: File;
-  supplier: string;
+  supplierId: number;
   operatorId: number;
   operatorName: string;
   expectedDate?: string;
@@ -63,7 +63,7 @@ interface PurchaseImportParams {
 
 export async function importPurchaseOrder(params: PurchaseImportParams): Promise<PurchaseOrder> {
   const search = new URLSearchParams({
-    supplier: params.supplier,
+    supplierId: String(params.supplierId),
     operatorId: String(params.operatorId),
     operatorName: params.operatorName,
   });
@@ -76,4 +76,8 @@ export async function importPurchaseOrder(params: PurchaseImportParams): Promise
     method: 'POST',
     body: form,
   });
+}
+
+export async function downloadPurchaseOrderTemplate(): Promise<Blob> {
+  return apiBlobRequest('/api/purchase-orders/template');
 }

@@ -1,5 +1,6 @@
 import {
   DrawerForm,
+  ProFormDependency,
   ProFormDigit,
   ProFormList,
   ProFormSelect,
@@ -9,9 +10,36 @@ import {
 import { Alert, Divider } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { listInventoryBatchesByProductSku } from '../../api/inventory';
 import { listCustomers } from '../../api/masterData';
 import { listProductSkus } from '../../api/productSkus';
 import type { SalesOrderItemPayload, SalesOrderPayload } from '../../api/sales';
+
+function BatchSelect({ productSkuId }: { productSkuId?: number }): JSX.Element {
+  const { t } = useTranslation();
+  const batchesQuery = useQuery({
+    queryKey: ['inventory-batches', productSkuId, 'available'],
+    queryFn: () => listInventoryBatchesByProductSku(productSkuId as number),
+    enabled: productSkuId !== undefined,
+  });
+  const options = (batchesQuery.data ?? [])
+    .filter((batch) => batch.id !== undefined && batch.active !== false && (batch.availableQuantity ?? 0) > 0)
+    .map((batch) => ({
+      label: `${batch.batchCode ?? `#${batch.id}`} · ${batch.locationCode ?? '-'} · ${t('sales.form.availableQty', { count: batch.availableQuantity ?? 0 })}`,
+      value: batch.id as number,
+    }));
+
+  return (
+    <ProFormSelect
+      disabled={productSkuId === undefined}
+      fieldProps={{ loading: batchesQuery.isLoading, mode: 'multiple', optionFilterProp: 'label', showSearch: true }}
+      label={t('sales.fields.specifiedBatches')}
+      name="specifiedBatchIds"
+      options={options}
+      width="xl"
+    />
+  );
+}
 
 interface SalesOrderFormDrawerProps {
   initialItems?: SalesOrderItemPayload[];
@@ -134,6 +162,9 @@ export function SalesOrderFormDrawer({
           rules={[{ required: true, message: t('sales.validation.priceRequired') }]}
           width="sm"
         />
+        <ProFormDependency name={['productSkuId']}>
+          {({ productSkuId }) => <BatchSelect productSkuId={productSkuId as number | undefined} />}
+        </ProFormDependency>
         <ProFormSwitch label={t('sales.fields.rejectNearExpiry')} name="rejectNearExpiry" />
         <ProFormText label={t('common.remark')} name="remark" width="md" />
       </ProFormList>

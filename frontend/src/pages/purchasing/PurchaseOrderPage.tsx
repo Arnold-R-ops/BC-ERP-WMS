@@ -1,4 +1,4 @@
-import { EyeOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, EyeOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Tabs } from 'antd';
@@ -11,6 +11,7 @@ import { paginateArray } from '../../api/pagination';
 import {
   confirmPurchaseOrder,
   createPurchaseOrder,
+  downloadPurchaseOrderTemplate,
   importPurchaseOrder,
   listPurchaseOrders,
   PURCHASE_ORDERS_QUERY_KEY,
@@ -21,6 +22,7 @@ import {
   type PurchaseOrderStatus,
   type PurchaseReceiptPayload,
 } from '../../api/purchasing';
+import { saveBlob } from '../../api/files';
 import { OrderStatusTag } from '../../components/OrderStatusTag';
 import { ReasonModal } from '../../components/ReasonModal';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
@@ -148,6 +150,15 @@ export function PurchaseOrderPage(): JSX.Element {
         scroll={{ x: 1455 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
         toolBarRender={() => [
+          <Button
+            icon={<DownloadOutlined />}
+            key="template"
+            onClick={() => void downloadPurchaseOrderTemplate()
+              .then((blob) => saveBlob(blob, 'purchase_order_import_template.xlsx'))
+              .catch((error) => message.error(getErrorMessage(error, t)))}
+          >
+            {t('purchasing.actions.template')}
+          </Button>,
           <Button icon={<UploadOutlined />} key="import" onClick={() => setImportOpen(true)}>{t('purchasing.actions.import')}</Button>,
           <Button icon={<PlusOutlined />} key="create" onClick={() => setFormOpen(true)} type="primary">{t('purchasing.create')}</Button>,
         ]}

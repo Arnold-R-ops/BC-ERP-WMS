@@ -1,10 +1,12 @@
 import { UploadOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Modal, Upload } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, Button, Form, Input, Modal, Select, Upload } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { listSuppliers } from '../../api/suppliers';
 
 export interface PurchaseImportValues {
-  supplier: string;
+  supplierId: number;
   expectedDate?: string;
   file: File;
 }
@@ -20,6 +22,11 @@ export function PurchaseImportModal({ loading, open, onCancel, onConfirm }: Purc
   const [form] = Form.useForm<Omit<PurchaseImportValues, 'file'>>();
   const [file, setFile] = useState<File>();
   const { t } = useTranslation();
+  const suppliersQuery = useQuery({
+    queryKey: ['suppliers', 'active'],
+    queryFn: () => listSuppliers(true),
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open) {
@@ -46,8 +53,26 @@ export function PurchaseImportModal({ loading, open, onCancel, onConfirm }: Purc
       title={t('purchasing.import.title')}
     >
       <Form form={form} layout="vertical">
-        <Form.Item label={t('purchasing.fields.supplier')} name="supplier" rules={[{ required: true, message: t('purchasing.validation.supplierRequired') }]}>
-          <Input maxLength={200} />
+        <Alert message={t('purchasing.import.hint')} showIcon style={{ marginBottom: 16 }} type="info" />
+        {suppliersQuery.isError ? (
+          <Alert
+            action={<Button onClick={() => void suppliersQuery.refetch()} size="small">{t('common.retry')}</Button>}
+            message={t('purchasing.messages.supplierLoadFailed')}
+            showIcon
+            style={{ marginBottom: 16 }}
+            type="error"
+          />
+        ) : null}
+        <Form.Item label={t('purchasing.fields.supplier')} name="supplierId" rules={[{ required: true, message: t('purchasing.validation.supplierRequired') }]}>
+          <Select
+            loading={suppliersQuery.isLoading}
+            optionFilterProp="label"
+            options={(suppliersQuery.data ?? []).map((supplier) => ({
+              label: `${supplier.code} · ${supplier.name}`,
+              value: supplier.id,
+            }))}
+            showSearch
+          />
         </Form.Item>
         <Form.Item label={t('purchasing.fields.expectedDate')} name="expectedDate"><Input type="date" /></Form.Item>
         <Form.Item label={t('purchasing.import.file')} required>

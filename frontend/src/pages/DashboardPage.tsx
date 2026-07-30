@@ -4,6 +4,8 @@ import {
   CheckOutlined,
   DatabaseOutlined,
   EyeOutlined,
+  ExportOutlined,
+  InboxOutlined,
   ReloadOutlined,
   RightOutlined,
   ShoppingCartOutlined,
@@ -109,6 +111,7 @@ export function DashboardPage(): JSX.Element {
   const canViewSales = Boolean(session && canAccessModule(role, 'sales'));
   const canViewIntegrations = Boolean(session && canAccessModule(role, 'integrations'));
   const canViewInventory = Boolean(session && canAccessModule(role, 'inventory'));
+  const canViewWarehouseMobile = Boolean(session && canAccessModule(role, 'warehouseMobile'));
   const canApproveSales = role === 'SUPER_ADMIN' || role === 'GENERAL_MANAGER';
 
   const pendingSalesQuery = useQuery({
@@ -388,6 +391,43 @@ export function DashboardPage(): JSX.Element {
           showIcon
           type="warning"
         />
+      )}
+
+      {canViewWarehouseMobile && (
+        <section className="dashboard-warehouse-shortcut" aria-labelledby="dashboard-warehouse-title">
+          <div className="dashboard-warehouse-heading">
+            <Typography.Title id="dashboard-warehouse-title" level={5}>
+              {t('dashboard.warehouseActionsTitle')}
+            </Typography.Title>
+            <Typography.Text type="secondary">{t('dashboard.warehouseActionsHint')}</Typography.Text>
+          </div>
+          <div className="dashboard-warehouse-actions">
+            <button
+              aria-label={t('mobile.receiving.nav')}
+              onClick={() => navigate('/mobile/receiving')}
+              type="button"
+            >
+              <InboxOutlined />
+              <span>{t('mobile.receiving.nav')}</span>
+            </button>
+            <button
+              aria-label={t('mobile.picking.nav')}
+              onClick={() => navigate('/mobile/picking')}
+              type="button"
+            >
+              <ExportOutlined />
+              <span>{t('mobile.picking.nav')}</span>
+            </button>
+            <button
+              aria-label={t('mobile.stocktake.nav')}
+              onClick={() => navigate('/mobile/stocktake')}
+              type="button"
+            >
+              <AuditOutlined />
+              <span>{t('mobile.stocktake.nav')}</span>
+            </button>
+          </div>
+        </section>
       )}
 
       <div className="dashboard-metric-grid">

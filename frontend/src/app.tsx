@@ -34,6 +34,27 @@ const PurchaseOrderPage = lazy(() =>
 const InboundOrderPage = lazy(() =>
   import('./pages/inbound/InboundOrderPage').then((module) => ({ default: module.InboundOrderPage })),
 );
+const OutboundTaskPage = lazy(() =>
+  import('./pages/outbound/OutboundTaskPage').then((module) => ({ default: module.OutboundTaskPage })),
+);
+const StocktakePage = lazy(() =>
+  import('./pages/stocktake/StocktakePage').then((module) => ({ default: module.StocktakePage })),
+);
+const EmergencyCorrectionPage = lazy(() =>
+  import('./pages/corrections/EmergencyCorrectionPage').then((module) => ({ default: module.EmergencyCorrectionPage })),
+);
+const WarehousePage = lazy(() =>
+  import('./pages/warehouseSetup/WarehousePage').then((module) => ({ default: module.WarehousePage })),
+);
+const LocationPage = lazy(() =>
+  import('./pages/warehouseSetup/LocationPage').then((module) => ({ default: module.LocationPage })),
+);
+const UserManagementPage = lazy(() =>
+  import('./pages/iam/UserManagementPage').then((module) => ({ default: module.UserManagementPage })),
+);
+const RolePermissionPage = lazy(() =>
+  import('./pages/iam/RolePermissionPage').then((module) => ({ default: module.RolePermissionPage })),
+);
 const IntegrationConfigPage = lazy(() =>
   import('./pages/integrations/IntegrationConfigPage').then((module) => ({ default: module.IntegrationConfigPage })),
 );
@@ -58,7 +79,27 @@ const SupplierPage = lazy(() =>
 const ReconciliationPage = lazy(() =>
   import('./pages/integrations/ReconciliationPage').then((module) => ({ default: module.ReconciliationPage })),
 );
-
+const SalesAnalyticsPage = lazy(() =>
+  import('./pages/analytics/SalesAnalyticsPage').then((module) => ({ default: module.SalesAnalyticsPage })),
+);
+const CustomerAnalyticsPage = lazy(() =>
+  import('./pages/analytics/CustomerAnalyticsPage').then((module) => ({ default: module.CustomerAnalyticsPage })),
+);
+const loadMobileReceivingPage = () => import('./pages/mobile/MobileReceivingPage');
+const loadMobilePickingPage = () => import('./pages/mobile/MobilePickingPage');
+const loadMobileStocktakePage = () => import('./pages/mobile/MobileStocktakePage');
+const WarehouseMobileLayout = lazy(() =>
+  import('./pages/mobile/WarehouseMobileLayout').then((module) => ({ default: module.WarehouseMobileLayout })),
+);
+const MobileReceivingPage = lazy(() =>
+  loadMobileReceivingPage().then((module) => ({ default: module.MobileReceivingPage })),
+);
+const MobilePickingPage = lazy(() =>
+  loadMobilePickingPage().then((module) => ({ default: module.MobilePickingPage })),
+);
+const MobileStocktakePage = lazy(() =>
+  loadMobileStocktakePage().then((module) => ({ default: module.MobileStocktakePage })),
+);
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -87,6 +128,17 @@ function ModuleRoute({ module, children }: { module: AppModule; children: JSX.El
     : <Navigate replace to="/" />;
 }
 
+function WarehouseMobileEntry(): JSX.Element {
+  useEffect(() => {
+    void Promise.all([
+      loadMobileReceivingPage(),
+      loadMobilePickingPage(),
+      loadMobileStocktakePage(),
+    ]);
+  }, []);
+  return <WarehouseMobileLayout />;
+}
+
 function AppRoutes(): JSX.Element {
   return (
     <Suspense fallback={<Spin fullscreen size="large" />}>
@@ -95,6 +147,12 @@ function AppRoutes(): JSX.Element {
           <Route element={<LoginPage />} path="/login" />
         </Route>
         <Route element={<ProtectedRoute />}>
+          <Route element={<ModuleRoute module="warehouseMobile"><WarehouseMobileEntry /></ModuleRoute>} path="mobile">
+            <Route element={<Navigate replace to="picking" />} index />
+            <Route element={<MobileReceivingPage />} path="receiving" />
+            <Route element={<MobilePickingPage />} path="picking" />
+            <Route element={<MobileStocktakePage />} path="stocktake" />
+          </Route>
           <Route element={<AppLayout />}>
             <Route element={<DashboardPage />} index />
             <Route
@@ -118,6 +176,9 @@ function AppRoutes(): JSX.Element {
               element={<ModuleRoute module="sales"><SalesOrderPage /></ModuleRoute>}
               path="sales"
             />
+            <Route element={<ModuleRoute module="analytics"><Navigate replace to="sales" /></ModuleRoute>} path="analytics" />
+            <Route element={<ModuleRoute module="analytics"><SalesAnalyticsPage /></ModuleRoute>} path="analytics/sales" />
+            <Route element={<ModuleRoute module="analytics"><CustomerAnalyticsPage /></ModuleRoute>} path="analytics/customers" />
             <Route
               element={<ModuleRoute module="purchasing"><PurchaseOrderPage /></ModuleRoute>}
               path="purchasing"
@@ -126,6 +187,19 @@ function AppRoutes(): JSX.Element {
               element={<ModuleRoute module="inbound"><InboundOrderPage /></ModuleRoute>}
               path="inbound"
             />
+            <Route
+              element={<ModuleRoute module="outbound"><OutboundTaskPage /></ModuleRoute>}
+              path="outbound"
+            />
+            <Route element={<ModuleRoute module="stocktake"><Navigate replace to="stocktake" /></ModuleRoute>} path="inventory-governance" />
+            <Route element={<ModuleRoute module="stocktake"><StocktakePage /></ModuleRoute>} path="inventory-governance/stocktake" />
+            <Route element={<ModuleRoute module="inventoryCorrection"><EmergencyCorrectionPage /></ModuleRoute>} path="inventory-governance/corrections" />
+            <Route element={<ModuleRoute module="warehouseSetup"><Navigate replace to="warehouses" /></ModuleRoute>} path="warehouse-setup" />
+            <Route element={<ModuleRoute module="warehouseSetup"><WarehousePage /></ModuleRoute>} path="warehouse-setup/warehouses" />
+            <Route element={<ModuleRoute module="warehouseSetup"><LocationPage /></ModuleRoute>} path="warehouse-setup/locations" />
+            <Route element={<ModuleRoute module="iam"><Navigate replace to="users" /></ModuleRoute>} path="system" />
+            <Route element={<ModuleRoute module="iam"><UserManagementPage /></ModuleRoute>} path="system/users" />
+            <Route element={<ModuleRoute module="iam"><RolePermissionPage /></ModuleRoute>} path="system/roles" />
             <Route element={<ModuleRoute module="integrations"><Navigate replace to="pending" /></ModuleRoute>} path="integrations" />
             <Route element={<ModuleRoute module="integrations"><IntegrationConfigPage /></ModuleRoute>} path="integrations/configs" />
             <Route element={<ModuleRoute module="integrations"><PendingSkuMappingPage /></ModuleRoute>} path="integrations/pending" />

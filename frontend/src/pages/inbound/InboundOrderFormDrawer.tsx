@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listActiveWarehouses, listLocationsByWarehouse } from '../../api/masterData';
 import { listProductSkus } from '../../api/productSkus';
+import { listSuppliers } from '../../api/suppliers';
 import type { InboundOrderPayload } from '../../api/inbound';
 
 function LocationSelect({ warehouseId }: { warehouseId?: number }): JSX.Element {
@@ -44,7 +45,12 @@ interface InboundOrderFormDrawerProps {
 export function InboundOrderFormDrawer({ loading, open, onClose, onSubmit }: InboundOrderFormDrawerProps): JSX.Element {
   const { t } = useTranslation();
   const productSkusQuery = useQuery({ queryKey: ['product-skus', 'active'], queryFn: () => listProductSkus({ enabledOnly: true }), enabled: open });
+  const suppliersQuery = useQuery({ queryKey: ['suppliers', 'active'], queryFn: () => listSuppliers(true), enabled: open });
   const warehousesQuery = useQuery({ queryKey: ['warehouses', 'active'], queryFn: listActiveWarehouses, enabled: open });
+  const supplierOptions = (suppliersQuery.data ?? []).filter((supplier) => supplier.id !== undefined).map((supplier) => ({
+    label: `${supplier.name ?? '-'} (${supplier.code ?? `#${supplier.id}`})`,
+    value: supplier.id as number,
+  }));
   const productSkuOptions = (productSkusQuery.data ?? []).map((productSku) => ({ label: `${productSku.name ?? '-'} · ${productSku.skuName ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`, value: productSku.id }));
   const warehouseOptions = (warehousesQuery.data ?? []).map((warehouse) => ({ label: warehouse.name ?? warehouse.code ?? `#${warehouse.id}`, value: warehouse.id }));
 
@@ -60,12 +66,13 @@ export function InboundOrderFormDrawer({ loading, open, onClose, onSubmit }: Inb
       width={940}
     >
       <Alert message={t('inbound.form.supplierIdNotice')} showIcon type="info" />
-      <ProFormDigit
-        fieldProps={{ min: 1, precision: 0 }}
-        label={t('inbound.fields.supplierId')}
+      <ProFormSelect
+        fieldProps={{ loading: suppliersQuery.isLoading, optionFilterProp: 'label', showSearch: true }}
+        label={t('inbound.fields.supplier')}
         name="supplierId"
+        options={supplierOptions}
         rules={[{ required: true, message: t('inbound.validation.supplierRequired') }]}
-        width="sm"
+        width="md"
       />
       <ProFormText fieldProps={{ type: 'date' }} label={t('inbound.fields.expectedDate')} name="expectedDate" width="sm" />
       <ProFormTextArea fieldProps={{ maxLength: 500, showCount: true }} label={t('common.remark')} name="remark" />

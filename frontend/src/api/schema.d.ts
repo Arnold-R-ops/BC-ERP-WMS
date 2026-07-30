@@ -836,6 +836,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refreshReportFacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders": {
         parameters: {
             query?: never;
@@ -1508,6 +1524,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRole"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRolePermissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/sales/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSalesOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports/sales/daily": {
         parameters: {
             query?: never;
@@ -1516,6 +1596,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listSalesDailySummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCustomerFacts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1612,6 +1708,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPermissions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2220,6 +2332,7 @@ export interface components {
             name?: string;
             address?: string;
             contact?: string;
+            phone?: string;
         };
         WarehouseResponse: {
             /** Format: int64 */
@@ -2314,6 +2427,11 @@ export interface components {
             /** Format: int64 */
             createdBy?: number;
             createdByName?: string;
+            /** Format: int64 */
+            voidedBy?: number;
+            voidedByName?: string;
+            /** Format: date-time */
+            voidedAt?: string;
             remark?: string;
             /** Format: int64 */
             version?: number;
@@ -2447,9 +2565,9 @@ export interface components {
             updatedAt?: string;
             expiringSoon?: boolean;
             exhausted?: boolean;
-            expired?: boolean;
             /** Format: double */
             usageRate?: number;
+            expired?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
         };
@@ -2641,6 +2759,10 @@ export interface components {
             updatedAt?: string;
         };
         UpdateLocationRequest: {
+            /** Format: int32 */
+            posX?: number;
+            /** Format: int32 */
+            posY?: number;
             remark?: string;
         };
         LocationResponse: {
@@ -2807,6 +2929,8 @@ export interface components {
         };
         AssignRolesRequest: {
             roleIds: number[];
+            /** Format: int64 */
+            defaultRoleId?: number;
         };
         ResetPasswordResponse: {
             /** Format: int64 */
@@ -2940,6 +3064,20 @@ export interface components {
             daysUntilExpiry?: number;
             unitPrice?: number;
         };
+        RefreshResult: {
+            /** Format: int32 */
+            customerRows?: number;
+            /** Format: int32 */
+            staleCustomerRows?: number;
+            /** Format: int32 */
+            customerProductRows?: number;
+            /** Format: int32 */
+            staleCustomerProductRows?: number;
+            /** Format: int32 */
+            salesDailyRows?: number;
+            /** Format: int32 */
+            staleSalesRows?: number;
+        };
         CreatePurchaseOrderItemRequest: {
             /** Format: int64 */
             productSkuId: number;
@@ -3047,6 +3185,10 @@ export interface components {
             zone: "ZONE_A" | "ZONE_B" | "ZONE_C" | "ZONE_D" | "ZONE_E" | "ZONE_Q" | "ZONE_R";
             shelfNumber: string;
             positionNumber: string;
+            /** Format: int32 */
+            posX?: number;
+            /** Format: int32 */
+            posY?: number;
             remark?: string;
         };
         InventoryReservationResponse: {
@@ -3101,9 +3243,9 @@ export interface components {
             operatorId?: number;
             operatorName?: string;
             remark?: string;
-            inbound?: boolean;
-            outbound?: boolean;
             adjustment?: boolean;
+            outbound?: boolean;
+            inbound?: boolean;
         };
         StockTransactionResponse: {
             /** Format: int64 */
@@ -3475,26 +3617,188 @@ export interface components {
             /** Format: int32 */
             differenceQty?: number;
         };
+        RoleDTO: {
+            /** Format: int64 */
+            id?: number;
+            roleCode?: string;
+            roleName?: string;
+            description?: string;
+            roleType?: string;
+            status?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            parentRoleIds?: number[];
+            permissionIds?: number[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            active?: boolean;
+            systemRole?: boolean;
+        };
+        PermissionDTO: {
+            /** Format: int64 */
+            id?: number;
+            permissionCode?: string;
+            permissionName?: string;
+            permissionType?: string;
+            /** Format: int64 */
+            parentId?: number;
+            resourcePath?: string;
+            httpMethod?: string;
+            menuUrl?: string;
+            menuIcon?: string;
+            dataScope?: string;
+            description?: string;
+            status?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            active?: boolean;
+            buttonPermission?: boolean;
+            menuPermission?: boolean;
+            apiPermission?: boolean;
+        };
+        SalesOverviewResponse: {
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: int64 */
+            totalOrderCount?: number;
+            totalAmount?: number;
+            averageOrderValue?: number;
+            /** Format: int64 */
+            draftCount?: number;
+            /** Format: int64 */
+            pendingApprovalCount?: number;
+            /** Format: int64 */
+            approvedAwaitingShipmentCount?: number;
+            /** Format: int64 */
+            shippedCount?: number;
+            /** Format: int64 */
+            rejectedCount?: number;
+            /** Format: int64 */
+            cancelledCount?: number;
+            /** Format: int64 */
+            voidedCount?: number;
+            /** Format: date-time */
+            refreshedAt?: string;
+        };
         SalesDailySummaryResponse: {
             /** Format: date */
             summaryDate?: string;
             /** Format: int64 */
             totalOrderCount?: number;
             totalAmount?: number;
+            /** Format: int64 */
+            draftCount?: number;
+            /** Format: int64 */
+            pendingApprovalCount?: number;
+            /** Format: int64 */
+            approvedAwaitingShipmentCount?: number;
+            /** Format: int64 */
+            shippedCount?: number;
+            /** Format: int64 */
+            rejectedCount?: number;
+            /** Format: int64 */
+            cancelledCount?: number;
+            /** Format: int64 */
+            voidedCount?: number;
             /** Format: date-time */
             refreshedAt?: string;
         };
-        CustomerFactSummaryResponse: {
+        CustomerFactListItemResponse: {
             /** Format: int64 */
             customerId?: number;
+            customerCode?: string;
+            customerName?: string;
+            /** @enum {string} */
+            customerType?: "CLIENT" | "CONSUMER";
+            /** @enum {string} */
+            source?: "MANUAL" | "CHANNEL";
             /** Format: int64 */
             totalOrderCount?: number;
             totalAmount?: number;
+            averageOrderValue?: number;
             /** Format: date */
             lastOrderDate?: string;
             averageIntervalDays?: number;
             /** Format: date-time */
             refreshedAt?: string;
+        };
+        PageCustomerFactListItemResponse: {
+            /** Format: int32 */
+            totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["CustomerFactListItemResponse"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"][];
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            empty?: boolean;
+        };
+        PageableObject: {
+            /** Format: int64 */
+            offset?: number;
+            sort?: components["schemas"]["SortObject"][];
+            paged?: boolean;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int32 */
+            pageNumber?: number;
+            unpaged?: boolean;
+        };
+        SortObject: {
+            direction?: string;
+            nullHandling?: string;
+            ascending?: boolean;
+            property?: string;
+            ignoreCase?: boolean;
+        };
+        CustomerFactSummaryResponse: {
+            /** Format: int64 */
+            customerId?: number;
+            customerCode?: string;
+            customerName?: string;
+            /** @enum {string} */
+            customerType?: "CLIENT" | "CONSUMER";
+            /** @enum {string} */
+            source?: "MANUAL" | "CHANNEL";
+            /** Format: int64 */
+            totalOrderCount?: number;
+            totalAmount?: number;
+            averageOrderValue?: number;
+            /** Format: date */
+            lastOrderDate?: string;
+            averageIntervalDays?: number;
+            /** Format: date-time */
+            refreshedAt?: string;
+            topProducts?: components["schemas"]["CustomerProductSummaryResponse"][];
+        };
+        CustomerProductSummaryResponse: {
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            skuName?: string;
+            productName?: string;
+            barcode?: string;
+            /** Format: int64 */
+            totalOrderCount?: number;
+            /** Format: int64 */
+            totalQuantity?: number;
+            totalAmount?: number;
+            /** Format: date */
+            firstOrderDate?: string;
+            /** Format: date */
+            lastOrderDate?: string;
+            averageIntervalDays?: number;
         };
         Pageable: {
             /** Format: int32 */
@@ -3549,10 +3853,10 @@ export interface components {
             furthestExpiryDate?: string;
         };
         PageInventorySummaryDto: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -3566,30 +3870,12 @@ export interface components {
             pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
-        PageableObject: {
-            /** Format: int64 */
-            offset?: number;
-            sort?: components["schemas"]["SortObject"][];
-            unpaged?: boolean;
-            paged?: boolean;
-            /** Format: int32 */
-            pageNumber?: number;
-            /** Format: int32 */
-            pageSize?: number;
-        };
         SkuInfoDto: {
             image?: string;
             name?: string;
             skuCode?: string;
             barcode?: string;
             specs?: string;
-        };
-        SortObject: {
-            direction?: string;
-            nullHandling?: string;
-            ascending?: boolean;
-            property?: string;
-            ignoreCase?: boolean;
         };
         InventoryDetailDto: {
             batchCode?: string;
@@ -3633,10 +3919,10 @@ export interface components {
             supplierReliabilityScore?: number;
         };
         PageRawEventSummary: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -5423,6 +5709,26 @@ export interface operations {
             };
         };
     };
+    refreshReportFacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefreshResult"];
+                };
+            };
+        };
+    };
     getPurchaseOrders: {
         parameters: {
             query: {
@@ -6611,6 +6917,95 @@ export interface operations {
             };
         };
     };
+    getRoles: {
+        parameters: {
+            query?: {
+                activeOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleDTO"][];
+                };
+            };
+        };
+    };
+    getRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleDTO"];
+                };
+            };
+        };
+    };
+    getRolePermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionDTO"][];
+                };
+            };
+        };
+    };
+    getSalesOverview: {
+        parameters: {
+            query: {
+                startDate: string;
+                endDate: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOverviewResponse"];
+                };
+            };
+        };
+    };
     listSalesDailySummary: {
         parameters: {
             query: {
@@ -6634,9 +7029,39 @@ export interface operations {
             };
         };
     };
+    listCustomerFacts: {
+        parameters: {
+            query?: {
+                keyword?: string;
+                customerType?: "CLIENT" | "CONSUMER";
+                source?: "MANUAL" | "CHANNEL";
+                sortBy?: string;
+                sortDirection?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageCustomerFactListItemResponse"];
+                };
+            };
+        };
+    };
     getCustomerFactSummary: {
         parameters: {
-            query?: never;
+            query?: {
+                topProducts?: number;
+            };
             header?: never;
             path: {
                 customerId: number;
@@ -6762,6 +7187,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getPermissions: {
+        parameters: {
+            query?: {
+                activeOnly?: boolean;
+                type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionDTO"][];
                 };
             };
         };

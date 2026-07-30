@@ -64,6 +64,21 @@ export function SalesShipmentSection({ canEdit, salesOrderId }: SalesShipmentSec
     { title: t('sales.shipments.fields.status'), dataIndex: 'status', width: 110, render: (value) => <Tag color={value === 'VOIDED' ? 'default' : 'success'}>{t(`sales.shipments.statuses.${String(value ?? 'ACTIVE')}`)}</Tag> },
     { title: t('sales.shipments.fields.shippedAt'), dataIndex: 'shippedAt', width: 180, render: (value) => formatDateTime(value as string | undefined, i18n.language) },
     { title: t('sales.shipments.fields.createdBy'), dataIndex: 'createdByName', width: 130 },
+    { title: t('sales.shipments.fields.createdAt'), dataIndex: 'createdAt', width: 180, render: (value) => formatDateTime(value as string | undefined, i18n.language) },
+    {
+      title: t('sales.shipments.fields.voidedBy'),
+      dataIndex: 'voidedByName',
+      width: 130,
+      render: (value, row) => row.status === 'VOIDED' ? String(value ?? '-') : '-',
+    },
+    {
+      title: t('sales.shipments.fields.voidedAt'),
+      dataIndex: 'voidedAt',
+      width: 180,
+      render: (value, row) => row.status === 'VOIDED'
+        ? formatDateTime(value as string | undefined, i18n.language)
+        : '-',
+    },
     { title: t('common.remark'), dataIndex: 'remark', width: 220 },
     ...(canEdit ? [{
       title: t('common.actions'), width: 100, fixed: 'right' as const,
@@ -89,7 +104,7 @@ export function SalesShipmentSection({ canEdit, salesOrderId }: SalesShipmentSec
         pagination={false}
         rowClassName={(row) => row.status === 'VOIDED' ? 'shipment-row-voided' : ''}
         rowKey={(row) => row.id ?? row.trackingNo ?? 'shipment'}
-        scroll={{ x: 950 }}
+        scroll={{ x: 1440 }}
         size="small"
       />
 

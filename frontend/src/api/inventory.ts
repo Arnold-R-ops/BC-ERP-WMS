@@ -5,6 +5,7 @@ export type InventorySummary = components['schemas']['InventorySummaryDto'];
 export type InventorySummaryPage = components['schemas']['PageInventorySummaryDto'];
 export type InventoryDetail = components['schemas']['InventoryDetailDto'];
 export type LocationInventory = components['schemas']['LocationViewDto'];
+export type InventoryBatch = components['schemas']['InventoryBatchResponse'];
 
 interface InventorySummaryParams {
   page: number;
@@ -35,4 +36,10 @@ export async function getLocationInventory(locationCode: string): Promise<Locati
   return apiRequest<LocationInventory>(
     `/api/inventory/location/${encodeURIComponent(locationCode.trim())}`,
   );
+}
+
+export async function listInventoryBatchesByProductSku(
+  productSkuId: number,
+): Promise<InventoryBatch[]> {
+  return apiRequest<InventoryBatch[]>(`/api/inventory/batches/product/${productSkuId}`);
 }

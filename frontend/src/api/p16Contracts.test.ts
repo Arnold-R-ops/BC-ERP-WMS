@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { listCustomers } from './masterData';
 import { reconcileShopifyOrders, repairShopifyOrders } from './integrations';
+import { downloadPurchaseOrderTemplate, importPurchaseOrder } from './purchasing';
 import { createSalesOrderShipment, listSalesOrderShipments } from './sales';
 import { createSupplier, listSuppliers, setSupplierActive } from './suppliers';
 
@@ -41,6 +42,27 @@ describe('P1.6 frontend API contracts', () => {
     expect(fetch).toHaveBeenNthCalledWith(1, '/api/suppliers?activeOnly=true', expect.any(Object));
     expect(fetch).toHaveBeenNthCalledWith(2, '/api/suppliers', expect.objectContaining({ method: 'POST' }));
     expect(fetch).toHaveBeenNthCalledWith(3, '/api/suppliers/9/deactivate', expect.objectContaining({ method: 'PUT' }));
+  });
+
+  it('downloads the purchase template and uploads with supplierId', async () => {
+    await downloadPurchaseOrderTemplate();
+    await importPurchaseOrder({
+      file: new File(['xlsx'], 'purchase.xlsx'),
+      operatorId: 2,
+      operatorName: 'buyer',
+      supplierId: 9,
+    });
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      '/api/purchase-orders/template',
+      expect.any(Object),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/purchase-orders/upload?supplierId=9&operatorId=2&operatorName=buyer',
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('uses order-scoped shipment endpoints', async () => {

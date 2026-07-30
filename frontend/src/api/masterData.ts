@@ -30,6 +30,10 @@ export async function listLocationsByWarehouse(warehouseId: number): Promise<Loc
   return apiRequest<Location[]>(`/api/locations/warehouse/${warehouseId}`);
 }
 
+export async function getLocation(id: number): Promise<Location> {
+  return apiRequest<Location>(`/api/locations/${id}`);
+}
+
 export async function listUsers(): Promise<UserSummary[]> {
   return apiRequest<UserSummary[]>('/api/users');
 }

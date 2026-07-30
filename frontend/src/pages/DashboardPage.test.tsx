@@ -73,5 +73,8 @@ describe('dashboard workspace', () => {
     expect(await within(screen.getByRole('button', { name: '待映射 SKU' })).findByText('6')).toBeVisible();
     expect(await within(screen.getByRole('button', { name: '待人工复核事件' })).findByText('1')).toBeVisible();
     expect(await within(screen.getByRole('button', { name: '紧急补货建议' })).findByText('1')).toBeVisible();
+    expect(screen.getByRole('button', { name: '收货' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '拣货' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '盘点' })).toBeVisible();
   });
 });
