@@ -281,6 +281,36 @@ class StocktakeServiceTest {
         verify(stocktakeTaskRepository, never()).save(any(StocktakeTask.class));
     }
 
+    @Test
+    @DisplayName("finish counting transitions a counting task to reviewing")
+    void testFinishCounting_Success() {
+        testTask.setStatus(StocktakeStatus.COUNTING);
+
+        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
+
+        StocktakeTaskResponse response = stocktakeService.finishCounting(1L);
+
+        assertThat(response.getStatus()).isEqualTo("REVIEWING");
+        verify(stocktakeTaskRepository).save(testTask);
+    }
+
+    @Test
+    @DisplayName("finish counting is idempotent after the final count auto-transitions")
+    void testFinishCounting_AlreadyReviewing() {
+        testTask.setStatus(StocktakeStatus.REVIEWING);
+
+        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
+
+        StocktakeTaskResponse response = stocktakeService.finishCounting(1L);
+
+        assertThat(response.getStatus()).isEqualTo("REVIEWING");
+        verify(stocktakeTaskRepository, never()).save(any(StocktakeTask.class));
+    }
+
     // ========== Test 6: Submit Count Success ==========
 
     @Test

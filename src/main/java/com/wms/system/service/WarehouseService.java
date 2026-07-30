@@ -182,6 +182,11 @@ public class WarehouseService {
      */
     @Transactional(rollbackFor = Exception.class)
     public Warehouse updateWarehouse(Long warehouseId, String name, String address, String contact) {
+        return updateWarehouse(warehouseId, name, address, contact, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Warehouse updateWarehouse(Long warehouseId, String name, String address, String contact, String phone) {
         log.info("Updating warehouse: id={}", warehouseId);
 
         // 查询仓库
@@ -196,6 +201,9 @@ public class WarehouseService {
         }
         if (contact != null) {
             warehouse.setContact(contact);
+        }
+        if (phone != null) {
+            warehouse.setPhone(phone);
         }
 
         // 保存更新

@@ -42,6 +42,7 @@ public class InboundOrderService {
     private final InboundOrderItemRepository inboundOrderItemRepository;
     private final SupplierRepository supplierRepository;
     private final ProductSkuRepository productSkuRepository;
+    private final ProductSkuOperationalPolicy productSkuOperationalPolicy;
     private final WarehouseRepository warehouseRepository;
     private final LocationRepository locationRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
@@ -112,6 +113,10 @@ public class InboundOrderService {
                     "PRODUCT_SKU_NOT_FOUND",
                     Map.of("productSkuId", itemReq.getProductSkuId())
                 ));
+            productSkuOperationalPolicy.requireEnabled(
+                product,
+                ProductSkuOperationalPolicy.INBOUND_ORDER
+            );
 
             // 验证仓库和库位（如果提供）
             Warehouse targetWarehouse = null;

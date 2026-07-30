@@ -4,6 +4,7 @@ import com.wms.system.dto.inbound.*;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.InboundOrderStatus;
 import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -55,6 +57,9 @@ class InboundOrderServiceTest {
 
     @Mock
     private ProductSkuRepository productSkuRepository;
+
+    @Spy
+    private ProductSkuOperationalPolicy productSkuOperationalPolicy = new ProductSkuOperationalPolicy();
 
     @Mock
     private WarehouseRepository warehouseRepository;
@@ -185,6 +190,31 @@ class InboundOrderServiceTest {
         verify(supplierRepository).findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L);
         verify(productSkuRepository).findById(1L);
         verify(inboundOrderRepository).save(any(InboundOrder.class));
+    }
+
+    @Test
+    @DisplayName("create inbound order rejects disabled SKU")
+    void createInboundOrder_DisabledSku() {
+        testProduct.setEnabled(false);
+        CreateInboundOrderRequest request = new CreateInboundOrderRequest();
+        request.setSupplierId(1L);
+        CreateInboundOrderRequest.InboundOrderItemRequest itemReq =
+            new CreateInboundOrderRequest.InboundOrderItemRequest();
+        itemReq.setProductSkuId(1L);
+        itemReq.setPlanQty(100);
+        request.setItems(List.of(itemReq));
+
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+            .thenReturn(Optional.of(testSupplier));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() ->
+            inboundOrderService.createInboundOrder(request, 1L, "Test User")
+        )
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_SKU_DISABLED);
+
+        verify(inboundOrderRepository, never()).save(any());
     }
 
     @Test

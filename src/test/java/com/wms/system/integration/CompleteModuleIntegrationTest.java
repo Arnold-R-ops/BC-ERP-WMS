@@ -411,7 +411,7 @@ class CompleteModuleIntegrationTest {
         mockMvc.perform(get("/api/sales-orders/template"))
             .andDo(print())
             .andExpect(status().isOk())
-            .andExpect(header().string("Content-Disposition", containsString("sales_order_template.xlsx")));
+            .andExpect(header().string("Content-Disposition", containsString("sales_order_import_template.xlsx")));
     }
 
     // ========== 濠电姷鏁告慨鐑姐€傞挊澹╋綁宕ㄩ弶鎴濈€銈呯箰閻楀棝鎮為崹顐犱簻闁圭儤鍨甸弳鐐烘煟濠垫劒閭柡?闂傚倸鍊搁崐鐑芥倿閿旈敮鍋撶粭娑樻噽閻瑩鏌熼悜妯虹劸婵炲皷鏅犻弻鏇熺箾閸喖澹勬俊銈忕畳濞夋洟鎮块埀顒€鈹戦悙鏉戠仸闁荤喆鍎甸崺鈧い鎺戝€搁崢鎾煛鐏炲墽娲撮柡浣稿€婚幏鐘诲箵閹烘埈鍔€闂傚倷绀侀幉锟犲春閸愵喖纾婚柟鍓х帛閳?==========

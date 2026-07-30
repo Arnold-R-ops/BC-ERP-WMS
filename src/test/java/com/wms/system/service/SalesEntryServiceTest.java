@@ -6,6 +6,10 @@ import com.wms.system.entity.ProductSku;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.ProductSkuRepository;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +35,7 @@ class SalesEntryServiceTest {
 
     @Mock private InventoryBatchRepository inventoryBatchRepository;
     @Mock private ProductSkuRepository productSkuRepository;
+    @Mock private ExcelTemplateService excelTemplateService;
 
     @InjectMocks
     private SalesEntryService salesEntryService;
@@ -54,10 +60,13 @@ class SalesEntryServiceTest {
     @Test
     @DisplayName("downloadExcelTemplate - returns non-empty byte array")
     void testDownloadExcelTemplate() {
+        when(excelTemplateService.getSalesOrderTemplate()).thenReturn(new byte[]{1, 2, 3});
+
         byte[] result = salesEntryService.downloadExcelTemplate();
 
         assertThat(result).isNotNull();
         assertThat(result.length).isGreaterThan(0);
+        verify(excelTemplateService).getSalesOrderTemplate();
     }
 
     // ========== importSalesOrderFromExcel ==========
@@ -83,6 +92,47 @@ class SalesEntryServiceTest {
 
         assertThatThrownBy(() -> salesEntryService.importSalesOrderFromExcel(csvFile))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("importSalesOrderFromExcel - imports line items without a redundant customer column")
+    void testImportSalesOrderFromExcel_ValidLine() throws Exception {
+        byte[] content;
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet(ExcelTemplateService.SALES_SHEET);
+            Row header = sheet.createRow(0);
+            String[] headers = {
+                    "productSkuId", "quantity", "unitPrice",
+                    "rejectNearExpiry", "specifiedBatchIds", "remark"
+            };
+            for (int index = 0; index < headers.length; index++) {
+                header.createCell(index).setCellValue(headers[index]);
+            }
+            Row data = sheet.createRow(1);
+            data.createCell(0).setCellValue(1);
+            data.createCell(1).setCellValue(12);
+            data.createCell(2).setCellValue(9.5);
+            data.createCell(3).setCellValue(false);
+            data.createCell(5).setCellValue("test line");
+            workbook.write(output);
+            content = output.toByteArray();
+        }
+        when(excelTemplateService.validateAndGetSalesOrderSheet(any(Workbook.class)))
+                .thenAnswer(invocation -> ((Workbook) invocation.getArgument(0))
+                        .getSheet(ExcelTemplateService.SALES_SHEET));
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "sales.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                content
+        );
+
+        List<com.wms.system.dto.sales.CreateSalesOrderRequest.SalesOrderItemData> result =
+                salesEntryService.importSalesOrderFromExcel(file);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getProductSkuId()).isEqualTo(1L);
+        assertThat(result.get(0).getQuantity()).isEqualTo(12);
     }
 
     // ========== getBatchOptions ==========

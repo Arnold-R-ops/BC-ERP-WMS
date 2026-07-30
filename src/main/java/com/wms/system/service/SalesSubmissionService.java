@@ -74,6 +74,7 @@ public class SalesSubmissionService {
     private final OutboundTaskRepository outboundTaskRepository;
     private final CustomerService customerService;
     private final ProductSkuRepository productSkuRepository;
+    private final ProductSkuOperationalPolicy productSkuOperationalPolicy;
     private final SystemConfigService systemConfigService;
     private final AllocationService allocationService;
     private final InventoryReservationService inventoryReservationService;
@@ -219,6 +220,10 @@ public class SalesSubmissionService {
                     ErrorKeys.PRODUCT_SKU_NOT_FOUND,
                     Map.of("productSkuId", itemData.getProductSkuId())
                 ));
+            productSkuOperationalPolicy.requireEnabled(
+                product,
+                ProductSkuOperationalPolicy.SALES_ORDER
+            );
 
             // Calculate subtotal
             BigDecimal subtotal = itemData.getUnitPrice()
@@ -536,6 +541,10 @@ public class SalesSubmissionService {
                     ErrorKeys.PRODUCT_SKU_NOT_FOUND,
                     Map.of("productSkuId", itemData.getProductSkuId())
                 ));
+            productSkuOperationalPolicy.requireEnabled(
+                product,
+                ProductSkuOperationalPolicy.SALES_ORDER
+            );
 
             // Calculate subtotal
             BigDecimal subtotal = itemData.getUnitPrice()

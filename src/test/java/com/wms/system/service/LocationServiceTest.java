@@ -102,6 +102,8 @@ class LocationServiceTest {
         assertThat(savedLocation.getZone()).isEqualTo(Zone.ZONE_A);
         assertThat(savedLocation.getShelfNumber()).isEqualTo("A-01");
         assertThat(savedLocation.getPositionNumber()).isEqualTo("001");
+        assertThat(savedLocation.getPosX()).isZero();
+        assertThat(savedLocation.getPosY()).isZero();
         assertThat(savedLocation.getEnabled()).isTrue();
         assertThat(savedLocation.getRemark()).isEqualTo("Test location");
     }
@@ -118,6 +120,20 @@ class LocationServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.WAREHOUSE_NOT_FOUND);
 
         // Verify
+        verify(locationRepository, never()).save(any(Location.class));
+    }
+
+    @Test
+    @DisplayName("inactive warehouse cannot receive new locations")
+    void createLocation_WarehouseInactive() {
+        testWarehouse.setIsActive(false);
+        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
+
+        assertThatThrownBy(() -> locationService.createLocation(
+                1L, Zone.ZONE_A, "A-01", "001", 10, 5, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.WAREHOUSE_INACTIVE);
+
         verify(locationRepository, never()).save(any(Location.class));
     }
 

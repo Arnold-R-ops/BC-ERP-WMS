@@ -627,6 +627,9 @@ public class OutboundService {
             .productSkuId(product.getId())
             .productName(product.getName())
             .productBarcode(product.getBarcode())
+            .batchTrackingMode(product.getBatchTrackingMode() == null
+                ? null
+                : product.getBatchTrackingMode().name())
             .planQty(task.getPlanQty())
             .actualQty(task.getActualQty())
             .status(task.getStatus().name())

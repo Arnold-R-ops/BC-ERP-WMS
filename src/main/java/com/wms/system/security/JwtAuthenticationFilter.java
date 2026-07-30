@@ -1,5 +1,8 @@
 package com.wms.system.security;
 
+import com.wms.system.entity.SysRole;
+import com.wms.system.repository.SysRoleRepository;
+import com.wms.system.service.DynamicPermissionService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -22,6 +25,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * JWT Authentication Filter
@@ -74,6 +78,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final SysRoleRepository roleRepository;
+    private final DynamicPermissionService permissionService;
 
     /**
      * ⭐ Filter Incoming Requests (Called for EVERY HTTP request)
@@ -149,7 +155,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         // and hasAnyAuthority("SUPER_ADMIN", "...") during API tests.
                         authorities.add(new SimpleGrantedAuthority("ROLE_" + currentRole));
                         authorities.add(new SimpleGrantedAuthority(currentRole));
-                        log.debug("Authorities granted: ROLE_{}, {}", currentRole, currentRole);
+
+                        // Method-level @PreAuthorize checks use permission codes
+                        // (for example "outbound:view"). Resolve them strictly from
+                        // the role selected in this JWT, including its inherited roles;
+                        // never union permissions from the user's other assigned roles.
+                        SysRole selectedRole = roleRepository.findByRoleCode(currentRole)
+                            .filter(SysRole::isActive)
+                            .orElseThrow(() -> new IllegalStateException(
+                                "Current role is missing or disabled: " + currentRole));
+                        Set<Long> effectiveRoleIds =
+                            permissionService.getInheritedRoleIds(Set.of(selectedRole.getId()));
+                        permissionService.getPermissionsByRoleIds(effectiveRoleIds).stream()
+                            .map(permission -> permission.getPermissionCode())
+                            .filter(code -> code != null && !code.isBlank())
+                            .map(SimpleGrantedAuthority::new)
+                            .forEach(authorities::add);
+
+                        log.debug("Authorities granted for current role {}: {}",
+                            currentRole, authorities);
                     } else {
                         log.warn("No current_role found in JWT token for user: {}", username);
                     }

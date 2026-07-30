@@ -271,6 +271,15 @@ public class StocktakeService {
 
         StocktakeTask task = getTaskById(taskId);
 
+        // The final count submission can auto-transition the task before the
+        // mobile client sends its explicit finish request. Treat REVIEWING as
+        // an idempotent success so a delayed or retried confirmation cannot
+        // report a false failure after the state change has committed.
+        if (task.getStatus() == StocktakeStatus.REVIEWING) {
+            log.info("Stocktake already finished counting: taskNo={}", task.getTaskNo());
+            return convertToTaskResponse(task);
+        }
+
         if (!task.canCount()) {
             throw new BusinessException(
                 ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT,

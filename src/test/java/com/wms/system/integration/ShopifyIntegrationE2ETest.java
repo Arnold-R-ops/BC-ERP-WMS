@@ -14,6 +14,7 @@ import com.wms.system.entity.enums.CustomerSource;
 import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.repository.*;
 import com.wms.system.service.ShopifyIntegrationService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,8 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -56,7 +57,6 @@ import static org.mockito.Mockito.when;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@Transactional
 @Import(TestSecurityConfig.class)
 @DisplayName("case-1")
 class ShopifyIntegrationE2ETest {
@@ -114,6 +114,9 @@ class ShopifyIntegrationE2ETest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private IntegrationConfig testConfig;
     private ProductSku testProduct;
@@ -314,6 +317,35 @@ class ShopifyIntegrationE2ETest {
                 .get()
                 .extracting(InventoryBatch::getReservedQuantity)
                 .isEqualTo(0);
+    }
+
+    @AfterEach
+    void cleanUpCommittedFixtures() {
+        /*
+         * Consumer identity, raw events and pending mappings deliberately use
+         * independent transactions. Remove their committed test fixtures before
+         * the context is closed so the next integration-test class starts clean.
+         */
+        jdbcTemplate.execute("""
+            TRUNCATE TABLE
+                channel_raw_events,
+                pending_sku_mapping,
+                channel_sku_mapping,
+                outbound_tasks,
+                inventory_reservations,
+                sales_order_items,
+                sales_orders,
+                inventory_batch,
+                locations,
+                product_skus,
+                products,
+                categories,
+                customers,
+                integration_configs,
+                system_config,
+                warehouses
+            RESTART IDENTITY CASCADE
+            """);
     }
 
     @Test

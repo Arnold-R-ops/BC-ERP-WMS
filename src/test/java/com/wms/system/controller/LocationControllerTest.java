@@ -166,6 +166,21 @@ class LocationControllerTest {
     }
 
     @Test
+    @DisplayName("create location with routing coordinates")
+    void createLocation_WithCoordinates() {
+        CreateLocationRequest request = new CreateLocationRequest(
+                1L, Zone.ZONE_A, "A-01", "002", 12, 8, "Routing point"
+        );
+        when(locationService.createLocation(1L, Zone.ZONE_A, "A-01", "002", 12, 8, "Routing point"))
+                .thenReturn(testLocation);
+
+        var response = locationController.createLocation(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        verify(locationService).createLocation(1L, Zone.ZONE_A, "A-01", "002", 12, 8, "Routing point");
+    }
+
+    @Test
     @DisplayName("case-7")
     void createLocation_WarehouseNotFound() {
         // Given
@@ -219,6 +234,19 @@ class LocationControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         verify(locationService).updateLocation(1L, "Updated remark");
+    }
+
+    @Test
+    @DisplayName("update location routing coordinates")
+    void updateLocation_WithCoordinates() {
+        UpdateLocationRequest request = new UpdateLocationRequest(20, 15, "Updated routing point");
+        when(locationService.updateLocation(1L, 20, 15, "Updated routing point"))
+                .thenReturn(testLocation);
+
+        var response = locationController.updateLocation(1L, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(locationService).updateLocation(1L, 20, 15, "Updated routing point");
     }
 
     @Test

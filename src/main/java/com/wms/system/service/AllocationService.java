@@ -66,6 +66,7 @@ public class AllocationService {
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductSkuRepository productSkuRepository;
+    private final ProductSkuOperationalPolicy productSkuOperationalPolicy;
     private final OutboundTaskRepository outboundTaskRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final BackorderService backorderService;
@@ -178,6 +179,10 @@ public class AllocationService {
                 ErrorKeys.PRODUCT_SKU_NOT_FOUND,
                 Map.of("productSkuId", item.getProductSkuId())
             ));
+        productSkuOperationalPolicy.requireEnabled(
+            product,
+            ProductSkuOperationalPolicy.INVENTORY_ALLOCATION
+        );
 
         log.debug("📦 ProductSku info: name={}, perPackQty={}, nearExpiryDays={}",
             product.getName(), product.getPerPackQty(), product.getNearExpiryDays());

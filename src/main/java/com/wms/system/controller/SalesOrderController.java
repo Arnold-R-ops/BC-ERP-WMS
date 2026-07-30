@@ -2,6 +2,7 @@ package com.wms.system.controller;
 
 import com.wms.system.dto.sales.*;
 import com.wms.system.security.AuthUserResolver;
+import com.wms.system.service.ExcelTemplateService;
 import com.wms.system.service.SalesEntryService;
 import com.wms.system.service.SalesSubmissionService;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -68,7 +70,9 @@ public class SalesOrderController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.setContentDispositionFormData("attachment", "sales_order_template.xlsx");
+        headers.setContentDisposition(ContentDisposition.attachment()
+            .filename(ExcelTemplateService.SALES_FILE)
+            .build());
 
         log.info("API响应: downloadTemplate - 文件大小: {} bytes", excelBytes.length);
 

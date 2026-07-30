@@ -105,6 +105,31 @@ class SalesOrderShipmentServiceTest {
         verify(shipmentRepository, never()).save(any());
     }
 
+    @Test
+    void voidShipment_RecordsActorAndTimestamp() {
+        SalesOrder order = SalesOrder.builder()
+            .id(10L)
+            .status(SalesOrderStatus.SHIPPED)
+            .build();
+        SalesOrderShipment shipment = SalesOrderShipment.builder()
+            .id(100L)
+            .salesOrderId(10L)
+            .trackingNo("TRACK-A")
+            .status(ShipmentStatus.ACTIVE)
+            .build();
+        when(salesOrderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(shipmentRepository.findByIdAndSalesOrderId(100L, 10L)).thenReturn(Optional.of(shipment));
+        when(shipmentRepository.save(any(SalesOrderShipment.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = shipmentService.voidShipment(10L, 100L, 2L, "admin");
+
+        assertThat(response.getStatus()).isEqualTo(ShipmentStatus.VOIDED.name());
+        assertThat(response.getVoidedBy()).isEqualTo(2L);
+        assertThat(response.getVoidedByName()).isEqualTo("admin");
+        assertThat(response.getVoidedAt()).isNotNull();
+    }
+
     private SalesOrderShipmentRequest request(String trackingNo, String carrier) {
         SalesOrderShipmentRequest request = new SalesOrderShipmentRequest();
         request.setTrackingNo(trackingNo);

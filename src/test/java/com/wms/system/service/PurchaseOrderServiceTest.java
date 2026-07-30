@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ class PurchaseOrderServiceTest {
     @Mock private PurchaseOrderItemRepository purchaseOrderItemRepository;
     @Mock private InventoryBatchRepository inventoryBatchRepository;
     @Mock private ProductSkuRepository productSkuRepository;
+    @Spy private ProductSkuOperationalPolicy productSkuOperationalPolicy = new ProductSkuOperationalPolicy();
     @Mock private LocationRepository locationRepository;
     @Mock private StockTransactionRepository stockTransactionRepository;
     @Mock private BatchCodeGenerator batchCodeGenerator;
@@ -102,6 +104,35 @@ class PurchaseOrderServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.ORDERING);
         verify(purchaseOrderRepository).save(any(PurchaseOrder.class));
+    }
+
+    @Test
+    @DisplayName("createPurchaseOrder - rejects disabled SKU")
+    void testCreatePurchaseOrder_DisabledSku() {
+        testProduct.setEnabled(false);
+        PurchaseOrderService.PurchaseOrderItemData itemData =
+            PurchaseOrderService.PurchaseOrderItemData.builder()
+                .productSkuId(1L)
+                .orderedQuantity(100)
+                .unitCost(new BigDecimal("10.00"))
+                .build();
+
+        when(purchaseOrderRepository.findLatestByDatePrefix(anyString()))
+            .thenReturn(new ArrayList<>());
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+            .thenReturn(Optional.of(testSupplier));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> purchaseOrderService.createPurchaseOrder(
+            1L, List.of(itemData), LocalDate.now(), 1L, "Admin", null
+        ))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue(
+                "errorKey",
+                com.wms.system.exception.ErrorKeys.PRODUCT_SKU_DISABLED
+            );
+
+        verify(purchaseOrderRepository, never()).save(any());
     }
 
     @Test

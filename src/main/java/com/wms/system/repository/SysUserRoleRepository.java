@@ -130,6 +130,7 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
         JOIN User user ON user.id = sur.userId
         WHERE role.roleCode = :roleCode
           AND user.isDeleted = false
+          AND user.enabled = true
         """)
     long countActiveUsersByRoleCode(@Param("roleCode") String roleCode);
 

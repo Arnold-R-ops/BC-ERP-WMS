@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -225,5 +226,81 @@ class UserManagementServiceTest {
 
         verify(userRoleRepository, never()).deleteByUserId(any());
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsDisablingOwnAccount() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(operator));
+
+        assertThatThrownBy(() -> service.validateProfileChange(1L, 1L, false))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+    }
+
+    @Test
+    void rejectsDisablingLastActiveSuperAdmin() {
+        SysRole superAdmin = superAdminRole();
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
+        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.validateProfileChange(2L, 1L, false))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+    }
+
+    @Test
+    void allowsDisablingSuperAdminWhenAnotherActiveAdminExists() {
+        SysRole superAdmin = superAdminRole();
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
+        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(2L);
+
+        service.validateProfileChange(2L, 1L, false);
+    }
+
+    @Test
+    void rejectsReplacingOwnRoles() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(operator));
+
+        assertThatThrownBy(() -> service.validateRoleReplacement(1L, 1L, Set.of(5L)))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+    }
+
+    @Test
+    void rejectsRemovingFinalActiveSuperAdminRole() {
+        SysRole superAdmin = superAdminRole();
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
+        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.validateRoleReplacement(2L, 1L, Set.of(5L)))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+    }
+
+    @Test
+    void allowsRoleReplacementWhenSuperAdminRoleIsRetained() {
+        SysRole superAdmin = superAdminRole();
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
+
+        service.validateRoleReplacement(2L, 1L, Set.of(3L, 5L));
+
+        verify(userRoleRepository, never()).countActiveUsersByRoleCode(any());
+    }
+
+    private SysRole superAdminRole() {
+        return SysRole.builder()
+            .id(3L)
+            .roleCode("SUPER_ADMIN")
+            .roleName("Super Admin")
+            .status("ACTIVE")
+            .build();
     }
 }

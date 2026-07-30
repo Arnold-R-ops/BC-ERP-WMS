@@ -55,6 +55,15 @@ public class SalesOrderShipment extends BaseEntity {
     @Column(name = "created_by_name", length = 100)
     private String createdByName;
 
+    @Column(name = "voided_by")
+    private Long voidedBy;
+
+    @Column(name = "voided_by_name", length = 100)
+    private String voidedByName;
+
+    @Column(name = "voided_at")
+    private LocalDateTime voidedAt;
+
     @Column(length = 500)
     private String remark;
 

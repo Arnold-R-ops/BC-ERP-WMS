@@ -83,6 +83,11 @@ public class OutboundTaskResponse {
     private String productBarcode;
 
     /**
+     * Batch identification workflow required by this SKU.
+     */
+    private String batchTrackingMode;
+
+    /**
      * 计划出库数量
      */
     private Integer planQty;

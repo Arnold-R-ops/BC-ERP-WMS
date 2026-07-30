@@ -387,6 +387,7 @@ class UserControllerTest {
         // Given
         AssignRolesRequest request = AssignRolesRequest.builder()
                 .roleIds(Arrays.asList(3L, 5L, 7L))
+                .defaultRoleId(5L)
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
@@ -405,9 +406,29 @@ class UserControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getRoleCodes()).hasSize(3);
+        assertThat(response.getBody().getDefaultRoleCode()).isEqualTo("SALESPERSON");
 
         verify(userRoleService).assignRolesToUser(eq(1L), anySet(), eq(1L));
+        verify(userRepository).save(testUser);
         verify(cacheService).onUserRoleAssigned(1L);
+    }
+
+    @Test
+    @DisplayName("case-13b")
+    void assignRoles_DefaultRoleMustBelongToReplacementSet() {
+        AssignRolesRequest request = AssignRolesRequest.builder()
+                .roleIds(List.of(3L))
+                .defaultRoleId(5L)
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
+
+        assertThatThrownBy(() -> userController.assignRoles(1L, request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.ROLE_NOT_ASSIGNED);
+
+        verify(userRoleService, never()).assignRolesToUser(anyLong(), anySet(), anyLong());
     }
 
     @Test

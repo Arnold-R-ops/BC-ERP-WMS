@@ -97,6 +97,24 @@ class PurchaseOrderControllerTest {
 
     @Test
     @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("downloadImportTemplate - returns xlsx attachment")
+    void testDownloadImportTemplate_Success() throws Exception {
+        when(excelImportService.downloadPurchaseOrderTemplate()).thenReturn(new byte[]{1, 2, 3});
+
+        mockMvc.perform(get("/api/purchase-orders/template"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Type",
+                        containsString("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                ))
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        containsString("purchase_order_import_template.xlsx")
+                ));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
     @DisplayName("uploadExcel - returns 201 when valid xlsx uploaded")
     void testUploadExcel_Success() throws Exception {
         PurchaseOrderService.PurchaseOrderItemData item =

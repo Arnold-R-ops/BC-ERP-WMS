@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -148,7 +149,11 @@ public class UserController {
      * @return Created user with roles
      */
     @PostMapping
-    public ResponseEntity<UserWithRolesDTO> createUser(@Valid @RequestBody CreateUserRequest request) {
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<UserWithRolesDTO> createUser(
+        @Valid @RequestBody CreateUserRequest request,
+        Authentication authentication
+    ) {
         log.info("Creating new user: username={}", request.getUsername());
 
         // 1. Verify username uniqueness
@@ -170,6 +175,14 @@ public class UserController {
                         Map.of("roleId", roleId)
                     );
                 }))
+            .peek(role -> {
+                if (!role.isActive()) {
+                    throw new BusinessException(
+                        ErrorKeys.ROLE_DISABLED,
+                        Map.of("roleId", role.getId(), "roleCode", role.getRoleCode())
+                    );
+                }
+            })
             .collect(Collectors.toList());
 
         // 3. BCrypt encode password
@@ -192,7 +205,10 @@ public class UserController {
 
         // 6. Assign roles to user
         // Get admin ID from SecurityContext for assigned_by field
-        Long adminId = user.getId(); // Using newly created user as assigned_by for bootstrap
+        Long adminId = authentication == null ? 0L : resolveOperatorId(authentication);
+        if (adminId == null || adminId == 0L) {
+            adminId = user.getId();
+        }
         userRoleService.assignRolesToUser(user.getId(), new HashSet<>(request.getRoleIds()), adminId);
 
         log.info("Roles assigned to user: userId={}, roleCount={}", user.getId(), request.getRoleIds().size());
@@ -201,6 +217,10 @@ public class UserController {
         UserWithRolesDTO response = convertToDTO(user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    ResponseEntity<UserWithRolesDTO> createUser(CreateUserRequest request) {
+        return createUser(request, null);
     }
 
     /**
@@ -234,11 +254,19 @@ public class UserController {
      * @return Updated user
      */
     @PutMapping("/{id}")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<UserWithRolesDTO> updateUser(
         @PathVariable("id") Long id,
-        @Valid @RequestBody UpdateUserRequest request
+        @Valid @RequestBody UpdateUserRequest request,
+        Authentication authentication
     ) {
         log.info("Updating user: userId={}", id);
+
+        userManagementService.validateProfileChange(
+            id,
+            authentication == null ? 0L : resolveOperatorId(authentication),
+            request.getEnabled()
+        );
 
         // 1. Load user
         User user = userRepository.findById(id)
@@ -306,6 +334,10 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    ResponseEntity<UserWithRolesDTO> updateUser(Long id, UpdateUserRequest request) {
+        return updateUser(id, request, null);
+    }
+
     /**
      * 猸?Delete User
      *
@@ -360,9 +392,11 @@ public class UserController {
      * @return Updated user
      */
     @PostMapping("/{id}/roles")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<UserWithRolesDTO> assignRoles(
         @PathVariable("id") Long id,
-        @Valid @RequestBody AssignRolesRequest request
+        @Valid @RequestBody AssignRolesRequest request,
+        Authentication authentication
     ) {
         log.info("Assigning roles to user: userId={}, roleCount={}", id, request.getRoleIds().size());
 
@@ -386,19 +420,54 @@ public class UserController {
                         Map.of("roleId", roleId)
                     );
                 }))
+            .peek(role -> {
+                if (!role.isActive()) {
+                    throw new BusinessException(
+                        ErrorKeys.ROLE_DISABLED,
+                        Map.of("roleId", role.getId(), "roleCode", role.getRoleCode())
+                    );
+                }
+            })
             .collect(Collectors.toList());
 
-        // 3. Get admin ID from SecurityContext (not implemented, using user id)
-        Long adminId = id;
+        if (request.getDefaultRoleId() != null
+            && !request.getRoleIds().contains(request.getDefaultRoleId())) {
+            throw new BusinessException(
+                ErrorKeys.ROLE_NOT_ASSIGNED,
+                Map.of(
+                    "roleId", request.getDefaultRoleId(),
+                    "userId", id,
+                    "reason", "Default role must be included in roleIds"
+                )
+            );
+        }
+
+        // 3. Resolve the real operator and protect self/last-admin role changes.
+        Long adminId = authentication == null ? 0L : resolveOperatorId(authentication);
+        userManagementService.validateRoleReplacement(
+            id,
+            adminId,
+            new HashSet<>(request.getRoleIds())
+        );
+        if (adminId == null || adminId == 0L) {
+            adminId = id;
+        }
 
         // 4. Assign roles (replaces existing assignments)
         userRoleService.assignRolesToUser(id, new HashSet<>(request.getRoleIds()), adminId);
 
         log.info("Roles assigned successfully: userId={}, roleCount={}", id, request.getRoleIds().size());
 
-        // 5. Update default role if current default is not in new roles
-        if (user.getDefaultRoleId() == null || !request.getRoleIds().contains(user.getDefaultRoleId())) {
-            user.setDefaultRoleId(request.getRoleIds().get(0));
+        // 5. Update default role in the same transaction as role replacement.
+        Long nextDefaultRoleId = request.getDefaultRoleId();
+        if (nextDefaultRoleId == null) {
+            nextDefaultRoleId = user.getDefaultRoleId() != null
+                && request.getRoleIds().contains(user.getDefaultRoleId())
+                ? user.getDefaultRoleId()
+                : request.getRoleIds().get(0);
+        }
+        if (!nextDefaultRoleId.equals(user.getDefaultRoleId())) {
+            user.setDefaultRoleId(nextDefaultRoleId);
             userRepository.save(user);
             log.debug("Updated default role: userId={}, defaultRoleId={}", id, user.getDefaultRoleId());
         }
@@ -410,6 +479,10 @@ public class UserController {
         UserWithRolesDTO response = convertToDTO(user);
 
         return ResponseEntity.ok(response);
+    }
+
+    ResponseEntity<UserWithRolesDTO> assignRoles(Long id, AssignRolesRequest request) {
+        return assignRoles(id, request, null);
     }
 
     /**
@@ -433,9 +506,11 @@ public class UserController {
      * @return No content
      */
     @DeleteMapping("/{id}/roles/{roleId}")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<Void> removeRole(
         @PathVariable("id") Long id,
-        @PathVariable("roleId") Long roleId
+        @PathVariable("roleId") Long roleId,
+        Authentication authentication
     ) {
         log.info("Removing role from user: userId={}, roleId={}", id, roleId);
 
@@ -487,6 +562,16 @@ public class UserController {
             );
         }
 
+        HashSet<Long> remainingRoleIds = userRoles.stream()
+            .map(SysRole::getId)
+            .filter(existingRoleId -> !existingRoleId.equals(roleId))
+            .collect(Collectors.toCollection(HashSet::new));
+        userManagementService.validateRoleReplacement(
+            id,
+            authentication == null ? 0L : resolveOperatorId(authentication),
+            remainingRoleIds
+        );
+
         // 5. Remove role
         userRoleService.removeRoleFromUser(id, roleId);
 
@@ -507,6 +592,10 @@ public class UserController {
         cacheService.onUserRoleRemoved(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    ResponseEntity<Void> removeRole(Long id, Long roleId) {
+        return removeRole(id, roleId, null);
     }
 
     /**

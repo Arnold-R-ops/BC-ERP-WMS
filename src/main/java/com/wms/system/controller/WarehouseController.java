@@ -76,12 +76,20 @@ public class WarehouseController {
             @PathVariable("id") Long id,
             @RequestBody @Validated UpdateWarehouseRequest request) {
         log.info("Updating warehouse: id={}", id);
-        Warehouse warehouse = warehouseService.updateWarehouse(
-                id,
-                request.name,
-                request.address,
-                request.contact
-        );
+        Warehouse warehouse = request.phone == null
+                ? warehouseService.updateWarehouse(
+                        id,
+                        request.name,
+                        request.address,
+                        request.contact
+                )
+                : warehouseService.updateWarehouse(
+                        id,
+                        request.name,
+                        request.address,
+                        request.contact,
+                        request.phone
+                );
         return ResponseEntity.ok(toResponse(warehouse));
     }
 
@@ -164,6 +172,13 @@ public class WarehouseController {
             String address,
 
             @Size(max = 50, message = "warehouse contact must be at most 50 characters")
-            String contact
-    ) {}
+            String contact,
+
+            @Size(max = 20, message = "warehouse phone must be at most 20 characters")
+            String phone
+    ) {
+        public UpdateWarehouseRequest(String name, String address, String contact) {
+            this(name, address, contact, null);
+        }
+    }
 }

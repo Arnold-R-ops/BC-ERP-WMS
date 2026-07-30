@@ -74,6 +74,12 @@ public class LocationService {
     @Transactional(rollbackFor = Exception.class)
     public Location createLocation(Long warehouseId, Zone zone, String shelfNumber,
                                      String positionNumber, String remark) {
+        return createLocation(warehouseId, zone, shelfNumber, positionNumber, 0, 0, remark);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Location createLocation(Long warehouseId, Zone zone, String shelfNumber,
+                                     String positionNumber, Integer posX, Integer posY, String remark) {
         log.info("Creating location: warehouseId={}, zone={}, shelf={}, position={}",
                  warehouseId, zone, shelfNumber, positionNumber);
 
@@ -86,6 +92,13 @@ public class LocationService {
                     Map.of("warehouseId", warehouseId)
                 );
             });
+
+        if (Boolean.FALSE.equals(warehouse.getIsActive())) {
+            throw new BusinessException(
+                ErrorKeys.WAREHOUSE_INACTIVE,
+                Map.of("warehouseId", warehouseId, "warehouseCode", warehouse.getCode())
+            );
+        }
 
         // 检查库位是否已存在（通过唯一约束字段）
         locationRepository.findByWarehouseCodeAndZoneAndShelfNumberAndPositionNumber(
@@ -110,6 +123,8 @@ public class LocationService {
             .zone(zone)
             .shelfNumber(shelfNumber)
             .positionNumber(positionNumber)
+            .posX(posX == null ? 0 : posX)
+            .posY(posY == null ? 0 : posY)
             .enabled(true)
             .remark(remark)
             .build();
@@ -193,6 +208,11 @@ public class LocationService {
      */
     @Transactional(rollbackFor = Exception.class)
     public Location updateLocation(Long locationId, String remark) {
+        return updateLocation(locationId, null, null, remark);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Location updateLocation(Long locationId, Integer posX, Integer posY, String remark) {
         log.info("Updating location: id={}", locationId);
 
         // 查询库位
@@ -201,6 +221,12 @@ public class LocationService {
         // 更新备注
         if (remark != null) {
             location.setRemark(remark);
+        }
+        if (posX != null) {
+            location.setPosX(posX);
+        }
+        if (posY != null) {
+            location.setPosY(posY);
         }
 
         // 保存更新

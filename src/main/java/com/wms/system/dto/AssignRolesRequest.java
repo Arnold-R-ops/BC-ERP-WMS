@@ -75,4 +75,11 @@ public class AssignRolesRequest {
      */
     @NotEmpty(message = "User must be assigned at least one role")
     private List<Long> roleIds;
+
+    /**
+     * Optional default role for the resulting assignment set. When omitted,
+     * the current default is retained if possible, otherwise the first role
+     * in roleIds becomes the default.
+     */
+    private Long defaultRoleId;
 }

@@ -4,6 +4,7 @@ import com.wms.system.entity.ProductSku;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -82,10 +83,28 @@ public interface ProductSkuRepository extends JpaRepository<ProductSku, Long> {
     List<ProductSku> findByEnabledTrue();
 
     @EntityGraph(attributePaths = {"product", "product.category"})
+    @Query("SELECT p FROM ProductSku p WHERE p.enabled = true AND p.product.enabled = true ORDER BY p.skuCode ASC")
+    List<ProductSku> findAllOperationalOrderBySkuCodeAsc();
+
+    @EntityGraph(attributePaths = {"product"})
+    @Query("SELECT p FROM ProductSku p WHERE p.enabled = true AND p.product.enabled = true ORDER BY p.skuCode ASC")
+    List<ProductSku> findOperationalTemplateRows(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"product", "product.category"})
     List<ProductSku> findAllByProduct_IdOrderBySkuCodeAsc(Long productId);
 
     @EntityGraph(attributePaths = {"product", "product.category"})
     List<ProductSku> findAllByProduct_IdAndEnabledTrueOrderBySkuCodeAsc(Long productId);
+
+    @EntityGraph(attributePaths = {"product", "product.category"})
+    @Query("""
+        SELECT p FROM ProductSku p
+        WHERE p.product.id = :productId
+          AND p.enabled = true
+          AND p.product.enabled = true
+        ORDER BY p.skuCode ASC
+        """)
+    List<ProductSku> findAllOperationalByProductIdOrderBySkuCodeAsc(@Param("productId") Long productId);
 
     /**
      * 根据商品分类查询

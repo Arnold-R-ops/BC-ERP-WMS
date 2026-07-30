@@ -5,6 +5,7 @@ import com.wms.system.entity.Location;
 import com.wms.system.entity.enums.Zone;
 import com.wms.system.service.LocationService;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -90,13 +91,23 @@ public class LocationController {
     public ResponseEntity<LocationResponse> createLocation(@RequestBody @Validated CreateLocationRequest request) {
         log.info("Creating location: warehouseId={}, zone={}, shelf={}, position={}",
                 request.warehouseId, request.zone, request.shelfNumber, request.positionNumber);
-        Location location = locationService.createLocation(
-                request.warehouseId,
-                request.zone,
-                request.shelfNumber,
-                request.positionNumber,
-                request.remark
-        );
+        Location location = request.posX == null && request.posY == null
+                ? locationService.createLocation(
+                        request.warehouseId,
+                        request.zone,
+                        request.shelfNumber,
+                        request.positionNumber,
+                        request.remark
+                )
+                : locationService.createLocation(
+                        request.warehouseId,
+                        request.zone,
+                        request.shelfNumber,
+                        request.positionNumber,
+                        request.posX,
+                        request.posY,
+                        request.remark
+                );
         return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(location));
     }
 
@@ -112,7 +123,9 @@ public class LocationController {
             @PathVariable Long id,
             @RequestBody @Validated UpdateLocationRequest request) {
         log.info("Updating location: id={}", id);
-        Location location = locationService.updateLocation(id, request.remark);
+        Location location = request.posX == null && request.posY == null
+                ? locationService.updateLocation(id, request.remark)
+                : locationService.updateLocation(id, request.posX, request.posY, request.remark);
         return ResponseEntity.ok(LocationResponse.from(location));
     }
 
@@ -160,15 +173,36 @@ public class LocationController {
             @Size(max = 10, message = "位号长度不能超过10个字符")
             String positionNumber,
 
+            @Min(value = 0, message = "X坐标不能小于0")
+            Integer posX,
+
+            @Min(value = 0, message = "Y坐标不能小于0")
+            Integer posY,
+
             @Size(max = 500, message = "备注长度不能超过500个字符")
             String remark
-    ) {}
+    ) {
+        public CreateLocationRequest(Long warehouseId, Zone zone, String shelfNumber,
+                                     String positionNumber, String remark) {
+            this(warehouseId, zone, shelfNumber, positionNumber, null, null, remark);
+        }
+    }
 
     /**
      * 更新库位请求 DTO
      */
     public record UpdateLocationRequest(
+            @Min(value = 0, message = "X坐标不能小于0")
+            Integer posX,
+
+            @Min(value = 0, message = "Y坐标不能小于0")
+            Integer posY,
+
             @Size(max = 500, message = "备注长度不能超过500个字符")
             String remark
-    ) {}
+    ) {
+        public UpdateLocationRequest(String remark) {
+            this(null, null, remark);
+        }
+    }
 }

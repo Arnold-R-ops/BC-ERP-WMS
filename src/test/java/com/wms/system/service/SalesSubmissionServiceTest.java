@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -65,6 +66,9 @@ class SalesSubmissionServiceTest {
 
     @Mock
     private ProductSkuRepository productSkuRepository;
+
+    @Spy
+    private ProductSkuOperationalPolicy productSkuOperationalPolicy = new ProductSkuOperationalPolicy();
 
     @Mock
     private SystemConfigService systemConfigService;
@@ -486,6 +490,38 @@ class SalesSubmissionServiceTest {
         verify(salesOrderItemRepository).deleteBySalesOrderId(1L);
         verify(salesOrderItemRepository).saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList());
         verify(salesOrderRepository, atLeastOnce()).save(any(SalesOrder.class));
+    }
+
+    @Test
+    @DisplayName("create sales order rejects disabled SKU")
+    void testCreateSalesOrder_DisabledSku() {
+        testProduct.setEnabled(false);
+
+        CreateSalesOrderRequest request = new CreateSalesOrderRequest();
+        request.setCustomerId(1L);
+        CreateSalesOrderRequest.SalesOrderItemData itemData =
+            new CreateSalesOrderRequest.SalesOrderItemData();
+        itemData.setProductSkuId(1L);
+        itemData.setQuantity(1);
+        itemData.setUnitPrice(new BigDecimal("15.00"));
+        request.setItems(List.of(itemData));
+
+        when(salesOrderRepository.existsByOrderNo(anyString())).thenReturn(false);
+        when(salesOrderRepository.save(any(SalesOrder.class)))
+            .thenAnswer(invocation -> {
+                SalesOrder order = invocation.getArgument(0);
+                order.setId(1L);
+                return order;
+            });
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() ->
+            salesSubmissionService.createSalesOrder(request, 1L, "Admin")
+        )
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_SKU_DISABLED);
+
+        verify(salesOrderItemRepository, never()).saveAll(anyList());
     }
 
     // ========== Test 8: Update Invalid Status ==========

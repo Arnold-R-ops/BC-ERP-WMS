@@ -17,6 +17,9 @@ public class SalesOrderShipmentResponse {
     private LocalDateTime shippedAt;
     private Long createdBy;
     private String createdByName;
+    private Long voidedBy;
+    private String voidedByName;
+    private LocalDateTime voidedAt;
     private String remark;
     private Long version;
     private LocalDateTime createdAt;

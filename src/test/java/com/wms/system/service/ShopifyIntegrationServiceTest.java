@@ -56,7 +56,7 @@ class ShopifyIntegrationServiceTest {
     private SalesOrderRepository salesOrderRepository;
 
     @Mock
-    private ShopifyCustomerResolver customerResolver;
+    private ShopifyConsumerIdentityService consumerIdentityService;
 
     @Mock
     private ChannelSkuResolver skuResolver;
@@ -206,12 +206,12 @@ class ShopifyIntegrationServiceTest {
     }
 
     private void stubCustomerResolved() {
-        when(customerResolver.resolveForAutomatic(any(ShopifyOrderDto.class), any(IntegrationConfig.class)))
+        when(consumerIdentityService.resolveForAutomaticIngestion(any(ShopifyOrderDto.class), any(IntegrationConfig.class)))
             .thenReturn(customer);
     }
 
     private void stubCustomerResolutionFailed() {
-        when(customerResolver.resolveForAutomatic(any(ShopifyOrderDto.class), any(IntegrationConfig.class)))
+        when(consumerIdentityService.resolveForAutomaticIngestion(any(ShopifyOrderDto.class), any(IntegrationConfig.class)))
             .thenThrow(new BusinessException(ErrorKeys.VALIDATION_FAILED));
     }
 

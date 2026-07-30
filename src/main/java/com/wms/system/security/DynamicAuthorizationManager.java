@@ -68,6 +68,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      */
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/login",      // Login endpoint
+        "/api/auth/health",     // Authentication service health check
         "/api/webhooks/**",     // Channel webhooks (P1-B3): no JWT, secured by HMAC signature inside
         "/health/**",           // Health check
         "/actuator/**",         // Spring Boot Actuator

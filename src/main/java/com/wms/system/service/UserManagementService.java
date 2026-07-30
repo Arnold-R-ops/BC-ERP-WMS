@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -76,7 +77,7 @@ public class UserManagementService {
             );
         }
 
-        protectLastSuperAdmin(target);
+        protectLastSuperAdmin(target, "Delete user");
 
         String originalUsername = target.getUsername();
         String deletionKey = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
@@ -97,6 +98,61 @@ public class UserManagementService {
         evictSecurityStateAfterCommit(userId);
         log.info("User logically deleted: userId={}, originalUsername={}, operatorId={}",
             userId, originalUsername, operatorId);
+    }
+
+    /** Prevent profile changes that could lock the active administrator out. */
+    @Transactional(readOnly = true)
+    public void validateProfileChange(Long userId, Long operatorId, Boolean requestedEnabled) {
+        if (!Boolean.FALSE.equals(requestedEnabled)) {
+            return;
+        }
+
+        User target = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.USER_NOT_FOUND,
+                Map.of("userId", userId)
+            ));
+
+        if (operatorId != null && operatorId > 0 && operatorId.equals(userId)) {
+            throw new BusinessException(
+                ErrorKeys.OPERATION_NOT_ALLOWED,
+                Map.of(
+                    "operation", "Disable user",
+                    "reason", "Administrators cannot disable their own account"
+                )
+            );
+        }
+
+        protectLastSuperAdmin(target, "Disable user");
+    }
+
+    /** Prevent self role replacement and removal of the final SUPER_ADMIN role. */
+    @Transactional(readOnly = true)
+    public void validateRoleReplacement(Long userId, Long operatorId, Set<Long> requestedRoleIds) {
+        User target = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.USER_NOT_FOUND,
+                Map.of("userId", userId)
+            ));
+
+        if (operatorId != null && operatorId > 0 && operatorId.equals(userId)) {
+            throw new BusinessException(
+                ErrorKeys.OPERATION_NOT_ALLOWED,
+                Map.of(
+                    "operation", "Replace user roles",
+                    "reason", "Use another SUPER_ADMIN account to change your role assignment"
+                )
+            );
+        }
+
+        SysRole superAdminRole = roleRepository.findByRoleCode(SUPER_ADMIN).orElse(null);
+        if (superAdminRole == null
+            || !userRoleRepository.existsByUserIdAndRoleId(target.getId(), superAdminRole.getId())
+            || requestedRoleIds.contains(superAdminRole.getId())) {
+            return;
+        }
+
+        protectLastSuperAdmin(target, "Remove SUPER_ADMIN role");
     }
 
     /**
@@ -203,7 +259,11 @@ public class UserManagementService {
         return sb.toString();
     }
 
-    private void protectLastSuperAdmin(User target) {
+    private void protectLastSuperAdmin(User target, String operation) {
+        if (!Boolean.TRUE.equals(target.getEnabled())) {
+            return;
+        }
+
         SysRole superAdminRole = roleRepository.findByRoleCode(SUPER_ADMIN).orElse(null);
         if (superAdminRole == null
             || !userRoleRepository.existsByUserIdAndRoleId(target.getId(), superAdminRole.getId())) {
@@ -215,8 +275,8 @@ public class UserManagementService {
             throw new BusinessException(
                 ErrorKeys.OPERATION_NOT_ALLOWED,
                 Map.of(
-                    "operation", "Delete user",
-                    "reason", "The last active SUPER_ADMIN account cannot be deleted"
+                    "operation", operation,
+                    "reason", "The last active SUPER_ADMIN account must remain enabled with its role"
                 )
             );
         }

@@ -83,6 +83,11 @@ batch:
     salt: ${BATCH_SALT}
     min-length: 6
 
+wms:
+  excel-templates:
+    # Optional operator-maintained XLSX files. Invalid or missing files use the built-in fallback.
+    external-directory: ${WMS_EXCEL_TEMPLATE_DIR:}
+
 logging:
   level:
     root: INFO

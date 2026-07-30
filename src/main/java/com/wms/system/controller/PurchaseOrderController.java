@@ -5,14 +5,19 @@ import com.wms.system.entity.*;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.service.ExcelImportService;
+import com.wms.system.service.ExcelTemplateService;
 import com.wms.system.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,6 +58,20 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
     private final ExcelImportService excelImportService;
+
+    @GetMapping("/template")
+    @PreAuthorize("hasAnyAuthority('purchase:create', 'SUPER_ADMIN')")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        byte[] excelBytes = excelImportService.downloadPurchaseOrderTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ));
+        headers.setContentDisposition(ContentDisposition.attachment()
+            .filename(ExcelTemplateService.PURCHASE_FILE)
+            .build());
+        return ResponseEntity.ok().headers(headers).body(excelBytes);
+    }
 
     /**
      * ⭐ Stage 1: Create Purchase Order

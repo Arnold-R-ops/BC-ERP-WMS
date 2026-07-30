@@ -59,6 +59,11 @@ import java.util.Map;
 public class ExcelImportService {
 
     private static final DataFormatter CELL_FORMATTER = new DataFormatter();
+    private final ExcelTemplateService excelTemplateService;
+
+    public byte[] downloadPurchaseOrderTemplate() {
+        return excelTemplateService.getPurchaseOrderTemplate();
+    }
 
     /**
      * ⭐ Import purchase order from Excel file
@@ -83,6 +88,13 @@ public class ExcelImportService {
     public List<PurchaseOrderService.PurchaseOrderItemData> importPurchaseOrderFromExcel(
         MultipartFile file
     ) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(
+                ErrorKeys.INVALID_FILE_FORMAT,
+                Map.of("filename", "null", "expectedFormat", ".xlsx")
+            );
+        }
+
         log.info("Starting Excel import: filename={}, size={} bytes",
             file.getOriginalFilename(), file.getSize());
 
@@ -105,8 +117,7 @@ public class ExcelImportService {
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(inputStream)) {
 
-            // Read first sheet
-            Sheet sheet = workbook.getSheetAt(0);
+            Sheet sheet = excelTemplateService.validateAndGetPurchaseOrderSheet(workbook);
             int totalRows = sheet.getPhysicalNumberOfRows();
             int lastRowNum = sheet.getLastRowNum();
 

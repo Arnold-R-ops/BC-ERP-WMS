@@ -81,11 +81,11 @@ public class ProductSkuService {
             productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_NOT_FOUND, Map.of("productId", productId)));
             products = Boolean.TRUE.equals(enabledOnly)
-                ? productSkuRepository.findAllByProduct_IdAndEnabledTrueOrderBySkuCodeAsc(productId)
+                ? productSkuRepository.findAllOperationalByProductIdOrderBySkuCodeAsc(productId)
                 : productSkuRepository.findAllByProduct_IdOrderBySkuCodeAsc(productId);
         } else {
             products = Boolean.TRUE.equals(enabledOnly)
-                ? productSkuRepository.findByEnabledTrue()
+                ? productSkuRepository.findAllOperationalOrderBySkuCodeAsc()
                 : productSkuRepository.findAll();
         }
         return products.stream().map(this::convertToResponse).collect(Collectors.toList());

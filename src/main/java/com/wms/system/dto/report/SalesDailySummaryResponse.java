@@ -13,5 +13,12 @@ public class SalesDailySummaryResponse {
     private LocalDate summaryDate;
     private Long totalOrderCount;
     private BigDecimal totalAmount;
+    private Long draftCount;
+    private Long pendingApprovalCount;
+    private Long approvedAwaitingShipmentCount;
+    private Long shippedCount;
+    private Long rejectedCount;
+    private Long cancelledCount;
+    private Long voidedCount;
     private LocalDateTime refreshedAt;
 }

@@ -224,6 +224,23 @@ class WarehouseControllerTest {
     }
 
     @Test
+    @DisplayName("update warehouse phone")
+    void updateWarehouse_WithPhone() {
+        UpdateWarehouseRequest request = new UpdateWarehouseRequest(
+                "Updated Name", "Updated Address", "Updated Contact", "13800138000"
+        );
+        when(warehouseService.updateWarehouse(
+                1L, "Updated Name", "Updated Address", "Updated Contact", "13800138000"))
+                .thenReturn(testWarehouse);
+
+        var response = warehouseController.updateWarehouse(1L, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(warehouseService).updateWarehouse(
+                1L, "Updated Name", "Updated Address", "Updated Contact", "13800138000");
+    }
+
+    @Test
     @DisplayName("case-11")
     void updateWarehouse_NotFound() {
         // Given

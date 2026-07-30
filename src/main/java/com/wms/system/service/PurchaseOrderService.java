@@ -64,6 +64,7 @@ public class PurchaseOrderService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductSkuRepository productSkuRepository;
+    private final ProductSkuOperationalPolicy productSkuOperationalPolicy;
     private final LocationRepository locationRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final BatchCodeGenerator batchCodeGenerator;
@@ -149,6 +150,10 @@ public class PurchaseOrderService {
                     ErrorKeys.PRODUCT_SKU_NOT_FOUND,
                     Map.of("productSkuId", itemData.getProductSkuId())
                 ));
+            productSkuOperationalPolicy.requireEnabled(
+                product,
+                ProductSkuOperationalPolicy.PURCHASE_ORDER
+            );
 
             // Create item
             PurchaseOrderItem item = PurchaseOrderItem.builder()

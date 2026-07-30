@@ -40,6 +40,34 @@ public class SalesDailySummary extends BaseEntity {
     @Builder.Default
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
+    @Column(name = "draft_count", nullable = false)
+    @Builder.Default
+    private Long draftCount = 0L;
+
+    @Column(name = "pending_approval_count", nullable = false)
+    @Builder.Default
+    private Long pendingApprovalCount = 0L;
+
+    @Column(name = "approved_awaiting_shipment_count", nullable = false)
+    @Builder.Default
+    private Long approvedAwaitingShipmentCount = 0L;
+
+    @Column(name = "shipped_count", nullable = false)
+    @Builder.Default
+    private Long shippedCount = 0L;
+
+    @Column(name = "rejected_count", nullable = false)
+    @Builder.Default
+    private Long rejectedCount = 0L;
+
+    @Column(name = "cancelled_count", nullable = false)
+    @Builder.Default
+    private Long cancelledCount = 0L;
+
+    @Column(name = "voided_count", nullable = false)
+    @Builder.Default
+    private Long voidedCount = 0L;
+
     @Column(name = "refreshed_at", nullable = false)
     private LocalDateTime refreshedAt;
 }

@@ -124,6 +124,10 @@ class ApiEndpointTestSuite {
                 .remark("Created by test bootstrap")
                 .build()));
 
+        admin.setPassword(passwordEncoder.encode("password123"));
+        admin.setEnabled(true);
+        admin.setMustChangePassword(false);
+
         if (!sysUserRoleRepository.existsByUserIdAndRoleId(admin.getId(), superAdmin.getId())) {
             sysUserRoleRepository.save(SysUserRole.builder()
                 .userId(admin.getId())
@@ -134,8 +138,8 @@ class ApiEndpointTestSuite {
 
         if (admin.getDefaultRoleId() == null || !admin.getDefaultRoleId().equals(superAdmin.getId())) {
             admin.setDefaultRoleId(superAdmin.getId());
-            userRepository.save(admin);
         }
+        userRepository.saveAndFlush(admin);
 
         ensureSalesApprovalConfig();
     }

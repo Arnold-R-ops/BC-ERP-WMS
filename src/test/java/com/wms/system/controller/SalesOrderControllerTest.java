@@ -89,7 +89,7 @@ class SalesOrderControllerTest {
             .andExpect(header().string("Content-Type",
                 org.hamcrest.Matchers.startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
             .andExpect(header().string("Content-Disposition",
-                containsString("sales_order_template.xlsx")))
+                containsString("sales_order_import_template.xlsx")))
             .andExpect(content().bytes(excelBytes));
 
         verify(salesEntryService).downloadExcelTemplate();

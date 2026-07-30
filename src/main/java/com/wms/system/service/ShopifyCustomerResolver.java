@@ -37,7 +37,7 @@ public class ShopifyCustomerResolver {
 
     private final CustomerRepository customerRepository;
 
-    public Customer resolveForAutomatic(ShopifyOrderDto order, IntegrationConfig config) {
+    Customer resolveForAutomatic(ShopifyOrderDto order, IntegrationConfig config) {
         Customer existing = findExisting(order);
         if (existing != null) {
             return existing;

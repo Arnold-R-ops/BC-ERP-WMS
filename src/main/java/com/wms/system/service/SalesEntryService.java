@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,6 +42,7 @@ public class SalesEntryService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductSkuRepository productSkuRepository;
+    private final ExcelTemplateService excelTemplateService;
 
     // ========== Excel Template Download ==========
 
@@ -54,84 +54,7 @@ public class SalesEntryService {
      * @return Excel 鏂囦欢瀛楄妭鏁扮粍
      */
     public byte[] downloadExcelTemplate() {
-        log.info("Generating Excel template for sales order import");
-
-        try {
-            Workbook workbook = createExcelTemplate();
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            workbook.write(outputStream);
-            workbook.close();
-
-            byte[] bytes = outputStream.toByteArray();
-            log.info("Excel template generated successfully, size: {} bytes", bytes.length);
-            return bytes;
-
-        } catch (IOException e) {
-            log.error("Failed to generate Excel template", e);
-            throw new BusinessException(
-                ErrorKeys.EXCEL_TEMPLATE_GENERATION_FAILED,
-                Map.of("reason", e.getMessage())
-            );
-        }
-    }
-
-    /**
-     * 鍒涘缓 Excel 妯℃澘宸ヤ綔绨?     *
-     * @return Excel 宸ヤ綔绨?     */
-    private Workbook createExcelTemplate() {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("Sales Order Import Template");
-
-        // 鍒涘缓琛ㄥご鏍峰紡
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
-        headerFont.setBold(true);
-        headerStyle.setFont(headerFont);
-        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        headerStyle.setBorderBottom(BorderStyle.THIN);
-        headerStyle.setBorderTop(BorderStyle.THIN);
-        headerStyle.setBorderLeft(BorderStyle.THIN);
-        headerStyle.setBorderRight(BorderStyle.THIN);
-
-        // 鍒涘缓琛ㄥご琛?(row 0)
-        Row headerRow = sheet.createRow(0);
-        String[] headers = {
-            "customerId (瀹㈡埛ID)",
-            "productSkuId (浜у搧ID)",
-            "quantity (鏁伴噺)",
-            "unitPrice (鍗曚环)",
-            "rejectNearExpiry (鎷掓敹涓存湡鍝? true/false)",
-            "specifiedBatchIds (鎸囧畾鎵规ID锛岄€楀彿鍒嗛殧)",
-            "remark (澶囨敞)"
-        };
-
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
-            cell.setCellStyle(headerStyle);
-        }
-
-        // 鍒涘缓绀轰緥鏁版嵁琛?(row 1)
-        Row exampleRow = sheet.createRow(1);
-        exampleRow.createCell(0).setCellValue(1);           // customerId
-        exampleRow.createCell(1).setCellValue(100);         // productSkuId
-        exampleRow.createCell(2).setCellValue(50);          // quantity
-        exampleRow.createCell(3).setCellValue(99.99);       // unitPrice
-        exampleRow.createCell(4).setCellValue("false");     // rejectNearExpiry
-        exampleRow.createCell(5).setCellValue("123,456");   // specifiedBatchIds
-        exampleRow.createCell(6).setCellValue("娴嬭瘯璁㈠崟");   // remark
-
-        // 璁剧疆鍒楀
-        sheet.setColumnWidth(0, 5000);  // customerId
-        sheet.setColumnWidth(1, 5000);  // productSkuId
-        sheet.setColumnWidth(2, 4000);  // quantity
-        sheet.setColumnWidth(3, 4000);  // unitPrice
-        sheet.setColumnWidth(4, 8000);  // rejectNearExpiry
-        sheet.setColumnWidth(5, 8000);  // specifiedBatchIds
-        sheet.setColumnWidth(6, 6000);  // remark
-
-        return workbook;
+        return excelTemplateService.getSalesOrderTemplate();
     }
 
     // ========== Excel Import ==========
@@ -147,9 +70,6 @@ public class SalesEntryService {
      */
     @Transactional(readOnly = true)
     public List<SalesOrderItemData> importSalesOrderFromExcel(MultipartFile file) {
-        log.info("Importing sales order from Excel file: {}", file.getOriginalFilename());
-
-        // 楠岃瘉鏂囦欢
         if (file == null || file.isEmpty()) {
             throw new BusinessException(
                 ErrorKeys.INVALID_FILE_FORMAT,
@@ -157,26 +77,24 @@ public class SalesEntryService {
             );
         }
 
+        log.info("Importing sales order from Excel file: {}", file.getOriginalFilename());
         String filename = file.getOriginalFilename();
         if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
+            String actualFormat = filename != null && filename.contains(".")
+                ? filename.substring(filename.lastIndexOf('.'))
+                : "unknown";
             throw new BusinessException(
                 ErrorKeys.INVALID_FILE_FORMAT,
                 Map.of(
                     "filename", filename != null ? filename : "unknown",
                     "expectedFormat", ".xlsx",
-                    "actualFormat", filename != null ? filename.substring(filename.lastIndexOf('.')) : "unknown"
+                    "actualFormat", actualFormat
                 )
             );
         }
 
-        try {
-            Workbook workbook = new XSSFWorkbook(file.getInputStream());
-            Sheet sheet = workbook.getSheet("Sales Order Import Template");
-
-            // 濡傛灉鎵句笉鍒版寚瀹?sheet锛屼娇鐢ㄧ涓€涓?sheet
-            if (sheet == null) {
-                sheet = workbook.getSheetAt(0);
-            }
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = excelTemplateService.validateAndGetSalesOrderSheet(workbook);
 
             List<SalesOrderItemData> items = new ArrayList<>();
             int lastRowNum = sheet.getLastRowNum();
@@ -203,7 +121,6 @@ public class SalesEntryService {
                 }
             }
 
-            workbook.close();
             log.info("Successfully imported {} items from Excel", items.size());
             return items;
 
@@ -223,18 +140,14 @@ public class SalesEntryService {
      */
     private SalesOrderItemData parseExcelRow(Row row, int rowIndex) {
         // 瑙ｆ瀽鍚勫垪鏁版嵁
-        Long customerId = readLongCell(row, 0, "customerId");
-        Long productSkuId = readLongCell(row, 1, "productSkuId");
-        Integer quantity = readIntegerCell(row, 2, "quantity");
-        BigDecimal unitPrice = readBigDecimalCell(row, 3, "unitPrice");
-        Boolean rejectNearExpiry = readBooleanCell(row, 4, "rejectNearExpiry");
-        String specifiedBatchIdsStr = readStringCell(row, 5, "specifiedBatchIds");
-        String remark = readStringCell(row, 6, "remark");
+        Long productSkuId = readLongCell(row, 0, "productSkuId");
+        Integer quantity = readIntegerCell(row, 1, "quantity");
+        BigDecimal unitPrice = readBigDecimalCell(row, 2, "unitPrice");
+        Boolean rejectNearExpiry = readBooleanCell(row, 3, "rejectNearExpiry");
+        String specifiedBatchIdsStr = readStringCell(row, 4, "specifiedBatchIds");
+        String remark = readStringCell(row, 5, "remark");
 
         // 楠岃瘉蹇呭～瀛楁
-        if (customerId == null) {
-            throw new IllegalArgumentException("瀹㈡埛ID涓嶈兘涓虹┖");
-        }
         if (productSkuId == null) {
             throw new IllegalArgumentException("浜у搧ID涓嶈兘涓虹┖");
         }
@@ -264,7 +177,7 @@ public class SalesEntryService {
      *
      * @param row Excel 琛?     * @return true 濡傛灉琛屼负绌?     */
     private boolean isEmptyRow(Row row) {
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 6; i++) {
             Cell cell = row.getCell(i);
             if (cell != null && cell.getCellType() != CellType.BLANK) {
                 String value = getCellValueAsString(cell);

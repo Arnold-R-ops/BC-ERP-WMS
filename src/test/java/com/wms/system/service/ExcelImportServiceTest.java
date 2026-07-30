@@ -4,9 +4,11 @@ import com.wms.system.exception.BusinessException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -15,13 +17,25 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ExcelImportService Tests")
 class ExcelImportServiceTest {
 
+    @Mock
+    private ExcelTemplateService excelTemplateService;
+
     @InjectMocks
     private ExcelImportService excelImportService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().doAnswer(invocation -> ((Workbook) invocation.getArgument(0)).getSheetAt(0))
+                .when(excelTemplateService)
+                .validateAndGetPurchaseOrderSheet(any(Workbook.class));
+    }
 
     // ========== importPurchaseOrderFromExcel ==========
 
@@ -41,6 +55,19 @@ class ExcelImportServiceTest {
     void testImport_NullFilename() {
         MockMultipartFile file = new MockMultipartFile(
                 "file", null, "application/octet-stream", new byte[]{1, 2, 3}
+        );
+
+        assertThatThrownBy(() -> excelImportService.importPurchaseOrderFromExcel(file))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("importPurchaseOrderFromExcel - throws when file is empty")
+    void testImport_EmptyFile() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "orders.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                new byte[0]
         );
 
         assertThatThrownBy(() -> excelImportService.importPurchaseOrderFromExcel(file))

@@ -53,7 +53,7 @@ public class ShopifyIntegrationService {
     private final IntegrationConfigRepository integrationConfigRepository;
     private final ShopifyApiClient shopifyApiClient;
     private final SalesOrderRepository salesOrderRepository;
-    private final ShopifyCustomerResolver customerResolver;
+    private final ShopifyConsumerIdentityService consumerIdentityService;
     private final SalesSubmissionService salesSubmissionService;
     private final ChannelRawEventService rawEventService;
     private final ChannelSkuResolver skuResolver;
@@ -215,7 +215,7 @@ public class ShopifyIntegrationService {
         }
 
         // b. 只匹配既有客户；渠道导入无权创建客户主数据
-        Customer customer = customerResolver.resolveForAutomatic(order, config);
+        Customer customer = consumerIdentityService.resolveForAutomaticIngestion(order, config);
 
         // c+d. 行解析（P1-B2 四层 SKU 漏斗）并构建订单请求
         //      未知 SKU 进待映射队列并阻断本单（报文保留 FAILED，映射后自动重试放行）

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -65,6 +66,9 @@ class AllocationServiceTest {
 
     @Mock
     private ProductSkuRepository productSkuRepository;
+
+    @Spy
+    private ProductSkuOperationalPolicy productSkuOperationalPolicy = new ProductSkuOperationalPolicy();
 
     @Mock
     private OutboundTaskRepository outboundTaskRepository;
@@ -151,6 +155,24 @@ class AllocationServiceTest {
         assertThat(tasks.get(0).getAssignedBatchId()).isEqualTo(1L);
 
         verify(outboundTaskRepository).save(any(OutboundTask.class));
+    }
+
+    @Test
+    @DisplayName("allocation rejects disabled SKU")
+    void testAllocateInventory_DisabledSku() {
+        testProduct.setEnabled(false);
+        SalesOrderItem item = createOrderItem(1L, 1L, 10);
+
+        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+
+        assertThatThrownBy(() -> allocationService.allocateInventory(1L))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PRODUCT_SKU_DISABLED);
+
+        verify(outboundTaskRepository, never()).save(any());
+        verify(inventoryReservationRepository, never()).save(any());
     }
 
     // ========== Test 2: User-Specified Batches ==========

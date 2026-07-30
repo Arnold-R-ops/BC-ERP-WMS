@@ -52,6 +52,7 @@ public final class ErrorKeys {
     public static final String PRODUCT_ALREADY_EXISTS = "PRODUCT_ALREADY_EXISTS";
     public static final String PRODUCT_CATEGORY_INVALID = "PRODUCT_CATEGORY_INVALID";
     public static final String PRODUCT_DISABLED = "PRODUCT_DISABLED";
+    public static final String PRODUCT_SKU_DISABLED = "PRODUCT_SKU_DISABLED";
 
     // ========== Category Related Errors ==========
 
@@ -110,6 +111,11 @@ public final class ErrorKeys {
      * - code (String): Duplicate warehouse code
      */
     public static final String WAREHOUSE_ALREADY_EXISTS = "WAREHOUSE_ALREADY_EXISTS";
+
+    /**
+     * Warehouse is inactive and cannot accept new locations or operations.
+     */
+    public static final String WAREHOUSE_INACTIVE = "WAREHOUSE_INACTIVE";
 
     // ========== Supplier Related Errors ==========
 

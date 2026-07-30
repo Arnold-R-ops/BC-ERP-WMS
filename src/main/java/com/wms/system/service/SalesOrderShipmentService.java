@@ -85,10 +85,18 @@ public class SalesOrderShipmentService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public SalesOrderShipmentResponse voidShipment(Long salesOrderId, Long shipmentId) {
+    public SalesOrderShipmentResponse voidShipment(
+        Long salesOrderId,
+        Long shipmentId,
+        Long operatorId,
+        String operatorName
+    ) {
         requireOrder(salesOrderId);
         SalesOrderShipment shipment = requireShipment(salesOrderId, shipmentId);
         shipment.setStatus(ShipmentStatus.VOIDED);
+        shipment.setVoidedBy(operatorId);
+        shipment.setVoidedByName(operatorName);
+        shipment.setVoidedAt(java.time.LocalDateTime.now());
         return toResponse(shipmentRepository.save(shipment));
     }
 
@@ -149,6 +157,9 @@ public class SalesOrderShipmentService {
             .shippedAt(shipment.getShippedAt())
             .createdBy(shipment.getCreatedBy())
             .createdByName(shipment.getCreatedByName())
+            .voidedBy(shipment.getVoidedBy())
+            .voidedByName(shipment.getVoidedByName())
+            .voidedAt(shipment.getVoidedAt())
             .remark(shipment.getRemark())
             .version(shipment.getVersion())
             .createdAt(shipment.getCreatedAt())

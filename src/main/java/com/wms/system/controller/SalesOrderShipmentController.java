@@ -57,8 +57,14 @@ public class SalesOrderShipmentController {
     @PreAuthorize("hasAnyAuthority('sales:edit', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderShipmentResponse> voidShipment(
         @PathVariable Long salesOrderId,
-        @PathVariable Long shipmentId
+        @PathVariable Long shipmentId,
+        Authentication authentication
     ) {
-        return ResponseEntity.ok(shipmentService.voidShipment(salesOrderId, shipmentId));
+        return ResponseEntity.ok(shipmentService.voidShipment(
+            salesOrderId,
+            shipmentId,
+            AuthUserResolver.resolveUserId(authentication),
+            AuthUserResolver.resolveUsername(authentication)
+        ));
     }
 }

@@ -542,6 +542,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.CATEGORY_CYCLE_DETECTED,
                  ErrorKeys.PRODUCT_CATEGORY_INVALID,
                  ErrorKeys.PRODUCT_DISABLED,
+                 ErrorKeys.PRODUCT_SKU_DISABLED,
                  ErrorKeys.STOCK_INVALID_QUANTITY,
                  ErrorKeys.VALIDATION_FAILED,
                  ErrorKeys.PARAMETER_REQUIRED,
