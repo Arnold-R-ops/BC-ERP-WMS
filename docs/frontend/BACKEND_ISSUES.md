@@ -24,10 +24,10 @@
 
 ## BE-004：缺少可供前端查询的角色目录接口
 
-- 状态：阻塞多角色账号的纯 API 测试数据准备
-- 现象：当前数据库通过 `GET /api/users` 只能看到 `admin` 及其 `SUPER_ADMIN` 角色；OpenAPI 没有 `GET /api/roles` 一类的角色目录端点。
-- 影响：`POST /api/users` 需要角色 ID，但前端无法通过公开 API 发现经理、采购、仓库、销售等角色 ID，因此无法按 `03_LOCAL_DEV.md` 独立创建多角色联调账号。
-- 建议：暴露只读角色目录端点，至少返回 `id/roleCode/roleName/active`。角色切换本身已通过现有接口及前端状态转换测试验证，切换到不同角色的真实端到端验证待该测试数据条件补齐。
+- 状态：已解决（2026-07-22）。
+- 处理：新增 `GET /api/roles`、`GET /api/roles/{id}`、`GET /api/roles/{id}/permissions` 和 `GET /api/permissions`，仅 `SUPER_ADMIN` 可访问；OpenAPI 与 TypeScript 契约已同步。
+- 验证：真实数据库只读联调发现 4 个启用角色和 19 项启用权限；匿名访问角色目录返回 `403`。前端现可通过角色 ID 创建账号、分配多角色并选择默认角色。
+- 边界：角色和权限定义当前只读审计。历史权限路径完成规范化前，不开放角色增删及权限绑定写操作。
 
 ## BE-005：产品与 SKU 创建接口的 OpenAPI 成功状态码与真实实现不一致
 

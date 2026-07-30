@@ -22,7 +22,7 @@ mvn spring-boot:run
 |---|---|---|
 | admin | password123 | SUPER_ADMIN（全权限） |
 
-需要更多角色账号（经理/采购/仓库/销售）时用 admin 通过 `POST /api/users` 创建，角色列表 `GET /api/users` 里能看到现有角色 id。
+需要更多角色账号（经理/仓库/销售）时，用 admin 通过 `GET /api/roles` 查询角色 ID，再通过 `POST /api/users` 创建。角色与权限目录仅对 `SUPER_ADMIN` 开放。
 
 ## 前端 dev 代理（免 CORS）
 
