@@ -22,10 +22,14 @@ ALTER USER postgres WITH PASSWORD '<postgres超级用户的新强密码>';
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'wms_app') THEN
-        CREATE ROLE wms_app LOGIN PASSWORD '<wms_app应用账号的强密码>'
+        CREATE ROLE wms_app LOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
     END IF;
 END $$;
+
+-- 无论账号是首次创建还是已经存在，都强制轮换应用账号密码并重申最小权限属性。
+ALTER ROLE wms_app WITH LOGIN PASSWORD '<wms_app应用账号的强密码>'
+    NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 
 -- -------------------------------------------------------------------
 -- Step 3: 把业务库 wms_db 的所有权移交给 wms_app
