@@ -22,11 +22,17 @@ function Invoke-GitLines {
 function Get-EnvironmentValue {
     param([Parameter(Mandatory = $true)][string]$Name)
 
-    $item = Get-Item -Path "Env:$Name" -ErrorAction SilentlyContinue
-    if ($null -eq $item -or [string]::IsNullOrEmpty($item.Value)) {
+    # Local release checks prefer the persisted Windows user value. A long-running
+    # terminal or desktop process can retain the pre-rotation process environment.
+    $userValue = [Environment]::GetEnvironmentVariable($Name, 'User')
+    if (-not [string]::IsNullOrEmpty($userValue)) {
+        return $userValue
+    }
+    $processValue = [Environment]::GetEnvironmentVariable($Name, 'Process')
+    if ([string]::IsNullOrEmpty($processValue)) {
         return $null
     }
-    return [string]$item.Value
+    return $processValue
 }
 
 Push-Location $repositoryRoot

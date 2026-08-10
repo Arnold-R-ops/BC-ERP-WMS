@@ -113,8 +113,8 @@ src/test/scripts/invoke-ci-verification.ps1
 
 ## 剩余发布门禁
 
-1. 历史凭证扫描已完成；数据库旧密码仍未轮换，`wms_app` 切换尚未确认，当前发布凭证门禁为 `BLOCKED`。
+1. 历史凭证扫描与本机数据库轮换已完成；旧数据库密码失效，应用切换为 `wms_app`，当前发布凭证门禁为 `PASS`。轮换工具和证据需提交并通过远程 CI。
 2. 单独规划 Flyway 对 PostgreSQL 18 的支持版本升级。
 3. 用户明确批准后才可创建发布标签或部署。
 
-下一任务是“在受控维护窗口轮换数据库密码并切换 `wms_app`，然后重新执行发布门禁”。该任务会改变数据库账号和应用连接状态，必须获得明确授权。按 `CODEX_TASK_MODEL_POLICY` 建议使用 **GPT-5.6 Sol + XHigh（L5）**。
+下一任务是“提交推送数据库轮换工具与证据并确认远程 CI”。完成后仅剩用户单独批准的 P2 标签或部署决策。按 `CODEX_TASK_MODEL_POLICY` 建议使用 **GPT-5.6 Sol + XHigh（L5）**。

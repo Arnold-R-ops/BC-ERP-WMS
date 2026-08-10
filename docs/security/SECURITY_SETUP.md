@@ -41,6 +41,6 @@ setx BATCH_SALT  "<自定义一段随机字符串，定了就不再改>"
 
 ## 2026-08-10 发布前审计状态
 
-历史凭证扫描已覆盖全部可达 Git 提交。当前 `JWT_SECRET` 与历史字面量不同，但本机 `DB_PASSWORD` 仍与 Git 历史中的旧值相同，且 `DB_USERNAME` 未显式设置，因此发布凭证门禁仍为 `BLOCKED`。在数据库端轮换密码并切换到 `wms_app` 前，不得创建 P2 标签或部署。
+历史凭证扫描已覆盖全部可达 Git 提交。2026-08-11 已完成数据库端密码轮换和 `wms_app` 切换：旧 `postgres` 密码被拒绝，两库及 public 对象归 `wms_app`，四项高权限标志均为 `false`，应用已使用新凭证重启。当前 `DB_PASSWORD`、`JWT_SECRET` 均不匹配历史字面量，发布凭证门禁为 `PASS`。
 
-脱敏证据、重复执行命令和轮换验收步骤见 `docs/P2_CREDENTIAL_HISTORY_AUDIT_2026-08-10.md`。
+脱敏扫描证据见 `docs/P2_CREDENTIAL_HISTORY_AUDIT_2026-08-10.md`，实际轮换证据与 DPAPI 恢复方式见 `docs/P2_DATABASE_CREDENTIAL_ROTATION_2026-08-11.md`。
