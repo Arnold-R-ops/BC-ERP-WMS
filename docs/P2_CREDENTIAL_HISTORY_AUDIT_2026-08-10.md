@@ -64,4 +64,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src/test/scripts/invoke-cred
 
 ## 发布决策
 
-本机发布凭证门禁已经通过。下一任务是推送安全审计与轮换证据并确认远程 CI；随后由用户单独决定是否创建 P2 发布标签或部署。按 `CODEX_TASK_MODEL_POLICY` 属于 **L5，建议 GPT-5.6 Sol + XHigh**。
+本机发布凭证门禁、安全审计/轮换证据推送和远程 CI 均已通过。下一任务仅为由用户单独决定是否创建 P2 发布标签或部署；按 `CODEX_TASK_MODEL_POLICY` 属于 **L5，建议 GPT-5.6 Sol + XHigh**。

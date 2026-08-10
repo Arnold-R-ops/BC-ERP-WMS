@@ -65,4 +65,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File src/test/scripts/copy-local-
 
 ## 发布状态
 
-数据库凭证阻塞项已经关闭，但本报告本身及上一项安全审计提交仍需推送并通过远程 CI。创建 P2 标签或部署仍属于单独的正式发布决策，未经明确批准不得执行。
+数据库凭证阻塞项已经关闭。安全审计提交 `d9410b6` 和轮换工具/证据提交 `ce0794e` 已推送到 `origin/2-1G`；GitHub Actions 运行 `31412241192` 的 Backend verify、Frontend verify 和 Release gate 全部为 `success`。创建 P2 标签或部署仍属于单独的正式发布决策，未经明确批准不得执行。
