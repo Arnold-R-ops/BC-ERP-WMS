@@ -67,6 +67,7 @@
 - **确认 ASN** `PUT /{id}/confirm`：录入每行效期 → 系统生成批次码（界面展示生成的批次码）
 - **收货** `PUT /{id}/receive`：按行录入实收数量 + 选择库位（库位下拉 `GET /api/locations/warehouse/{id}`），支持多次收货直到收满
 - 回滚 `PUT /{id}/rollback`（IN_TRANSIT→ORDERING，需确认弹窗）
+- 编辑 `PUT /{id}`（仅 `ORDERING`；提交当前 `version`，冲突返回 409；不触发确认 ASN、收货或库存变更）
 
 ## 6. 入库管理（四步流程）
 

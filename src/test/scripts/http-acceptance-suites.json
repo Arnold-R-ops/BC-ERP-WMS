@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "suites": [
+    {
+      "id": "v45-hardening",
+      "displayName": "V4.5 hardening regression",
+      "script": "run-v45-hardening.ps1",
+      "httpFile": "../http-tests/v4_5_hardening_suite.http",
+      "impact": "Creates master data and business documents, performs inbound receipt, sales approval and outbound confirmation; it can change inventory, reservations and task state.",
+      "cleanupStrategy": "NOT_AUTOMATED",
+      "safeToExecute": false
+    },
+    {
+      "id": "v452-chaotic-storage",
+      "displayName": "V4.5.2 chaotic storage regression",
+      "script": "run-v452-chaotic-storage.ps1",
+      "httpFile": "../http-tests/v4_5_2_chaotic_storage.http",
+      "impact": "Creates master data and business documents, receives inbound stock and confirms outbound work; it can change inventory and task state.",
+      "cleanupStrategy": "NOT_AUTOMATED",
+      "safeToExecute": false
+    }
+  ]
+}
