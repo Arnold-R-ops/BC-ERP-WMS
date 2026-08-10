@@ -34,7 +34,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('inventory:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<EmergencyStockCorrectionResponse>> list(
         @RequestParam(value = "status", required = false) EmergencyCorrectionStatus status
     ) {
@@ -42,7 +42,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('inventory:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:view', 'SUPER_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> get(@PathVariable("id") Long id) {
         return ResponseEntity.ok(correctionService.get(id));
     }
@@ -58,7 +58,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/review")
-    @PreAuthorize("hasAnyAuthority('inventory:approve', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:review', 'SUPER_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> review(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,
@@ -68,7 +68,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyAuthority('inventory:approve', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:approve', 'SUPER_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> approve(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,
@@ -78,7 +78,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('inventory:approve', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:reject', 'SUPER_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> reject(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,

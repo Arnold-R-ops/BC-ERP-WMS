@@ -14,11 +14,13 @@ import { getErrorMessage } from '../../api/errors';
 import {
   createUser,
   deleteUser,
+  listAssignableWarehouses,
   listRoles,
   listUsers,
   replaceUserRoles,
   resetUserPassword,
   ROLES_QUERY_KEY,
+  ASSIGNABLE_WAREHOUSES_QUERY_KEY,
   updateUser,
   USERS_QUERY_KEY,
   type ResetPasswordResult,
@@ -59,7 +61,15 @@ export function UserManagementPage(): JSX.Element {
   const capabilities = getIamCapabilities(session?.currentRole ?? '');
 
   const rolesQuery = useQuery({ queryKey: ROLES_QUERY_KEY, queryFn: () => listRoles(false) });
+  const warehousesQuery = useQuery({
+    queryKey: ASSIGNABLE_WAREHOUSES_QUERY_KEY,
+    queryFn: listAssignableWarehouses,
+  });
   const roles = rolesQuery.data ?? [];
+  const warehouses = warehousesQuery.data ?? [];
+  const manageableRoles = capabilities.canManageProtectedIdentities
+    ? roles
+    : roles.filter((role) => role.privilegedRole !== true);
   const roleByCode = useMemo(() => new Map(roles.map((role) => [role.roleCode ?? '', role])), [roles]);
 
   const saveMutation = useMutation({
@@ -77,6 +87,7 @@ export function UserManagementPage(): JSX.Element {
         password: values.password ?? '',
         displayName: values.displayName,
         roleIds: orderRoleIds(values.roleIds ?? [], values.defaultRoleId),
+        warehouseIds: values.warehouseIds ?? [],
         enabled: values.enabled ?? true,
         remark: values.remark,
       });
@@ -86,7 +97,7 @@ export function UserManagementPage(): JSX.Element {
     mutationFn: async ({ user, values }: { user: UserAccount; values: UserRoleValues }) => {
       if (user.id === undefined) throw new Error('Missing user ID');
       const orderedIds = orderRoleIds(values.roleIds, values.defaultRoleId);
-      return replaceUserRoles(user.id, orderedIds, values.defaultRoleId);
+      return replaceUserRoles(user.id, orderedIds, values.defaultRoleId, values.warehouseIds);
     },
   });
   const resetMutation = useMutation({ mutationFn: resetUserPassword });
@@ -194,6 +205,12 @@ export function UserManagementPage(): JSX.Element {
       renderText: (code) => code ? translatedRoleName(roleByCode.get(String(code)), String(code), t) : '-',
     },
     {
+      title: t('iam.users.fields.warehouses'), dataIndex: 'warehouseCodes', width: 220, search: false,
+      render: (_, user) => (user.warehouseCodes?.length
+        ? <Space size={[4, 4]} wrap>{user.warehouseCodes.map((code) => <Tag key={code}>{code}</Tag>)}</Space>
+        : '-'),
+    },
+    {
       title: t('iam.users.fields.enabled'), dataIndex: 'enabled', width: 100, search: false,
       render: (_, user) => <Tag color={user.enabled ? 'success' : 'default'}>{t(user.enabled ? 'common.enabled' : 'common.disabled')}</Tag>,
     },
@@ -202,15 +219,22 @@ export function UserManagementPage(): JSX.Element {
       title: t('common.actions'), valueType: 'option', width: 190, fixed: 'right',
       render: (_, user) => {
         const self = isCurrentUser(user, session?.username);
+        const protectedTarget = (user.roleCodes ?? [])
+          .some((code) => code === 'SUPER_ADMIN' || code === 'SECURITY_ADMIN');
+        const protectedForOperator = protectedTarget && !capabilities.canManageProtectedIdentities;
+        const sensitiveActionDisabled = self || protectedForOperator;
+        const protectedTitle = protectedForOperator
+          ? t('iam.users.actions.protectedIdentity')
+          : undefined;
         return (
           <Space size={2}>
-            <Tooltip title={t('common.edit')}>
-              <Button aria-label={t('common.edit')} icon={<EditOutlined />} onClick={() => { setEditingUser(user); setFormOpen(true); }} size="small" type="text" />
+            <Tooltip title={protectedTitle ?? t('common.edit')}>
+              <Button aria-label={t('common.edit')} disabled={protectedForOperator} icon={<EditOutlined />} onClick={() => { setEditingUser(user); setFormOpen(true); }} size="small" type="text" />
             </Tooltip>
-            <Tooltip title={self ? t('iam.users.actions.selfProtected') : t('iam.users.actions.roles')}>
+            <Tooltip title={protectedTitle ?? (self ? t('iam.users.actions.selfProtected') : t('iam.users.actions.roles'))}>
               <Button
                 aria-label={t('iam.users.actions.roles')}
-                disabled={self}
+                disabled={sensitiveActionDisabled}
                 icon={<SafetyCertificateOutlined />}
                 onClick={() => { setEditingUser(user); setRolesOpen(true); }}
                 size="small"
@@ -219,29 +243,29 @@ export function UserManagementPage(): JSX.Element {
             </Tooltip>
             <Popconfirm
               description={t('iam.users.reset.confirmDescription')}
-              disabled={self}
+              disabled={sensitiveActionDisabled}
               onConfirm={() => void resetPassword(user)}
               title={t('iam.users.reset.confirmTitle')}
             >
-              <Tooltip title={self ? t('iam.users.actions.selfProtected') : t('iam.users.actions.resetPassword')}>
-                <Button aria-label={t('iam.users.actions.resetPassword')} disabled={self} icon={<KeyOutlined />} loading={resetMutation.isPending} size="small" type="text" />
+              <Tooltip title={protectedTitle ?? (self ? t('iam.users.actions.selfProtected') : t('iam.users.actions.resetPassword'))}>
+                <Button aria-label={t('iam.users.actions.resetPassword')} disabled={sensitiveActionDisabled} icon={<KeyOutlined />} loading={resetMutation.isPending} size="small" type="text" />
               </Tooltip>
             </Popconfirm>
             <Popconfirm
               description={t('iam.users.delete.confirmDescription')}
-              disabled={self}
+              disabled={sensitiveActionDisabled}
               onConfirm={() => void removeUser(user)}
               title={t('iam.users.delete.confirmTitle', { username: user.username ?? '' })}
             >
-              <Tooltip title={self ? t('iam.users.actions.selfProtected') : t('common.delete')}>
-                <Button aria-label={t('common.delete')} danger disabled={self} icon={<DeleteOutlined />} loading={deleteMutation.isPending} size="small" type="text" />
+              <Tooltip title={protectedTitle ?? (self ? t('iam.users.actions.selfProtected') : t('common.delete'))}>
+                <Button aria-label={t('common.delete')} danger disabled={sensitiveActionDisabled} icon={<DeleteOutlined />} loading={deleteMutation.isPending} size="small" type="text" />
               </Tooltip>
             </Popconfirm>
           </Space>
         );
       },
     },
-  ], [deleteMutation.isPending, i18n.language, resetMutation.isPending, roleByCode, roles, session?.username, t]);
+  ], [capabilities.canManageProtectedIdentities, deleteMutation.isPending, i18n.language, resetMutation.isPending, roleByCode, roles, session?.username, t]);
 
   return (
     <section className="data-page">
@@ -291,7 +315,8 @@ export function UserManagementPage(): JSX.Element {
         onClose={() => { setFormOpen(false); setEditingUser(undefined); }}
         onSubmit={saveUser}
         open={formOpen}
-        roles={roles}
+        roles={manageableRoles}
+        warehouses={warehouses}
         user={editingUser}
       />
       <UserRolesModal
@@ -299,7 +324,8 @@ export function UserManagementPage(): JSX.Element {
         onClose={() => { setRolesOpen(false); setEditingUser(undefined); }}
         onSubmit={saveRoles}
         open={rolesOpen}
-        roles={roles}
+        roles={manageableRoles}
+        warehouses={warehouses}
         user={editingUser}
       />
       <TemporaryPasswordModal

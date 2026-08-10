@@ -5,8 +5,10 @@ import { App as AntdApp, Button, Space, Tabs, Tag, Upload } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
+import { hasPermission } from '../../access';
 import { getErrorMessage } from '../../api/errors';
 import { saveBlob } from '../../api/files';
+import { useAuth } from '../../auth/AuthProvider';
 import { listCustomers } from '../../api/masterData';
 import { paginateArray } from '../../api/pagination';
 import {
@@ -75,9 +77,11 @@ export function SalesOrderPage(): JSX.Element {
   const [approvalOrder, setApprovalOrder] = useState<SalesOrder>();
   const [reasonAction, setReasonAction] = useState<ReasonActionState>();
   const { i18n, t } = useTranslation();
+  const { session } = useAuth();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers(false) });
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'sales:create');
 
   useEffect(() => {
     actionRef.current?.reloadAndRest?.();
@@ -217,7 +221,7 @@ export function SalesOrderPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1490 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => [
+        toolBarRender={() => canCreate ? [
           <Button
             icon={<DownloadOutlined />}
             key="template"
@@ -242,7 +246,7 @@ export function SalesOrderPage(): JSX.Element {
           <Button icon={<PlusOutlined />} key="create" onClick={() => { setInitialItems(undefined); setFormOpen(true); }} type="primary">
             {t('sales.create')}
           </Button>,
-        ]}
+        ] : []}
       />
 
       <SalesOrderFormDrawer initialItems={initialItems} loading={createMutation.isPending} onClose={() => { setFormOpen(false); setInitialItems(undefined); }} onSubmit={saveOrder} open={formOpen} />

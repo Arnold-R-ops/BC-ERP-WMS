@@ -170,6 +170,7 @@ class OutboundServiceTest {
         assertThat(response.getActualQty()).isEqualTo(50);
         assertThat(response.getStatus()).isEqualTo("COMPLETED");
         assertThat(response.getPickedBy()).isEqualTo(1L);
+        assertThat(response.getProductSkuCode()).isEqualTo("SKU00000001");
 
         verify(outboundTaskRepository).save(any(OutboundTask.class));
         verify(inventoryBatchRepository).save(any(InventoryBatch.class));

@@ -46,7 +46,7 @@ export function StocktakePage(): JSX.Element {
   const [countItem, setCountItem] = useState<StocktakeItem>();
   const [reviewTask, setReviewTask] = useState<StocktakeTask>();
   const { session } = useAuth();
-  const capabilities = getStocktakeCapabilities(session?.currentRole);
+  const capabilities = getStocktakeCapabilities(session?.currentRole, session?.permissionCodes);
   const { i18n, t } = useTranslation();
   const { message, modal } = AntdApp.useApp();
   const queryClient = useQueryClient();

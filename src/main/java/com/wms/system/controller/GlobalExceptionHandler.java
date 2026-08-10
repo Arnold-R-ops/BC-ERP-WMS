@@ -525,6 +525,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.SOURCE_ORDER_NOT_FOUND,
                  ErrorKeys.RESOURCE_NOT_FOUND,
                  ErrorKeys.ROLE_NOT_FOUND,  // v3.3 Multi-Role System
+                 ErrorKeys.PERMISSION_REQUEST_NOT_FOUND,
+                 ErrorKeys.APPROVAL_TEMPLATE_NOT_FOUND,
                  ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
                  ErrorKeys.PO_ITEM_NOT_FOUND,
                  ErrorKeys.BATCH_NOT_FOUND,
@@ -549,6 +551,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.TRANSACTION_INVALID_TYPE,
                  ErrorKeys.PO_INVALID_STATUS,
                  ErrorKeys.PO_ROLLBACK_NOT_ALLOWED,
+                 ErrorKeys.PO_ITEM_HISTORY_LOCKED,
                  ErrorKeys.PO_EXPIRY_DATE_REQUIRED,
                  ErrorKeys.BATCH_INACTIVE,
                  ErrorKeys.BATCH_STOCK_INSUFFICIENT,
@@ -563,6 +566,23 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PASSWORD_INCORRECT,  // P0.5 Password Management
                  ErrorKeys.PASSWORD_TOO_WEAK,  // P0.5 Password Management
                  ErrorKeys.PASSWORD_SAME_AS_OLD,  // P0.5 Password Management
+                 ErrorKeys.ROLE_COPY_SOURCE_DISABLED,
+                 ErrorKeys.ROLE_COPY_SOURCE_NOT_ALLOWED,
+                 ErrorKeys.ROLE_COPY_CRITICAL_PERMISSION,
+                 ErrorKeys.ROLE_COPY_RISK_CONFIRMATION_REQUIRED,
+                 ErrorKeys.ROLE_PACKAGE_NOT_CUSTOM,
+                 ErrorKeys.ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE,
+                 ErrorKeys.ROLE_PACKAGE_INHERITANCE_EDIT_UNSUPPORTED,
+                 ErrorKeys.ROLE_PACKAGE_HIGH_RISK_REASON_REQUIRED,
+                 ErrorKeys.ROLE_PACKAGE_REJECTION_COMMENT_REQUIRED,
+                 ErrorKeys.ROLE_PACKAGE_CONFIRMATION_REQUIRED,
+                 ErrorKeys.PERMISSION_REQUEST_ROLE_NOT_ALLOWED,
+                 ErrorKeys.PERMISSION_REQUEST_REJECTION_COMMENT_REQUIRED,
+                 ErrorKeys.PERMISSION_REQUEST_REVOCATION_COMMENT_REQUIRED,
+                 ErrorKeys.PERMISSION_REQUEST_WAREHOUSE_NOT_ALLOWED,
+                 ErrorKeys.HISTORICAL_ARCHIVE_CONFIRMATION_MISMATCH,
+                 ErrorKeys.WAREHOUSE_SCOPE_REQUIRED,
+                 ErrorKeys.WAREHOUSE_INACTIVE,
                  "INVALID_STATUS_FOR_APPROVAL",  // Phase 3.5
                  "INVALID_STATUS_FOR_CONFIRMATION",  // Phase 3.5
                  "INVALID_STATUS_FOR_RECEIVING",  // Phase 3.5
@@ -581,14 +601,20 @@ public class GlobalExceptionHandler {
                  ErrorKeys.USER_NO_ACTIVE_ROLES,  // v3.3 Multi-Role System
                  ErrorKeys.ROLE_NOT_ASSIGNED,  // v3.3 Multi-Role System
                  ErrorKeys.ROLE_DISABLED,  // v3.3 Multi-Role System
+                 ErrorKeys.ROLE_PACKAGE_SECOND_REVIEWER_REQUIRED,
+                 ErrorKeys.PERMISSION_REQUEST_PROTECTED_TARGET,
+                 ErrorKeys.PERMISSION_REQUEST_SELF_GRANT_FORBIDDEN,
+                 ErrorKeys.PERMISSION_REQUEST_SECOND_REVIEWER_REQUIRED,
                  ErrorKeys.AUTH_TOKEN_MISSING,
                  ErrorKeys.AUTH_TOKEN_INVALID,
                  ErrorKeys.AUTH_TOKEN_EXPIRED,
                  ErrorKeys.AUTH_ACCESS_DENIED,
+                 ErrorKeys.WAREHOUSE_SCOPE_DENIED,
                  ErrorKeys.PO_ALREADY_COMPLETED -> HttpStatus.FORBIDDEN;
 
             // 409 Conflict
             case ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
+                 ErrorKeys.PO_EDIT_CONFLICT,
                  ErrorKeys.CATEGORY_ALREADY_EXISTS,
                  ErrorKeys.CATEGORY_HAS_CHILDREN,
                  ErrorKeys.CATEGORY_IN_USE,
@@ -614,6 +640,20 @@ public class GlobalExceptionHandler {
                  ErrorKeys.STOCKTAKE_TASK_CANNOT_START,
                  ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT,
                  ErrorKeys.STOCKTAKE_TASK_CANNOT_REVIEW,
+                 ErrorKeys.ROLE_COPY_SNAPSHOT_STALE,
+                 ErrorKeys.ROLE_COPY_TARGET_EXISTS,
+                 ErrorKeys.ROLE_PACKAGE_NOT_DRAFT,
+                 ErrorKeys.ROLE_PACKAGE_NOT_PENDING_REVIEW,
+                 ErrorKeys.ROLE_PACKAGE_NOT_APPROVED,
+                 ErrorKeys.ROLE_PACKAGE_ACTIVE_IMMUTABLE,
+                 ErrorKeys.ROLE_PACKAGE_NOT_ASSIGNABLE_TO_USER,
+                 ErrorKeys.PERMISSION_REQUEST_ALREADY_PENDING,
+                 ErrorKeys.PERMISSION_REQUEST_INVALID_STATUS,
+                 ErrorKeys.PERMISSION_REQUEST_ROLE_ALREADY_ASSIGNED,
+                 ErrorKeys.PERMISSION_REQUEST_TARGET_INACTIVE,
+                 ErrorKeys.PERMISSION_REQUEST_SNAPSHOT_STALE,
+                 ErrorKeys.HISTORICAL_ARCHIVE_NOT_ELIGIBLE,
+                 ErrorKeys.HISTORICAL_ARCHIVE_SNAPSHOT_STALE,
                  ErrorKeys.ORDER_NUMBER_DUPLICATE -> HttpStatus.CONFLICT;  // V4.4 Idempotency Defense
 
             // 500 Internal Server Error

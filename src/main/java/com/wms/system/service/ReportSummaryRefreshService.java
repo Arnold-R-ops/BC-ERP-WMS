@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 @Slf4j
 @Service
@@ -43,6 +46,71 @@ public class ReportSummaryRefreshService {
             salesDailyRows,
             staleSalesRows
         );
+    }
+
+    /** Rebuilds one sales day in a new transaction after the source write commits. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int refreshSalesDailySummary(Long companyId, LocalDate summaryDate) {
+        String sql = """
+            INSERT INTO sales_daily_summary (
+                company_id,
+                summary_date,
+                total_order_count,
+                total_amount,
+                draft_count,
+                pending_approval_count,
+                approved_awaiting_shipment_count,
+                shipped_count,
+                rejected_count,
+                cancelled_count,
+                voided_count,
+                refreshed_at,
+                created_at,
+                updated_at
+            )
+            SELECT
+                company_id,
+                created_at::date AS summary_date,
+                COUNT(*) FILTER (
+                    WHERE status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                ) AS total_order_count,
+                COALESCE(
+                    SUM(total_amount) FILTER (
+                        WHERE status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    ),
+                    0.00
+                ) AS total_amount,
+                COUNT(*) FILTER (WHERE status = 'DRAFT') AS draft_count,
+                COUNT(*) FILTER (WHERE status = 'PENDING_APPROVAL') AS pending_approval_count,
+                COUNT(*) FILTER (WHERE status = 'APPROVED_AWAITING_SHIPMENT')
+                    AS approved_awaiting_shipment_count,
+                COUNT(*) FILTER (WHERE status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE status = 'REJECTED') AS rejected_count,
+                COUNT(*) FILTER (WHERE status = 'CANCELLED') AS cancelled_count,
+                COUNT(*) FILTER (WHERE status = 'VOIDED') AS voided_count,
+                CURRENT_TIMESTAMP AS refreshed_at,
+                CURRENT_TIMESTAMP AS created_at,
+                CURRENT_TIMESTAMP AS updated_at
+            FROM sales_orders
+            WHERE company_id = ?
+              AND created_at::date = ?
+            GROUP BY company_id, created_at::date
+            ON CONFLICT (company_id, summary_date)
+            DO UPDATE SET
+                total_order_count = EXCLUDED.total_order_count,
+                total_amount = EXCLUDED.total_amount,
+                draft_count = EXCLUDED.draft_count,
+                pending_approval_count = EXCLUDED.pending_approval_count,
+                approved_awaiting_shipment_count = EXCLUDED.approved_awaiting_shipment_count,
+                shipped_count = EXCLUDED.shipped_count,
+                rejected_count = EXCLUDED.rejected_count,
+                cancelled_count = EXCLUDED.cancelled_count,
+                voided_count = EXCLUDED.voided_count,
+                refreshed_at = EXCLUDED.refreshed_at,
+                updated_at = EXCLUDED.updated_at
+            """;
+
+        return jdbcTemplate.update(sql, companyId, summaryDate);
     }
 
     private int refreshCustomerFacts() {

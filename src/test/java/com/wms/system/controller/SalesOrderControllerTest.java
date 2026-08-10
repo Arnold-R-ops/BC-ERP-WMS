@@ -420,7 +420,7 @@ class SalesOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "manager", authorities = {"sales:approve"})
+    @WithMockUser(username = "manager", authorities = {"sales:reject"})
     @DisplayName("case-11")
     void testRejectSalesOrder() throws Exception {
         // Given

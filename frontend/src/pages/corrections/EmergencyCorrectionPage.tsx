@@ -43,7 +43,7 @@ export function EmergencyCorrectionPage(): JSX.Element {
   const [selectedCorrection, setSelectedCorrection] = useState<EmergencyCorrection>();
   const [pendingAction, setPendingAction] = useState<PendingAction>();
   const { session } = useAuth();
-  const capabilities = getCorrectionCapabilities(session?.currentRole);
+  const capabilities = getCorrectionCapabilities(session?.currentRole, session?.permissionCodes);
   const { i18n, t } = useTranslation();
   const { message, modal } = AntdApp.useApp();
   const queryClient = useQueryClient();
@@ -157,6 +157,8 @@ export function EmergencyCorrectionPage(): JSX.Element {
       <EmergencyCorrectionDrawer
         canAdjust={capabilities.canAdjust}
         canApprove={capabilities.canApprove}
+        canReject={capabilities.canReject}
+        canReview={capabilities.canReview}
         correction={selectedCorrection}
         onAction={(action, correction) => setPendingAction({ action, correction })}
         onApply={requestApply}

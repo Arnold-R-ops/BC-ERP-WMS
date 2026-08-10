@@ -3,7 +3,7 @@ package com.wms.system.controller;
 import com.wms.system.dto.*;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
-import com.wms.system.security.SecurityUser;
+import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.ExcelImportService;
 import com.wms.system.service.ExcelTemplateService;
 import com.wms.system.service.PurchaseOrderService;
@@ -107,6 +107,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Created purchase order
      */
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('purchase:create', 'SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
         @Valid @RequestBody CreatePurchaseOrderRequest request,
         Authentication authentication
@@ -147,6 +148,41 @@ public class PurchaseOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /** Edit an existing purchase order without leaving ORDERING. */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('purchase:update', 'SUPER_ADMIN')")
+    public ResponseEntity<PurchaseOrderResponse> updateOrderingPurchaseOrder(
+        @PathVariable("id") Long id,
+        @Valid @RequestBody UpdatePurchaseOrderRequest request,
+        Authentication authentication
+    ) {
+        List<PurchaseOrderService.PurchaseOrderItemUpdateData> items = request.getItems().stream()
+            .map(item -> PurchaseOrderService.PurchaseOrderItemUpdateData.builder()
+                .id(item.getId())
+                .productSkuId(item.getProductSkuId())
+                .orderedQuantity(item.getOrderedQuantity())
+                .unitCost(item.getUnitCost())
+                .expiryDate(item.getExpiryDate())
+                .productionDate(item.getProductionDate())
+                .externalBatchCode(item.getExternalBatchCode())
+                .remark(item.getRemark())
+                .build())
+            .collect(Collectors.toList());
+
+        PurchaseOrder purchaseOrder = purchaseOrderService.updateOrderingPurchaseOrder(
+            id,
+            request.getVersion(),
+            request.getSupplierId(),
+            items,
+            request.getExpectedDate(),
+            AuthUserResolver.resolveUserId(authentication),
+            AuthUserResolver.resolveUsername(authentication),
+            request.getRemark()
+        );
+
+        return ResponseEntity.ok(mapToResponse(purchaseOrder, getUserRoleCode(authentication)));
+    }
+
     /**
      * ⭐ Stage 1: Upload Excel to Create Purchase Order
      *
@@ -174,6 +210,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Created purchase order
      */
     @PostMapping("/upload")
+    @PreAuthorize("hasAnyAuthority('purchase:create', 'SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> uploadExcel(
         @RequestParam("file") MultipartFile file,
         @RequestParam("supplierId") Long supplierId,
@@ -239,6 +276,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
      */
     @PutMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyAuthority('purchase:confirm', 'SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> confirmAndGenerateBatchCodes(
         @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmOrderRequest request,
@@ -308,6 +346,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
      */
     @PutMapping("/{id}/receive")
+    @PreAuthorize("hasAnyAuthority('purchase:receive', 'SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> receiveGoods(
         @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmReceiptRequest request,
@@ -370,6 +409,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
      */
     @PutMapping("/{id}/rollback")
+    @PreAuthorize("hasAnyAuthority('purchase:rollback', 'SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> rollbackToOrdering(
         @PathVariable("id") Long id,
         @RequestParam("reason") String reason,
@@ -404,6 +444,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Purchase order
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('purchase:view', 'SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> getPurchaseOrderById(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -433,6 +474,7 @@ public class PurchaseOrderController {
      * @return ResponseEntity<List<PurchaseOrderResponse>> Purchase orders
      */
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('purchase:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<PurchaseOrderResponse>> getPurchaseOrders(
         @RequestParam(value = "status", required = false) PurchaseOrderStatus status,
         @PageableDefault(size = 20, page = 0) Pageable pageable,
@@ -501,6 +543,7 @@ public class PurchaseOrderController {
 
         return PurchaseOrderResponse.builder()
             .id(purchaseOrder.getId())
+            .version(purchaseOrder.getVersion())
             .poNumber(purchaseOrder.getPoNumber())
             .supplier(maskSensitiveData ? "***" : purchaseOrder.getSupplier())  // Privacy masking
             .supplierId(purchaseOrder.getSupplierReference() == null

@@ -43,7 +43,7 @@ export function LocationPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
-  const capabilities = getWarehouseSetupCapabilities(session?.currentRole ?? '');
+  const capabilities = getWarehouseSetupCapabilities(session?.currentRole ?? '', session?.permissionCodes);
 
   const warehouseQuery = useQuery({ queryKey: WAREHOUSES_QUERY_KEY, queryFn: listWarehouses });
   const warehouses = warehouseQuery.data ?? [];

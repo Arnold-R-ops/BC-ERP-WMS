@@ -117,6 +117,12 @@ public final class ErrorKeys {
      */
     public static final String WAREHOUSE_INACTIVE = "WAREHOUSE_INACTIVE";
 
+    /** WAREHOUSE_STAFF must have at least one active warehouse assignment. */
+    public static final String WAREHOUSE_SCOPE_REQUIRED = "WAREHOUSE_SCOPE_REQUIRED";
+
+    /** Activated WAREHOUSE_STAFF attempted to access a task outside its warehouses. */
+    public static final String WAREHOUSE_SCOPE_DENIED = "WAREHOUSE_SCOPE_DENIED";
+
     // ========== Supplier Related Errors ==========
 
     public static final String SUPPLIER_NOT_FOUND = "SUPPLIER_NOT_FOUND";
@@ -329,6 +335,40 @@ public final class ErrorKeys {
      */
     public static final String ROLE_SWITCH_FAILED = "ROLE_SWITCH_FAILED";
 
+    public static final String ROLE_COPY_SOURCE_DISABLED = "ROLE_COPY_SOURCE_DISABLED";
+    public static final String ROLE_COPY_SOURCE_NOT_ALLOWED = "ROLE_COPY_SOURCE_NOT_ALLOWED";
+    public static final String ROLE_COPY_CRITICAL_PERMISSION = "ROLE_COPY_CRITICAL_PERMISSION";
+    public static final String ROLE_COPY_RISK_CONFIRMATION_REQUIRED = "ROLE_COPY_RISK_CONFIRMATION_REQUIRED";
+    public static final String ROLE_COPY_SNAPSHOT_STALE = "ROLE_COPY_SNAPSHOT_STALE";
+    public static final String ROLE_COPY_TARGET_EXISTS = "ROLE_COPY_TARGET_EXISTS";
+    public static final String ROLE_PACKAGE_NOT_CUSTOM = "ROLE_PACKAGE_NOT_CUSTOM";
+    public static final String ROLE_PACKAGE_NOT_DRAFT = "ROLE_PACKAGE_NOT_DRAFT";
+    public static final String ROLE_PACKAGE_NOT_PENDING_REVIEW = "ROLE_PACKAGE_NOT_PENDING_REVIEW";
+    public static final String ROLE_PACKAGE_NOT_APPROVED = "ROLE_PACKAGE_NOT_APPROVED";
+    public static final String ROLE_PACKAGE_ACTIVE_IMMUTABLE = "ROLE_PACKAGE_ACTIVE_IMMUTABLE";
+    public static final String ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE = "ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE";
+    public static final String ROLE_PACKAGE_INHERITANCE_EDIT_UNSUPPORTED = "ROLE_PACKAGE_INHERITANCE_EDIT_UNSUPPORTED";
+    public static final String ROLE_PACKAGE_HIGH_RISK_REASON_REQUIRED = "ROLE_PACKAGE_HIGH_RISK_REASON_REQUIRED";
+    public static final String ROLE_PACKAGE_SECOND_REVIEWER_REQUIRED = "ROLE_PACKAGE_SECOND_REVIEWER_REQUIRED";
+    public static final String ROLE_PACKAGE_REJECTION_COMMENT_REQUIRED = "ROLE_PACKAGE_REJECTION_COMMENT_REQUIRED";
+    public static final String ROLE_PACKAGE_CONFIRMATION_REQUIRED = "ROLE_PACKAGE_CONFIRMATION_REQUIRED";
+    public static final String ROLE_PACKAGE_NOT_ASSIGNABLE_TO_USER = "ROLE_PACKAGE_NOT_ASSIGNABLE_TO_USER";
+
+    public static final String PERMISSION_REQUEST_NOT_FOUND = "PERMISSION_REQUEST_NOT_FOUND";
+    public static final String PERMISSION_REQUEST_ALREADY_PENDING = "PERMISSION_REQUEST_ALREADY_PENDING";
+    public static final String PERMISSION_REQUEST_INVALID_STATUS = "PERMISSION_REQUEST_INVALID_STATUS";
+    public static final String PERMISSION_REQUEST_ROLE_NOT_ALLOWED = "PERMISSION_REQUEST_ROLE_NOT_ALLOWED";
+    public static final String PERMISSION_REQUEST_ROLE_ALREADY_ASSIGNED = "PERMISSION_REQUEST_ROLE_ALREADY_ASSIGNED";
+    public static final String PERMISSION_REQUEST_TARGET_INACTIVE = "PERMISSION_REQUEST_TARGET_INACTIVE";
+    public static final String PERMISSION_REQUEST_PROTECTED_TARGET = "PERMISSION_REQUEST_PROTECTED_TARGET";
+    public static final String PERMISSION_REQUEST_SELF_GRANT_FORBIDDEN = "PERMISSION_REQUEST_SELF_GRANT_FORBIDDEN";
+    public static final String PERMISSION_REQUEST_SECOND_REVIEWER_REQUIRED = "PERMISSION_REQUEST_SECOND_REVIEWER_REQUIRED";
+    public static final String PERMISSION_REQUEST_REJECTION_COMMENT_REQUIRED = "PERMISSION_REQUEST_REJECTION_COMMENT_REQUIRED";
+    public static final String PERMISSION_REQUEST_REVOCATION_COMMENT_REQUIRED = "PERMISSION_REQUEST_REVOCATION_COMMENT_REQUIRED";
+    public static final String PERMISSION_REQUEST_WAREHOUSE_NOT_ALLOWED = "PERMISSION_REQUEST_WAREHOUSE_NOT_ALLOWED";
+    public static final String PERMISSION_REQUEST_SNAPSHOT_STALE = "PERMISSION_REQUEST_SNAPSHOT_STALE";
+    public static final String APPROVAL_TEMPLATE_NOT_FOUND = "APPROVAL_TEMPLATE_NOT_FOUND";
+
     // ========== Authentication/JWT Related Errors ==========
 
     /**
@@ -406,6 +446,12 @@ public final class ErrorKeys {
      * Backward-compatible alias for legacy service references.
      */
     public static final String PURCHASE_ORDER_INVALID_STATUS = PO_INVALID_STATUS;
+
+    /** The submitted ORDERING edit was based on a stale purchase-order version. */
+    public static final String PO_EDIT_CONFLICT = "PO_EDIT_CONFLICT";
+
+    /** A rolled-back line with batch history cannot be replaced or removed. */
+    public static final String PO_ITEM_HISTORY_LOCKED = "PO_ITEM_HISTORY_LOCKED";
 
     /**
      * Purchase order is already completed, cannot be modified
@@ -686,6 +732,15 @@ public final class ErrorKeys {
      * - requiredStatus (String): Required status for operation (optional)
      */
     public static final String SALES_ORDER_INVALID_STATUS = "SALES_ORDER_INVALID_STATUS";
+
+    /** Historical test archive preconditions failed; no data was changed. */
+    public static final String HISTORICAL_ARCHIVE_NOT_ELIGIBLE = "HISTORICAL_ARCHIVE_NOT_ELIGIBLE";
+
+    /** Preview fingerprint no longer matches the locked execution snapshot. */
+    public static final String HISTORICAL_ARCHIVE_SNAPSHOT_STALE = "HISTORICAL_ARCHIVE_SNAPSHOT_STALE";
+
+    /** Typed order number does not match the target order. */
+    public static final String HISTORICAL_ARCHIVE_CONFIRMATION_MISMATCH = "HISTORICAL_ARCHIVE_CONFIRMATION_MISMATCH";
 
     /**
      * Sales order item not found by ID

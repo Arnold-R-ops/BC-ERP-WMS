@@ -5,6 +5,7 @@ package com.wms.system.entity.enums;
  *
  * 状态流转：
  * PENDING → PICKING → COMPLETED
+ * PENDING → VOIDED（仅受控历史测试数据归档）
  *
  * @author WMS Team
  * @since 2026-01-28
@@ -37,7 +38,13 @@ public enum OutboundTaskStatus {
      * - 库存已扣减
      * - 已生成库存流水记录
      */
-    COMPLETED("已完成");
+    COMPLETED("已完成"),
+
+    /**
+     * 已作废：仅用于保留历史测试任务证据并从正常作业队列排除。
+     * 不代表完成拣货，也不得产生库存流水。
+     */
+    VOIDED("已作废");
 
     private final String description;
 

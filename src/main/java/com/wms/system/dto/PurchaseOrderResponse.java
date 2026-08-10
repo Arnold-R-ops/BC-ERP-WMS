@@ -46,6 +46,9 @@ public class PurchaseOrderResponse {
      */
     private Long id;
 
+    /** Optimistic-lock token required when editing an ORDERING purchase order. */
+    private Long version;
+
     /**
      * Purchase order number (format: PO-YYYYMMDD-XXX)
      */

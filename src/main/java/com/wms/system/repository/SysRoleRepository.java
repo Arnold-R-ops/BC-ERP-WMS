@@ -3,12 +3,14 @@ package com.wms.system.repository;
 import com.wms.system.entity.SysRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import jakarta.persistence.LockModeType;
 
 /**
  * System Role Repository
@@ -33,6 +35,10 @@ import java.util.Set;
  */
 @Repository
 public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM SysRole r WHERE r.id = :id")
+    Optional<SysRole> findByIdForUpdate(@Param("id") Long id);
 
     /**
      * Find role by role code

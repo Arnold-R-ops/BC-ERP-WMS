@@ -6,20 +6,25 @@ export interface StocktakeCapabilities {
 
 export interface CorrectionCapabilities {
   canAdjust: boolean;
+  canReview: boolean;
   canApprove: boolean;
+  canReject: boolean;
 }
 
-export function getStocktakeCapabilities(role?: string): StocktakeCapabilities {
+export function getStocktakeCapabilities(role?: string, permissionCodes?: string[]): StocktakeCapabilities {
   return {
-    canCreate: role === 'SUPER_ADMIN' || role === 'GENERAL_MANAGER' || role === 'WAREHOUSE_ADMIN',
-    canCount: role === 'SUPER_ADMIN' || role === 'WAREHOUSE_ADMIN' || role === 'WAREHOUSE_STAFF',
-    canReview: role === 'SUPER_ADMIN' || role === 'GENERAL_MANAGER',
+    canCreate: hasPermission(role, permissionCodes, 'stocktake:create'),
+    canCount: hasPermission(role, permissionCodes, 'stocktake:count'),
+    canReview: hasPermission(role, permissionCodes, 'stocktake:review'),
   };
 }
 
-export function getCorrectionCapabilities(role?: string): CorrectionCapabilities {
+export function getCorrectionCapabilities(role?: string, permissionCodes?: string[]): CorrectionCapabilities {
   return {
-    canAdjust: role === 'SUPER_ADMIN' || role === 'WAREHOUSE_ADMIN',
-    canApprove: role === 'SUPER_ADMIN' || role === 'GENERAL_MANAGER',
+    canAdjust: hasPermission(role, permissionCodes, 'inventory:adjust'),
+    canReview: hasPermission(role, permissionCodes, 'inventory:correction:review'),
+    canApprove: hasPermission(role, permissionCodes, 'inventory:correction:approve'),
+    canReject: hasPermission(role, permissionCodes, 'inventory:correction:reject'),
   };
 }
+import { hasPermission } from '../../access';

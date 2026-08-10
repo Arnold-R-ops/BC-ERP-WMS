@@ -87,6 +87,14 @@ public class LoginResponse {
     private List<String> availableRoles;
 
     /**
+     * Effective permission codes for the current active role only.
+     *
+     * The frontend uses this snapshot for menu and action visibility. The
+     * backend remains authoritative and independently checks every request.
+     */
+    private List<String> permissionCodes;
+
+    /**
      * Token expiration time in milliseconds
      * Example: 86400000 ms = 24 hours
      */

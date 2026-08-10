@@ -6,6 +6,7 @@ import com.wms.system.entity.enums.InboundOrderStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.service.InboundOrderService;
+import com.wms.system.service.WarehouseScopeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class InboundOrderControllerTest {
     private InboundOrderService inboundOrderService;
 
     @Mock
+    private WarehouseScopeService warehouseScopeService;
+
+    @Mock
     private Authentication authentication;
 
     @InjectMocks
@@ -71,6 +75,8 @@ class InboundOrderControllerTest {
 
         // Mock authentication (lenient because not all tests use it)
         lenient().when(authentication.getPrincipal()).thenReturn(securityUser);
+        lenient().when(warehouseScopeService.filterAccessible(any(), anyList(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
 
         // Create test response
         testResponse = InboundOrderResponse.builder()
@@ -311,7 +317,7 @@ class InboundOrderControllerTest {
 
         // When
         ResponseEntity<InboundOrderResponse> response = inboundOrderController
-                .getInboundOrderById(1L);
+                .getInboundOrderById(1L, authentication);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -330,7 +336,7 @@ class InboundOrderControllerTest {
                 .thenThrow(new BusinessException("INBOUND_ORDER_NOT_FOUND", null));
 
         // When & Then
-        assertThatThrownBy(() -> inboundOrderController.getInboundOrderById(999L))
+        assertThatThrownBy(() -> inboundOrderController.getInboundOrderById(999L, authentication))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", "INBOUND_ORDER_NOT_FOUND");
     }
@@ -388,7 +394,7 @@ class InboundOrderControllerTest {
 
         // When
         ResponseEntity<List<InboundOrderResponse>> response = inboundOrderController
-                .getPendingReceivalOrders();
+                .getPendingReceivalOrders(authentication);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

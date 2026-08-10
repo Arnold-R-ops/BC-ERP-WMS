@@ -27,6 +27,7 @@ import {
 import { useEffect, useMemo, useState, type Key } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { hasPermission } from '../../access';
 import {
   CATEGORIES_QUERY_KEY,
   createCategory,
@@ -38,6 +39,7 @@ import {
   type Category,
 } from '../../api/categories';
 import { getErrorMessage } from '../../api/errors';
+import { useAuth } from '../../auth/AuthProvider';
 import { PRODUCT_SKUS_QUERY_KEY, listProductSkus, type ProductSku } from '../../api/productSkus';
 import { PRODUCTS_QUERY_KEY, listProducts, type Product } from '../../api/products';
 import { CategoryFormModal, type CategoryFormValues } from './CategoryFormModal';
@@ -80,6 +82,10 @@ export function CategoryPage(): JSX.Element {
   const navigate = useNavigate();
   const { message, modal } = AntdApp.useApp();
   const { t } = useTranslation();
+  const { session } = useAuth();
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'category:create');
+  const canUpdate = hasPermission(session?.currentRole, session?.permissionCodes, 'category:update');
+  const canDelete = hasPermission(session?.currentRole, session?.permissionCodes, 'category:delete');
 
   const categoriesQuery = useQuery({
     queryKey: [...CATEGORIES_QUERY_KEY, 'tree'],
@@ -388,9 +394,9 @@ export function CategoryPage(): JSX.Element {
             <Typography.Title level={2}>{t('categories.title')}</Typography.Title>
             <p>{t('categories.workspace.subtitle')}</p>
           </div>
-          <Button icon={<PlusOutlined />} onClick={openCreateRoot} type="primary">
+          {canCreate && <Button icon={<PlusOutlined />} onClick={openCreateRoot} type="primary">
             {t('categories.actions.addRoot')}
-          </Button>
+          </Button>}
         </header>
 
         <div className="category-workspace-grid">
@@ -420,7 +426,7 @@ export function CategoryPage(): JSX.Element {
                   allowDrop={({ dragNode, dropNode, dropPosition }) => {
                     const dragged = dragNode.category;
                     const target = dropNode.category;
-                    return dropPosition !== 0
+                    return canUpdate && dropPosition !== 0
                       && dragged?.parentId === target?.parentId
                       && !isSystemCategory(categories, dragged)
                       && !isSystemCategory(categories, target);
@@ -430,7 +436,7 @@ export function CategoryPage(): JSX.Element {
                     icon: false,
                     nodeDraggable: (node) => {
                       const category = (node as CategoryTreeNode).category;
-                      return Boolean(category && !isSystemCategory(categories, category));
+                      return Boolean(canUpdate && category && !isSystemCategory(categories, category));
                     },
                   }}
                   expandedKeys={visibleExpandedKeys}
@@ -465,22 +471,22 @@ export function CategoryPage(): JSX.Element {
                     </div>
                     {!selectedSystem ? (
                       <div className="category-detail-actions">
-                        {selectedCategory.level === 1 ? (
+                        {canCreate && selectedCategory.level === 1 ? (
                           <Button icon={<PlusOutlined />} onClick={() => openCreateChild(selectedCategory)} type="primary">
                             {t('categories.actions.addChild')}
                           </Button>
                         ) : null}
-                        <Button icon={<EditOutlined />} onClick={() => openEdit(selectedCategory)}>{t('common.edit')}</Button>
-                        <Button
+                        {canUpdate && <Button icon={<EditOutlined />} onClick={() => openEdit(selectedCategory)}>{t('common.edit')}</Button>}
+                        {canUpdate && <Button
                           danger={selectedCategory.enabled !== false}
                           icon={<PoweroffOutlined />}
                           onClick={() => confirmStatusChange(selectedCategory)}
                         >
                           {selectedCategory.enabled === false ? t('common.enabled') : t('common.disabled')}
-                        </Button>
-                        <Button danger icon={<DeleteOutlined />} onClick={() => confirmDelete(selectedCategory)}>
+                        </Button>}
+                        {canDelete && <Button danger icon={<DeleteOutlined />} onClick={() => confirmDelete(selectedCategory)}>
                           {t('common.delete')}
-                        </Button>
+                        </Button>}
                       </div>
                     ) : <span className="category-system-lock"><LockOutlined /> {t('categories.workspace.systemManaged')}</span>}
                   </div>

@@ -144,6 +144,14 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
             return new AuthorizationDecision(false);
         }
 
+        String currentRole = extractCurrentRole(auth);
+        Long securityVersion = extractSecurityVersion(auth);
+        if (currentRole == null || securityVersion == null || !isEnabled(auth)) {
+            log.warn("Access denied because active security context is invalid: userId={}, role={}",
+                    userId, currentRole);
+            return new AuthorizationDecision(false);
+        }
+
         // 3.5 Enforce pending password change (P0.5).
         // JwtAuthenticationFilter loads the User entity fresh on every request,
         // so this flag reflects the database state, not a stale JWT claim.
@@ -158,15 +166,19 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         // 4. Load user permissions (from cache or database)
         UserPermissionDTO userPermissions;
         try {
-            userPermissions = permissionService.getUserPermissions(userId);
+            userPermissions = permissionService.getUserPermissionsForRole(
+                    userId,
+                    currentRole,
+                    securityVersion
+            );
         } catch (Exception e) {
-            log.error("Failed to load permissions for user {}: {}", userId, e.getMessage(), e);
+            log.warn("Failed to load active-role permissions for user {} and role {}: {}",
+                    userId, currentRole, e.getMessage());
             return new AuthorizationDecision(false);
         }
 
-        // 5. Check if user is SUPER_ADMIN (bypass all permission checks)
-        // SUPER_ADMIN has full access to all endpoints
-        if (userPermissions.getRoleCodes().contains("SUPER_ADMIN")) {
+        // 5. SUPER_ADMIN bypass applies only when it is the currently active role.
+        if ("SUPER_ADMIN".equals(currentRole)) {
             log.debug("SUPER_ADMIN bypass for user {}: {} {}", userId, httpMethod, requestUri);
             return new AuthorizationDecision(true);
         }
@@ -270,13 +282,35 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
     private Long extractUserId(Authentication authentication) {
         Object principal = authentication.getPrincipal();
 
-        if (principal instanceof SecurityUser) {
-            SecurityUser securityUser = (SecurityUser) principal;
+        if (principal instanceof SecurityUser securityUser) {
             return securityUser.getId();
         }
 
-        log.warn("Unexpected principal type: {}", principal.getClass().getName());
+        log.warn("Unexpected principal type: {}",
+                principal == null ? "null" : principal.getClass().getName());
         return null;
+    }
+
+    private String extractCurrentRole(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Long extractSecurityVersion(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof SecurityUser securityUser) {
+            return securityUser.getUser().getSecurityVersion();
+        }
+        return null;
+    }
+
+    private boolean isEnabled(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        return principal instanceof SecurityUser securityUser && securityUser.isEnabled();
     }
 
     /**
@@ -288,6 +322,8 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      * 3. Resource path must match (Ant pattern matching)
      *
      * @param userPermissions User's permission DTO
+     * @param currentRole currently activated role code
+     * @param securityVersion live user authorization version
      * @param requestUri Request URI
      * @param httpMethod HTTP method
      * @return true if user has permission
@@ -367,12 +403,22 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      * @param httpMethod HTTP method
      * @return true if user has permission
      */
-    public boolean verify(Long userId, String requestUri, String httpMethod) {
+    public boolean verify(
+            Long userId,
+            String currentRole,
+            Long securityVersion,
+            String requestUri,
+            String httpMethod
+    ) {
         if (isPublicEndpoint(requestUri)) {
             return true;
         }
 
-        UserPermissionDTO userPermissions = permissionService.getUserPermissions(userId);
+        UserPermissionDTO userPermissions = permissionService.getUserPermissionsForRole(
+                userId,
+                currentRole,
+                securityVersion
+        );
         return matchPermission(userPermissions, requestUri, httpMethod);
     }
 }

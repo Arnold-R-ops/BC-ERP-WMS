@@ -31,7 +31,7 @@ export function WarehousePage(): JSX.Element {
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const capabilities = getWarehouseSetupCapabilities(session?.currentRole ?? '');
+  const capabilities = getWarehouseSetupCapabilities(session?.currentRole ?? '', session?.permissionCodes);
 
   const saveMutation = useMutation({
     mutationFn: ({ id, values }: { id?: number; values: WarehouseFormValues }) => {

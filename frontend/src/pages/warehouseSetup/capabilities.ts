@@ -2,8 +2,10 @@ export interface WarehouseSetupCapabilities {
   canManage: boolean;
 }
 
-const MANAGER_ROLES = new Set(['SUPER_ADMIN', 'WAREHOUSE_ADMIN']);
-
-export function getWarehouseSetupCapabilities(role: string): WarehouseSetupCapabilities {
-  return { canManage: MANAGER_ROLES.has(role) };
+export function getWarehouseSetupCapabilities(role: string, permissionCodes?: string[]): WarehouseSetupCapabilities {
+  return {
+    canManage: hasPermission(role, permissionCodes, 'warehouse:manage')
+      && hasPermission(role, permissionCodes, 'location:manage'),
+  };
 }
+import { hasPermission } from '../../access';

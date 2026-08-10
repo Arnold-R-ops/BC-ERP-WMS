@@ -11,7 +11,6 @@ import {
   type ConfirmPickingPayload,
   type OutboundTask,
 } from '../../api/outbound';
-import { getProductSku, PRODUCT_SKUS_QUERY_KEY } from '../../api/productSkus';
 import { ScanInput } from './ScanInput';
 import { WarehouseOperationSteps } from './WarehouseOperationSteps';
 import { useMobileOperation } from './WarehouseMobileLayout';
@@ -48,12 +47,7 @@ export function MobilePickingPage(): JSX.Element {
     setActualQty(activeTask?.planQty ?? 0);
   }, [activeTask?.id, activeTask?.planQty]);
 
-  const skuQuery = useQuery({
-    queryKey: [...PRODUCT_SKUS_QUERY_KEY, activeTask?.productSkuId, 'mobile-picking'],
-    queryFn: () => getProductSku(activeTask?.productSkuId as number),
-    enabled: activeTask?.productSkuId !== undefined,
-  });
-  const trackingMode = skuQuery.data?.batchTrackingMode;
+  const trackingMode = activeTask?.batchTrackingMode;
 
   const confirmMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ConfirmPickingPayload }) => confirmOutboundTask(id, payload),
@@ -81,7 +75,7 @@ export function MobilePickingPage(): JSX.Element {
   const confirm = async (): Promise<void> => {
     if (!activeTask?.id || !trackingMode || !online || !locationVerified || !identityVerified) return;
     const payload: ConfirmPickingPayload = trackingMode === 'LOCATION_VISUAL'
-      ? { actualQty, locationId: activeTask.locationId, skuCode: skuQuery.data?.skuCode }
+      ? { actualQty, locationId: activeTask.locationId, skuCode: activeTask.productSkuCode }
       : { actualQty, batchCode: activeTask.batchCode };
     try {
       await confirmMutation.mutateAsync({ id: activeTask.id, payload });
@@ -139,7 +133,7 @@ export function MobilePickingPage(): JSX.Element {
 
                   <ScanInput autoFocus disabled={!online} label={t('mobile.picking.scanLocation')} onScan={scanLocation} placeholder={activeTask.locationCode ?? '-'} />
                   <ScanInput
-                    disabled={!online || !locationVerified || skuQuery.isLoading || !trackingMode}
+                    disabled={!online || !locationVerified || !trackingMode}
                     label={t(trackingMode === 'LOCATION_VISUAL' ? 'mobile.picking.scanProduct' : 'mobile.picking.scanBatch')}
                     onScan={scanIdentity}
                     placeholder={t(trackingMode === 'LOCATION_VISUAL' ? 'mobile.picking.productPlaceholder' : 'mobile.picking.batchPlaceholder')}

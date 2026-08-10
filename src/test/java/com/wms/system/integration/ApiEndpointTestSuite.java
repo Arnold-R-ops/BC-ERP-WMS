@@ -547,7 +547,7 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "buyer", authorities = {"purchase:edit"})
+        @WithMockUser(username = "buyer", authorities = {"purchase:create", "purchase:confirm"})
         void testConfirmAsn() throws Exception {
             ProductSku product = createProduct(BigDecimal.ZERO);
             JsonNode createJson = createPurchaseOrderApi(product.getId());
@@ -570,7 +570,9 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "warehouse", authorities = {"purchase:receive"})
+        @WithMockUser(username = "warehouse", authorities = {
+            "purchase:create", "purchase:confirm", "purchase:receive"
+        })
         void testReceiveGoods() throws Exception {
             ProductSku product = createProduct(BigDecimal.ZERO);
             Location location = createLocation(createWarehouse());

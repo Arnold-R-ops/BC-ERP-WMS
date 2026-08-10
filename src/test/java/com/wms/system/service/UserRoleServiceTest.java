@@ -62,6 +62,9 @@ class UserRoleServiceTest {
     @Mock
     private PermissionCacheService cacheService;
 
+    @Mock
+    private SecurityVersionService securityVersionService;
+
     @InjectMocks
     private UserRoleService userRoleService;
 
@@ -115,6 +118,7 @@ class UserRoleServiceTest {
 
         // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾介柟鎯х－閹界姴顭块幆浼村摵闁?
         verify(cacheService, times(1)).onUserRoleAssigned(1L);
+        verify(securityVersionService).bumpForUser(1L);
     }
 
     @Test
@@ -174,6 +178,7 @@ class UserRoleServiceTest {
 
         // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾介柟鎯х－閹界姴顭块幆浼村摵闁?
         verify(cacheService, times(1)).onUserRoleRemoved(1L);
+        verify(securityVersionService).bumpForUser(1L);
     }
 
     @Test
@@ -181,8 +186,8 @@ class UserRoleServiceTest {
     void assignRolesToUser_Success() {
         // Given: 闂佹椿娼块崝宥夊春濞戞埃鍋撳☉娅亜锕?
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.existsById(10L)).thenReturn(true);
-        when(roleRepository.existsById(20L)).thenReturn(true);
+        when(roleRepository.findByIdIn(Set.of(10L, 20L)))
+                .thenReturn(List.of(chairmanRole, warehouseAdminRole));
 
         // When: 闂佸綊娼х紞濠囧闯濞差亜绀嗛柛鈩冪☉鐢?2 婵炴垶鎼╂禍锝夛綖濡ゅ懏鍤?
         Set<Long> roleIds = Set.of(10L, 20L);
@@ -200,18 +205,19 @@ class UserRoleServiceTest {
 
     @Test
     @DisplayName("case-8")
-    void assignRolesToUser_SkipNonExistentRoles() {
+    void assignRolesToUser_RejectsNonExistentRolesBeforeDeletingExistingAssignments() {
         // Given: 闂佹椿娼块崝宥夊春濞戞埃鍋撳☉娅亜锕㈤鍫熸櫖閻忕偠鍋愮粙濠氭煛鐏炴儳濮冪紒銊ㄦ閹叉挳骞掗弴鐑嗘婵炴垶鎸哥粔鎾偤閵娾晛鎹?
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.existsById(10L)).thenReturn(true);
-        when(roleRepository.existsById(999L)).thenReturn(false); // 婵炴垶鎸哥粔鎾偤閵娾晛鎹堕柕濞у嫮鏆犻柣鐔哥懄鐢喐绔?
+        when(roleRepository.findByIdIn(Set.of(10L, 999L))).thenReturn(List.of(chairmanRole));
 
         // When: 闂佸綊娼х紞濠囧闯濞差亜绀嗛柛鈩冪☉鐢娊鏌ㄥ☉妯煎閻庡灚锕㈠畷銉╊敃閿涘嫮鎲归柣搴㈢⊕閿氭繝鈧鍫熷剭闁告洦鍣锟犳煠绾拋鍤嬬紒?
         Set<Long> roleIds = Set.of(10L, 999L);
-        userRoleService.assignRolesToUser(1L, roleIds, 888L);
+        assertThatThrownBy(() -> userRoleService.assignRolesToUser(1L, roleIds, 888L))
+                .isInstanceOf(com.wms.system.exception.BusinessException.class);
 
         // Then: 闂佸憡鐟禍娆戞崲濮樻墎鍋撳☉娅亪鎮洪妸鈺佹嵍闁靛ě鍕殸闁荤喐鐟︾敮鐔哥珶?
-        verify(userRoleRepository, times(1)).save(any(SysUserRole.class));
+        verify(userRoleRepository, never()).deleteByUserId(anyLong());
+        verify(userRoleRepository, never()).save(any(SysUserRole.class));
     }
 
     @Test

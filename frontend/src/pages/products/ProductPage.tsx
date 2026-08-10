@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Popconfirm, Progress, Space, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import { paginateArray } from '../../api/pagination';
 import {
@@ -33,6 +35,10 @@ export function ProductPage(): JSX.Element {
   const queryClient = useQueryClient();
   const { message } = AntdApp.useApp();
   const { i18n, t } = useTranslation();
+  const { session } = useAuth();
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'product:create');
+  const canEdit = hasPermission(session?.currentRole, session?.permissionCodes, 'product:edit');
+  const canChangeStatus = hasPermission(session?.currentRole, session?.permissionCodes, 'product:status');
 
   const saveMutation = useMutation({
     mutationFn: ({ id, values }: { id?: number; values: ProductFormValues }) => {
@@ -116,13 +122,13 @@ export function ProductPage(): JSX.Element {
       title: t('common.actions'), valueType: 'option', width: 255, fixed: 'right',
       render: (_, record) => [
         <Button icon={<UnorderedListOutlined />} key="skus" onClick={() => setSkuProduct(record)} size="small" type="link">{t('products.actions.manageSkus')}</Button>,
-        <Button icon={<EditOutlined />} key="edit" onClick={() => { setEditingProduct(record); setFormOpen(true); }} size="small" type="link">{t('common.edit')}</Button>,
-        <Popconfirm key="status" onConfirm={() => void changeStatus(record)} title={record.enabled ? t('products.confirmations.deactivate') : t('products.confirmations.activate')}>
+        canEdit ? <Button icon={<EditOutlined />} key="edit" onClick={() => { setEditingProduct(record); setFormOpen(true); }} size="small" type="link">{t('common.edit')}</Button> : null,
+        canChangeStatus ? <Popconfirm key="status" onConfirm={() => void changeStatus(record)} title={record.enabled ? t('products.confirmations.deactivate') : t('products.confirmations.activate')}>
           <Button danger={Boolean(record.enabled)} icon={<PoweroffOutlined />} size="small" type="link">{record.enabled ? t('common.disabled') : t('common.enabled')}</Button>
-        </Popconfirm>,
-      ],
+        </Popconfirm> : null,
+      ].filter(Boolean),
     },
-  ], [i18n.language, t]);
+  ], [canChangeStatus, canEdit, i18n.language, t]);
 
   return (
     <section className="data-page">
@@ -146,9 +152,9 @@ export function ProductPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1400 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => [
+        toolBarRender={() => canCreate ? [
           <Button icon={<PlusOutlined />} key="create" onClick={() => { setEditingProduct(undefined); setFormOpen(true); }} type="primary">{t('products.create')}</Button>,
-        ]}
+        ] : []}
       />
       <ProductFormDrawer
         onClose={() => { setFormOpen(false); setEditingProduct(undefined); }}
@@ -157,7 +163,7 @@ export function ProductPage(): JSX.Element {
         product={editingProduct}
         submitting={saveMutation.isPending}
       />
-      <ProductSkuDrawer onClose={() => setSkuProduct(undefined)} open={Boolean(skuProduct)} product={skuProduct} />
+      <ProductSkuDrawer onClose={() => setSkuProduct(undefined)} open={Boolean(skuProduct)} permissionCodes={session?.permissionCodes} product={skuProduct} role={session?.currentRole} />
     </section>
   );
 }

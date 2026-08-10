@@ -292,6 +292,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      */
     List<InventoryBatch> findByPurchaseOrderItemId(Long purchaseOrderItemId);
 
+    boolean existsByPurchaseOrderItemId(Long purchaseOrderItemId);
+
     /**
      * Find exhausted batches (quantity = 0 AND active = true)
      *

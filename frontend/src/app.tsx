@@ -55,6 +55,9 @@ const UserManagementPage = lazy(() =>
 const RolePermissionPage = lazy(() =>
   import('./pages/iam/RolePermissionPage').then((module) => ({ default: module.RolePermissionPage })),
 );
+const PermissionRequestPage = lazy(() =>
+  import('./pages/iam/PermissionRequestPage').then((module) => ({ default: module.PermissionRequestPage })),
+);
 const IntegrationConfigPage = lazy(() =>
   import('./pages/integrations/IntegrationConfigPage').then((module) => ({ default: module.IntegrationConfigPage })),
 );
@@ -121,11 +124,20 @@ function PublicOnlyRoute(): JSX.Element {
   return session ? <Navigate replace to="/" /> : <Outlet />;
 }
 
+function AccessDeniedRedirect(): JSX.Element {
+  const { message } = AntdApp.useApp();
+  const { t } = useTranslation();
+  useEffect(() => {
+    message.warning(t('auth.pagePermissionDenied'));
+  }, [message, t]);
+  return <Navigate replace to="/" />;
+}
+
 function ModuleRoute({ module, children }: { module: AppModule; children: JSX.Element }): JSX.Element {
   const { session } = useAuth();
-  return session && canAccessModule(session.currentRole, module)
+  return session && canAccessModule(session.currentRole, module, session.permissionCodes)
     ? children
-    : <Navigate replace to="/" />;
+    : <AccessDeniedRedirect />;
 }
 
 function WarehouseMobileEntry(): JSX.Element {
@@ -137,6 +149,14 @@ function WarehouseMobileEntry(): JSX.Element {
     ]);
   }, []);
   return <WarehouseMobileLayout />;
+}
+
+function IntegrationEntry(): JSX.Element {
+  const { session } = useAuth();
+  if (!session) return <Navigate replace to="/login" />;
+  return canAccessModule(session.currentRole, 'integrationAdmin', session.permissionCodes)
+    ? <Navigate replace to="pending" />
+    : <Navigate replace to="reconciliation" />;
 }
 
 function AppRoutes(): JSX.Element {
@@ -200,12 +220,13 @@ function AppRoutes(): JSX.Element {
             <Route element={<ModuleRoute module="iam"><Navigate replace to="users" /></ModuleRoute>} path="system" />
             <Route element={<ModuleRoute module="iam"><UserManagementPage /></ModuleRoute>} path="system/users" />
             <Route element={<ModuleRoute module="iam"><RolePermissionPage /></ModuleRoute>} path="system/roles" />
-            <Route element={<ModuleRoute module="integrations"><Navigate replace to="pending" /></ModuleRoute>} path="integrations" />
-            <Route element={<ModuleRoute module="integrations"><IntegrationConfigPage /></ModuleRoute>} path="integrations/configs" />
-            <Route element={<ModuleRoute module="integrations"><PendingSkuMappingPage /></ModuleRoute>} path="integrations/pending" />
-            <Route element={<ModuleRoute module="integrations"><SkuMappingPage /></ModuleRoute>} path="integrations/mappings" />
-            <Route element={<ModuleRoute module="integrations"><RawEventPage /></ModuleRoute>} path="integrations/reviews" />
-            <Route element={<ModuleRoute module="integrations"><ReconciliationPage /></ModuleRoute>} path="integrations/reconciliation" />
+            <Route element={<ModuleRoute module="iam"><PermissionRequestPage /></ModuleRoute>} path="system/permission-requests" />
+            <Route element={<ModuleRoute module="integrations"><IntegrationEntry /></ModuleRoute>} path="integrations" />
+            <Route element={<ModuleRoute module="integrationAdmin"><IntegrationConfigPage /></ModuleRoute>} path="integrations/configs" />
+            <Route element={<ModuleRoute module="integrationAdmin"><PendingSkuMappingPage /></ModuleRoute>} path="integrations/pending" />
+            <Route element={<ModuleRoute module="integrationAdmin"><SkuMappingPage /></ModuleRoute>} path="integrations/mappings" />
+            <Route element={<ModuleRoute module="integrationAdmin"><RawEventPage /></ModuleRoute>} path="integrations/reviews" />
+            <Route element={<ModuleRoute module="reconciliation"><ReconciliationPage /></ModuleRoute>} path="integrations/reconciliation" />
           </Route>
         </Route>
         <Route element={<Navigate replace to="/" />} path="*" />

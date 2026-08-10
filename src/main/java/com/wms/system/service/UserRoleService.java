@@ -3,6 +3,8 @@ package com.wms.system.service;
 import com.wms.system.entity.SysRole;
 import com.wms.system.entity.SysUserRole;
 import com.wms.system.entity.User;
+import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * User-Role Assignment Service
@@ -47,6 +50,7 @@ public class UserRoleService {
     private final UserRepository userRepository;
     private final SysRoleRepository roleRepository;
     private final PermissionCacheService cacheService;
+    private final SecurityVersionService securityVersionService;
 
     /**
      * Assign role to user
@@ -67,6 +71,7 @@ public class UserRoleService {
         // Validate role exists
         SysRole role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
+        requireAssignable(role);
 
         // Check if already assigned
         if (userRoleRepository.existsByUserIdAndRoleId(userId, roleId)) {
@@ -82,6 +87,8 @@ public class UserRoleService {
                 .build();
 
         userRoleRepository.save(userRole);
+
+        securityVersionService.bumpForUser(userId);
 
         // Evict cache
         cacheService.onUserRoleAssigned(userId);
@@ -100,6 +107,8 @@ public class UserRoleService {
         log.info("Removing role {} from user {}", roleId, userId);
 
         userRoleRepository.deleteByUserIdAndRoleId(userId, roleId);
+
+        securityVersionService.bumpForUser(userId);
 
         // Evict cache
         cacheService.onUserRoleRemoved(userId);
@@ -124,30 +133,47 @@ public class UserRoleService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        // Remove all existing roles
+        List<SysRole> roles = roleRepository.findByIdIn(roleIds);
+        if (roles.size() != roleIds.size()) {
+            Set<Long> foundRoleIds = roles.stream().map(SysRole::getId).collect(Collectors.toSet());
+            Set<Long> missingRoleIds = roleIds.stream()
+                    .filter(roleId -> !foundRoleIds.contains(roleId))
+                    .collect(Collectors.toSet());
+            throw new BusinessException(ErrorKeys.ROLE_NOT_FOUND, Map.of("roleIds", missingRoleIds));
+        }
+        roles.forEach(this::requireAssignable);
+
+        // Remove all existing roles only after the complete replacement has been validated.
         userRoleRepository.deleteByUserId(userId);
 
         // Assign new roles
-        for (Long roleId : roleIds) {
-            // Validate role exists
-            if (!roleRepository.existsById(roleId)) {
-                log.warn("Skipping non-existent role: {}", roleId);
-                continue;
-            }
-
+        for (SysRole role : roles) {
             SysUserRole userRole = SysUserRole.builder()
                     .userId(userId)
-                    .roleId(roleId)
+                    .roleId(role.getId())
                     .assignedBy(assignedBy)
                     .build();
 
             userRoleRepository.save(userRole);
         }
 
+        securityVersionService.bumpForUser(userId);
+
         // Evict cache
         cacheService.onUserRoleAssigned(userId);
 
         log.info("Batch role assignment completed: {} roles assigned to user {}", roleIds.size(), userId);
+    }
+
+    private void requireAssignable(SysRole role) {
+        if (!role.isAssignableToUsers()) {
+            throw new BusinessException(ErrorKeys.ROLE_PACKAGE_NOT_ASSIGNABLE_TO_USER, Map.of(
+                    "roleId", role.getId(),
+                    "roleCode", role.getRoleCode(),
+                    "status", role.getStatus(),
+                    "reviewStatus", role.getReviewStatus()
+            ));
+        }
     }
 
     /**

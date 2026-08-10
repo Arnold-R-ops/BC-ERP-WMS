@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * Switch Role Response DTO
  *
@@ -29,8 +31,8 @@ import lombok.NoArgsConstructor;
  *
  * Security Considerations:
  * - New token contains updated 'current_role' claim
- * - Old token is NOT automatically invalidated
- * - Client should discard old token to prevent confusion
+ * - Role switching advances security_version, so the old token is invalidated
+ * - Client must replace the old token with this token
  * - Token expiration remains the same as original login token
  *
  * @author WMS Team
@@ -62,6 +64,9 @@ public class SwitchRoleResponse {
      * Example: "SALESPERSON", "WAREHOUSE_ADMIN"
      */
     private String currentRole;
+
+    /** Effective permission codes for the newly activated role only. */
+    private List<String> permissionCodes;
 
     /**
      * Success message describing the role switch

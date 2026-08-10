@@ -6,6 +6,7 @@ export interface AuthSession {
   username: string;
   currentRole: string;
   availableRoles: string[];
+  permissionCodes: string[];
   expiresAt: number;
   mustChangePassword: boolean;
 }
@@ -23,6 +24,8 @@ function isAuthSession(value: unknown): value is AuthSession {
     typeof candidate.currentRole === 'string' &&
     Array.isArray(candidate.availableRoles) &&
     candidate.availableRoles.every((role) => typeof role === 'string') &&
+    Array.isArray(candidate.permissionCodes) &&
+    candidate.permissionCodes.every((permission) => typeof permission === 'string') &&
     typeof candidate.expiresAt === 'number' &&
     typeof candidate.mustChangePassword === 'boolean'
   );

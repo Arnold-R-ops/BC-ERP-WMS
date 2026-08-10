@@ -101,16 +101,17 @@ const menuDefinitions: MenuDefinition[] = [
     children: [
       { path: '/system/users', module: 'iam', nameKey: 'menu.userManagement', icon: <TeamOutlined />, delivered: true },
       { path: '/system/roles', module: 'iam', nameKey: 'menu.rolePermissions', icon: <SafetyCertificateOutlined />, delivered: true },
+      { path: '/system/permission-requests', module: 'iam', nameKey: 'menu.permissionRequests', icon: <AuditOutlined />, delivered: true },
     ],
   },
   {
     path: '/integrations', module: 'integrations', nameKey: 'menu.integrations', icon: <SettingOutlined />, delivered: true,
     children: [
-      { path: '/integrations/configs', module: 'integrations', nameKey: 'menu.integrationConfigs', icon: <ShopOutlined />, delivered: true },
-      { path: '/integrations/pending', module: 'integrations', nameKey: 'menu.pendingMappings', icon: <ApartmentOutlined />, delivered: true },
-      { path: '/integrations/mappings', module: 'integrations', nameKey: 'menu.skuMappings', icon: <LinkOutlined />, delivered: true },
-      { path: '/integrations/reviews', module: 'integrations', nameKey: 'menu.manualReviews', icon: <AuditOutlined />, delivered: true },
-      { path: '/integrations/reconciliation', module: 'integrations', nameKey: 'menu.reconciliation', icon: <SafetyCertificateOutlined />, delivered: true },
+      { path: '/integrations/configs', module: 'integrationAdmin', nameKey: 'menu.integrationConfigs', icon: <ShopOutlined />, delivered: true },
+      { path: '/integrations/pending', module: 'integrationAdmin', nameKey: 'menu.pendingMappings', icon: <ApartmentOutlined />, delivered: true },
+      { path: '/integrations/mappings', module: 'integrationAdmin', nameKey: 'menu.skuMappings', icon: <LinkOutlined />, delivered: true },
+      { path: '/integrations/reviews', module: 'integrationAdmin', nameKey: 'menu.manualReviews', icon: <AuditOutlined />, delivered: true },
+      { path: '/integrations/reconciliation', module: 'reconciliation', nameKey: 'menu.reconciliation', icon: <SafetyCertificateOutlined />, delivered: true },
     ],
   },
 ];
@@ -159,13 +160,13 @@ export function AppLayout(): JSX.Element {
       return [];
     }
     return menuDefinitions
-      .filter((item) => item.delivered && canAccessModule(session.currentRole, item.module))
+      .filter((item) => item.delivered && canAccessModule(session.currentRole, item.module, session.permissionCodes))
       .map((item) => ({
         path: item.path,
         name: t(item.nameKey),
         icon: item.icon,
         children: item.children
-          ?.filter((child) => child.delivered && canAccessModule(session.currentRole, child.module))
+          ?.filter((child) => child.delivered && canAccessModule(session.currentRole, child.module, session.permissionCodes))
           .map((child) => ({ path: child.path, name: t(child.nameKey), icon: child.icon })),
       }));
   }, [session, t]);

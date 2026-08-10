@@ -23,14 +23,15 @@ import java.util.function.Function;
  * JWT Utility Class
  *
  * Core Responsibilities:
- * 1. Generate JWT Token (username + current_role + available_roles + expiration)
- * 2. Parse JWT Token (extract username, current_role, available_roles, claims)
+ * 1. Generate JWT Token (username + current_role + security_version + expiration)
+ * 2. Parse JWT Token (extract username, current_role, security_version, claims)
  * 3. Validate JWT Token (signature + expiration)
  * 4. Check Token expiration status
  *
  * Multi-Role System (v3.3+):
  * - Token contains 'current_role' claim (active role for authorization)
  * - Token optionally contains 'available_roles' claim (all user roles)
+ * - Token contains 'security_version' so authorization changes revoke old tokens
  * - Supports identity switching without re-authentication
  * - Role switching generates new token with updated current_role
  *
@@ -113,10 +114,18 @@ public class JwtUtil {
      * @since v3.3 (Multi-Role System)
      */
     public String generateToken(String username, String currentRoleCode) {
+        return generateToken(username, currentRoleCode, 1L);
+    }
+
+    /**
+     * Generate a role token bound to the user's current security version.
+     */
+    public String generateToken(String username, String currentRoleCode, Long securityVersion) {
         log.debug("Generating JWT token for user: username={}, currentRole={}", username, currentRoleCode);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("current_role", currentRoleCode);  // Changed from "role" to "current_role"
+        claims.put("security_version", securityVersion);
 
         String token = Jwts.builder()
             .claims(claims)                                          // Add custom claims
@@ -153,12 +162,25 @@ public class JwtUtil {
      * @since v3.3 (Multi-Role System)
      */
     public String generateTokenWithRoles(String username, String currentRoleCode, List<String> availableRoles) {
+        return generateTokenWithRoles(username, currentRoleCode, availableRoles, 1L);
+    }
+
+    /**
+     * Generate a multi-role token bound to the user's current security version.
+     */
+    public String generateTokenWithRoles(
+            String username,
+            String currentRoleCode,
+            List<String> availableRoles,
+            Long securityVersion
+    ) {
         log.debug("Generating JWT token for user: username={}, currentRole={}, availableRoles={}",
             username, currentRoleCode, availableRoles);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("current_role", currentRoleCode);
         claims.put("available_roles", availableRoles);
+        claims.put("security_version", securityVersion);
 
         String token = Jwts.builder()
             .claims(claims)
@@ -220,6 +242,25 @@ public class JwtUtil {
     }
 
     /**
+     * Extract the authorization context version carried by the token.
+     *
+     * Tokens issued before this claim was introduced return {@code null} and
+     * are rejected by JwtAuthenticationFilter.
+     */
+    public Long extractSecurityVersion(String token) {
+        return extractClaim(token, claims -> {
+            Object value = claims.get("security_version");
+            if (value instanceof Number number) {
+                return number.longValue();
+            }
+            if (value instanceof String text && !text.isBlank()) {
+                return Long.parseLong(text);
+            }
+            return null;
+        });
+    }
+
+    /**
      * Extract User Role from Token
      *
      * @param token JWT Token string
@@ -260,15 +301,26 @@ public class JwtUtil {
      * @return true if token is valid, false otherwise
      */
     public boolean isTokenValid(String token, String username) {
+        return isTokenValid(token, username, null);
+    }
+
+    /**
+     * Validate identity, expiry, and optionally the live authorization version.
+     */
+    public boolean isTokenValid(String token, String username, Long expectedSecurityVersion) {
         try {
             String tokenUsername = extractUsername(token);
             boolean usernameMatches = tokenUsername.equals(username);
             boolean notExpired = !isTokenExpired(token);
+            Long tokenSecurityVersion = extractSecurityVersion(token);
+            boolean securityVersionMatches = expectedSecurityVersion == null
+                    || expectedSecurityVersion.equals(tokenSecurityVersion);
 
-            boolean isValid = usernameMatches && notExpired;
+            boolean isValid = usernameMatches && notExpired && securityVersionMatches;
 
-            log.debug("Token validation: username={}, usernameMatches={}, notExpired={}, isValid={}",
-                username, usernameMatches, notExpired, isValid);
+            log.debug("Token validation: username={}, usernameMatches={}, notExpired={}, " +
+                            "securityVersionMatches={}, isValid={}",
+                username, usernameMatches, notExpired, securityVersionMatches, isValid);
 
             return isValid;
         } catch (ExpiredJwtException e) {

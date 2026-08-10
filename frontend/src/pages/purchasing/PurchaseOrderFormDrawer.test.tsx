@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App as AntdApp, ConfigProvider } from 'antd';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ComponentProps } from 'react';
 import i18n from '../../locales/i18n';
 
 vi.mock('../../api/productSkus', async (importOriginal) => ({
@@ -23,7 +24,7 @@ import {
   validatePurchaseLines,
 } from './PurchaseOrderFormDrawer';
 
-function renderDrawer(): void {
+function renderDrawer(props: Partial<ComponentProps<typeof PurchaseOrderFormDrawer>> = {}): void {
   const queryClient = new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
   });
@@ -36,6 +37,7 @@ function renderDrawer(): void {
             onClose={vi.fn()}
             onSubmit={async () => true}
             open
+            {...props}
           />
         </QueryClientProvider>
       </AntdApp>
@@ -150,5 +152,33 @@ describe('purchase order entry', () => {
     fireEvent.click(screen.getByRole('button', { name: '应用到所选行' }));
 
     await waitFor(() => expect(screen.getByText('预计金额 ¥17.00')).toBeVisible());
+  });
+
+  it('prefills and submits existing item IDs in edit mode', async () => {
+    const onSubmit = vi.fn(async () => true);
+    renderDrawer({
+      initialValues: {
+        supplierId: 3,
+        expectedDate: '2026-09-01',
+        remark: 'existing remark',
+        items: [{
+          id: 99,
+          productSkuId: 12,
+          orderedQuantity: 7,
+          unitCost: 8.5,
+        }],
+      },
+      mode: 'edit',
+      onSubmit,
+    });
+
+    expect(await screen.findByText('编辑采购单')).toBeVisible();
+    expect(screen.getByRole('spinbutton', { name: '订购数量' })).toHaveValue('7');
+    fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      supplierId: 3,
+      items: [expect.objectContaining({ id: 99, productSkuId: 12, orderedQuantity: 7 })],
+    })));
   });
 });

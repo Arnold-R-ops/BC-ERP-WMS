@@ -298,7 +298,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('sales:approve', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:reject', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> rejectSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody ApprovalRequest request,
@@ -367,7 +367,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping("/{id}/void")
-    @PreAuthorize("hasAnyAuthority('sales:cancel', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:void', 'SUPER_ADMIN')")
     public ResponseEntity<SalesOrderResponse> voidSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody CancelOrderRequest request,

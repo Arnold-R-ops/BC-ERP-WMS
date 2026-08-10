@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Tabs } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import {
   approveInboundOrder,
@@ -41,8 +43,14 @@ export function InboundOrderPage(): JSX.Element {
   const [confirmationOrder, setConfirmationOrder] = useState<InboundOrder>();
   const [receivalOrder, setReceivalOrder] = useState<InboundOrder>();
   const { i18n, t } = useTranslation();
+  const { session } = useAuth();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'inbound:create');
+  const canApprove = hasPermission(session?.currentRole, session?.permissionCodes, 'inbound:approve_plan');
+  const canReject = hasPermission(session?.currentRole, session?.permissionCodes, 'inbound:reject');
+  const canConfirm = hasPermission(session?.currentRole, session?.permissionCodes, 'inbound:confirm_order');
+  const canReceive = hasPermission(session?.currentRole, session?.permissionCodes, 'inbound:receive_goods');
 
   useEffect(() => { actionRef.current?.reloadAndRest?.(); }, [status]);
   const refresh = async (): Promise<void> => {
@@ -118,11 +126,11 @@ export function InboundOrderPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1515 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => [<Button icon={<PlusOutlined />} key="create" onClick={() => setFormOpen(true)} type="primary">{t('inbound.create')}</Button>]}
+        toolBarRender={() => canCreate ? [<Button icon={<PlusOutlined />} key="create" onClick={() => setFormOpen(true)} type="primary">{t('inbound.create')}</Button>] : []}
       />
 
       <InboundOrderFormDrawer loading={createMutation.isPending} onClose={() => setFormOpen(false)} onSubmit={saveOrder} open={formOpen} />
-      <InboundOrderDrawer orderId={selectedOrderId} onApprove={setApprovalOrder} onClose={() => setSelectedOrderId(undefined)} onConfirmOrder={setConfirmationOrder} onReceive={setReceivalOrder} onReject={setRejectOrder} />
+      <InboundOrderDrawer canApprove={canApprove} canConfirm={canConfirm} canReceive={canReceive} canReject={canReject} orderId={selectedOrderId} onApprove={setApprovalOrder} onClose={() => setSelectedOrderId(undefined)} onConfirmOrder={setConfirmationOrder} onReceive={setReceivalOrder} onReject={setRejectOrder} />
       <InboundApprovalModal loading={approveMutation.isPending} onCancel={() => setApprovalOrder(undefined)} onConfirm={submitApproval} open={approvalOrder !== undefined} order={approvalOrder} />
       <ReasonModal danger description={t('inbound.reject.notice')} loading={rejectMutation.isPending} onCancel={() => setRejectOrder(undefined)} onConfirm={submitReject} open={rejectOrder !== undefined} title={t('inbound.actions.reject')} />
       <InboundConfirmModal loading={confirmMutation.isPending} onCancel={() => setConfirmationOrder(undefined)} onConfirm={submitConfirmation} open={confirmationOrder !== undefined} order={confirmationOrder} />

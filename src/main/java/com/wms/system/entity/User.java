@@ -154,6 +154,18 @@ public class User extends BaseEntity implements UserDetails {
     private Boolean mustChangePassword = false;
 
     /**
+     * Monotonic authorization context version embedded in issued JWTs.
+     *
+     * Increment this value whenever account credentials, account status, role
+     * assignments, or effective role permissions change. Tokens carrying an
+     * older version are rejected immediately instead of remaining usable until
+     * their normal expiration time.
+     */
+    @Column(name = "security_version", nullable = false)
+    @Builder.Default
+    private Long securityVersion = 1L;
+
+    /**
      * Soft-delete marker. Deleted users are automatically excluded from ORM queries.
      */
     @Column(name = "is_deleted", nullable = false)

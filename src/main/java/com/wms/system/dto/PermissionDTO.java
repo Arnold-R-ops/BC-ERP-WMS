@@ -93,6 +93,16 @@ public class PermissionDTO {
     private String dataScope;
 
     /**
+     * Governance risk level (NORMAL, HIGH, CRITICAL).
+     */
+    private String riskLevel;
+
+    /**
+     * Whether this permission may be assigned to a custom role.
+     */
+    private Boolean customAssignable;
+
+    /**
      * Description
      */
     private String description;

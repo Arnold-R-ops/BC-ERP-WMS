@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App as AntdApp, ConfigProvider } from 'antd';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '../locales/i18n';
@@ -21,6 +21,7 @@ describe('dashboard workspace', () => {
     writeAuthSession({
       availableRoles: ['SUPER_ADMIN'],
       currentRole: 'SUPER_ADMIN',
+      permissionCodes: [],
       expiresAt: Date.now() + 60_000,
       mustChangePassword: false,
       token: 'test-token',
@@ -76,5 +77,40 @@ describe('dashboard workspace', () => {
     expect(screen.getByRole('button', { name: '收货' })).toBeVisible();
     expect(screen.getByRole('button', { name: '拣货' })).toBeVisible();
     expect(screen.getByRole('button', { name: '盘点' })).toBeVisible();
+  });
+
+  it('does not start unauthorized dashboard queries for warehouse staff', async () => {
+    writeAuthSession({
+      availableRoles: ['WAREHOUSE_STAFF'],
+      currentRole: 'WAREHOUSE_STAFF',
+      permissionCodes: ['menu:warehouse-mobile'],
+      expiresAt: Date.now() + 60_000,
+      mustChangePassword: false,
+      token: 'warehouse-staff-token',
+      tokenType: 'Bearer',
+      username: 'warehouse-operator',
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    const { container } = render(
+      <MemoryRouter>
+        <ConfigProvider>
+          <AntdApp>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <DashboardPage />
+              </AuthProvider>
+            </QueryClientProvider>
+          </AntdApp>
+        </ConfigProvider>
+      </MemoryRouter>,
+    );
+
+    const dashboard = within(container);
+    expect(await dashboard.findByRole('button', { name: '收货' })).toBeVisible();
+    expect(dashboard.getByRole('button', { name: '拣货' })).toBeVisible();
+    expect(dashboard.getByRole('button', { name: '盘点' })).toBeVisible();
+    expect(dashboard.queryByRole('button', { name: '待审批销售订单' })).not.toBeInTheDocument();
+    await waitFor(() => expect(globalThis.fetch).not.toHaveBeenCalled());
   });
 });

@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Switch, Tag, Tooltip } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import {
   createCustomer,
@@ -35,9 +37,12 @@ export function ClientPage(): JSX.Element {
   const actionRef = useRef<ActionType>();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer>();
+  const { session } = useAuth();
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'customer:create');
+  const canEdit = hasPermission(session?.currentRole, session?.permissionCodes, 'customer:edit');
 
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: CustomerPayload }) =>
@@ -93,6 +98,7 @@ export function ClientPage(): JSX.Element {
         <Switch
           checked={row.isActive === true}
           checkedChildren={t('common.enabled')}
+          disabled={!canEdit}
           loading={statusMutation.isPending}
           onChange={(checked) => void toggleActive(row, checked)}
           unCheckedChildren={t('common.disabled')}
@@ -101,14 +107,14 @@ export function ClientPage(): JSX.Element {
     },
     { title: t('common.updatedAt'), dataIndex: 'updatedAt', width: 180, search: false, renderText: (value) => formatDateTime(value as string | undefined, i18n.language) },
     {
-      title: t('common.actions'), valueType: 'option', width: 90, fixed: 'right',
+      title: t('common.actions'), valueType: 'option', width: canEdit ? 90 : 0, fixed: 'right', hideInTable: !canEdit,
       render: (_, row) => [
         <Tooltip key="edit" title={t('common.edit')}>
           <Button aria-label={t('common.edit')} icon={<EditOutlined />} onClick={() => { setEditingCustomer(row); setFormOpen(true); }} size="small" type="text" />
         </Tooltip>,
       ],
     },
-  ], [i18n.language, statusMutation.isPending, t]);
+  ], [canEdit, i18n.language, statusMutation.isPending, t]);
 
   return (
     <section className="data-page">
@@ -135,11 +141,11 @@ export function ClientPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1580 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => [
+        toolBarRender={() => canCreate ? [
           <Button icon={<PlusOutlined />} key="create" onClick={() => { setEditingCustomer(undefined); setFormOpen(true); }} type="primary">
             {t('clients.actions.create')}
           </Button>,
-        ]}
+        ] : []}
       />
 
       <ClientFormModal

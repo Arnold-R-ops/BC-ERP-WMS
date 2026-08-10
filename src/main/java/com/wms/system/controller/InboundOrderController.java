@@ -4,6 +4,7 @@ import com.wms.system.dto.inbound.*;
 import com.wms.system.entity.enums.InboundOrderStatus;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.service.InboundOrderService;
+import com.wms.system.service.WarehouseScopeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ import java.util.List;
 public class InboundOrderController {
 
     private final InboundOrderService inboundOrderService;
+    private final WarehouseScopeService warehouseScopeService;
 
     /**
      * 创建入库单
@@ -184,6 +186,10 @@ public class InboundOrderController {
         SecurityUser user = (SecurityUser) authentication.getPrincipal();
         log.info("Receiving goods for inbound order: {}, user: {}", id, user.getUsername());
 
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireOrderAccess(authentication, inboundOrderService.getInboundOrderById(id));
+        }
+
         InboundOrderResponse response = inboundOrderService.receiveGoods(
             id,
             request,
@@ -235,10 +241,14 @@ public class InboundOrderController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('inbound:view', 'SUPER_ADMIN')")
-    public ResponseEntity<InboundOrderResponse> getInboundOrderById(@PathVariable Long id) {
+    public ResponseEntity<InboundOrderResponse> getInboundOrderById(
+        @PathVariable Long id,
+        Authentication authentication
+    ) {
         log.info("Getting inbound order by ID: {}", id);
 
         InboundOrderResponse response = inboundOrderService.getInboundOrderById(id);
+        requireOrderAccess(authentication, response);
 
         return ResponseEntity.ok(response);
     }
@@ -252,10 +262,14 @@ public class InboundOrderController {
      */
     @GetMapping("/by-order-no/{orderNo}")
     @PreAuthorize("hasAnyAuthority('inbound:view', 'SUPER_ADMIN')")
-    public ResponseEntity<InboundOrderResponse> getInboundOrderByOrderNo(@PathVariable String orderNo) {
+    public ResponseEntity<InboundOrderResponse> getInboundOrderByOrderNo(
+        @PathVariable String orderNo,
+        Authentication authentication
+    ) {
         log.info("Getting inbound order by order no: {}", orderNo);
 
         InboundOrderResponse response = inboundOrderService.getInboundOrderByOrderNo(orderNo);
+        requireOrderAccess(authentication, response);
 
         return ResponseEntity.ok(response);
     }
@@ -270,13 +284,14 @@ public class InboundOrderController {
     @GetMapping("/by-status/{status}")
     @PreAuthorize("hasAnyAuthority('inbound:list', 'SUPER_ADMIN')")
     public ResponseEntity<List<InboundOrderResponse>> getInboundOrdersByStatus(
-        @PathVariable InboundOrderStatus status
+        @PathVariable InboundOrderStatus status,
+        Authentication authentication
     ) {
         log.info("Getting inbound orders by status: {}", status);
 
         List<InboundOrderResponse> responses = inboundOrderService.getInboundOrdersByStatus(status);
 
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(filterOrders(authentication, responses));
     }
 
     /**
@@ -294,7 +309,7 @@ public class InboundOrderController {
 
         List<InboundOrderResponse> responses = inboundOrderService.getInboundOrdersByApplicant(user.getId());
 
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(filterOrders(authentication, responses));
     }
 
     /**
@@ -342,12 +357,45 @@ public class InboundOrderController {
      */
     @GetMapping("/pending-receival")
     @PreAuthorize("hasAnyAuthority('inbound:receive_goods', 'SUPER_ADMIN')")
-    public ResponseEntity<List<InboundOrderResponse>> getPendingReceivalOrders() {
+    public ResponseEntity<List<InboundOrderResponse>> getPendingReceivalOrders(
+        Authentication authentication
+    ) {
         log.info("Getting pending receival inbound orders");
 
         List<InboundOrderResponse> responses = inboundOrderService
             .getInboundOrdersByStatus(InboundOrderStatus.AWAITING_RECEIVAL);
 
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(filterOrders(authentication, responses));
+    }
+
+    private List<InboundOrderResponse> filterOrders(
+        Authentication authentication,
+        List<InboundOrderResponse> orders
+    ) {
+        return warehouseScopeService.filterAccessible(
+            authentication,
+            orders,
+            this::warehouseIds
+        );
+    }
+
+    private void requireOrderAccess(Authentication authentication, InboundOrderResponse order) {
+        warehouseScopeService.requireAccess(
+            authentication,
+            warehouseIds(order),
+            "INBOUND_ORDER",
+            order.getId()
+        );
+    }
+
+    private List<Long> warehouseIds(InboundOrderResponse order) {
+        if (order.getItems() == null) {
+            return List.of();
+        }
+        return order.getItems().stream()
+            .map(InboundOrderResponse.InboundOrderItemResponse::getTargetWarehouseId)
+            .filter(java.util.Objects::nonNull)
+            .distinct()
+            .toList();
     }
 }

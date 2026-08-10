@@ -57,6 +57,7 @@ class PurchaseOrderControllerTest {
                 .build();
         return PurchaseOrder.builder()
                 .id(1L)
+                .version(2L)
                 .poNumber("PO-20260101-001")
                 .supplier("Test Supplier")
                 .supplierReference(supplier)
@@ -94,6 +95,57 @@ class PurchaseOrderControllerTest {
     }
 
     // ========== POST /api/purchase-orders/upload ==========
+
+    // ========== PUT /api/purchase-orders/{id} ==========
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("updateOrderingPurchaseOrder - returns updated version")
+    void testUpdateOrderingPurchaseOrder_Success() throws Exception {
+        PurchaseOrder order = buildPurchaseOrder();
+        order.setVersion(3L);
+        when(purchaseOrderService.updateOrderingPurchaseOrder(
+                eq(1L), eq(2L), eq(1L), anyList(), any(), any(), eq("admin"), eq("changed")
+        )).thenReturn(order);
+
+        String requestJson = """
+                {
+                  "version": 2,
+                  "supplierId": 1,
+                  "expectedDate": "2026-09-01",
+                  "remark": "changed",
+                  "items": [{"id": 10, "productSkuId": 1, "orderedQuantity": 12, "unitCost": 8.50}]
+                }
+                """;
+
+        mockMvc.perform(put("/api/purchase-orders/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(3));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @DisplayName("updateOrderingPurchaseOrder - stale version returns 409")
+    void testUpdateOrderingPurchaseOrder_StaleVersion() throws Exception {
+        when(purchaseOrderService.updateOrderingPurchaseOrder(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(new BusinessException(ErrorKeys.PO_EDIT_CONFLICT, Map.of("currentVersion", 3)));
+
+        String requestJson = """
+                {
+                  "version": 2,
+                  "supplierId": 1,
+                  "items": [{"id": 10, "productSkuId": 1, "orderedQuantity": 12}]
+                }
+                """;
+
+        mockMvc.perform(put("/api/purchase-orders/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.PO_EDIT_CONFLICT));
+    }
 
     @Test
     @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
@@ -173,7 +225,7 @@ class PurchaseOrderControllerTest {
     // ========== Staff privacy masking ==========
 
     @Test
-    @WithMockUser(username = "staff", authorities = {"STAFF"})
+    @WithMockUser(username = "staff", authorities = {"STAFF", "purchase:view"})
     @DisplayName("getById - STAFF role sees masked supplier")
     void testGetById_StaffRoleSeesmaskedSupplier() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();

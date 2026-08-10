@@ -88,6 +88,13 @@ public class UserWithRolesDTO {
      */
     private List<String> roleNames;
 
+    /** Warehouses used only when WAREHOUSE_STAFF is the activated role. */
+    private List<Long> warehouseIds;
+
+    private List<String> warehouseCodes;
+
+    private List<String> warehouseNames;
+
     /**
      * Default role code (user's preferred role)
      *

@@ -6,6 +6,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
+import com.wms.system.repository.SysUserWarehouseRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.SecurityUser;
 import org.junit.jupiter.api.AfterEach;
@@ -39,10 +40,15 @@ class UserManagementServiceTest {
     private SysRoleRepository roleRepository;
     @Mock
     private SysUserRoleRepository userRoleRepository;
+
+    @Mock
+    private SysUserWarehouseRepository userWarehouseRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
     private PermissionCacheService cacheService;
+    @Mock
+    private SecurityVersionService securityVersionService;
 
     private UserManagementService service;
     private User operator;
@@ -54,8 +60,10 @@ class UserManagementServiceTest {
             userRepository,
             roleRepository,
             userRoleRepository,
+            userWarehouseRepository,
             passwordEncoder,
-            cacheService
+            cacheService,
+            securityVersionService
         );
 
         operator = User.builder()
@@ -97,6 +105,7 @@ class UserManagementServiceTest {
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRoleRepository).deleteByUserId(2L);
+        verify(userWarehouseRepository).deleteByUserId(2L);
         verify(userRepository).save(captor.capture());
         verify(cacheService).onUserDeleted(2L);
 
@@ -295,11 +304,77 @@ class UserManagementServiceTest {
         verify(userRoleRepository, never()).countActiveUsersByRoleCode(any());
     }
 
+    @Test
+    void securityAdministratorCannotAssignAProtectedRole() {
+        SysRole securityAdmin = privilegedRole(4L, "SECURITY_ADMIN");
+
+        assertThatThrownBy(() -> service.validateRoleAssignment(
+            List.of(securityAdmin),
+            SysRole.SECURITY_ADMIN_ROLE_CODE
+        ))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+    }
+
+    @Test
+    void securityAdministratorCannotModifyAProtectedAccount() {
+        SysRole securityAdmin = privilegedRole(4L, "SECURITY_ADMIN");
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRoleRepository.findRoleIdsByUserId(2L)).thenReturn(Set.of(4L));
+        when(roleRepository.findByIdIn(Set.of(4L))).thenReturn(List.of(securityAdmin));
+
+        assertThatThrownBy(() -> service.validateProfileChange(
+            2L,
+            1L,
+            true,
+            SysRole.SECURITY_ADMIN_ROLE_CODE
+        ))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+    }
+
+    @Test
+    void securityAdministratorMayModifyAnOrdinaryAccount() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRoleRepository.findRoleIdsByUserId(2L)).thenReturn(Set.of());
+
+        service.validateProfileChange(2L, 1L, true, SysRole.SECURITY_ADMIN_ROLE_CODE);
+    }
+
+    @Test
+    void securityAdministratorCannotResetAProtectedAccountPassword() {
+        SysRole superAdmin = privilegedRole(3L, "SUPER_ADMIN");
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRoleRepository.findRoleIdsByUserId(2L)).thenReturn(Set.of(3L));
+        when(roleRepository.findByIdIn(Set.of(3L))).thenReturn(List.of(superAdmin));
+
+        assertThatThrownBy(() -> service.resetPassword(
+            2L,
+            1L,
+            SysRole.SECURITY_ADMIN_ROLE_CODE
+        ))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OPERATION_NOT_ALLOWED);
+
+        verify(userRepository, never()).save(any());
+    }
+
     private SysRole superAdminRole() {
         return SysRole.builder()
             .id(3L)
             .roleCode("SUPER_ADMIN")
             .roleName("Super Admin")
+            .status("ACTIVE")
+            .build();
+    }
+
+    private SysRole privilegedRole(Long id, String roleCode) {
+        return SysRole.builder()
+            .id(id)
+            .roleCode(roleCode)
+            .roleName(roleCode)
+            .roleType(SysRole.ROLE_TYPE_SYSTEM)
+            .systemCategory(SysRole.SYSTEM_CATEGORY_PRIVILEGED)
             .status("ACTIVE")
             .build();
     }

@@ -3,17 +3,23 @@ package com.wms.system.repository;
 import com.wms.system.entity.InventoryReservation;
 import com.wms.system.entity.enums.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface InventoryReservationRepository extends JpaRepository<InventoryReservation, Long> {
 
     List<InventoryReservation> findBySalesOrderId(Long salesOrderId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM InventoryReservation r WHERE r.salesOrderId = :salesOrderId ORDER BY r.id")
+    List<InventoryReservation> findBySalesOrderIdForUpdate(@Param("salesOrderId") Long salesOrderId);
 
     List<InventoryReservation> findBySalesOrderItemId(Long salesOrderItemId);
 

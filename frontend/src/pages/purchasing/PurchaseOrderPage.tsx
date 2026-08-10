@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Tabs } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
 import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import { resolveCurrentUser } from '../../api/masterData';
@@ -17,10 +18,12 @@ import {
   PURCHASE_ORDERS_QUERY_KEY,
   receivePurchaseOrder,
   rollbackPurchaseOrder,
+  updatePurchaseOrder,
   type PurchaseConfirmPayload,
   type PurchaseOrder,
   type PurchaseOrderStatus,
   type PurchaseReceiptPayload,
+  type PurchaseOrderUpdatePayload,
 } from '../../api/purchasing';
 import { saveBlob } from '../../api/files';
 import { OrderStatusTag } from '../../components/OrderStatusTag';
@@ -39,6 +42,7 @@ export function PurchaseOrderPage(): JSX.Element {
   const [status, setStatus] = useState<PurchaseOrderStatus>();
   const [selectedOrderId, setSelectedOrderId] = useState<number>();
   const [formOpen, setFormOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<PurchaseOrder>();
   const [importOpen, setImportOpen] = useState(false);
   const [confirmOrder, setConfirmOrder] = useState<PurchaseOrder>();
   const [receiveOrder, setReceiveOrder] = useState<PurchaseOrder>();
@@ -48,6 +52,11 @@ export function PurchaseOrderPage(): JSX.Element {
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:create');
+  const canEdit = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:update');
+  const canConfirm = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:confirm');
+  const canReceive = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:receive');
+  const canRollback = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:rollback');
 
   useEffect(() => { actionRef.current?.reloadAndRest?.(); }, [status]);
 
@@ -65,6 +74,7 @@ export function PurchaseOrderPage(): JSX.Element {
   };
 
   const createMutation = useMutation({ mutationFn: createPurchaseOrder });
+  const updateMutation = useMutation({ mutationFn: ({ id, payload }: { id: number; payload: PurchaseOrderUpdatePayload }) => updatePurchaseOrder(id, payload) });
   const importMutation = useMutation({ mutationFn: importPurchaseOrder });
   const confirmMutation = useMutation({ mutationFn: ({ id, payload }: { id: number; payload: PurchaseConfirmPayload }) => confirmPurchaseOrder(id, payload) });
   const receiveMutation = useMutation({ mutationFn: ({ id, payload }: { id: number; payload: PurchaseReceiptPayload }) => receivePurchaseOrder(id, payload) });
@@ -72,6 +82,18 @@ export function PurchaseOrderPage(): JSX.Element {
 
   const saveOrder = async (values: PurchaseOrderFormValues): Promise<boolean> => {
     try {
+      if (editOrder?.id !== undefined) {
+        if (editOrder.version === undefined) throw new Error('Purchase order version is unavailable');
+        await updateMutation.mutateAsync({
+          id: editOrder.id,
+          payload: { ...values, version: editOrder.version },
+        });
+        message.success(t('purchasing.messages.updated'));
+        setEditOrder(undefined);
+        setFormOpen(false);
+        await refresh();
+        return true;
+      }
       const operator = await resolveOperator();
       await createMutation.mutateAsync({ ...values, operatorId: operator.id, operatorName: operator.name });
       message.success(t('purchasing.messages.created'));
@@ -80,6 +102,29 @@ export function PurchaseOrderPage(): JSX.Element {
       return true;
     } catch (error) { message.error(getErrorMessage(error, t)); return false; }
   };
+
+  const editInitialValues = useMemo<PurchaseOrderFormValues | undefined>(() => {
+    if (!editOrder?.supplierId) return undefined;
+    return {
+      supplierId: editOrder.supplierId,
+      expectedDate: editOrder.expectedDate,
+      remark: editOrder.remark,
+      items: (editOrder.items ?? []).flatMap((item) => (
+        item.productSkuId === undefined || item.orderedQuantity === undefined
+          ? []
+          : [{
+            id: item.id,
+            productSkuId: item.productSkuId,
+            orderedQuantity: item.orderedQuantity,
+            unitCost: item.unitCost,
+            expiryDate: item.expiryDate,
+            productionDate: item.productionDate,
+            externalBatchCode: item.externalBatchCode,
+            remark: item.remark,
+          }]
+      )),
+    };
+  }, [editOrder]);
 
   const importOrder = async (values: PurchaseImportValues): Promise<void> => {
     try {
@@ -149,7 +194,7 @@ export function PurchaseOrderPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1455 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => [
+        toolBarRender={() => canCreate ? [
           <Button
             icon={<DownloadOutlined />}
             key="template"
@@ -160,13 +205,31 @@ export function PurchaseOrderPage(): JSX.Element {
             {t('purchasing.actions.template')}
           </Button>,
           <Button icon={<UploadOutlined />} key="import" onClick={() => setImportOpen(true)}>{t('purchasing.actions.import')}</Button>,
-          <Button icon={<PlusOutlined />} key="create" onClick={() => setFormOpen(true)} type="primary">{t('purchasing.create')}</Button>,
-        ]}
+          <Button icon={<PlusOutlined />} key="create" onClick={() => { setEditOrder(undefined); setFormOpen(true); }} type="primary">{t('purchasing.create')}</Button>,
+        ] : []}
       />
 
-      <PurchaseOrderFormDrawer loading={createMutation.isPending} onClose={() => setFormOpen(false)} onSubmit={saveOrder} open={formOpen} />
+      <PurchaseOrderFormDrawer
+        initialValues={editInitialValues}
+        loading={createMutation.isPending || updateMutation.isPending}
+        mode={editOrder ? 'edit' : 'create'}
+        onClose={() => { setFormOpen(false); setEditOrder(undefined); }}
+        onSubmit={saveOrder}
+        open={formOpen}
+      />
       <PurchaseImportModal loading={importMutation.isPending} onCancel={() => setImportOpen(false)} onConfirm={importOrder} open={importOpen} />
-      <PurchaseOrderDrawer orderId={selectedOrderId} onClose={() => setSelectedOrderId(undefined)} onConfirmAsn={setConfirmOrder} onReceive={(order) => void openReceive(order)} onRollback={setRollbackOrder} />
+      <PurchaseOrderDrawer
+        canConfirm={canConfirm}
+        canEdit={canEdit}
+        canReceive={canReceive}
+        canRollback={canRollback}
+        orderId={selectedOrderId}
+        onClose={() => setSelectedOrderId(undefined)}
+        onConfirmAsn={setConfirmOrder}
+        onEdit={(order) => { setEditOrder(order); setFormOpen(true); }}
+        onReceive={(order) => void openReceive(order)}
+        onRollback={setRollbackOrder}
+      />
       <PurchaseConfirmModal loading={confirmMutation.isPending} onCancel={() => setConfirmOrder(undefined)} onConfirm={submitConfirm} open={confirmOrder !== undefined} order={confirmOrder} />
       <PurchaseReceiveModal loading={receiveMutation.isPending} onCancel={() => setReceiveOrder(undefined)} onConfirm={submitReceive} open={receiveOrder !== undefined} operatorId={operatorId} operatorName={session?.username ?? ''} order={receiveOrder} />
       <ReasonModal description={t('purchasing.rollback.notice')} loading={rollbackMutation.isPending} onCancel={() => setRollbackOrder(undefined)} onConfirm={submitRollback} open={rollbackOrder !== undefined} title={t('purchasing.actions.rollback')} />

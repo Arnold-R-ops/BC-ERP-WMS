@@ -7,6 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.LocalDate;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,5 +35,16 @@ class ReportSummaryRefreshServiceTest {
         assertThat(result.customerProductRows()).isEqualTo(2);
         assertThat(result.salesDailyRows()).isEqualTo(2);
         verify(jdbcTemplate, times(6)).update(anyString(), eq(1L));
+    }
+
+    @Test
+    void refreshSalesDailySummaryOnlyRebuildsRequestedCompanyAndDate() {
+        LocalDate summaryDate = LocalDate.of(2026, 6, 10);
+        when(jdbcTemplate.update(anyString(), eq(1L), eq(summaryDate))).thenReturn(1);
+
+        int rows = reportSummaryRefreshService.refreshSalesDailySummary(1L, summaryDate);
+
+        assertThat(rows).isEqualTo(1);
+        verify(jdbcTemplate).update(anyString(), eq(1L), eq(summaryDate));
     }
 }

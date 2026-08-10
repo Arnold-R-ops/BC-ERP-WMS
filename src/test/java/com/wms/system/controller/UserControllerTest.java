@@ -9,8 +9,10 @@ import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.service.PermissionCacheService;
+import com.wms.system.service.SecurityVersionService;
 import com.wms.system.service.UserManagementService;
 import com.wms.system.service.UserRoleService;
+import com.wms.system.service.UserWarehouseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -71,6 +73,12 @@ class UserControllerTest {
 
     @Mock
     private UserManagementService userManagementService;
+
+    @Mock
+    private SecurityVersionService securityVersionService;
+
+    @Mock
+    private UserWarehouseService userWarehouseService;
 
     @InjectMocks
     private UserController userController;
@@ -351,7 +359,7 @@ class UserControllerTest {
     @DisplayName("case-11")
     void deleteUser_Success() {
         // Given
-        doNothing().when(userManagementService).deleteUser(1L, 0L);
+        doNothing().when(userManagementService).deleteUser(1L, 0L, "unknown");
 
         // When
         ResponseEntity<Void> response = userController.deleteUser(1L, null);
@@ -359,7 +367,7 @@ class UserControllerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        verify(userManagementService).deleteUser(1L, 0L);
+        verify(userManagementService).deleteUser(1L, 0L, "unknown");
     }
 
     @Test
@@ -369,14 +377,14 @@ class UserControllerTest {
         doThrow(new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", 999L)
-        )).when(userManagementService).deleteUser(999L, 0L);
+        )).when(userManagementService).deleteUser(999L, 0L, "unknown");
 
         // When & Then
         assertThatThrownBy(() -> userController.deleteUser(999L, null))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NOT_FOUND);
 
-        verify(userManagementService).deleteUser(999L, 0L);
+        verify(userManagementService).deleteUser(999L, 0L, "unknown");
     }
 
     // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥ鍡楀箹妞ゃ儲顨婂娲箵閹烘梻顔囬梺鎼炲妼闁帮綁寮绘繝鍌ゅ悑闁割偒鍋呴崑銉╂⒑?==========

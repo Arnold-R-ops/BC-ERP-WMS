@@ -7,6 +7,7 @@ export function createAuthSession(response: LoginResponse, now = Date.now()): Au
     !response.username ||
     !response.currentRole ||
     !response.availableRoles?.length ||
+    !response.permissionCodes ||
     !response.expiresIn
   ) {
     throw new Error('INVALID_AUTH_RESPONSE');
@@ -18,6 +19,7 @@ export function createAuthSession(response: LoginResponse, now = Date.now()): Au
     username: response.username,
     currentRole: response.currentRole,
     availableRoles: response.availableRoles,
+    permissionCodes: response.permissionCodes,
     expiresAt: now + response.expiresIn,
     mustChangePassword: response.mustChangePassword ?? false,
   };
@@ -28,7 +30,7 @@ export function mergeRoleSwitchSession(
   response: SwitchRoleResponse,
   now = Date.now(),
 ): AuthSession {
-  if (!response.token || !response.currentRole) {
+  if (!response.token || !response.currentRole || !response.permissionCodes) {
     throw new Error('INVALID_AUTH_RESPONSE');
   }
 
@@ -37,6 +39,7 @@ export function mergeRoleSwitchSession(
     token: response.token,
     tokenType: response.tokenType ?? current.tokenType,
     currentRole: response.currentRole,
+    permissionCodes: response.permissionCodes,
     expiresAt: now + (response.expiresIn ?? 86_400_000),
   };
 }

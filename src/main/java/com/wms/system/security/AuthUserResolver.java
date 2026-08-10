@@ -45,4 +45,17 @@ public final class AuthUserResolver {
         String name = authentication.getName();
         return (name == null || name.isBlank()) ? "unknown" : name;
     }
+
+    /** Resolve the role currently activated in the request JWT. */
+    public static String resolveCurrentRole(Authentication authentication) {
+        if (authentication == null) {
+            return "unknown";
+        }
+        return authentication.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .findFirst()
+                .orElse("unknown");
+    }
 }

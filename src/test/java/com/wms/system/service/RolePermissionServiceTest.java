@@ -3,6 +3,8 @@ package com.wms.system.service;
 import com.wms.system.entity.SysPermission;
 import com.wms.system.entity.SysRole;
 import com.wms.system.entity.SysRolePermission;
+import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysPermissionRepository;
 import com.wms.system.repository.SysRolePermissionRepository;
 import com.wms.system.repository.SysRoleRepository;
@@ -16,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +33,7 @@ class RolePermissionServiceTest {
     @Mock private SysRoleRepository roleRepository;
     @Mock private SysPermissionRepository permissionRepository;
     @Mock private PermissionCacheService cacheService;
+    @Mock private SecurityVersionService securityVersionService;
 
     @InjectMocks
     private RolePermissionService rolePermissionService;
@@ -44,7 +48,8 @@ class RolePermissionServiceTest {
                 .roleCode("TEST_ROLE")
                 .roleName("Test Role")
                 .roleType("CUSTOM")
-                .status("ACTIVE")
+                .reviewStatus(SysRole.REVIEW_STATUS_DRAFT)
+                .status("DISABLED")
                 .build();
 
         testPermission = SysPermission.builder()
@@ -71,6 +76,7 @@ class RolePermissionServiceTest {
 
         verify(rolePermissionRepository).save(any(SysRolePermission.class));
         verify(cacheService).onRolePermissionChanged(1L);
+        verify(securityVersionService).bumpForRoleAndDescendants(1L);
     }
 
     @Test
@@ -106,11 +112,28 @@ class RolePermissionServiceTest {
                 .hasMessageContaining("Permission not found");
     }
 
+    @Test
+    @DisplayName("assignPermissionToRole - rejects reserved permission for custom role")
+    void testAssignPermissionToRole_RejectsReservedPermissionForCustomRole() {
+        testPermission.setRiskLevel(SysPermission.RISK_LEVEL_CRITICAL);
+        testPermission.setCustomAssignable(false);
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
+        when(permissionRepository.findById(10L)).thenReturn(Optional.of(testPermission));
+
+        assertThatThrownBy(() -> rolePermissionService.assignPermissionToRole(1L, 10L, 999L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(error -> ((BusinessException) error).getErrorKey())
+                .isEqualTo(ErrorKeys.ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE);
+
+        verify(rolePermissionRepository, never()).save(any());
+    }
+
     // ========== removePermissionFromRole ==========
 
     @Test
     @DisplayName("removePermissionFromRole - calls delete and evicts cache")
     void testRemovePermissionFromRole() {
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
         doNothing().when(rolePermissionRepository).deleteByRoleIdAndPermissionId(1L, 10L);
         doNothing().when(cacheService).onRolePermissionChanged(1L);
 
@@ -129,7 +152,16 @@ class RolePermissionServiceTest {
 
         when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
         doNothing().when(rolePermissionRepository).deleteByRoleId(1L);
-        when(permissionRepository.existsById(anyLong())).thenReturn(true);
+        when(permissionRepository.findByIdIn(permissionIds)).thenReturn(permissionIds.stream()
+                .map(permissionId -> SysPermission.builder()
+                        .id(permissionId)
+                        .permissionCode("permission:" + permissionId)
+                        .permissionName("Permission " + permissionId)
+                        .permissionType("API")
+                        .customAssignable(true)
+                        .status("ACTIVE")
+                        .build())
+                .toList());
         when(rolePermissionRepository.save(any(SysRolePermission.class))).thenReturn(new SysRolePermission());
         doNothing().when(cacheService).onRolePermissionChanged(1L);
 
@@ -141,21 +173,37 @@ class RolePermissionServiceTest {
     }
 
     @Test
-    @DisplayName("assignPermissionsToRole - skips non-existent permissions")
-    void testAssignPermissionsToRole_SkipsNonExistent() {
+    @DisplayName("assignPermissionsToRole - rejects non-existent permissions before deleting")
+    void testAssignPermissionsToRole_RejectsNonExistent() {
         Set<Long> permissionIds = Set.of(10L, 99L); // 99 doesn't exist
 
         when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
-        doNothing().when(rolePermissionRepository).deleteByRoleId(1L);
-        when(permissionRepository.existsById(10L)).thenReturn(true);
-        when(permissionRepository.existsById(99L)).thenReturn(false);
-        when(rolePermissionRepository.save(any())).thenReturn(new SysRolePermission());
-        doNothing().when(cacheService).onRolePermissionChanged(1L);
+        when(permissionRepository.findByIdIn(permissionIds)).thenReturn(List.of(testPermission));
 
-        rolePermissionService.assignPermissionsToRole(1L, permissionIds, 999L);
+        assertThatThrownBy(() -> rolePermissionService.assignPermissionsToRole(1L, permissionIds, 999L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(error -> ((BusinessException) error).getErrorKey())
+                .isEqualTo(ErrorKeys.ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE);
 
-        // only 1 saved (10L), 99L skipped
-        verify(rolePermissionRepository, times(1)).save(any());
+        verify(rolePermissionRepository, never()).deleteByRoleId(anyLong());
+        verify(rolePermissionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("assignPermissionsToRole - validates reserved permissions before deleting existing assignments")
+    void testAssignPermissionsToRole_ValidatesBeforeDelete() {
+        testPermission.setRiskLevel(SysPermission.RISK_LEVEL_CRITICAL);
+        testPermission.setCustomAssignable(false);
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
+        when(permissionRepository.findByIdIn(Set.of(10L))).thenReturn(List.of(testPermission));
+
+        assertThatThrownBy(() -> rolePermissionService.assignPermissionsToRole(1L, Set.of(10L), 999L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(error -> ((BusinessException) error).getErrorKey())
+                .isEqualTo(ErrorKeys.ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE);
+
+        verify(rolePermissionRepository, never()).deleteByRoleId(anyLong());
+        verify(rolePermissionRepository, never()).save(any());
     }
 
     // ========== roleHasPermission ==========

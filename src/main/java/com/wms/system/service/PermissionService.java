@@ -42,6 +42,7 @@ public class PermissionService {
 
     private final SysPermissionRepository permissionRepository;
     private final PermissionCacheService cacheService;
+    private final SecurityVersionService securityVersionService;
 
     /**
      * Create a new permission
@@ -59,6 +60,15 @@ public class PermissionService {
             throw new IllegalArgumentException("Permission code already exists: " + permissionDTO.getPermissionCode());
         }
 
+        boolean reservedPermission = SysPermission.isReservedPermissionCode(permissionDTO.getPermissionCode());
+        String riskLevel = resolveRiskLevel(permissionDTO.getRiskLevel(), SysPermission.RISK_LEVEL_NORMAL);
+        boolean customAssignable = permissionDTO.getCustomAssignable() == null
+                || Boolean.TRUE.equals(permissionDTO.getCustomAssignable());
+        if (reservedPermission || SysPermission.RISK_LEVEL_CRITICAL.equals(riskLevel)) {
+            riskLevel = SysPermission.RISK_LEVEL_CRITICAL;
+            customAssignable = false;
+        }
+
         // Create permission entity
         SysPermission permission = SysPermission.builder()
                 .permissionCode(permissionDTO.getPermissionCode())
@@ -70,6 +80,8 @@ public class PermissionService {
                 .menuUrl(permissionDTO.getMenuUrl())
                 .menuIcon(permissionDTO.getMenuIcon())
                 .dataScope(permissionDTO.getDataScope() != null ? permissionDTO.getDataScope() : "ALL")
+                .riskLevel(riskLevel)
+                .customAssignable(customAssignable)
                 .description(permissionDTO.getDescription())
                 .status(permissionDTO.getStatus() != null ? permissionDTO.getStatus() : "ACTIVE")
                 .sortOrder(permissionDTO.getSortOrder() != null ? permissionDTO.getSortOrder() : 0)
@@ -80,6 +92,7 @@ public class PermissionService {
 
         // Invalidate cache
         cacheService.onPermissionChanged(permission.getId());
+        securityVersionService.bumpAllUsers();
 
         log.info("Permission created successfully: {} (ID: {})", permission.getPermissionCode(), permission.getId());
 
@@ -109,6 +122,17 @@ public class PermissionService {
         permission.setMenuUrl(permissionDTO.getMenuUrl());
         permission.setMenuIcon(permissionDTO.getMenuIcon());
         permission.setDataScope(permissionDTO.getDataScope());
+        String riskLevel = resolveRiskLevel(permissionDTO.getRiskLevel(), permission.getRiskLevel());
+        boolean customAssignable = permissionDTO.getCustomAssignable() != null
+                ? Boolean.TRUE.equals(permissionDTO.getCustomAssignable())
+                : permission.isCustomAssignable();
+        if (SysPermission.isReservedPermissionCode(permission.getPermissionCode())
+                || SysPermission.RISK_LEVEL_CRITICAL.equals(riskLevel)) {
+            riskLevel = SysPermission.RISK_LEVEL_CRITICAL;
+            customAssignable = false;
+        }
+        permission.setRiskLevel(riskLevel);
+        permission.setCustomAssignable(customAssignable);
         permission.setDescription(permissionDTO.getDescription());
         permission.setStatus(permissionDTO.getStatus());
         permission.setSortOrder(permissionDTO.getSortOrder());
@@ -118,6 +142,7 @@ public class PermissionService {
 
         // Invalidate cache
         cacheService.onPermissionChanged(permissionId);
+        securityVersionService.bumpAllUsers();
 
         log.info("Permission updated successfully: {} (ID: {})", permission.getPermissionCode(), permission.getId());
 
@@ -150,6 +175,7 @@ public class PermissionService {
 
         // Invalidate cache
         cacheService.onPermissionChanged(permissionId);
+        securityVersionService.bumpAllUsers();
 
         log.info("Permission deleted successfully: {} (ID: {})", permission.getPermissionCode(), permission.getId());
     }
@@ -336,9 +362,26 @@ public class PermissionService {
                 .menuUrl(permission.getMenuUrl())
                 .menuIcon(permission.getMenuIcon())
                 .dataScope(permission.getDataScope())
+                .riskLevel(permission.getRiskLevel())
+                .customAssignable(permission.isCustomAssignable())
                 .description(permission.getDescription())
                 .status(permission.getStatus())
                 .sortOrder(permission.getSortOrder())
                 .build();
+    }
+
+    private String resolveRiskLevel(String requestedRiskLevel, String fallbackRiskLevel) {
+        String riskLevel = requestedRiskLevel != null ? requestedRiskLevel : fallbackRiskLevel;
+        if (riskLevel == null) {
+            return SysPermission.RISK_LEVEL_NORMAL;
+        }
+        if (!Set.of(
+                SysPermission.RISK_LEVEL_NORMAL,
+                SysPermission.RISK_LEVEL_HIGH,
+                SysPermission.RISK_LEVEL_CRITICAL
+        ).contains(riskLevel)) {
+            throw new IllegalArgumentException("Invalid permission risk level: " + riskLevel);
+        }
+        return riskLevel;
     }
 }

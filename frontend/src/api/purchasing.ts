@@ -4,6 +4,7 @@ import { apiBlobRequest, apiRawRequest, apiRequest } from './http';
 export type PurchaseOrder = components['schemas']['PurchaseOrderResponse'];
 export type PurchaseOrderItem = components['schemas']['PurchaseOrderItemResponse'];
 export type PurchaseOrderPayload = components['schemas']['CreatePurchaseOrderRequest'];
+export type PurchaseOrderUpdatePayload = components['schemas']['UpdatePurchaseOrderRequest'];
 export type PurchaseConfirmPayload = components['schemas']['ConfirmOrderRequest'];
 export type PurchaseReceiptPayload = components['schemas']['ConfirmReceiptRequest'];
 export type PurchaseOrderStatus = NonNullable<PurchaseOrder['status']>;
@@ -24,6 +25,13 @@ export async function getPurchaseOrder(id: number): Promise<PurchaseOrder> {
 
 export async function createPurchaseOrder(payload: PurchaseOrderPayload): Promise<PurchaseOrder> {
   return apiRequest<PurchaseOrder>('/api/purchase-orders', { method: 'POST', body: payload });
+}
+
+export async function updatePurchaseOrder(
+  id: number,
+  payload: PurchaseOrderUpdatePayload,
+): Promise<PurchaseOrder> {
+  return apiRequest<PurchaseOrder>(`/api/purchase-orders/${id}`, { method: 'PUT', body: payload });
 }
 
 export async function confirmPurchaseOrder(

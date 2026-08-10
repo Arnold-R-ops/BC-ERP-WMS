@@ -71,10 +71,16 @@ public class DynamicPermissionService {
     public UserPermissionDTO getUserPermissions(Long userId) {
         log.info("Loading permissions for user ID: {} (cache miss)", userId);
 
-        // 1. Get user's direct role IDs
-        Set<Long> directRoleIds = userRoleRepository.findRoleIdsByUserId(userId);
-        if (directRoleIds.isEmpty()) {
+        // 1. Get user's enabled direct role IDs. Disabled roles never
+        // contribute permissions, even through the legacy all-role resolver.
+        Set<Long> assignedRoleIds = userRoleRepository.findRoleIdsByUserId(userId);
+        if (assignedRoleIds.isEmpty()) {
             log.warn("User {} has no roles assigned", userId);
+            return buildEmptyPermissionDTO(userId);
+        }
+        Set<Long> directRoleIds = findActiveRoleIds(assignedRoleIds);
+        if (directRoleIds.isEmpty()) {
+            log.warn("User {} has no active roles assigned", userId);
             return buildEmptyPermissionDTO(userId);
         }
 
@@ -92,6 +98,59 @@ public class DynamicPermissionService {
     }
 
     /**
+     * Resolve permissions strictly for the role currently activated in the JWT.
+     *
+     * The assignment and role status are checked against live database state.
+     * Other roles assigned to the same user are deliberately excluded.
+     *
+     * @param userId user whose assignment must be verified
+     * @param roleCode role selected in the current JWT
+     * @param securityVersion live user security version, included in the cache key
+     * @return permissions of the selected role and its inherited parents only
+     */
+    @Cacheable(
+            value = CacheConfig.USER_PERMISSIONS_CACHE,
+            key = "'active:' + #userId + ':' + #roleCode + ':' + #securityVersion"
+    )
+    public UserPermissionDTO getUserPermissionsForRole(
+            Long userId,
+            String roleCode,
+            Long securityVersion
+    ) {
+        if (roleCode == null || roleCode.isBlank()) {
+            throw new IllegalArgumentException("Current role is required");
+        }
+
+        SysRole selectedRole = roleRepository.findByRoleCode(roleCode)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Current role does not exist: " + roleCode));
+
+        if (!selectedRole.isActive()) {
+            throw new IllegalArgumentException("Current role is disabled: " + roleCode);
+        }
+
+        if (!userRoleRepository.existsByUserIdAndRoleId(userId, selectedRole.getId())) {
+            throw new IllegalArgumentException(
+                    "Current role is not assigned to user: " + roleCode);
+        }
+
+        Set<Long> directRoleIds = Set.of(selectedRole.getId());
+        Set<Long> effectiveRoleIds = getInheritedRoleIds(directRoleIds);
+        List<PermissionDTO> permissions = getPermissionsByRoleIds(effectiveRoleIds);
+
+        log.debug("Resolved active-role permissions: userId={}, roleCode={}, " +
+                        "securityVersion={}, effectiveRoles={}, permissions={}",
+                userId, roleCode, securityVersion, effectiveRoleIds.size(), permissions.size());
+
+        return buildUserPermissionDTO(
+                userId,
+                directRoleIds,
+                effectiveRoleIds,
+                permissions
+        );
+    }
+
+    /**
      * Recursively get all role IDs (including inherited roles)
      *
      * Supports multi-level inheritance:
@@ -100,8 +159,9 @@ public class DynamicPermissionService {
      * Algorithm:
      * 1. Start with direct role IDs
      * 2. For each role, query parent roles from sys_role_inherit
-     * 3. Recursively query parent's parents
-     * 4. Return deduplicated set of all role IDs
+     * 3. Exclude disabled parents and stop traversal through those branches
+     * 4. Recursively query active parents' parents
+     * 5. Return deduplicated set of all active effective role IDs
      *
      * Performance:
      * - Uses iterative approach to avoid stack overflow
@@ -119,19 +179,22 @@ public class DynamicPermissionService {
         int maxDepth = 10; // Prevent infinite loops
 
         while (!currentLevel.isEmpty() && depth < maxDepth) {
-            Set<Long> nextLevel = new HashSet<>();
+            Set<Long> candidateParentRoleIds = new HashSet<>();
 
             // Query parent roles for current level
             for (Long roleId : currentLevel) {
                 Set<Long> parentRoleIds = roleInheritRepository.findParentRoleIdsByChildRoleId(roleId);
                 for (Long parentRoleId : parentRoleIds) {
                     if (!result.contains(parentRoleId)) {
-                        nextLevel.add(parentRoleId);
-                        result.add(parentRoleId);
+                        candidateParentRoleIds.add(parentRoleId);
                     }
                 }
             }
 
+            // A disabled parent contributes no permissions and terminates that
+            // inheritance branch, so only active parents enter the next level.
+            Set<Long> nextLevel = findActiveRoleIds(candidateParentRoleIds);
+            result.addAll(nextLevel);
             currentLevel = nextLevel;
             depth++;
         }
@@ -141,6 +204,17 @@ public class DynamicPermissionService {
         }
 
         return result;
+    }
+
+    private Set<Long> findActiveRoleIds(Set<Long> roleIds) {
+        if (roleIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return roleRepository.findByIdIn(roleIds).stream()
+                .filter(SysRole::isActive)
+                .map(SysRole::getId)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -165,7 +239,11 @@ public class DynamicPermissionService {
         Map<Long, SysPermission> permissionMap = new HashMap<>();
         for (SysRolePermission rp : rolePermissions) {
             SysPermission permission = rp.getPermission();
-            if (permission != null && permission.isActive()) {
+            SysRole grantingRole = rp.getRole();
+            boolean allowedForRole = permission != null
+                    && (permission.isCustomAssignable()
+                    || (grantingRole != null && grantingRole.isSystemRole()));
+            if (permission != null && permission.isActive() && allowedForRole) {
                 permissionMap.put(permission.getId(), permission);
             }
         }
@@ -273,6 +351,8 @@ public class DynamicPermissionService {
                 .menuUrl(permission.getMenuUrl())
                 .menuIcon(permission.getMenuIcon())
                 .dataScope(permission.getDataScope())
+                .riskLevel(permission.getRiskLevel())
+                .customAssignable(permission.isCustomAssignable())
                 .description(permission.getDescription())
                 .status(permission.getStatus())
                 .sortOrder(permission.getSortOrder())

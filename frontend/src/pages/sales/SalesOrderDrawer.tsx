@@ -2,6 +2,7 @@ import { CheckOutlined, CloseOutlined, DeleteOutlined, StopOutlined } from '@ant
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Descriptions, Drawer, Dropdown, Space, Steps, Table, type MenuProps, type TableColumnsType } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
 import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import { getSalesOrder, type SalesOrder, type SalesOrderItem } from '../../api/sales';
@@ -57,18 +58,25 @@ export function SalesOrderDrawer({
   ];
 
   const terminalStatuses = new Set(['SHIPPED', 'REJECTED', 'CANCELLED', 'VOIDED']);
-  const canApprove = order?.status === 'PENDING_APPROVAL';
-  const canCancel = Boolean(order?.status && !terminalStatuses.has(order.status));
-  const canEditShipments = Boolean(session && ['SUPER_ADMIN', 'GENERAL_MANAGER', 'SALESPERSON'].includes(session.currentRole));
+  const canApprove = order?.status === 'PENDING_APPROVAL'
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:approve');
+  const canReject = order?.status === 'PENDING_APPROVAL'
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:reject');
+  const canCancel = Boolean(order?.status && !terminalStatuses.has(order.status))
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:cancel');
+  const canVoid = order?.status !== 'VOIDED'
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:void');
+  const canEditShipments = hasPermission(session?.currentRole, session?.permissionCodes, 'sales:edit')
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:shipment:edit');
   const moreItems: NonNullable<MenuProps['items']> = order
     ? [
-      canApprove
+      canReject
         ? { key: 'reject', icon: <CloseOutlined />, danger: true, label: t('sales.actions.reject') }
         : null,
       canCancel
         ? { key: 'cancel', icon: <StopOutlined />, label: t('sales.actions.cancel') }
         : null,
-      order.status !== 'VOIDED'
+      canVoid
         ? { key: 'void', icon: <DeleteOutlined />, danger: true, label: t('sales.actions.void') }
         : null,
     ].filter(Boolean) as NonNullable<MenuProps['items']>

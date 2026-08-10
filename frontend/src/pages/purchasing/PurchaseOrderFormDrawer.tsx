@@ -17,24 +17,27 @@ import {
   Pagination,
   Select,
 } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { listProductSkus } from '../../api/productSkus';
-import type { PurchaseOrderPayload } from '../../api/purchasing';
+import type { PurchaseOrderUpdatePayload } from '../../api/purchasing';
 import { listSuppliers } from '../../api/suppliers';
 
 const PURCHASE_LINES_PAGE_SIZE = 20;
 
-export type PurchaseOrderFormValues = Omit<PurchaseOrderPayload, 'operatorId' | 'operatorName'>;
+export type PurchaseOrderFormValues = Omit<PurchaseOrderUpdatePayload, 'version'>;
 
 interface PurchaseOrderFormDrawerProps {
+  initialValues?: PurchaseOrderFormValues;
   loading: boolean;
+  mode?: 'create' | 'edit';
   open: boolean;
   onClose: () => void;
   onSubmit: (values: PurchaseOrderFormValues) => Promise<boolean>;
 }
 
 interface PurchaseLine {
+  id?: number;
   expiryDate?: string;
   externalBatchCode?: string;
   productSkuId?: number;
@@ -132,7 +135,9 @@ export function validatePurchaseLines(lines: PurchaseLine[] = []): PurchaseLineV
 }
 
 export function PurchaseOrderFormDrawer({
+  initialValues,
   loading,
+  mode = 'create',
   open,
   onClose,
   onSubmit,
@@ -169,6 +174,14 @@ export function PurchaseOrderFormDrawer({
     .map((item) => item?.productSkuId)
     .filter((id): id is number => id !== undefined));
 
+  useEffect(() => {
+    if (!open) return;
+    form.resetFields();
+    form.setFieldsValue(initialValues ?? { items: [{ orderedQuantity: 1 }] });
+    setLinePage(1);
+    setSelectedLineKeys([]);
+  }, [form, initialValues, open]);
+
   const submit = async (values: PurchaseOrderFormValues): Promise<boolean> => {
     const validationIssue = validatePurchaseLines(values.items);
     if (validationIssue) {
@@ -188,7 +201,6 @@ export function PurchaseOrderFormDrawer({
     <DrawerForm<PurchaseOrderFormValues>
       drawerProps={{ destroyOnHidden: true, maskClosable: false }}
       form={form}
-      initialValues={{ items: [{ orderedQuantity: 1 }] }}
       onFinish={submit}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -202,10 +214,13 @@ export function PurchaseOrderFormDrawer({
       }}
       open={open}
       submitter={{
-        searchConfig: { resetText: t('common.cancel'), submitText: t('common.create') },
+        searchConfig: {
+          resetText: t('common.cancel'),
+          submitText: mode === 'edit' ? t('common.save') : t('common.create'),
+        },
         submitButtonProps: { loading },
       }}
-      title={t('purchasing.create')}
+      title={mode === 'edit' ? t('purchasing.edit') : t('purchasing.create')}
       width={1280}
     >
       {suppliersQuery.isError && (
@@ -350,6 +365,7 @@ export function PurchaseOrderFormDrawer({
                       }));
                       return (
                         <div className="purchase-line-grid purchase-line-row" key={field.key}>
+                          <Form.Item hidden name={[field.name, 'id']}><Input /></Form.Item>
                           <Checkbox
                             aria-label={t('purchasing.bulk.selectLine', { index: index + 1 })}
                             checked={selectedKeys.has(field.key)}

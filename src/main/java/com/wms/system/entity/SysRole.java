@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.time.LocalDateTime;
 
 /**
  * System Role Entity
@@ -47,6 +48,17 @@ import java.util.Set;
 )
 public class SysRole extends BaseEntity {
 
+    public static final String ROLE_TYPE_SYSTEM = "SYSTEM";
+    public static final String ROLE_TYPE_CUSTOM = "CUSTOM";
+    public static final String SYSTEM_CATEGORY_BUSINESS_TEMPLATE = "BUSINESS_TEMPLATE";
+    public static final String SYSTEM_CATEGORY_PRIVILEGED = "PRIVILEGED";
+    public static final String SUPER_ADMIN_ROLE_CODE = "SUPER_ADMIN";
+    public static final String SECURITY_ADMIN_ROLE_CODE = "SECURITY_ADMIN";
+    public static final String SIMPLE_APPROVAL_TEMPLATE_CODE = "ROLE_PACKAGE_SIMPLE_APPROVAL";
+    public static final String REVIEW_STATUS_DRAFT = "DRAFT";
+    public static final String REVIEW_STATUS_PENDING = "PENDING_REVIEW";
+    public static final String REVIEW_STATUS_APPROVED = "APPROVED";
+
     /**
      * Primary Key (auto-increment)
      */
@@ -85,7 +97,55 @@ public class SysRole extends BaseEntity {
      */
     @Column(name = "role_type", nullable = false, length = 20)
     @Builder.Default
-    private String roleType = "CUSTOM";
+    private String roleType = ROLE_TYPE_CUSTOM;
+
+    /**
+     * Governance category for system roles.
+     *
+     * - BUSINESS_TEMPLATE: reusable business baseline, subject to import review
+     * - PRIVILEGED: protected identity role that must never be copied/imported
+     * - null: custom role
+     */
+    @Column(name = "system_category", length = 30)
+    private String systemCategory;
+
+    /**
+     * Whether this role may be used as a source for a role/permission-package copy.
+     * Protected roles always remain non-importable even if persisted data is wrong.
+     */
+    @Column(name = "import_allowed", nullable = false)
+    @Builder.Default
+    private Boolean importAllowed = false;
+
+    /** Approval template bound to a custom permission package. */
+    @Column(name = "approval_template_code", length = 50)
+    private String approvalTemplateCode;
+
+    /** Governance state, independent from the runtime ACTIVE/DISABLED state. */
+    @Column(name = "review_status", nullable = false, length = 30)
+    @Builder.Default
+    private String reviewStatus = REVIEW_STATUS_APPROVED;
+
+    @Column(name = "review_submitted_by")
+    private Long reviewSubmittedBy;
+
+    @Column(name = "review_submitted_by_username", length = 100)
+    private String reviewSubmittedByUsername;
+
+    @Column(name = "review_submitted_at")
+    private LocalDateTime reviewSubmittedAt;
+
+    @Column(name = "reviewed_by")
+    private Long reviewedBy;
+
+    @Column(name = "reviewed_by_username", length = 100)
+    private String reviewedByUsername;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "review_comment", length = 500)
+    private String reviewComment;
 
     /**
      * Role Status
@@ -152,7 +212,26 @@ public class SysRole extends BaseEntity {
      * Check if role is system predefined
      */
     public boolean isSystemRole() {
-        return "SYSTEM".equals(this.roleType);
+        return ROLE_TYPE_SYSTEM.equals(this.roleType);
+    }
+
+    /**
+     * Check if this role is a protected privileged identity.
+     * SUPER_ADMIN is an immutable safety invariant independent of database metadata.
+     */
+    public boolean isPrivilegedRole() {
+        return SUPER_ADMIN_ROLE_CODE.equals(this.roleCode)
+                || SYSTEM_CATEGORY_PRIVILEGED.equals(this.systemCategory);
+    }
+
+    /**
+     * Check if this role can be used as a copy/import source.
+     */
+    public boolean canImportPermissions() {
+        return Boolean.TRUE.equals(this.importAllowed)
+                && !isPrivilegedRole()
+                && isActive()
+                && (isSystemRole() || isApproved());
     }
 
     /**
@@ -160,5 +239,21 @@ public class SysRole extends BaseEntity {
      */
     public boolean isActive() {
         return "ACTIVE".equals(this.status);
+    }
+
+    public boolean isDraft() {
+        return REVIEW_STATUS_DRAFT.equals(this.reviewStatus);
+    }
+
+    public boolean isPendingReview() {
+        return REVIEW_STATUS_PENDING.equals(this.reviewStatus);
+    }
+
+    public boolean isApproved() {
+        return REVIEW_STATUS_APPROVED.equals(this.reviewStatus);
+    }
+
+    public boolean isAssignableToUsers() {
+        return isActive() && (isSystemRole() || isApproved());
     }
 }

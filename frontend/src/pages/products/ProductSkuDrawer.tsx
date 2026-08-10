@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Drawer, Popconfirm, Space, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
 import { getErrorMessage } from '../../api/errors';
 import { paginateArray } from '../../api/pagination';
 import type { Product } from '../../api/products';
@@ -23,6 +24,8 @@ interface ProductSkuDrawerProps {
   open: boolean;
   product?: Product;
   onClose: () => void;
+  permissionCodes?: string[];
+  role?: string;
 }
 
 interface SkuTableParams {
@@ -44,7 +47,7 @@ function filterSkus(skus: ProductSku[], params: SkuTableParams): ProductSku[] {
   });
 }
 
-export function ProductSkuDrawer({ open, product, onClose }: ProductSkuDrawerProps): JSX.Element {
+export function ProductSkuDrawer({ open, permissionCodes, product, role, onClose }: ProductSkuDrawerProps): JSX.Element {
   const actionRef = useRef<ActionType>();
   const [formOpen, setFormOpen] = useState(false);
   const [editingSku, setEditingSku] = useState<ProductSku>();
@@ -52,6 +55,9 @@ export function ProductSkuDrawer({ open, product, onClose }: ProductSkuDrawerPro
   const { message } = AntdApp.useApp();
   const { i18n, t } = useTranslation();
   const productId = product?.id;
+  const canCreate = hasPermission(role, permissionCodes, 'product-sku:create');
+  const canEdit = hasPermission(role, permissionCodes, 'product-sku:edit');
+  const canChangeStatus = hasPermission(role, permissionCodes, 'product-sku:status');
 
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: ProductSkuPayload }) =>
@@ -123,15 +129,15 @@ export function ProductSkuDrawer({ open, product, onClose }: ProductSkuDrawerPro
       render: (_, record) => <Tag color={record.enabled ? 'success' : 'default'}>{record.enabled ? t('common.enabled') : t('common.disabled')}</Tag>,
     },
     {
-      title: t('common.actions'), valueType: 'option', width: 170, fixed: 'right',
+      title: t('common.actions'), valueType: 'option', width: canEdit || canChangeStatus ? 170 : 0, fixed: 'right', hideInTable: !canEdit && !canChangeStatus,
       render: (_, record) => [
-        <Button icon={<EditOutlined />} key="edit" onClick={() => { setEditingSku(record); setFormOpen(true); }} size="small" type="link">{t('common.edit')}</Button>,
-        <Popconfirm key="status" onConfirm={() => void changeStatus(record)} title={record.enabled ? t('productSkus.confirmations.deactivate') : t('productSkus.confirmations.activate')}>
+        canEdit ? <Button icon={<EditOutlined />} key="edit" onClick={() => { setEditingSku(record); setFormOpen(true); }} size="small" type="link">{t('common.edit')}</Button> : null,
+        canChangeStatus ? <Popconfirm key="status" onConfirm={() => void changeStatus(record)} title={record.enabled ? t('productSkus.confirmations.deactivate') : t('productSkus.confirmations.activate')}>
           <Button danger={Boolean(record.enabled)} icon={<PoweroffOutlined />} size="small" type="link">{record.enabled ? t('common.disabled') : t('common.enabled')}</Button>
-        </Popconfirm>,
-      ],
+        </Popconfirm> : null,
+      ].filter(Boolean),
     },
-  ], [i18n.language, t]);
+  ], [canChangeStatus, canEdit, i18n.language, t]);
 
   return (
     <>
@@ -163,11 +169,11 @@ export function ProductSkuDrawer({ open, product, onClose }: ProductSkuDrawerPro
           rowKey="id"
           scroll={{ x: 1450 }}
           search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-          toolBarRender={() => [
+          toolBarRender={() => canCreate ? [
             <Button disabled={productId === undefined || product?.enabled === false} icon={<PlusOutlined />} key="create" onClick={() => { setEditingSku(undefined); setFormOpen(true); }} type="primary">
               {t('productSkus.create')}
             </Button>,
-          ]}
+          ] : []}
         />
       </Drawer>
       {product && formOpen ? (

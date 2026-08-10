@@ -4,6 +4,7 @@ import com.wms.system.dto.outbound.ConfirmPickingRequest;
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.OutboundService;
+import com.wms.system.service.WarehouseScopeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,23 +22,33 @@ import java.util.List;
 public class OutboundTaskController {
 
     private final OutboundService outboundService;
+    private final WarehouseScopeService warehouseScopeService;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('outbound:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<OutboundTaskResponse>> listOutboundTasks(
         @RequestParam(value = "salesOrderId", required = false) Long salesOrderId,
-        @RequestParam(value = "status", required = false) String status
+        @RequestParam(value = "status", required = false) String status,
+        Authentication authentication
     ) {
         log.info("API call: listOutboundTasks - salesOrderId={}, status={}", salesOrderId, status);
         List<OutboundTaskResponse> responses = outboundService.listOutboundTasks(salesOrderId, status);
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(warehouseScopeService.filterAccessible(
+            authentication,
+            responses,
+            response -> java.util.Collections.singletonList(response.getWarehouseId())
+        ));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('outbound:view', 'SUPER_ADMIN')")
-    public ResponseEntity<OutboundTaskResponse> getOutboundTask(@PathVariable("id") Long id) {
+    public ResponseEntity<OutboundTaskResponse> getOutboundTask(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
         log.info("API call: getOutboundTask - id={}", id);
         OutboundTaskResponse response = outboundService.getOutboundTask(id);
+        requireTaskAccess(authentication, response);
         return ResponseEntity.ok(response);
     }
 
@@ -53,6 +64,10 @@ public class OutboundTaskController {
 
         log.info("API call: confirmPicking - taskId={}, actualQty={}, operator={}",
             id, request.getActualQty(), username);
+
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, outboundService.getOutboundTask(id));
+        }
 
         OutboundTaskResponse response = outboundService.confirmPicking(
             id,
@@ -78,6 +93,12 @@ public class OutboundTaskController {
 
         log.info("API call: batchConfirmPicking - taskIds={}, operator={}", taskIds, username);
 
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            taskIds.stream()
+                .map(outboundService::getOutboundTask)
+                .forEach(task -> requireTaskAccess(authentication, task));
+        }
+
         List<OutboundTaskResponse> responses = outboundService.batchConfirmPicking(
             taskIds,
             userId,
@@ -85,5 +106,14 @@ public class OutboundTaskController {
         );
 
         return ResponseEntity.ok(responses);
+    }
+
+    private void requireTaskAccess(Authentication authentication, OutboundTaskResponse task) {
+        warehouseScopeService.requireAccess(
+            authentication,
+            java.util.Collections.singletonList(task.getWarehouseId()),
+            "OUTBOUND_TASK",
+            task.getId()
+        );
     }
 }

@@ -31,6 +31,7 @@ describe('responsive application navigation', () => {
     writeAuthSession({
       availableRoles: ['WAREHOUSE_STAFF'],
       currentRole: 'WAREHOUSE_STAFF',
+      permissionCodes: ['menu:warehouse-mobile'],
       expiresAt: Date.now() + 60_000,
       mustChangePassword: false,
       token: 'test-token',

@@ -90,6 +90,21 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @WithMockUser
+    @DisplayName("BusinessException WAREHOUSE_SCOPE_DENIED -> 403")
+    void testBusinessException_WarehouseScopeDenied_Returns403() throws Exception {
+        when(inventoryService.adjustStock(any())).thenThrow(
+                new BusinessException(ErrorKeys.WAREHOUSE_SCOPE_DENIED, Map.of("resourceId", 99L))
+        );
+
+        mockMvc.perform(post("/api/inventory/adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validAdjustRequestJson()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorKey").value(ErrorKeys.WAREHOUSE_SCOPE_DENIED));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("BusinessException OUTBOUND_TASK_ALREADY_COMPLETED -> 409")
     void testBusinessException_OutboundTaskAlreadyCompleted_Returns409() throws Exception {
         when(inventoryService.adjustStock(any())).thenThrow(

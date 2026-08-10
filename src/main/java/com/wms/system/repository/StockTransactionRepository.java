@@ -96,6 +96,9 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
      */
     List<StockTransaction> findBySourceOrderId(String sourceOrderId);
 
+    /** Tenant-scoped source lookup used by guarded historical-data checks. */
+    List<StockTransaction> findByCompanyIdAndSourceOrderId(Long companyId, String sourceOrderId);
+
     /**
      * ⭐核心方法：查询某商品在指定时间范围内的出库流水（用于计算日均消耗）
      *

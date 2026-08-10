@@ -3,6 +3,7 @@ package com.wms.system.controller;
 import com.wms.system.dto.stocktake.*;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.StocktakeService;
+import com.wms.system.service.WarehouseScopeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ import java.util.List;
 public class StocktakeController {
 
     private final StocktakeService stocktakeService;
+    private final WarehouseScopeService warehouseScopeService;
 
     /**
      * Create stocktake task
@@ -97,7 +99,8 @@ public class StocktakeController {
     @PreAuthorize("hasAnyAuthority('stocktake:view', 'SUPER_ADMIN')")
     public ResponseEntity<List<StocktakeTaskResponse>> listStocktakeTasks(
         @RequestParam(value = "warehouseId", required = false) Long warehouseId,
-        @RequestParam(value = "status", required = false) String status
+        @RequestParam(value = "status", required = false) String status,
+        Authentication authentication
     ) {
         log.info("API调用: listStocktakeTasks - warehouseId: {}, status: {}", warehouseId, status);
 
@@ -105,7 +108,11 @@ public class StocktakeController {
 
         log.info("API响应: listStocktakeTasks - 任务数: {}", responses.size());
 
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(warehouseScopeService.filterAccessible(
+            authentication,
+            responses,
+            response -> java.util.Collections.singletonList(response.getWarehouseId())
+        ));
     }
 
     /**
@@ -120,10 +127,14 @@ public class StocktakeController {
      */
     @GetMapping("/tasks/{id}")
     @PreAuthorize("hasAnyAuthority('stocktake:view', 'SUPER_ADMIN')")
-    public ResponseEntity<StocktakeTaskResponse> getStocktakeTask(@PathVariable("id") Long id) {
+    public ResponseEntity<StocktakeTaskResponse> getStocktakeTask(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
         log.info("API调用: getStocktakeTask - id: {}", id);
 
         StocktakeTaskResponse response = stocktakeService.getStocktakeTask(id);
+        requireTaskAccess(authentication, response);
 
         log.info("API响应: getStocktakeTask - 任务号: {}, 状态: {}",
             response.getTaskNo(), response.getStatus());
@@ -143,9 +154,15 @@ public class StocktakeController {
      */
     @PostMapping("/tasks/{id}/start")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
-    public ResponseEntity<StocktakeTaskResponse> startCounting(@PathVariable("id") Long id) {
+    public ResponseEntity<StocktakeTaskResponse> startCounting(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
         log.info("API调用: startCounting - id: {}", id);
 
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, stocktakeService.getStocktakeTask(id));
+        }
         StocktakeTaskResponse response = stocktakeService.startCounting(id);
 
         log.info("API响应: startCounting - 任务号: {}, 状态: {}",
@@ -166,9 +183,15 @@ public class StocktakeController {
      */
     @GetMapping("/tasks/{id}/items")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
-    public ResponseEntity<List<StocktakeItemResponse>> getStocktakeItems(@PathVariable("id") Long id) {
+    public ResponseEntity<List<StocktakeItemResponse>> getStocktakeItems(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
         log.info("API调用: getStocktakeItems - taskId: {}", id);
 
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, stocktakeService.getStocktakeTask(id));
+        }
         List<StocktakeItemResponse> responses = stocktakeService.getStocktakeItems(id);
 
         log.info("API响应: getStocktakeItems - 明细数: {}", responses.size());
@@ -200,6 +223,9 @@ public class StocktakeController {
     ) {
         Long userId = AuthUserResolver.resolveUserId(authentication);
         String username = AuthUserResolver.resolveUsername(authentication);
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, stocktakeService.getStocktakeTask(taskId));
+        }
         log.info("API调用: submitCount - taskId: {}, itemId: {}, countedQty: {}, 用户: {}",
             taskId, itemId, request.getCountedQty(), username);
 
@@ -229,9 +255,15 @@ public class StocktakeController {
      */
     @PostMapping("/tasks/{id}/finish")
     @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
-    public ResponseEntity<StocktakeTaskResponse> finishCounting(@PathVariable("id") Long id) {
+    public ResponseEntity<StocktakeTaskResponse> finishCounting(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
         log.info("API调用: finishCounting - id: {}", id);
 
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, stocktakeService.getStocktakeTask(id));
+        }
         StocktakeTaskResponse response = stocktakeService.finishCounting(id);
 
         log.info("API响应: finishCounting - 任务号: {}, 状态: {}",
@@ -296,5 +328,14 @@ public class StocktakeController {
             response.getTaskNo(), response.getStatus());
 
         return ResponseEntity.ok(response);
+    }
+
+    private void requireTaskAccess(Authentication authentication, StocktakeTaskResponse task) {
+        warehouseScopeService.requireAccess(
+            authentication,
+            java.util.Collections.singletonList(task.getWarehouseId()),
+            "STOCKTAKE_TASK",
+            task.getId()
+        );
     }
 }

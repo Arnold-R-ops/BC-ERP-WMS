@@ -119,7 +119,12 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      * @param roleIds Set of role IDs
      * @return List of role-permission associations with permission entity
      */
-    @Query("SELECT srp FROM SysRolePermission srp JOIN FETCH srp.permission p WHERE srp.roleId IN :roleIds AND p.status = 'ACTIVE'")
+    @Query("SELECT srp FROM SysRolePermission srp " +
+           "JOIN FETCH srp.permission p " +
+           "JOIN FETCH srp.role r " +
+           "WHERE srp.roleId IN :roleIds " +
+           "AND p.status = 'ACTIVE' " +
+           "AND (r.roleType = 'SYSTEM' OR p.customAssignable = true)")
     List<SysRolePermission> findByRoleIdInWithPermission(@Param("roleIds") Set<Long> roleIds);
 
     /**

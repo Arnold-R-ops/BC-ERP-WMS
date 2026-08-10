@@ -10,8 +10,10 @@ import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.PermissionCacheService;
+import com.wms.system.service.SecurityVersionService;
 import com.wms.system.service.UserManagementService;
 import com.wms.system.service.UserRoleService;
+import com.wms.system.service.UserWarehouseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,8 @@ import java.util.stream.Collectors;
 /**
  * User Management Controller
  *
- * Provides CRUD operations for user management (SUPER_ADMIN only).
+ * Provides CRUD operations for user management to SUPER_ADMIN and the
+ * restricted SECURITY_ADMIN identity.
  *
  * API Endpoints:
  * - GET /api/users: List all users with their assigned roles
@@ -44,8 +47,9 @@ import java.util.stream.Collectors;
  * - POST /api/users/{id}/reset-password: Admin reset to temporary password (P0.5)
  *
  * Security:
- * - All endpoints require SUPER_ADMIN role, except /me/password which is
- *   available to any authenticated user (method-level @PreAuthorize override)
+ * - IAM endpoints require SUPER_ADMIN or SECURITY_ADMIN, except /me/password
+ *   which is available to any authenticated user
+ * - SECURITY_ADMIN cannot grant or modify protected administrator identities
  * - Password is never returned in responses
  * - Prevents deletion of last SUPER_ADMIN (optional protection)
  * - Requires at least one role per user
@@ -64,7 +68,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY_ADMIN')")
 public class UserController {
 
     private final UserRepository userRepository;
@@ -74,6 +78,8 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
     private final PermissionCacheService cacheService;
     private final UserManagementService userManagementService;
+    private final SecurityVersionService securityVersionService;
+    private final UserWarehouseService userWarehouseService;
 
     /**
      * 猸?Get All Users
@@ -116,6 +122,12 @@ public class UserController {
         log.info("Fetched {} users", userDTOs.size());
 
         return ResponseEntity.ok(userDTOs);
+    }
+
+    /** Active warehouses available for WAREHOUSE_STAFF assignment. */
+    @GetMapping("/assignable-warehouses")
+    public ResponseEntity<List<AssignableWarehouseDTO>> getAssignableWarehouses() {
+        return ResponseEntity.ok(userWarehouseService.listAssignableWarehouses());
     }
 
     /**
@@ -176,14 +188,24 @@ public class UserController {
                     );
                 }))
             .peek(role -> {
-                if (!role.isActive()) {
+                if (!role.isAssignableToUsers()) {
                     throw new BusinessException(
-                        ErrorKeys.ROLE_DISABLED,
-                        Map.of("roleId", role.getId(), "roleCode", role.getRoleCode())
+                        ErrorKeys.ROLE_PACKAGE_NOT_ASSIGNABLE_TO_USER,
+                        Map.of(
+                            "roleId", role.getId(),
+                            "roleCode", role.getRoleCode(),
+                            "status", role.getStatus(),
+                            "reviewStatus", role.getReviewStatus()
+                        )
                     );
                 }
             })
             .collect(Collectors.toList());
+        userManagementService.validateRoleAssignment(
+            rolesToAssign,
+            AuthUserResolver.resolveCurrentRole(authentication)
+        );
+        userWarehouseService.validateSelection(rolesToAssign, request.getWarehouseIds());
 
         // 3. BCrypt encode password
         String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -210,6 +232,12 @@ public class UserController {
             adminId = user.getId();
         }
         userRoleService.assignRolesToUser(user.getId(), new HashSet<>(request.getRoleIds()), adminId);
+        userWarehouseService.replaceAssignments(
+            user.getId(),
+            rolesToAssign,
+            request.getWarehouseIds(),
+            adminId
+        );
 
         log.info("Roles assigned to user: userId={}, roleCount={}", user.getId(), request.getRoleIds().size());
 
@@ -265,7 +293,8 @@ public class UserController {
         userManagementService.validateProfileChange(
             id,
             authentication == null ? 0L : resolveOperatorId(authentication),
-            request.getEnabled()
+            request.getEnabled(),
+            AuthUserResolver.resolveCurrentRole(authentication)
         );
 
         // 1. Load user
@@ -283,6 +312,8 @@ public class UserController {
             user.setDisplayName(request.getDisplayName());
         }
 
+        boolean enabledChanged = request.getEnabled() != null
+            && !request.getEnabled().equals(user.getEnabled());
         if (request.getEnabled() != null) {
             user.setEnabled(request.getEnabled());
         }
@@ -318,6 +349,10 @@ public class UserController {
             }
 
             user.setDefaultRoleId(request.getDefaultRoleId());
+        }
+
+        if (enabledChanged) {
+            securityVersionService.bump(user);
         }
 
         // 3. Save updates
@@ -361,7 +396,11 @@ public class UserController {
     ) {
         log.info("Deleting user: userId={}", id);
         Long operatorId = resolveOperatorId(authentication);
-        userManagementService.deleteUser(id, operatorId);
+        userManagementService.deleteUser(
+            id,
+            operatorId,
+            AuthUserResolver.resolveCurrentRole(authentication)
+        );
         return ResponseEntity.noContent().build();
     }
 
@@ -421,10 +460,15 @@ public class UserController {
                     );
                 }))
             .peek(role -> {
-                if (!role.isActive()) {
+                if (!role.isAssignableToUsers()) {
                     throw new BusinessException(
-                        ErrorKeys.ROLE_DISABLED,
-                        Map.of("roleId", role.getId(), "roleCode", role.getRoleCode())
+                        ErrorKeys.ROLE_PACKAGE_NOT_ASSIGNABLE_TO_USER,
+                        Map.of(
+                            "roleId", role.getId(),
+                            "roleCode", role.getRoleCode(),
+                            "status", role.getStatus(),
+                            "reviewStatus", role.getReviewStatus()
+                        )
                     );
                 }
             })
@@ -447,14 +491,22 @@ public class UserController {
         userManagementService.validateRoleReplacement(
             id,
             adminId,
-            new HashSet<>(request.getRoleIds())
+            new HashSet<>(request.getRoleIds()),
+            AuthUserResolver.resolveCurrentRole(authentication)
         );
+        userWarehouseService.validateSelection(rolesToAssign, request.getWarehouseIds());
         if (adminId == null || adminId == 0L) {
             adminId = id;
         }
 
         // 4. Assign roles (replaces existing assignments)
         userRoleService.assignRolesToUser(id, new HashSet<>(request.getRoleIds()), adminId);
+        userWarehouseService.replaceAssignments(
+            id,
+            rolesToAssign,
+            request.getWarehouseIds(),
+            adminId
+        );
 
         log.info("Roles assigned successfully: userId={}, roleCount={}", id, request.getRoleIds().size());
 
@@ -569,11 +621,15 @@ public class UserController {
         userManagementService.validateRoleReplacement(
             id,
             authentication == null ? 0L : resolveOperatorId(authentication),
-            remainingRoleIds
+            remainingRoleIds,
+            AuthUserResolver.resolveCurrentRole(authentication)
         );
 
         // 5. Remove role
         userRoleService.removeRoleFromUser(id, roleId);
+        if (UserWarehouseService.WAREHOUSE_STAFF.equals(role.getRoleCode())) {
+            userWarehouseService.clearAssignments(id);
+        }
 
         log.info("Role removed successfully: userId={}, roleId={}", id, roleId);
 
@@ -603,7 +659,7 @@ public class UserController {
      *
      * Allows the authenticated user to change their own password.
      * Available to ANY authenticated user (not just SUPER_ADMIN): the
-     * method-level @PreAuthorize overrides the class-level SUPER_ADMIN rule.
+     * method-level @PreAuthorize overrides the class-level IAM administrator rule.
      *
      * API Endpoint:
      * PUT /api/users/me/password
@@ -650,7 +706,7 @@ public class UserController {
     }
 
     /**
-     * ⭐ Reset User Password (P0.5, SUPER_ADMIN only)
+     * ⭐ Reset User Password (P0.5, IAM administrators; protected targets restricted)
      *
      * Resets the target user's password to a generated temporary password and
      * flags the account must_change_password: until the user changes it via
@@ -685,7 +741,11 @@ public class UserController {
     ) {
         Long operatorId = resolveOperatorId(authentication);
         log.info("Password reset requested: targetUserId={}, operatorId={}", id, operatorId);
-        return ResponseEntity.ok(userManagementService.resetPassword(id, operatorId));
+        return ResponseEntity.ok(userManagementService.resetPassword(
+            id,
+            operatorId,
+            AuthUserResolver.resolveCurrentRole(authentication)
+        ));
     }
 
     /**
@@ -726,6 +786,9 @@ public class UserController {
             .map(SysRole::getRoleName)
             .collect(Collectors.toList());
 
+        List<AssignableWarehouseDTO> assignedWarehouses =
+            userWarehouseService.getAssignedWarehouses(user.getId());
+
         // Get default role code
         String defaultRoleCode = null;
         if (user.getDefaultRoleId() != null) {
@@ -742,6 +805,9 @@ public class UserController {
             .roleIds(roleIds)
             .roleCodes(roleCodes)
             .roleNames(roleNames)
+            .warehouseIds(assignedWarehouses.stream().map(AssignableWarehouseDTO::getId).toList())
+            .warehouseCodes(assignedWarehouses.stream().map(AssignableWarehouseDTO::getCode).toList())
+            .warehouseNames(assignedWarehouses.stream().map(AssignableWarehouseDTO::getName).toList())
             .defaultRoleCode(defaultRoleCode)
             .createdAt(user.getCreatedAt())
             .updatedAt(user.getUpdatedAt())

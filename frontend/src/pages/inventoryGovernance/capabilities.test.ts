@@ -3,7 +3,7 @@ import { getCorrectionCapabilities, getStocktakeCapabilities } from './capabilit
 
 describe('inventory governance role boundaries', () => {
   it('lets warehouse staff count but not create or review stocktakes', () => {
-    expect(getStocktakeCapabilities('WAREHOUSE_STAFF')).toEqual({
+    expect(getStocktakeCapabilities('WAREHOUSE_STAFF', ['stocktake:count'])).toEqual({
       canCreate: false,
       canCount: true,
       canReview: false,
@@ -11,18 +11,22 @@ describe('inventory governance role boundaries', () => {
   });
 
   it('separates warehouse adjustment work from manager approval', () => {
-    expect(getCorrectionCapabilities('WAREHOUSE_ADMIN')).toEqual({
+    expect(getCorrectionCapabilities('WAREHOUSE_ADMIN', ['inventory:adjust'])).toEqual({
       canAdjust: true,
       canApprove: false,
+      canReject: false,
+      canReview: false,
     });
-    expect(getCorrectionCapabilities('GENERAL_MANAGER')).toEqual({
+    expect(getCorrectionCapabilities('GENERAL_MANAGER', ['inventory:correction:review', 'inventory:correction:approve', 'inventory:correction:reject'])).toEqual({
       canAdjust: false,
       canApprove: true,
+      canReject: true,
+      canReview: true,
     });
   });
 
   it('lets managers review but not enter physical counts', () => {
-    expect(getStocktakeCapabilities('GENERAL_MANAGER')).toEqual({
+    expect(getStocktakeCapabilities('GENERAL_MANAGER', ['stocktake:create', 'stocktake:review'])).toEqual({
       canCreate: true,
       canCount: false,
       canReview: true,
@@ -38,6 +42,8 @@ describe('inventory governance role boundaries', () => {
     expect(getCorrectionCapabilities('CUSTOM_ROLE')).toEqual({
       canAdjust: false,
       canApprove: false,
+      canReject: false,
+      canReview: false,
     });
   });
 });

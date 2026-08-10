@@ -67,10 +67,16 @@ public class OutboundTaskResponse {
      */
     private String locationCode;
 
+    /** Warehouse containing the assigned location. */
+    private Long warehouseId;
+
     /**
      * 产品ID
      */
     private Long productSkuId;
+
+    /** SKU business code used by mobile picking verification. */
+    private String productSkuCode;
 
     /**
      * 产品名称

@@ -164,6 +164,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/roles/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPurchaseOrderById"];
+        put: operations["updateOrderingPurchaseOrder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders/{id}/rollback": {
         parameters: {
             query?: never;
@@ -836,6 +868,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/roles/{id}/submit-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deactivate_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}/copies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["copyRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activate_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports/refresh": {
         parameters: {
             query?: never;
@@ -910,6 +1038,54 @@ export interface paths {
         get: operations["listProductSkus"];
         put?: never;
         post: operations["createProductSku"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/permission-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/permission-requests/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/permission-requests/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1035,9 +1211,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1115,9 +1291,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1227,9 +1403,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1261,7 +1437,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["review"];
+        post: operations["review_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1339,9 +1515,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1390,6 +1566,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/historical-test-data/sales-orders/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["archive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1452,6 +1644,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getAllActiveWarehouses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/assignable-warehouses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAssignableWarehouses"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1572,6 +1780,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/roles/{id}/governance-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}/copy-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["previewCopy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports/sales/overview": {
         parameters: {
             query?: never;
@@ -1636,14 +1876,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-orders/{id}": {
+    "/api/purchase-orders/template": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPurchaseOrderById"];
+        get: operations["downloadImportTemplate"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1724,6 +1964,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPermissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/permission-requests/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["history_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2091,7 +2347,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2308,6 +2564,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/historical-test-data/sales-orders/{id}/archive-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/{id}/roles/{roleId}": {
         parameters: {
             query?: never;
@@ -2368,6 +2640,9 @@ export interface components {
             roleIds?: number[];
             roleCodes?: string[];
             roleNames?: string[];
+            warehouseIds?: number[];
+            warehouseCodes?: string[];
+            warehouseNames?: string[];
             defaultRoleCode?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -2531,6 +2806,84 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        RolePackageDraftRequest: {
+            roleName: string;
+            description: string;
+            permissionIds: number[];
+            reason?: string;
+        };
+        RoleDTO: {
+            /** Format: int64 */
+            id?: number;
+            roleCode?: string;
+            roleName?: string;
+            description?: string;
+            roleType?: string;
+            systemCategory?: string;
+            importAllowed?: boolean;
+            approvalTemplateCode?: string;
+            reviewStatus?: string;
+            /** Format: int64 */
+            reviewSubmittedBy?: number;
+            reviewSubmittedByUsername?: string;
+            /** Format: date-time */
+            reviewSubmittedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedByUsername?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+            status?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            parentRoleIds?: number[];
+            permissionIds?: number[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            active?: boolean;
+            assignableToUsers?: boolean;
+            systemRole?: boolean;
+            privilegedRole?: boolean;
+        };
+        RoleGovernanceResult: {
+            role?: components["schemas"]["RoleDTO"];
+            action?: string;
+            /** Format: int64 */
+            auditId?: number;
+            /** Format: int32 */
+            permissionCount?: number;
+            /** Format: int32 */
+            highRiskCount?: number;
+            snapshotFingerprint?: string;
+        };
+        UpdatePurchaseOrderItemRequest: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            productSkuId: number;
+            /** Format: int32 */
+            orderedQuantity: number;
+            unitCost?: number;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: date */
+            productionDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        UpdatePurchaseOrderRequest: {
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            supplierId: number;
+            items: components["schemas"]["UpdatePurchaseOrderItemRequest"][];
+            /** Format: date */
+            expectedDate?: string;
+            remark?: string;
+        };
         InventoryBatchResponse: {
             /** Format: int64 */
             id?: number;
@@ -2563,11 +2916,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            expiringSoon?: boolean;
             exhausted?: boolean;
+            expiringSoon?: boolean;
+            expired?: boolean;
             /** Format: double */
             usageRate?: number;
-            expired?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
         };
@@ -2601,6 +2954,8 @@ export interface components {
         PurchaseOrderResponse: {
             /** Format: int64 */
             id?: number;
+            /** Format: int64 */
+            version?: number;
             poNumber?: string;
             supplier?: string;
             /** Format: int64 */
@@ -2924,6 +3279,7 @@ export interface components {
             password: string;
             displayName?: string;
             roleIds: number[];
+            warehouseIds?: number[];
             enabled?: boolean;
             remark?: string;
         };
@@ -2931,6 +3287,7 @@ export interface components {
             roleIds: number[];
             /** Format: int64 */
             defaultRoleId?: number;
+            warehouseIds?: number[];
         };
         ResetPasswordResponse: {
             /** Format: int64 */
@@ -3064,6 +3421,45 @@ export interface components {
             daysUntilExpiry?: number;
             unitPrice?: number;
         };
+        RoleReviewSubmitRequest: {
+            reason?: string;
+        };
+        RoleReviewRequest: {
+            approved: boolean;
+            comment?: string;
+        };
+        RoleRuntimeStatusRequest: {
+            reason: string;
+            confirmationCode: string;
+        };
+        RoleCopyRequest: {
+            roleCode: string;
+            roleName: string;
+            description: string;
+            snapshotFingerprint: string;
+            riskAcknowledged?: boolean;
+            confirmationCode?: string;
+            operationReason?: string;
+        };
+        RoleCopyResult: {
+            role?: components["schemas"]["RoleDTO"];
+            /** Format: int64 */
+            sourceRoleId?: number;
+            sourceRoleCode?: string;
+            /** Format: int32 */
+            permissionCount?: number;
+            /** Format: int32 */
+            highRiskCount?: number;
+            snapshotFingerprint?: string;
+            /** Format: int64 */
+            auditId?: number;
+        };
+        RolePackageCreateRequest: {
+            roleCode: string;
+            roleName: string;
+            description: string;
+            permissionIds: number[];
+        };
         RefreshResult: {
             /** Format: int32 */
             customerRows?: number;
@@ -3110,6 +3506,54 @@ export interface components {
             brand?: string;
             description?: string;
             enabled?: boolean;
+        };
+        PermissionRequestCreateRequest: {
+            /** Format: int64 */
+            targetUserId: number;
+            /** Format: int64 */
+            requestedRoleId: number;
+            warehouseIds?: number[];
+            requestReason?: string;
+        };
+        AssignableWarehouseDTO: {
+            /** Format: int64 */
+            id?: number;
+            code?: string;
+            name?: string;
+        };
+        PermissionRequestDTO: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            targetUserId?: number;
+            targetUsername?: string;
+            /** Format: int64 */
+            requestedRoleId?: number;
+            requestedRoleCode?: string;
+            requestedRoleName?: string;
+            warehouses?: components["schemas"]["AssignableWarehouseDTO"][];
+            requestReason?: string;
+            status?: string;
+            /** Format: int32 */
+            highRiskPermissionCount?: number;
+            submittedByUsername?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            reviewedByUsername?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+            revokedByUsername?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            revocationComment?: string;
+        };
+        PermissionRequestRevokeRequest: {
+            comment: string;
+        };
+        PermissionRequestReviewRequest: {
+            approved: boolean;
+            comment?: string;
         };
         DomainOutbox: {
             /** Format: int64 */
@@ -3158,9 +3602,13 @@ export interface components {
             locationId?: number;
             locationCode?: string;
             /** Format: int64 */
+            warehouseId?: number;
+            /** Format: int64 */
             productSkuId?: number;
+            productSkuCode?: string;
             productName?: string;
             productBarcode?: string;
+            batchTrackingMode?: string;
             /** Format: int32 */
             planQty?: number;
             /** Format: int32 */
@@ -3244,8 +3692,8 @@ export interface components {
             operatorName?: string;
             remark?: string;
             adjustment?: boolean;
-            outbound?: boolean;
             inbound?: boolean;
+            outbound?: boolean;
         };
         StockTransactionResponse: {
             /** Format: int64 */
@@ -3570,6 +4018,7 @@ export interface components {
             token?: string;
             tokenType?: string;
             currentRole?: string;
+            permissionCodes?: string[];
             message?: string;
             /** Format: int64 */
             expiresIn?: number;
@@ -3584,9 +4033,29 @@ export interface components {
             username?: string;
             currentRole?: string;
             availableRoles?: string[];
+            permissionCodes?: string[];
             /** Format: int64 */
             expiresIn?: number;
             mustChangePassword?: boolean;
+        };
+        HistoricalTestDataArchiveRequest: {
+            reason: string;
+            confirmationOrderNo: string;
+            expectedFingerprint: string;
+        };
+        HistoricalTestDataArchiveResult: {
+            /** Format: int64 */
+            salesOrderId?: number;
+            orderNo?: string;
+            orderStatus?: string;
+            archivedTaskIds?: number[];
+            /** Format: int64 */
+            auditId?: number;
+            /** Format: date-time */
+            archivedAt?: string;
+            inventoryChanged?: boolean;
+            reservationsChanged?: boolean;
+            stockTransactionsCreated?: boolean;
         };
         StocktakeItemDetailResponse: {
             /** Format: int64 */
@@ -3617,25 +4086,6 @@ export interface components {
             /** Format: int32 */
             differenceQty?: number;
         };
-        RoleDTO: {
-            /** Format: int64 */
-            id?: number;
-            roleCode?: string;
-            roleName?: string;
-            description?: string;
-            roleType?: string;
-            status?: string;
-            /** Format: int32 */
-            sortOrder?: number;
-            parentRoleIds?: number[];
-            permissionIds?: number[];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            active?: boolean;
-            systemRole?: boolean;
-        };
         PermissionDTO: {
             /** Format: int64 */
             id?: number;
@@ -3649,14 +4099,62 @@ export interface components {
             menuUrl?: string;
             menuIcon?: string;
             dataScope?: string;
+            riskLevel?: string;
+            customAssignable?: boolean;
             description?: string;
             status?: string;
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
-            buttonPermission?: boolean;
             menuPermission?: boolean;
             apiPermission?: boolean;
+            buttonPermission?: boolean;
+        };
+        RoleGovernanceAuditDTO: {
+            /** Format: int64 */
+            id?: number;
+            action?: string;
+            /** Format: int64 */
+            operatorId?: number;
+            operatorUsername?: string;
+            fromReviewStatus?: string;
+            toReviewStatus?: string;
+            fromRuntimeStatus?: string;
+            toRuntimeStatus?: string;
+            /** Format: int32 */
+            permissionCount?: number;
+            /** Format: int32 */
+            highRiskCount?: number;
+            permissionCodes?: string[];
+            addedPermissionCodes?: string[];
+            removedPermissionCodes?: string[];
+            reason?: string;
+            snapshotFingerprint?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        RoleCopyPreviewResponse: {
+            /** Format: int64 */
+            sourceRoleId?: number;
+            sourceRoleCode?: string;
+            sourceRoleName?: string;
+            sourceRoleType?: string;
+            sourceSystemCategory?: string;
+            /** Format: int32 */
+            permissionCount?: number;
+            /** Format: int32 */
+            normalRiskCount?: number;
+            /** Format: int32 */
+            highRiskCount?: number;
+            /** Format: int32 */
+            criticalRiskCount?: number;
+            permissions?: components["schemas"]["PermissionDTO"][];
+            highRiskPermissions?: components["schemas"]["PermissionDTO"][];
+            snapshotFingerprint?: string;
+            copyAllowed?: boolean;
+            blockers?: string[];
+            /** Format: date-time */
+            generatedAt?: string;
         };
         SalesOverviewResponse: {
             /** Format: date */
@@ -3739,9 +4237,9 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PageableObject: {
@@ -3750,9 +4248,9 @@ export interface components {
             sort?: components["schemas"]["SortObject"][];
             paged?: boolean;
             /** Format: int32 */
-            pageSize?: number;
-            /** Format: int32 */
             pageNumber?: number;
+            /** Format: int32 */
+            pageSize?: number;
             unpaged?: boolean;
         };
         SortObject: {
@@ -3834,6 +4332,41 @@ export interface components {
             estimatedCost?: number;
             remark?: string;
         };
+        PermissionRequestPageResponse: {
+            items?: components["schemas"]["PermissionRequestDTO"][];
+            /** Format: int64 */
+            total?: number;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+        };
+        PermissionRequestAuditDTO: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            permissionRequestId?: number;
+            action?: string;
+            /** Format: int64 */
+            operatorId?: number;
+            operatorUsername?: string;
+            operatorRoleCode?: string;
+            /** Format: int64 */
+            targetUserId?: number;
+            targetUsername?: string;
+            /** Format: int64 */
+            requestedRoleId?: number;
+            requestedRoleCode?: string;
+            fromStatus?: string;
+            toStatus?: string;
+            warehouseIds?: string;
+            /** Format: int32 */
+            highRiskPermissionCount?: number;
+            permissionCodes?: string;
+            reason?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         InventorySummaryDto: {
             /** Format: int64 */
             productSkuId?: number;
@@ -3865,9 +4398,9 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SkuInfoDto: {
@@ -3931,9 +4464,9 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         RawEventSummary: {
@@ -3997,6 +4530,26 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        HistoricalTestDataArchivePreview: {
+            /** Format: int64 */
+            salesOrderId?: number;
+            orderNo?: string;
+            orderStatus?: string;
+            eligible?: boolean;
+            blockers?: string[];
+            taskIds?: number[];
+            /** Format: int32 */
+            reservationCount?: number;
+            /** Format: int32 */
+            stockTransactionCount?: number;
+            /** Format: int32 */
+            shipmentCount?: number;
+            /** Format: int32 */
+            activeShipmentCount?: number;
+            /** Format: int32 */
+            voidedShipmentCount?: number;
+            snapshotFingerprint?: string;
         };
     };
     responses: never;
@@ -4350,6 +4903,80 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+        };
+    };
+    updateDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolePackageDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceResult"];
+                };
+            };
+        };
+    };
+    getPurchaseOrderById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderResponse"];
+                };
+            };
+        };
+    };
+    updateOrderingPurchaseOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePurchaseOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderResponse"];
                 };
             };
         };
@@ -5709,6 +6336,160 @@ export interface operations {
             };
         };
     };
+    submitReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleReviewSubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceResult"];
+                };
+            };
+        };
+    };
+    review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceResult"];
+                };
+            };
+        };
+    };
+    deactivate_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRuntimeStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceResult"];
+                };
+            };
+        };
+    };
+    copyRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleCopyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleCopyResult"];
+                };
+            };
+        };
+    };
+    activate_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRuntimeStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceResult"];
+                };
+            };
+        };
+    };
+    createDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolePackageCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceResult"];
+                };
+            };
+        };
+    };
     refreshReportFacts: {
         parameters: {
             query?: never;
@@ -5901,6 +6682,108 @@ export interface operations {
             };
         };
     };
+    list_3: {
+        parameters: {
+            query?: {
+                status?: string;
+                targetUserId?: number;
+                requestedRoleId?: number;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionRequestPageResponse"];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionRequestCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionRequestDTO"];
+                };
+            };
+        };
+    };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionRequestRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionRequestDTO"];
+                };
+            };
+        };
+    };
+    review_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionRequestReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionRequestDTO"];
+                };
+            };
+        };
+    };
     markPublished: {
         parameters: {
             query?: never;
@@ -6072,7 +6955,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 channel?: string;
@@ -6094,7 +6977,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -6214,7 +7097,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6234,7 +7117,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -6410,7 +7293,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -6432,7 +7315,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6482,7 +7365,7 @@ export interface operations {
             };
         };
     };
-    review: {
+    review_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6629,7 +7512,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -6651,7 +7534,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -6745,6 +7628,32 @@ export interface operations {
             };
         };
     };
+    archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoricalTestDataArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HistoricalTestDataArchiveResult"];
+                };
+            };
+        };
+    };
     healthCheck: {
         parameters: {
             query?: never;
@@ -6827,6 +7736,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WarehouseResponse"][];
+                };
+            };
+        };
+    };
+    getAssignableWarehouses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssignableWarehouseDTO"][];
                 };
             };
         };
@@ -6983,6 +7912,50 @@ export interface operations {
             };
         };
     };
+    history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleGovernanceAuditDTO"][];
+                };
+            };
+        };
+    };
+    previewCopy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleCopyPreviewResponse"];
+                };
+            };
+        };
+    };
     getSalesOverview: {
         parameters: {
             query: {
@@ -7081,13 +8054,11 @@ export interface operations {
             };
         };
     };
-    getPurchaseOrderById: {
+    downloadImportTemplate: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -7098,7 +8069,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PurchaseOrderResponse"];
+                    "*/*": string[];
                 };
             };
         };
@@ -7210,6 +8181,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PermissionDTO"][];
+                };
+            };
+        };
+    };
+    history_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionRequestAuditDTO"][];
                 };
             };
         };
@@ -7697,7 +8690,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: {
                 channel?: string;
@@ -7994,6 +8987,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HistoricalTestDataArchivePreview"];
                 };
             };
         };

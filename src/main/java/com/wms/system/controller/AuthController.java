@@ -11,6 +11,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.JwtUtil;
+import com.wms.system.service.DynamicPermissionService;
 import com.wms.system.service.UserRoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +23,14 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -82,6 +85,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final SysRoleRepository roleRepository;
     private final UserRoleService userRoleService;
+    private final DynamicPermissionService dynamicPermissionService;
 
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
@@ -174,7 +178,8 @@ public class AuthController {
             String token = jwtUtil.generateTokenWithRoles(
                 user.getUsername(),
                 currentRole.getRoleCode(),
-                availableRoles
+                availableRoles,
+                user.getSecurityVersion()
             );
 
             log.info("JWT token generated: username={}, currentRole={}, availableRoles={}, tokenLength={}",
@@ -198,6 +203,8 @@ public class AuthController {
                 .username(user.getUsername())
                 .currentRole(currentRole.getRoleCode())
                 .availableRoles(availableRoles)
+                .permissionCodes(resolvePermissionCodes(
+                    user.getId(), currentRole.getRoleCode(), user.getSecurityVersion()))
                 .expiresIn(jwtExpiration)
                 .mustChangePassword(Boolean.TRUE.equals(user.getMustChangePassword()))
                 .build();
@@ -327,8 +334,8 @@ public class AuthController {
      * - 403: ROLE_DISABLED - Target role is inactive
      *
      * Security:
-     * - Old token remains valid until expiration (no revocation mechanism)
-     * - Client should immediately replace old token with new one
+     * - Role switching advances security_version and invalidates the old token
+     * - Client should immediately replace the old token with the returned token
      * - User's default_role_id is updated for future logins
      *
      * @param request Switch role request containing target role code
@@ -337,6 +344,7 @@ public class AuthController {
      * @throws BusinessException if role switch fails
      */
     @PostMapping("/switch-role")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<SwitchRoleResponse> switchRole(
         @Valid @RequestBody SwitchRoleRequest request,
         Authentication authentication
@@ -413,28 +421,35 @@ public class AuthController {
                 .map(SysRole::getRoleCode)
                 .collect(Collectors.toList());
 
-            // 6. Generate new JWT token with updated current_role
+            // 6. Persist the new default role and revoke the previous role token.
+            user.setDefaultRoleId(targetRole.getId());
+            long nextSecurityVersion = (user.getSecurityVersion() == null
+                    ? 0L
+                    : user.getSecurityVersion()) + 1L;
+            user.setSecurityVersion(nextSecurityVersion);
+            userRepository.save(user);
+
+            log.debug("Updated role context: username={}, defaultRoleId={}, securityVersion={}",
+                username, targetRole.getId(), nextSecurityVersion);
+
+            // 7. Generate a new token bound to the advanced security version.
             String newToken = jwtUtil.generateTokenWithRoles(
                 username,
                 targetRole.getRoleCode(),
-                availableRoles
+                availableRoles,
+                nextSecurityVersion
             );
 
             log.info("JWT token generated for role switch: username={}, newRole={}, tokenLength={}",
                 username, targetRole.getRoleCode(), newToken.length());
-
-            // 7. Update user's default_role_id
-            user.setDefaultRoleId(targetRole.getId());
-            userRepository.save(user);
-
-            log.debug("Updated user default_role_id: username={}, defaultRoleId={}",
-                username, targetRole.getId());
 
             // 8. Build response
             SwitchRoleResponse response = SwitchRoleResponse.builder()
                 .token(newToken)
                 .tokenType("Bearer")
                 .currentRole(targetRole.getRoleCode())
+                .permissionCodes(resolvePermissionCodes(
+                    user.getId(), targetRole.getRoleCode(), nextSecurityVersion))
                 .message(String.format("Role switched successfully to %s (%s)",
                     targetRole.getRoleCode(), targetRole.getRoleName()))
                 .expiresIn(jwtExpiration)
@@ -461,6 +476,16 @@ public class AuthController {
                 )
             );
         }
+    }
+
+    private List<String> resolvePermissionCodes(Long userId, String roleCode, Long securityVersion) {
+        Set<String> permissionCodes = dynamicPermissionService
+            .getUserPermissionsForRole(userId, roleCode, securityVersion)
+            .getPermissionCodes();
+        if (permissionCodes == null || permissionCodes.isEmpty()) {
+            return List.of();
+        }
+        return permissionCodes.stream().sorted().toList();
     }
 
     /**

@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Popconfirm, Switch, Tooltip } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import { paginateArray } from '../../api/pagination';
 import {
@@ -24,9 +26,13 @@ export function SupplierPage(): JSX.Element {
   const actionRef = useRef<ActionType>();
   const [formOpen, setFormOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier>();
+  const { session } = useAuth();
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
+  const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'supplier:create');
+  const canEdit = hasPermission(session?.currentRole, session?.permissionCodes, 'supplier:update');
+  const canDelete = hasPermission(session?.currentRole, session?.permissionCodes, 'supplier:delete');
 
   const saveMutation = useMutation({
     mutationFn: ({ id, values }: { id?: number; values: SupplierFormValues }) => {
@@ -76,19 +82,19 @@ export function SupplierPage(): JSX.Element {
     { title: t('suppliers.fields.address'), dataIndex: 'address', width: 260, search: false, ellipsis: true },
     {
       title: t('suppliers.fields.active'), dataIndex: 'isActive', width: 110, search: false,
-      render: (_, row) => <Switch checked={row.isActive === true} checkedChildren={t('common.enabled')} loading={activeMutation.isPending} onChange={(checked) => void toggleActive(row, checked)} unCheckedChildren={t('common.disabled')} />,
+      render: (_, row) => <Switch checked={row.isActive === true} checkedChildren={t('common.enabled')} disabled={!canEdit} loading={activeMutation.isPending} onChange={(checked) => void toggleActive(row, checked)} unCheckedChildren={t('common.disabled')} />,
     },
     { title: t('common.updatedAt'), dataIndex: 'updatedAt', width: 180, search: false, renderText: (value) => formatDateTime(value as string | undefined, i18n.language) },
     {
-      title: t('common.actions'), valueType: 'option', width: 110, fixed: 'right',
+      title: t('common.actions'), valueType: 'option', width: canEdit || canDelete ? 110 : 0, fixed: 'right', hideInTable: !canEdit && !canDelete,
       render: (_, row) => [
-        <Tooltip key="edit" title={t('common.edit')}><Button aria-label={t('common.edit')} icon={<EditOutlined />} onClick={() => { setEditingSupplier(row); setFormOpen(true); }} size="small" type="text" /></Tooltip>,
-        <Popconfirm disabled={row.isActive === true} key="delete" onConfirm={() => void remove(row)} title={t('suppliers.confirmDelete')}>
+        canEdit ? <Tooltip key="edit" title={t('common.edit')}><Button aria-label={t('common.edit')} icon={<EditOutlined />} onClick={() => { setEditingSupplier(row); setFormOpen(true); }} size="small" type="text" /></Tooltip> : null,
+        canDelete ? <Popconfirm disabled={row.isActive === true} key="delete" onConfirm={() => void remove(row)} title={t('suppliers.confirmDelete')}>
           <Tooltip title={row.isActive ? t('suppliers.deactivateBeforeDelete') : t('common.delete')}><Button aria-label={t('common.delete')} danger disabled={row.isActive === true} icon={<DeleteOutlined />} loading={deleteMutation.isPending} size="small" type="text" /></Tooltip>
-        </Popconfirm>,
-      ],
+        </Popconfirm> : null,
+      ].filter(Boolean),
     },
-  ], [activeMutation.isPending, deleteMutation.isPending, i18n.language, t]);
+  ], [activeMutation.isPending, canDelete, canEdit, deleteMutation.isPending, i18n.language, t]);
 
   return (
     <section className="data-page">
@@ -109,7 +115,7 @@ export function SupplierPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1580 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => [<Button icon={<PlusOutlined />} key="create" onClick={() => { setEditingSupplier(undefined); setFormOpen(true); }} type="primary">{t('suppliers.actions.create')}</Button>]}
+        toolBarRender={() => canCreate ? [<Button icon={<PlusOutlined />} key="create" onClick={() => { setEditingSupplier(undefined); setFormOpen(true); }} type="primary">{t('suppliers.actions.create')}</Button>] : []}
       />
       <SupplierFormModal loading={saveMutation.isPending} onClose={() => { setFormOpen(false); setEditingSupplier(undefined); }} onSubmit={save} open={formOpen} supplier={editingSupplier} />
     </section>

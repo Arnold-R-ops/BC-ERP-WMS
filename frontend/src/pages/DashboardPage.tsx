@@ -28,7 +28,7 @@ import {
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { canAccessModule } from '../access';
+import { canAccessModule, hasPermission } from '../access';
 import {
   getUrgentReorderSuggestions,
   URGENT_REORDER_QUERY_KEY,
@@ -108,11 +108,12 @@ export function DashboardPage(): JSX.Element {
   const [approvalOrder, setApprovalOrder] = useState<SalesOrder>();
 
   const role = session?.currentRole ?? '';
-  const canViewSales = Boolean(session && canAccessModule(role, 'sales'));
-  const canViewIntegrations = Boolean(session && canAccessModule(role, 'integrations'));
-  const canViewInventory = Boolean(session && canAccessModule(role, 'inventory'));
-  const canViewWarehouseMobile = Boolean(session && canAccessModule(role, 'warehouseMobile'));
-  const canApproveSales = role === 'SUPER_ADMIN' || role === 'GENERAL_MANAGER';
+  const permissionCodes = session?.permissionCodes;
+  const canViewSales = Boolean(session && canAccessModule(role, 'sales', permissionCodes));
+  const canViewIntegrations = Boolean(session && canAccessModule(role, 'integrations', permissionCodes));
+  const canViewInventory = Boolean(session && canAccessModule(role, 'inventory', permissionCodes));
+  const canViewWarehouseMobile = Boolean(session && canAccessModule(role, 'warehouseMobile', permissionCodes));
+  const canApproveSales = hasPermission(role, permissionCodes, 'sales:approve');
 
   const pendingSalesQuery = useQuery({
     enabled: canViewSales,

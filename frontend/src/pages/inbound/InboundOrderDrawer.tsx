@@ -8,6 +8,10 @@ import { OrderStatusTag } from '../../components/OrderStatusTag';
 import { difference, formatDate, formatDateTime, formatMoney } from '../workflowUtils';
 
 interface InboundOrderDrawerProps {
+  canApprove: boolean;
+  canConfirm: boolean;
+  canReceive: boolean;
+  canReject: boolean;
   orderId?: number;
   onApprove: (order: InboundOrder) => void;
   onClose: () => void;
@@ -16,7 +20,7 @@ interface InboundOrderDrawerProps {
   onReject: (order: InboundOrder) => void;
 }
 
-export function InboundOrderDrawer({ orderId, onApprove, onClose, onConfirmOrder, onReceive, onReject }: InboundOrderDrawerProps): JSX.Element {
+export function InboundOrderDrawer({ canApprove, canConfirm, canReceive, canReject, orderId, onApprove, onClose, onConfirmOrder, onReceive, onReject }: InboundOrderDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
   const orderQuery = useQuery({ queryKey: ['inbound-order', orderId], queryFn: () => getInboundOrder(orderId as number), enabled: orderId !== undefined });
   const order = orderQuery.data;
@@ -49,10 +53,10 @@ export function InboundOrderDrawer({ orderId, onApprove, onClose, onConfirmOrder
       destroyOnHidden
       extra={order ? (
         <Space wrap>
-          {order.status === 'PENDING_APPROVAL' && <Button icon={<CheckOutlined />} onClick={() => onApprove(order)} type="primary">{t('inbound.actions.approve')}</Button>}
-          {order.status === 'PENDING_APPROVAL' && <Button danger icon={<CloseOutlined />} onClick={() => onReject(order)}>{t('inbound.actions.reject')}</Button>}
-          {order.status === 'APPROVED_PLAN' && <Button icon={<CheckOutlined />} onClick={() => onConfirmOrder(order)} type="primary">{t('inbound.actions.confirmOrder')}</Button>}
-          {order.status === 'AWAITING_RECEIVAL' && <Button icon={<InboxOutlined />} onClick={() => onReceive(order)} type="primary">{t('inbound.actions.receive')}</Button>}
+          {canApprove && order.status === 'PENDING_APPROVAL' && <Button icon={<CheckOutlined />} onClick={() => onApprove(order)} type="primary">{t('inbound.actions.approve')}</Button>}
+          {canReject && order.status === 'PENDING_APPROVAL' && <Button danger icon={<CloseOutlined />} onClick={() => onReject(order)}>{t('inbound.actions.reject')}</Button>}
+          {canConfirm && order.status === 'APPROVED_PLAN' && <Button icon={<CheckOutlined />} onClick={() => onConfirmOrder(order)} type="primary">{t('inbound.actions.confirmOrder')}</Button>}
+          {canReceive && order.status === 'AWAITING_RECEIVAL' && <Button icon={<InboxOutlined />} onClick={() => onReceive(order)} type="primary">{t('inbound.actions.receive')}</Button>}
         </Space>
       ) : null}
       loading={orderQuery.isLoading}

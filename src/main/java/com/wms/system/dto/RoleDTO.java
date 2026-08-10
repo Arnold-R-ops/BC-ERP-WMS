@@ -55,6 +55,30 @@ public class RoleDTO {
     private String roleType;
 
     /**
+     * System role governance category (BUSINESS_TEMPLATE, PRIVILEGED, or null for custom roles).
+     */
+    private String systemCategory;
+
+    /**
+     * Whether the role is currently approved as a copy/import source.
+     */
+    private Boolean importAllowed;
+
+    /** Bound approval template for custom permission packages. */
+    private String approvalTemplateCode;
+
+    /** Governance state: DRAFT, PENDING_REVIEW, or APPROVED. */
+    private String reviewStatus;
+
+    private Long reviewSubmittedBy;
+    private String reviewSubmittedByUsername;
+    private LocalDateTime reviewSubmittedAt;
+    private Long reviewedBy;
+    private String reviewedByUsername;
+    private LocalDateTime reviewedAt;
+    private String reviewComment;
+
+    /**
      * Status (ACTIVE, DISABLED)
      */
     private String status;
@@ -94,10 +118,26 @@ public class RoleDTO {
         return "SYSTEM".equals(this.roleType);
     }
 
+    public boolean isPrivilegedRole() {
+        return "SUPER_ADMIN".equals(this.roleCode)
+                || "PRIVILEGED".equals(this.systemCategory);
+    }
+
+    public boolean canImportPermissions() {
+        return Boolean.TRUE.equals(this.importAllowed)
+                && !isPrivilegedRole()
+                && isActive()
+                && (isSystemRole() || "APPROVED".equals(this.reviewStatus));
+    }
+
     /**
      * Check if role is active
      */
     public boolean isActive() {
         return "ACTIVE".equals(this.status);
+    }
+
+    public boolean isAssignableToUsers() {
+        return isActive() && (isSystemRole() || "APPROVED".equals(this.reviewStatus));
     }
 }

@@ -16,13 +16,18 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Purchase Order Management Service (采购单管理服务)
@@ -191,6 +196,183 @@ public class PurchaseOrderService {
             savedOrder.getPoNumber(), savedOrder.getStatus(), savedOrder.getTotalQuantity(), savedOrder.getTotalCost());
 
         return savedOrder;
+    }
+
+    /**
+     * Edit the business fields of an existing purchase order while it is still
+     * in ORDERING. No status transition, batch creation, receipt or inventory
+     * mutation is performed by this operation.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder updateOrderingPurchaseOrder(
+        Long purchaseOrderId,
+        Long expectedVersion,
+        Long supplierId,
+        List<PurchaseOrderItemUpdateData> requestedItems,
+        LocalDate expectedDate,
+        Long editorId,
+        String editorName,
+        String remark
+    ) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(purchaseOrderId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
+                Map.of("purchaseOrderId", purchaseOrderId)
+            ));
+
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.ORDERING) {
+            throw new BusinessException(
+                ErrorKeys.PO_INVALID_STATUS,
+                Map.of(
+                    "purchaseOrderId", purchaseOrderId,
+                    "currentStatus", purchaseOrder.getStatus().name(),
+                    "expectedStatus", PurchaseOrderStatus.ORDERING.name()
+                )
+            );
+        }
+        if (!Objects.equals(purchaseOrder.getVersion(), expectedVersion)) {
+            throw new BusinessException(
+                ErrorKeys.PO_EDIT_CONFLICT,
+                Map.of(
+                    "purchaseOrderId", purchaseOrderId,
+                    "expectedVersion", expectedVersion,
+                    "currentVersion", purchaseOrder.getVersion()
+                )
+            );
+        }
+
+        Supplier supplier = supplierRepository
+            .findByIdAndCompanyIdAndIsDeletedFalse(supplierId, 1L)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.SUPPLIER_NOT_FOUND,
+                Map.of("supplierId", supplierId)
+            ));
+        if (!Boolean.TRUE.equals(supplier.getIsActive())) {
+            throw new BusinessException(
+                ErrorKeys.SUPPLIER_NOT_ACTIVE,
+                Map.of("supplierId", supplierId, "supplierCode", supplier.getCode())
+            );
+        }
+
+        Map<Long, PurchaseOrderItem> existingById = new HashMap<>();
+        for (PurchaseOrderItem item : purchaseOrder.getItems()) {
+            existingById.put(item.getId(), item);
+        }
+
+        Set<Long> submittedItemIds = new HashSet<>();
+        Set<Long> submittedProductIds = new HashSet<>();
+        List<PurchaseOrderItem> newItems = new ArrayList<>();
+
+        for (PurchaseOrderItemUpdateData itemData : requestedItems) {
+            if (!submittedProductIds.add(itemData.getProductSkuId())) {
+                throw new BusinessException(
+                    ErrorKeys.VALIDATION_FAILED,
+                    Map.of("field", "items.productSkuId", "reason", "Duplicate product SKU")
+                );
+            }
+
+            ProductSku product = productSkuRepository.findById(itemData.getProductSkuId())
+                .orElseThrow(() -> new BusinessException(
+                    ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                    Map.of("productSkuId", itemData.getProductSkuId())
+                ));
+            productSkuOperationalPolicy.requireEnabled(
+                product,
+                ProductSkuOperationalPolicy.PURCHASE_ORDER
+            );
+
+            if (itemData.getId() == null) {
+                PurchaseOrderItem newItem = PurchaseOrderItem.builder()
+                    .purchaseOrder(purchaseOrder)
+                    .productSku(product)
+                    .orderedQuantity(itemData.getOrderedQuantity())
+                    .receivedQuantity(0)
+                    .unitCost(itemData.getUnitCost())
+                    .productPriceSnapshot(product.getUnitPrice())
+                    .expiryDate(itemData.getExpiryDate())
+                    .productionDate(itemData.getProductionDate())
+                    .externalBatchCode(itemData.getExternalBatchCode())
+                    .remark(itemData.getRemark())
+                    .build();
+                newItems.add(newItem);
+                continue;
+            }
+
+            if (!submittedItemIds.add(itemData.getId())) {
+                throw new BusinessException(
+                    ErrorKeys.VALIDATION_FAILED,
+                    Map.of("field", "items.id", "reason", "Duplicate purchase order item ID")
+                );
+            }
+            PurchaseOrderItem existing = existingById.get(itemData.getId());
+            if (existing == null) {
+                throw new BusinessException(
+                    ErrorKeys.PO_ITEM_NOT_FOUND,
+                    Map.of("itemId", itemData.getId(), "purchaseOrderId", purchaseOrderId)
+                );
+            }
+
+            boolean hasBatchHistory = inventoryBatchRepository
+                .existsByPurchaseOrderItemId(existing.getId());
+            if (hasBatchHistory && !existing.getProductSku().getId().equals(itemData.getProductSkuId())) {
+                throw historyLocked(purchaseOrderId, existing.getId(), "productSkuId");
+            }
+            if (hasBatchHistory && !existing.getOrderedQuantity().equals(itemData.getOrderedQuantity())) {
+                throw historyLocked(purchaseOrderId, existing.getId(), "orderedQuantity");
+            }
+
+            existing.setProductSku(product);
+            existing.setOrderedQuantity(itemData.getOrderedQuantity());
+            existing.setUnitCost(itemData.getUnitCost());
+            existing.setExpiryDate(itemData.getExpiryDate());
+            existing.setProductionDate(itemData.getProductionDate());
+            existing.setExternalBatchCode(itemData.getExternalBatchCode());
+            existing.setRemark(itemData.getRemark());
+        }
+
+        for (PurchaseOrderItem existing : new ArrayList<>(purchaseOrder.getItems())) {
+            if (!submittedItemIds.contains(existing.getId())) {
+                if (inventoryBatchRepository.existsByPurchaseOrderItemId(existing.getId())) {
+                    throw historyLocked(purchaseOrderId, existing.getId(), "remove");
+                }
+                purchaseOrder.removeItem(existing);
+            }
+        }
+        for (PurchaseOrderItem newItem : newItems) {
+            purchaseOrder.addItem(newItem);
+        }
+
+        purchaseOrder.setSupplierReference(supplier);
+        purchaseOrder.setSupplier(supplier.getName());
+        purchaseOrder.setExpectedDate(expectedDate);
+        purchaseOrder.setRemark(remark);
+        purchaseOrder.updateTotals();
+        purchaseOrder.appendAuditLog(String.format(
+            "ORDERING purchase order edited by %s (userId=%s, lines=%d)",
+            editorName,
+            editorId,
+            requestedItems.size()
+        ));
+
+        try {
+            return purchaseOrderRepository.saveAndFlush(purchaseOrder);
+        } catch (OptimisticLockingFailureException ex) {
+            throw new BusinessException(
+                ErrorKeys.PO_EDIT_CONFLICT,
+                Map.of("purchaseOrderId", purchaseOrderId, "expectedVersion", expectedVersion)
+            );
+        }
+    }
+
+    private BusinessException historyLocked(Long purchaseOrderId, Long itemId, String field) {
+        return new BusinessException(
+            ErrorKeys.PO_ITEM_HISTORY_LOCKED,
+            Map.of(
+                "purchaseOrderId", purchaseOrderId,
+                "itemId", itemId,
+                "field", field
+            )
+        );
     }
 
     /**
@@ -837,6 +1019,19 @@ public class PurchaseOrderService {
         private Integer orderedQuantity;
         private java.math.BigDecimal unitCost;
         private LocalDate expiryDate;  // Optional at Stage 1
+        private LocalDate productionDate;
+        private String externalBatchCode;
+        private String remark;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    public static class PurchaseOrderItemUpdateData {
+        private Long id;
+        private Long productSkuId;
+        private Integer orderedQuantity;
+        private java.math.BigDecimal unitCost;
+        private LocalDate expiryDate;
         private LocalDate productionDate;
         private String externalBatchCode;
         private String remark;

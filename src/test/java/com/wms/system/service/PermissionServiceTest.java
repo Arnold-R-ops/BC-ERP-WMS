@@ -26,6 +26,7 @@ class PermissionServiceTest {
 
     @Mock private SysPermissionRepository permissionRepository;
     @Mock private PermissionCacheService cacheService;
+    @Mock private SecurityVersionService securityVersionService;
 
     @InjectMocks
     private PermissionService permissionService;
@@ -81,6 +82,36 @@ class PermissionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getPermissionCode()).isEqualTo("menu:new");
+        assertThat(result.getRiskLevel()).isEqualTo(SysPermission.RISK_LEVEL_NORMAL);
+        assertThat(result.getCustomAssignable()).isTrue();
+        verify(securityVersionService).bumpAllUsers();
+    }
+
+    @Test
+    @DisplayName("createPermission - reserves IAM and system-control permission codes")
+    void testCreatePermission_ReservedCode() {
+        PermissionDTO dto = PermissionDTO.builder()
+                .permissionCode("system:admin")
+                .permissionName("System administration")
+                .permissionType("API")
+                .riskLevel(SysPermission.RISK_LEVEL_NORMAL)
+                .customAssignable(true)
+                .build();
+
+        when(permissionRepository.existsByPermissionCode("system:admin")).thenReturn(false);
+        when(permissionRepository.save(any(SysPermission.class))).thenAnswer(invocation -> {
+            SysPermission saved = invocation.getArgument(0);
+            saved.setId(20L);
+            return saved;
+        });
+
+        PermissionDTO result = permissionService.createPermission(dto);
+
+        assertThat(result.getRiskLevel()).isEqualTo(SysPermission.RISK_LEVEL_CRITICAL);
+        assertThat(result.getCustomAssignable()).isFalse();
+        verify(permissionRepository).save(argThat(permission ->
+                SysPermission.RISK_LEVEL_CRITICAL.equals(permission.getRiskLevel())
+                        && !permission.isCustomAssignable()));
     }
 
     @Test

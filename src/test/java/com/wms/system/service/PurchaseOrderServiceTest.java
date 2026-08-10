@@ -188,6 +188,119 @@ class PurchaseOrderServiceTest {
 
     // ========== Stage 2: confirmAndGenerateBatchCodes ==========
 
+    // ========== Stage 1: updateOrderingPurchaseOrder ==========
+
+    @Test
+    @DisplayName("updateOrderingPurchaseOrder - edits ORDERING fields and recalculates totals")
+    void testUpdateOrderingPurchaseOrder_Success() {
+        orderingPurchaseOrder.setVersion(3L);
+        PurchaseOrderItem existingItem = PurchaseOrderItem.builder()
+                .id(10L)
+                .purchaseOrder(orderingPurchaseOrder)
+                .productSku(testProduct)
+                .orderedQuantity(100)
+                .receivedQuantity(0)
+                .unitCost(new BigDecimal("10.00"))
+                .build();
+        orderingPurchaseOrder.getItems().add(existingItem);
+
+        PurchaseOrderService.PurchaseOrderItemUpdateData update =
+                PurchaseOrderService.PurchaseOrderItemUpdateData.builder()
+                        .id(10L)
+                        .productSkuId(1L)
+                        .orderedQuantity(12)
+                        .unitCost(new BigDecimal("8.50"))
+                        .remark("updated line")
+                        .build();
+
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+                .thenReturn(Optional.of(testSupplier));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.existsByPurchaseOrderItemId(10L)).thenReturn(false);
+        when(purchaseOrderRepository.saveAndFlush(any(PurchaseOrder.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PurchaseOrder result = purchaseOrderService.updateOrderingPurchaseOrder(
+                1L, 3L, 1L, List.of(update), LocalDate.of(2026, 8, 30),
+                7L, "buyer", "updated order"
+        );
+
+        assertThat(result.getTotalQuantity()).isEqualTo(12);
+        assertThat(result.getTotalCost()).isEqualByComparingTo("102.00");
+        assertThat(result.getExpectedDate()).isEqualTo(LocalDate.of(2026, 8, 30));
+        assertThat(result.getRemark()).isEqualTo("updated order");
+        assertThat(result.getAuditLog()).contains("ORDERING purchase order edited by buyer");
+        verify(inventoryBatchRepository, never()).save(any());
+        verify(stockTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updateOrderingPurchaseOrder - rejects non-ORDERING status")
+    void testUpdateOrderingPurchaseOrder_WrongStatus() {
+        orderingPurchaseOrder.setStatus(PurchaseOrderStatus.IN_TRANSIT);
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
+
+        assertThatThrownBy(() -> purchaseOrderService.updateOrderingPurchaseOrder(
+                1L, 0L, 1L, List.of(), null, 7L, "buyer", null
+        ))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", com.wms.system.exception.ErrorKeys.PO_INVALID_STATUS);
+    }
+
+    @Test
+    @DisplayName("updateOrderingPurchaseOrder - rejects stale version")
+    void testUpdateOrderingPurchaseOrder_StaleVersion() {
+        orderingPurchaseOrder.setVersion(4L);
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
+
+        assertThatThrownBy(() -> purchaseOrderService.updateOrderingPurchaseOrder(
+                1L, 3L, 1L, List.of(), null, 7L, "buyer", null
+        ))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", com.wms.system.exception.ErrorKeys.PO_EDIT_CONFLICT);
+        verify(purchaseOrderRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("updateOrderingPurchaseOrder - preserves a line with batch history")
+    void testUpdateOrderingPurchaseOrder_CannotRemoveHistoricalLine() {
+        orderingPurchaseOrder.setVersion(1L);
+        PurchaseOrderItem historicalItem = PurchaseOrderItem.builder()
+                .id(10L)
+                .purchaseOrder(orderingPurchaseOrder)
+                .productSku(testProduct)
+                .orderedQuantity(100)
+                .receivedQuantity(0)
+                .build();
+        orderingPurchaseOrder.getItems().add(historicalItem);
+
+        ProductSku newProduct = ProductSku.builder()
+                .id(2L)
+                .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+                .name("New SKU")
+                .enabled(true)
+                .build();
+        PurchaseOrderService.PurchaseOrderItemUpdateData newItem =
+                PurchaseOrderService.PurchaseOrderItemUpdateData.builder()
+                        .productSkuId(2L)
+                        .orderedQuantity(1)
+                        .build();
+
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+                .thenReturn(Optional.of(testSupplier));
+        when(productSkuRepository.findById(2L)).thenReturn(Optional.of(newProduct));
+        when(inventoryBatchRepository.existsByPurchaseOrderItemId(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> purchaseOrderService.updateOrderingPurchaseOrder(
+                1L, 1L, 1L, List.of(newItem), null, 7L, "buyer", null
+        ))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorKey", com.wms.system.exception.ErrorKeys.PO_ITEM_HISTORY_LOCKED);
+        verify(purchaseOrderRepository, never()).saveAndFlush(any());
+    }
+
     @Test
     @DisplayName("confirmAndGenerateBatchCodes - throws when status is not ORDERING")
     void testConfirmAndGenerateBatchCodes_WrongStatus() {

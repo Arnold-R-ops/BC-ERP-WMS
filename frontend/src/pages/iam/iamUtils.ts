@@ -20,3 +20,8 @@ export function roleLabel(role: Role): string {
   if (name && code && name !== code) return `${name} (${code})`;
   return name || code || `#${role.id ?? '-'}`;
 }
+
+export function isRoleAssignable(role: Role): boolean {
+  return role.status === 'ACTIVE'
+    && (role.roleType !== 'CUSTOM' || role.reviewStatus === 'APPROVED');
+}

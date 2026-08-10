@@ -1,5 +1,6 @@
 import {
   ModalForm,
+  ProFormDependency,
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
@@ -7,14 +8,15 @@ import {
 } from '@ant-design/pro-components';
 import { Alert } from 'antd';
 import { useTranslation } from 'react-i18next';
-import type { Role, UserAccount } from '../../api/iam';
-import { findDefaultRoleId, roleLabel } from './iamUtils';
+import type { AssignableWarehouse, Role, UserAccount } from '../../api/iam';
+import { findDefaultRoleId, isRoleAssignable, roleLabel } from './iamUtils';
 
 export interface UserFormValues {
   username?: string;
   password?: string;
   displayName?: string;
   roleIds?: number[];
+  warehouseIds?: number[];
   enabled?: boolean;
   defaultRoleId?: number;
   remark?: string;
@@ -24,6 +26,7 @@ interface UserFormModalProps {
   loading: boolean;
   open: boolean;
   roles: Role[];
+  warehouses: AssignableWarehouse[];
   user?: UserAccount;
   isSelf?: boolean;
   onClose: () => void;
@@ -31,12 +34,13 @@ interface UserFormModalProps {
 }
 
 export function UserFormModal({
-  loading, open, roles, user, isSelf = false, onClose, onSubmit,
+  loading, open, roles, warehouses, user, isSelf = false, onClose, onSubmit,
 }: UserFormModalProps): JSX.Element {
   const { t } = useTranslation();
   const editing = user?.id !== undefined;
-  const activeRoles = roles.filter((role) => role.status === 'ACTIVE');
+  const activeRoles = roles.filter(isRoleAssignable);
   const assignedRoles = roles.filter((role) => role.id !== undefined && user?.roleIds?.includes(role.id));
+  const warehouseStaffRoleId = roles.find((role) => role.roleCode === 'WAREHOUSE_STAFF')?.id;
 
   return (
     <ModalForm<UserFormValues>
@@ -45,6 +49,7 @@ export function UserFormModal({
         username: user?.username ?? '',
         displayName: user?.displayName ?? '',
         roleIds: user?.roleIds ?? [],
+        warehouseIds: user?.warehouseIds ?? [],
         enabled: user?.enabled ?? true,
         defaultRoleId: user ? findDefaultRoleId(user, roles) : undefined,
         remark: user?.remark ?? '',
@@ -103,13 +108,30 @@ export function UserFormModal({
         name="displayName"
       />
       {!editing && (
-        <ProFormSelect
-          fieldProps={{ mode: 'multiple', optionFilterProp: 'label' }}
-          label={t('iam.users.fields.roles')}
-          name="roleIds"
-          options={activeRoles.map((role) => ({ label: roleLabel(role), value: role.id }))}
-          rules={[{ required: true, message: t('iam.users.validation.roleRequired') }]}
-        />
+        <>
+          <ProFormSelect
+            fieldProps={{ mode: 'multiple', optionFilterProp: 'label' }}
+            label={t('iam.users.fields.roles')}
+            name="roleIds"
+            options={activeRoles.map((role) => ({ label: roleLabel(role), value: role.id }))}
+            rules={[{ required: true, message: t('iam.users.validation.roleRequired') }]}
+          />
+          <ProFormDependency name={['roleIds']}>
+            {({ roleIds }) => warehouseStaffRoleId !== undefined
+              && (roleIds as number[] | undefined)?.includes(warehouseStaffRoleId) ? (
+                <ProFormSelect
+                  fieldProps={{ mode: 'multiple', optionFilterProp: 'label' }}
+                  label={t('iam.users.fields.warehouses')}
+                  name="warehouseIds"
+                  options={warehouses.map((warehouse) => ({
+                    label: `${warehouse.code ?? '-'} · ${warehouse.name ?? '-'}`,
+                    value: warehouse.id,
+                  }))}
+                  rules={[{ required: true, message: t('iam.users.validation.warehouseRequired') }]}
+                />
+              ) : null}
+          </ProFormDependency>
+        </>
       )}
       {editing && (
         <ProFormSelect

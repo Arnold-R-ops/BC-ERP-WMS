@@ -52,6 +52,7 @@ public class RoleService {
     private final SysRolePermissionRepository rolePermissionRepository;
     private final SysUserRoleRepository userRoleRepository;
     private final PermissionCacheService cacheService;
+    private final SecurityVersionService securityVersionService;
 
     /**
      * Create a new role
@@ -74,8 +75,14 @@ public class RoleService {
                 .roleCode(roleDTO.getRoleCode())
                 .roleName(roleDTO.getRoleName())
                 .description(roleDTO.getDescription())
-                .roleType(roleDTO.getRoleType() != null ? roleDTO.getRoleType() : "CUSTOM")
-                .status(roleDTO.getStatus() != null ? roleDTO.getStatus() : "ACTIVE")
+                // Generic creation can only create custom roles. System roles are
+                // deployment-owned records created through versioned migrations.
+                .roleType(SysRole.ROLE_TYPE_CUSTOM)
+                .systemCategory(null)
+                .importAllowed(true)
+                .approvalTemplateCode(SysRole.SIMPLE_APPROVAL_TEMPLATE_CODE)
+                .reviewStatus(SysRole.REVIEW_STATUS_DRAFT)
+                .status("DISABLED")
                 .sortOrder(roleDTO.getSortOrder() != null ? roleDTO.getSortOrder() : 0)
                 .build();
 
@@ -103,15 +110,16 @@ public class RoleService {
         SysRole role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
 
-        // Prevent modifying system role codes
-        if (role.isSystemRole() && !role.getRoleCode().equals(roleDTO.getRoleCode())) {
-            throw new IllegalArgumentException("Cannot modify system role code");
+        if (role.isSystemRole() || role.isPrivilegedRole()) {
+            throw new IllegalArgumentException("System roles cannot be modified online");
+        }
+        if (role.isActive() || !role.isDraft()) {
+            throw new IllegalArgumentException("Only disabled custom drafts can be modified");
         }
 
         // Update fields
         role.setRoleName(roleDTO.getRoleName());
         role.setDescription(roleDTO.getDescription());
-        role.setStatus(roleDTO.getStatus());
         role.setSortOrder(roleDTO.getSortOrder());
 
         // Save changes
@@ -119,6 +127,8 @@ public class RoleService {
 
         // Invalidate cache for users with this role
         cacheService.evictPermissionsForRole(roleId);
+        cacheService.evictRoleInheritCache();
+        securityVersionService.bumpForRoleAndDescendants(roleId);
 
         log.info("Role updated successfully: {} (ID: {})", role.getRoleCode(), role.getId());
 
@@ -151,11 +161,17 @@ public class RoleService {
                     String.format("Cannot delete role with %d users assigned", userCount));
         }
 
+        // Revoke tokens for users assigned to descendant roles while the
+        // inheritance graph still contains this role. Deleting first would
+        // cascade the inheritance rows and make those users undiscoverable.
+        securityVersionService.bumpForRoleAndDescendants(roleId);
+
         // Delete role (cascade will delete associations)
         roleRepository.delete(role);
 
         // Invalidate cache
         cacheService.evictAllUserPermissions();
+        cacheService.evictRoleInheritCache();
 
         log.info("Role deleted successfully: {} (ID: {})", role.getRoleCode(), role.getId());
     }
@@ -248,6 +264,11 @@ public class RoleService {
         SysRole parentRole = roleRepository.findById(parentRoleId)
                 .orElseThrow(() -> new IllegalArgumentException("Parent role not found: " + parentRoleId));
 
+        if (!childRole.isPrivilegedRole() && parentRole.isPrivilegedRole()) {
+            throw new IllegalArgumentException(
+                    "Non-privileged roles cannot inherit a privileged role: " + parentRole.getRoleCode());
+        }
+
         // Check if already exists
         if (roleInheritRepository.existsByChildRoleIdAndParentRoleId(childRoleId, parentRoleId)) {
             log.warn("Role inheritance already exists: child={}, parent={}", childRoleId, parentRoleId);
@@ -271,6 +292,7 @@ public class RoleService {
 
         // Invalidate cache
         cacheService.onRoleInheritanceChanged(childRoleId, parentRoleId);
+        securityVersionService.bumpForRoleAndDescendants(childRoleId);
 
         log.info("Role inheritance added successfully");
     }
@@ -289,6 +311,7 @@ public class RoleService {
 
         // Invalidate cache
         cacheService.onRoleInheritanceChanged(childRoleId, parentRoleId);
+        securityVersionService.bumpForRoleAndDescendants(childRoleId);
 
         log.info("Role inheritance removed successfully");
     }
@@ -351,6 +374,17 @@ public class RoleService {
                 .roleName(role.getRoleName())
                 .description(role.getDescription())
                 .roleType(role.getRoleType())
+                .systemCategory(role.getSystemCategory())
+                .importAllowed(role.canImportPermissions())
+                .approvalTemplateCode(role.getApprovalTemplateCode())
+                .reviewStatus(role.getReviewStatus())
+                .reviewSubmittedBy(role.getReviewSubmittedBy())
+                .reviewSubmittedByUsername(role.getReviewSubmittedByUsername())
+                .reviewSubmittedAt(role.getReviewSubmittedAt())
+                .reviewedBy(role.getReviewedBy())
+                .reviewedByUsername(role.getReviewedByUsername())
+                .reviewedAt(role.getReviewedAt())
+                .reviewComment(role.getReviewComment())
                 .status(role.getStatus())
                 .sortOrder(role.getSortOrder())
                 .parentRoleIds(parentRoleIds)

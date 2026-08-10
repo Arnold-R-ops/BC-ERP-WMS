@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +32,7 @@ class RoleServiceTest {
     @Mock private SysRolePermissionRepository rolePermissionRepository;
     @Mock private SysUserRoleRepository userRoleRepository;
     @Mock private PermissionCacheService cacheService;
+    @Mock private SecurityVersionService securityVersionService;
 
     @InjectMocks
     private RoleService roleService;
@@ -45,7 +47,10 @@ class RoleServiceTest {
                 .roleCode("CUSTOM_ROLE")
                 .roleName("Custom Role")
                 .roleType("CUSTOM")
-                .status("ACTIVE")
+                .importAllowed(true)
+                .approvalTemplateCode(SysRole.SIMPLE_APPROVAL_TEMPLATE_CODE)
+                .reviewStatus(SysRole.REVIEW_STATUS_DRAFT)
+                .status("DISABLED")
                 .sortOrder(10)
                 .build();
 
@@ -54,6 +59,8 @@ class RoleServiceTest {
                 .roleCode("SUPER_ADMIN")
                 .roleName("Super Admin")
                 .roleType("SYSTEM")
+                .systemCategory(SysRole.SYSTEM_CATEGORY_PRIVILEGED)
+                .importAllowed(false)
                 .status("ACTIVE")
                 .sortOrder(1)
                 .build();
@@ -74,14 +81,23 @@ class RoleServiceTest {
         when(roleRepository.existsByRoleCode("NEW_ROLE")).thenReturn(false);
         when(roleRepository.save(any(SysRole.class))).thenReturn(
                 SysRole.builder().id(10L).roleCode("NEW_ROLE").roleName("New Role")
-                        .roleType("CUSTOM").status("ACTIVE").sortOrder(0).build()
+                        .roleType("CUSTOM").importAllowed(true)
+                        .approvalTemplateCode(SysRole.SIMPLE_APPROVAL_TEMPLATE_CODE)
+                        .reviewStatus(SysRole.REVIEW_STATUS_DRAFT)
+                        .status("DISABLED").sortOrder(0).build()
         );
 
         RoleDTO result = roleService.createRole(dto);
 
         assertThat(result).isNotNull();
         assertThat(result.getRoleCode()).isEqualTo("NEW_ROLE");
-        verify(roleRepository).save(any(SysRole.class));
+        verify(roleRepository).save(argThat(role ->
+                SysRole.ROLE_TYPE_CUSTOM.equals(role.getRoleType())
+                        && role.getSystemCategory() == null
+                        && Boolean.TRUE.equals(role.getImportAllowed())
+                        && SysRole.SIMPLE_APPROVAL_TEMPLATE_CODE.equals(role.getApprovalTemplateCode())
+                        && role.isDraft()
+                        && !role.isActive()));
     }
 
     @Test
@@ -122,6 +138,7 @@ class RoleServiceTest {
         assertThat(result).isNotNull();
         verify(roleRepository).save(any(SysRole.class));
         verify(cacheService).evictPermissionsForRole(1L);
+        verify(cacheService).evictRoleInheritCache();
     }
 
     @Test
@@ -137,7 +154,7 @@ class RoleServiceTest {
 
         assertThatThrownBy(() -> roleService.updateRole(2L, dto))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("system role code");
+                .hasMessageContaining("System roles cannot be modified online");
     }
 
     @Test
@@ -148,6 +165,19 @@ class RoleServiceTest {
         assertThatThrownBy(() -> roleService.updateRole(99L, RoleDTO.builder()
                 .roleCode("X").build()))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("addRoleInheritance - rejects inheriting a privileged role")
+    void testAddRoleInheritance_RejectsPrivilegedParent() {
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(customRole));
+        when(roleRepository.findById(2L)).thenReturn(Optional.of(systemRole));
+
+        assertThatThrownBy(() -> roleService.addRoleInheritance(1L, 2L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("privileged role");
+
+        verify(roleInheritRepository, never()).save(any());
     }
 
     // ========== deleteRole ==========
@@ -161,8 +191,11 @@ class RoleServiceTest {
 
         roleService.deleteRole(1L);
 
-        verify(roleRepository).delete(customRole);
+        InOrder deletionOrder = inOrder(securityVersionService, roleRepository);
+        deletionOrder.verify(securityVersionService).bumpForRoleAndDescendants(1L);
+        deletionOrder.verify(roleRepository).delete(customRole);
         verify(cacheService).evictAllUserPermissions();
+        verify(cacheService).evictRoleInheritCache();
     }
 
     @Test
@@ -175,6 +208,7 @@ class RoleServiceTest {
                 .hasMessageContaining("system role");
 
         verify(roleRepository, never()).delete(any());
+        verify(securityVersionService, never()).bumpForRoleAndDescendants(anyLong());
     }
 
     @Test
@@ -188,6 +222,7 @@ class RoleServiceTest {
                 .hasMessageContaining("5 users");
 
         verify(roleRepository, never()).delete(any());
+        verify(securityVersionService, never()).bumpForRoleAndDescendants(anyLong());
     }
 
     // ========== getRoleById ==========

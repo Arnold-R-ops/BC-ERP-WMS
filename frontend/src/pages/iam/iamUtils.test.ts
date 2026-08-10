@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findDefaultRoleId, isCurrentUser, orderRoleIds, roleLabel } from './iamUtils';
+import { findDefaultRoleId, isCurrentUser, isRoleAssignable, orderRoleIds, roleLabel } from './iamUtils';
 
 describe('IAM page utilities', () => {
   it('keeps the selected default role first without duplicating roles', () => {
@@ -16,5 +16,12 @@ describe('IAM page utilities', () => {
     const roles = [{ id: 3, roleCode: 'WAREHOUSE_ADMIN', roleName: 'Warehouse administrator' }];
     expect(findDefaultRoleId({ defaultRoleCode: 'WAREHOUSE_ADMIN' }, roles)).toBe(3);
     expect(roleLabel(roles[0])).toBe('Warehouse administrator (WAREHOUSE_ADMIN)');
+  });
+
+  it('allows user assignment only for active approved custom packages', () => {
+    expect(isRoleAssignable({ roleType: 'CUSTOM', status: 'ACTIVE', reviewStatus: 'APPROVED' })).toBe(true);
+    expect(isRoleAssignable({ roleType: 'CUSTOM', status: 'ACTIVE', reviewStatus: 'DRAFT' })).toBe(false);
+    expect(isRoleAssignable({ roleType: 'CUSTOM', status: 'DISABLED', reviewStatus: 'APPROVED' })).toBe(false);
+    expect(isRoleAssignable({ roleType: 'SYSTEM', status: 'ACTIVE' })).toBe(true);
   });
 });

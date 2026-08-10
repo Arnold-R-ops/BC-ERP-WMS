@@ -624,7 +624,9 @@ public class OutboundService {
             .batchCode(batch.getBatchCode())
             .locationId(task.getLocationId())
             .locationCode(location.getLocationCode())
+            .warehouseId(location.getWarehouse() == null ? null : location.getWarehouse().getId())
             .productSkuId(product.getId())
+            .productSkuCode(product.getSkuCode())
             .productName(product.getName())
             .productBarcode(product.getBarcode())
             .batchTrackingMode(product.getBatchTrackingMode() == null

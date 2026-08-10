@@ -94,6 +94,9 @@ public class CreateUserRequest {
     @NotEmpty(message = "User must be assigned at least one role")
     private List<Long> roleIds;
 
+    /** Required and non-empty when roleIds contains WAREHOUSE_STAFF. */
+    private List<Long> warehouseIds;
+
     /**
      * Account enabled status
      *

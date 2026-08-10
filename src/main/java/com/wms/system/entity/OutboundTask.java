@@ -163,6 +163,22 @@ public class OutboundTask extends BaseEntity {
     @Column(nullable = false, length = 30)
     private OutboundTaskStatus status;
 
+    /** Optimistic lock prevents a concurrent picking confirmation from racing an archive. */
+    @Version
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer version = 0;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "archived_by")
+    private Long archivedBy;
+
+    @Size(max = 500, message = "归档原因长度不能超过 500 个字符")
+    @Column(name = "archive_reason", length = 500)
+    private String archiveReason;
+
     // ========== 仓库员信息 ==========
 
     /**

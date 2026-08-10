@@ -26,7 +26,7 @@ import java.util.List;
  * @version 1.0 (Purchase Order Management + Batch Management)
  */
 @Entity
-@SQLDelete(sql = "UPDATE purchase_order SET is_deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE purchase_order SET is_deleted = true, version = version + 1 WHERE id = ? AND version = ?")
 @SQLRestriction("is_deleted = false")
 @Table(name = "purchase_order", indexes = {
     @Index(name = "idx_po_number", columnList = "po_number"),
@@ -47,6 +47,11 @@ public class PurchaseOrder extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    @Builder.Default
+    private Long version = 0L;
 
     /**
      * 采购单号（系统自动生成，格式：PO-YYYYMMDD-XXX�?     *

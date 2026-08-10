@@ -82,4 +82,7 @@ public class AssignRolesRequest {
      * in roleIds becomes the default.
      */
     private Long defaultRoleId;
+
+    /** Required and non-empty when roleIds contains WAREHOUSE_STAFF. */
+    private List<Long> warehouseIds;
 }

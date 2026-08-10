@@ -51,6 +51,10 @@ import lombok.*;
 )
 public class SysPermission extends BaseEntity {
 
+    public static final String RISK_LEVEL_NORMAL = "NORMAL";
+    public static final String RISK_LEVEL_HIGH = "HIGH";
+    public static final String RISK_LEVEL_CRITICAL = "CRITICAL";
+
     /**
      * Primary Key (auto-increment)
      */
@@ -146,6 +150,21 @@ public class SysPermission extends BaseEntity {
     @Builder.Default
     private String dataScope = "ALL";
 
+    /**
+     * Governance risk level used by assignment and future copy previews.
+     */
+    @Column(name = "risk_level", nullable = false, length = 20)
+    @Builder.Default
+    private String riskLevel = RISK_LEVEL_NORMAL;
+
+    /**
+     * Whether this permission may be assigned to a CUSTOM role.
+     * Reserved IAM/system-control permissions are always false.
+     */
+    @Column(name = "custom_assignable", nullable = false)
+    @Builder.Default
+    private Boolean customAssignable = true;
+
     // ========== Common Fields ==========
 
     /**
@@ -198,6 +217,27 @@ public class SysPermission extends BaseEntity {
      */
     public boolean isActive() {
         return "ACTIVE".equals(this.status);
+    }
+
+    /**
+     * Check whether a custom role may receive this permission.
+     */
+    public boolean isCustomAssignable() {
+        return Boolean.TRUE.equals(this.customAssignable);
+    }
+
+    /**
+     * Identify IAM/system-control permission codes that must remain system-only.
+     */
+    public static boolean isReservedPermissionCode(String permissionCode) {
+        if (permissionCode == null) {
+            return false;
+        }
+        return "menu:system".equals(permissionCode)
+                || "system:admin".equals(permissionCode)
+                || permissionCode.startsWith("system:role:")
+                || permissionCode.startsWith("system:permission:")
+                || permissionCode.startsWith("system:user:");
     }
 
     /**

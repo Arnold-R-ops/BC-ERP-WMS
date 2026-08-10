@@ -13,6 +13,7 @@ const validSession: AuthSession = {
   username: 'admin',
   currentRole: 'SUPER_ADMIN',
   availableRoles: ['SUPER_ADMIN'],
+  permissionCodes: [],
   expiresAt: 2_000,
   mustChangePassword: false,
 };

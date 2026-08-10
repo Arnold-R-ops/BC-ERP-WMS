@@ -12,6 +12,7 @@ describe('authentication session transitions', () => {
           username: 'operator',
           currentRole: 'WAREHOUSE_ADMIN',
           availableRoles: ['WAREHOUSE_ADMIN', 'WAREHOUSE_STAFF'],
+          permissionCodes: ['inventory:view'],
           expiresIn: 60_000,
           mustChangePassword: true,
         },
@@ -31,6 +32,7 @@ describe('authentication session transitions', () => {
       username: 'operator',
       currentRole: 'WAREHOUSE_ADMIN',
       availableRoles: ['WAREHOUSE_ADMIN', 'WAREHOUSE_STAFF'],
+      permissionCodes: ['inventory:view'],
       expiresAt: 10_000,
       mustChangePassword: false,
     };
@@ -42,6 +44,7 @@ describe('authentication session transitions', () => {
           token: 'new-token',
           tokenType: 'Bearer',
           currentRole: 'WAREHOUSE_STAFF',
+          permissionCodes: ['menu:warehouse-mobile'],
           expiresIn: 30_000,
         },
         2_000,
@@ -50,6 +53,7 @@ describe('authentication session transitions', () => {
       ...current,
       token: 'new-token',
       currentRole: 'WAREHOUSE_STAFF',
+      permissionCodes: ['menu:warehouse-mobile'],
       expiresAt: 32_000,
     });
   });

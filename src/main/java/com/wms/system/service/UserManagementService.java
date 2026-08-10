@@ -7,6 +7,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
+import com.wms.system.repository.SysUserWarehouseRepository;
 import com.wms.system.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -31,6 +33,7 @@ import java.util.UUID;
 public class UserManagementService {
 
     private static final String SUPER_ADMIN = "SUPER_ADMIN";
+    private static final String SECURITY_ADMIN = "SECURITY_ADMIN";
 
     /**
      * Password strength policy (P0.5): 8-64 characters, at least one letter
@@ -53,14 +56,21 @@ public class UserManagementService {
     private final UserRepository userRepository;
     private final SysRoleRepository roleRepository;
     private final SysUserRoleRepository userRoleRepository;
+    private final SysUserWarehouseRepository userWarehouseRepository;
     private final PasswordEncoder passwordEncoder;
     private final PermissionCacheService cacheService;
+    private final SecurityVersionService securityVersionService;
 
     /**
      * Logically delete a user while preserving historical references.
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long userId, Long operatorId) {
+        deleteUser(userId, operatorId, SUPER_ADMIN);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUser(Long userId, Long operatorId, String operatorRoleCode) {
         User target = userRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
@@ -77,6 +87,7 @@ public class UserManagementService {
             );
         }
 
+        protectPrivilegedTargetForSecurityAdmin(target, operatorRoleCode, "Delete user");
         protectLastSuperAdmin(target, "Delete user");
 
         String originalUsername = target.getUsername();
@@ -91,8 +102,10 @@ public class UserManagementService {
         target.setIsDeleted(true);
         target.setDeletedAt(LocalDateTime.now());
         target.setDeletedBy(operatorId);
+        securityVersionService.bump(target);
 
         userRoleRepository.deleteByUserId(userId);
+        userWarehouseRepository.deleteByUserId(userId);
         userRepository.save(target);
 
         evictSecurityStateAfterCommit(userId);
@@ -103,15 +116,27 @@ public class UserManagementService {
     /** Prevent profile changes that could lock the active administrator out. */
     @Transactional(readOnly = true)
     public void validateProfileChange(Long userId, Long operatorId, Boolean requestedEnabled) {
-        if (!Boolean.FALSE.equals(requestedEnabled)) {
-            return;
-        }
+        validateProfileChange(userId, operatorId, requestedEnabled, SUPER_ADMIN);
+    }
 
+    @Transactional(readOnly = true)
+    public void validateProfileChange(
+            Long userId,
+            Long operatorId,
+            Boolean requestedEnabled,
+            String operatorRoleCode
+    ) {
         User target = userRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", userId)
             ));
+
+        protectPrivilegedTargetForSecurityAdmin(target, operatorRoleCode, "Update user");
+
+        if (!Boolean.FALSE.equals(requestedEnabled)) {
+            return;
+        }
 
         if (operatorId != null && operatorId > 0 && operatorId.equals(userId)) {
             throw new BusinessException(
@@ -129,11 +154,29 @@ public class UserManagementService {
     /** Prevent self role replacement and removal of the final SUPER_ADMIN role. */
     @Transactional(readOnly = true)
     public void validateRoleReplacement(Long userId, Long operatorId, Set<Long> requestedRoleIds) {
+        validateRoleReplacement(userId, operatorId, requestedRoleIds, SUPER_ADMIN);
+    }
+
+    @Transactional(readOnly = true)
+    public void validateRoleReplacement(
+            Long userId,
+            Long operatorId,
+            Set<Long> requestedRoleIds,
+            String operatorRoleCode
+    ) {
         User target = userRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", userId)
             ));
+
+        protectPrivilegedTargetForSecurityAdmin(target, operatorRoleCode, "Replace user roles");
+        if (isSecurityAdmin(operatorRoleCode)) {
+            List<SysRole> requestedRoles = roleRepository.findByIdIn(requestedRoleIds);
+            if (requestedRoles.stream().anyMatch(SysRole::isPrivilegedRole)) {
+                throw protectedIdentityOperation("Assign protected role");
+            }
+        }
 
         if (operatorId != null && operatorId > 0 && operatorId.equals(userId)) {
             throw new BusinessException(
@@ -155,13 +198,21 @@ public class UserManagementService {
         protectLastSuperAdmin(target, "Remove SUPER_ADMIN role");
     }
 
+    /** SECURITY_ADMIN may create ordinary accounts but cannot grant protected roles. */
+    @Transactional(readOnly = true)
+    public void validateRoleAssignment(List<SysRole> roles, String operatorRoleCode) {
+        if (isSecurityAdmin(operatorRoleCode)
+                && roles.stream().anyMatch(SysRole::isPrivilegedRole)) {
+            throw protectedIdentityOperation("Assign protected role");
+        }
+    }
+
     /**
      * Change the caller's own password (P0.5).
      *
      * Verifies the old password, enforces the strength policy and clears the
      * must-change-password flag so a temporary password stops restricting the
-     * account. Existing JWTs stay valid until they expire (no revocation
-     * mechanism yet, same as role switching).
+     * account. Advancing security_version revokes every previously issued JWT.
      */
     @Transactional(rollbackFor = Exception.class)
     public void changeOwnPassword(Long userId, String oldPassword, String newPassword) {
@@ -189,6 +240,7 @@ public class UserManagementService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setMustChangePassword(false);
+        securityVersionService.bump(user);
         userRepository.save(user);
 
         log.info("Password changed by user: userId={}, username={}", userId, user.getUsername());
@@ -204,11 +256,22 @@ public class UserManagementService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ResetPasswordResponse resetPassword(Long targetUserId, Long operatorId) {
+        return resetPassword(targetUserId, operatorId, SUPER_ADMIN);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ResetPasswordResponse resetPassword(
+            Long targetUserId,
+            Long operatorId,
+            String operatorRoleCode
+    ) {
         User target = userRepository.findById(targetUserId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", targetUserId)
             ));
+
+        protectPrivilegedTargetForSecurityAdmin(target, operatorRoleCode, "Reset password");
 
         if (operatorId != null && operatorId > 0 && operatorId.equals(targetUserId)) {
             throw new BusinessException(
@@ -223,6 +286,7 @@ public class UserManagementService {
         String temporaryPassword = generateTemporaryPassword();
         target.setPassword(passwordEncoder.encode(temporaryPassword));
         target.setMustChangePassword(true);
+        securityVersionService.bump(target);
         userRepository.save(target);
 
         log.info("Password reset by administrator: targetUserId={}, targetUsername={}, operatorId={}",
@@ -234,6 +298,35 @@ public class UserManagementService {
             .temporaryPassword(temporaryPassword)
             .mustChangePassword(true)
             .build();
+    }
+
+    private void protectPrivilegedTargetForSecurityAdmin(
+            User target,
+            String operatorRoleCode,
+            String operation
+    ) {
+        if (!isSecurityAdmin(operatorRoleCode)) {
+            return;
+        }
+        Set<Long> targetRoleIds = userRoleRepository.findRoleIdsByUserId(target.getId());
+        if (!targetRoleIds.isEmpty()
+                && roleRepository.findByIdIn(targetRoleIds).stream().anyMatch(SysRole::isPrivilegedRole)) {
+            throw protectedIdentityOperation(operation);
+        }
+    }
+
+    private boolean isSecurityAdmin(String operatorRoleCode) {
+        return SECURITY_ADMIN.equals(operatorRoleCode);
+    }
+
+    private BusinessException protectedIdentityOperation(String operation) {
+        return new BusinessException(
+                ErrorKeys.OPERATION_NOT_ALLOWED,
+                Map.of(
+                        "operation", operation,
+                        "reason", "SECURITY_ADMIN cannot grant or modify protected privileged identities"
+                )
+        );
     }
 
     private void validatePasswordStrength(String password) {

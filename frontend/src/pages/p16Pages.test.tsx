@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthProvider } from '../auth/AuthProvider';
 import i18n from '../locales/i18n';
 
 vi.mock('../api/masterData', async (importOriginal) => ({
@@ -42,7 +43,9 @@ function renderPage(element: ReactElement): void {
     <MemoryRouter>
       <ConfigProvider>
         <AntdApp>
-          <QueryClientProvider client={queryClient}>{element}</QueryClientProvider>
+          <AuthProvider>
+            <QueryClientProvider client={queryClient}>{element}</QueryClientProvider>
+          </AuthProvider>
         </AntdApp>
       </ConfigProvider>
     </MemoryRouter>,

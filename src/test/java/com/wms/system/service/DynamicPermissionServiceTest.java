@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -234,6 +235,8 @@ class DynamicPermissionServiceTest {
         // Given: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暞閸犲棝鏌熼悜妯荤妞ゃ儱绻愯彁闁搞儻绲芥晶鎻捗?
         when(roleRepository.findByIdIn(Set.of(1L)))
                 .thenReturn(List.of(chairmanRole));
+        when(roleRepository.findByIdIn(Set.of(2L, 3L, 4L)))
+                .thenReturn(List.of(warehouseAdminRole, buyerRole, sellerRole));
 
         // When: 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墯婵ジ鏌ㄥ┑鍡楊伀闁汇劍鍨垮濠氬焵椤掑嫬绠伴幖娣灮缁夘剟姊?
         UserPermissionDTO result = permissionService.getUserPermissions(userId);
@@ -267,12 +270,29 @@ class DynamicPermissionServiceTest {
         Long roleB = 20L;
         Long roleC = 30L;
 
+        SysRole activeRoleB = SysRole.builder()
+                .id(roleB)
+                .roleCode("ROLE_B")
+                .roleName("Role B")
+                .status("ACTIVE")
+                .build();
+        SysRole activeRoleC = SysRole.builder()
+                .id(roleC)
+                .roleCode("ROLE_C")
+                .roleName("Role C")
+                .status("ACTIVE")
+                .build();
+
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(roleA))
                 .thenReturn(Set.of(roleB));
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(roleB))
                 .thenReturn(Set.of(roleC));
         when(roleInheritRepository.findParentRoleIdsByChildRoleId(roleC))
                 .thenReturn(Set.of());
+        when(roleRepository.findByIdIn(Set.of(roleB)))
+                .thenReturn(List.of(activeRoleB));
+        when(roleRepository.findByIdIn(Set.of(roleC)))
+                .thenReturn(List.of(activeRoleC));
 
         // When: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暞閸犲棝鏌熼悜妯荤妞ゃ儱绮愰梻浣圭湽閸斿瞼鈧凹鍘介弲璺侯吋婢跺﹤鐝樻繝銏ｆ硾閺堫剟宕哄☉銏＄厵濞达絽鍟崝鍨亜椤愶綆娈滈柟?
         Set<Long> result = permissionService.getInheritedRoleIds(Set.of(roleA));
@@ -348,6 +368,58 @@ class DynamicPermissionServiceTest {
         assertThat(result.hasPermission("any:permission")).isFalse();
 
         // Then: 濠电偞鍨堕幐鍝ョ矓鐎垫瓕濮抽柤纰卞墯鐎氭岸鏌曟径娑橆洭闁告瑢鍋撻梺鑽ゅТ濞层垽宕归崫鍕电劷闁割偁鍎查埛?
+        verify(rolePermissionRepository, never()).findByRoleIdInWithPermission(any());
+    }
+
+    @Test
+    @DisplayName("custom roles receive no reserved permissions even from historical assignments")
+    void getPermissionsByRoleIds_FiltersReservedPermissionFromCustomRole() {
+        SysPermission reservedPermission = SysPermission.builder()
+                .id(999L)
+                .permissionCode("system:admin")
+                .permissionName("System administration")
+                .permissionType("API")
+                .riskLevel(SysPermission.RISK_LEVEL_CRITICAL)
+                .customAssignable(false)
+                .status("ACTIVE")
+                .sortOrder(1)
+                .build();
+        SysRole customRole = SysRole.builder()
+                .id(99L)
+                .roleCode("CUSTOM_ADMIN")
+                .roleName("Custom Admin")
+                .roleType(SysRole.ROLE_TYPE_CUSTOM)
+                .status("ACTIVE")
+                .build();
+        SysRolePermission historicalAssignment = SysRolePermission.builder()
+                .roleId(99L)
+                .permissionId(999L)
+                .role(customRole)
+                .permission(reservedPermission)
+                .build();
+        when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(99L)))
+                .thenReturn(List.of(historicalAssignment));
+
+        List<PermissionDTO> result = permissionService.getPermissionsByRoleIds(Set.of(99L));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("disabled direct roles contribute no permissions")
+    void getUserPermissions_DisabledDirectRoleIsExcluded() {
+        Long userId = 40L;
+        warehouseAdminRole.setStatus("DISABLED");
+
+        when(userRoleRepository.findRoleIdsByUserId(userId)).thenReturn(Set.of(2L));
+        when(roleRepository.findByIdIn(Set.of(2L))).thenReturn(List.of(warehouseAdminRole));
+
+        UserPermissionDTO result = permissionService.getUserPermissions(userId);
+
+        assertThat(result.getRoleIds()).isEmpty();
+        assertThat(result.getEffectiveRoleIds()).isEmpty();
+        assertThat(result.getPermissions()).isEmpty();
+        verify(roleInheritRepository, never()).findParentRoleIdsByChildRoleId(any());
         verify(rolePermissionRepository, never()).findByRoleIdInWithPermission(any());
     }
 
@@ -482,5 +554,80 @@ class DynamicPermissionServiceTest {
         assertThat(result.getApiPermissions()).hasSize(1);
         assertThat(result.getButtonPermissions()).hasSize(1);
         assertThat(result.getPermissions()).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("active role excludes permissions from other assigned roles")
+    void getUserPermissionsForRole_UsesOnlySelectedRole() {
+        Long userId = 9L;
+        when(roleRepository.findByRoleCode("WAREHOUSE_ADMIN"))
+                .thenReturn(java.util.Optional.of(warehouseAdminRole));
+        when(userRoleRepository.existsByUserIdAndRoleId(userId, 2L)).thenReturn(true);
+        when(roleInheritRepository.findParentRoleIdsByChildRoleId(2L)).thenReturn(Set.of());
+
+        SysRolePermission inventoryGrant = new SysRolePermission();
+        inventoryGrant.setRoleId(2L);
+        inventoryGrant.setPermissionId(101L);
+        inventoryGrant.setPermission(inventoryViewPermission);
+        when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(2L)))
+                .thenReturn(List.of(inventoryGrant));
+        when(roleRepository.findByIdIn(Set.of(2L)))
+                .thenReturn(List.of(warehouseAdminRole));
+
+        UserPermissionDTO result = permissionService.getUserPermissionsForRole(
+                userId,
+                "WAREHOUSE_ADMIN",
+                3L
+        );
+
+        assertThat(result.getRoleCodes()).containsExactly("WAREHOUSE_ADMIN");
+        assertThat(result.getPermissionCodes()).containsExactly("inventory:view");
+        assertThat(result.getPermissionCodes()).doesNotContain("purchase:create", "sales:view");
+        verify(userRoleRepository, never()).findRoleIdsByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("disabled inherited role contributes nothing and stops its branch")
+    void getUserPermissionsForRole_DisabledParentStopsInheritanceBranch() {
+        Long userId = 10L;
+        warehouseAdminRole.setStatus("DISABLED");
+
+        when(roleRepository.findByRoleCode("CHAIRMAN"))
+                .thenReturn(java.util.Optional.of(chairmanRole));
+        when(userRoleRepository.existsByUserIdAndRoleId(userId, 1L)).thenReturn(true);
+        when(roleInheritRepository.findParentRoleIdsByChildRoleId(1L)).thenReturn(Set.of(2L));
+        when(roleRepository.findByIdIn(Set.of(2L))).thenReturn(List.of(warehouseAdminRole));
+        when(rolePermissionRepository.findByRoleIdInWithPermission(Set.of(1L)))
+                .thenReturn(List.of());
+        when(roleRepository.findByIdIn(Set.of(1L))).thenReturn(List.of(chairmanRole));
+
+        UserPermissionDTO result = permissionService.getUserPermissionsForRole(
+                userId,
+                "CHAIRMAN",
+                4L
+        );
+
+        assertThat(result.getEffectiveRoleIds()).containsExactly(1L);
+        assertThat(result.getPermissions()).isEmpty();
+        verify(roleInheritRepository, never()).findParentRoleIdsByChildRoleId(2L);
+        verify(rolePermissionRepository).findByRoleIdInWithPermission(Set.of(1L));
+    }
+
+    @Test
+    @DisplayName("active role must still be assigned to the user")
+    void getUserPermissionsForRole_RejectsUnassignedRole() {
+        Long userId = 10L;
+        when(roleRepository.findByRoleCode("WAREHOUSE_ADMIN"))
+                .thenReturn(java.util.Optional.of(warehouseAdminRole));
+        when(userRoleRepository.existsByUserIdAndRoleId(userId, 2L)).thenReturn(false);
+
+        assertThatThrownBy(() -> permissionService.getUserPermissionsForRole(
+                userId,
+                "WAREHOUSE_ADMIN",
+                4L
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not assigned");
+
+        verify(rolePermissionRepository, never()).findByRoleIdInWithPermission(any());
     }
 }

@@ -1,4 +1,4 @@
-import { CheckOutlined, RollbackOutlined, TruckOutlined } from '@ant-design/icons';
+import { CheckOutlined, EditOutlined, RollbackOutlined, TruckOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Descriptions, Drawer, Space, Table, type TableColumnsType } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -8,14 +8,19 @@ import { OrderStatusTag } from '../../components/OrderStatusTag';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
 
 interface PurchaseOrderDrawerProps {
+  canConfirm: boolean;
+  canEdit: boolean;
+  canReceive: boolean;
+  canRollback: boolean;
   orderId?: number;
   onClose: () => void;
   onConfirmAsn: (order: PurchaseOrder) => void;
+  onEdit: (order: PurchaseOrder) => void;
   onReceive: (order: PurchaseOrder) => void;
   onRollback: (order: PurchaseOrder) => void;
 }
 
-export function PurchaseOrderDrawer({ orderId, onClose, onConfirmAsn, onReceive, onRollback }: PurchaseOrderDrawerProps): JSX.Element {
+export function PurchaseOrderDrawer({ canConfirm, canEdit, canReceive, canRollback, orderId, onClose, onConfirmAsn, onEdit, onReceive, onRollback }: PurchaseOrderDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
   const orderQuery = useQuery({
     queryKey: ['purchase-order', orderId],
@@ -44,9 +49,10 @@ export function PurchaseOrderDrawer({ orderId, onClose, onConfirmAsn, onReceive,
       destroyOnHidden
       extra={order ? (
         <Space wrap>
-          {order.status === 'ORDERING' && <Button icon={<CheckOutlined />} onClick={() => onConfirmAsn(order)} type="primary">{t('purchasing.actions.confirmAsn')}</Button>}
-          {(order.status === 'IN_TRANSIT' || order.status === 'PARTIALLY_RECEIVED') && <Button icon={<TruckOutlined />} onClick={() => onReceive(order)} type="primary">{t('purchasing.actions.receive')}</Button>}
-          {order.status === 'IN_TRANSIT' && <Button icon={<RollbackOutlined />} onClick={() => onRollback(order)}>{t('purchasing.actions.rollback')}</Button>}
+          {canEdit && order.status === 'ORDERING' && <Button icon={<EditOutlined />} onClick={() => onEdit(order)}>{t('purchasing.actions.edit')}</Button>}
+          {canConfirm && order.status === 'ORDERING' && <Button icon={<CheckOutlined />} onClick={() => onConfirmAsn(order)} type="primary">{t('purchasing.actions.confirmAsn')}</Button>}
+          {canReceive && (order.status === 'IN_TRANSIT' || order.status === 'PARTIALLY_RECEIVED') && <Button icon={<TruckOutlined />} onClick={() => onReceive(order)} type="primary">{t('purchasing.actions.receive')}</Button>}
+          {canRollback && order.status === 'IN_TRANSIT' && <Button icon={<RollbackOutlined />} onClick={() => onRollback(order)}>{t('purchasing.actions.rollback')}</Button>}
         </Space>
       ) : null}
       loading={orderQuery.isLoading}

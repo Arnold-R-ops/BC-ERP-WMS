@@ -4,6 +4,8 @@ import com.wms.system.dto.PermissionDTO;
 import com.wms.system.entity.SysPermission;
 import com.wms.system.entity.SysRole;
 import com.wms.system.entity.SysRolePermission;
+import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysPermissionRepository;
 import com.wms.system.repository.SysRolePermissionRepository;
 import com.wms.system.repository.SysRoleRepository;
@@ -13,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * Role-Permission Assignment Service
@@ -48,6 +52,7 @@ public class RolePermissionService {
     private final SysRoleRepository roleRepository;
     private final SysPermissionRepository permissionRepository;
     private final PermissionCacheService cacheService;
+    private final SecurityVersionService securityVersionService;
 
     /**
      * Assign permission to role
@@ -64,10 +69,13 @@ public class RolePermissionService {
         // Validate role exists
         SysRole role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
+        validateRoleEditable(role);
 
         // Validate permission exists
         SysPermission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found: " + permissionId));
+
+        validateCustomRoleAssignment(role, permission);
 
         // Check if already assigned
         if (rolePermissionRepository.existsByRoleIdAndPermissionId(roleId, permissionId)) {
@@ -86,6 +94,7 @@ public class RolePermissionService {
 
         // Evict cache for all users with this role
         cacheService.onRolePermissionChanged(roleId);
+        securityVersionService.bumpForRoleAndDescendants(roleId);
 
         log.info("Permission assigned successfully: permission={}, role={}", permissionId, roleId);
     }
@@ -100,10 +109,15 @@ public class RolePermissionService {
     public void removePermissionFromRole(Long roleId, Long permissionId) {
         log.info("Removing permission {} from role {}", permissionId, roleId);
 
+        SysRole role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
+        validateRoleEditable(role);
+
         rolePermissionRepository.deleteByRoleIdAndPermissionId(roleId, permissionId);
 
         // Evict cache for all users with this role
         cacheService.onRolePermissionChanged(roleId);
+        securityVersionService.bumpForRoleAndDescendants(roleId);
 
         log.info("Permission removed successfully: permission={}, role={}", permissionId, roleId);
     }
@@ -124,21 +138,30 @@ public class RolePermissionService {
         // Validate role exists
         SysRole role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
+        validateRoleEditable(role);
 
-        // Remove all existing permissions
+        List<SysPermission> permissions = new ArrayList<>(permissionRepository.findByIdIn(permissionIds));
+        if (permissions.size() != permissionIds.size()) {
+            Set<Long> foundIds = permissions.stream().map(SysPermission::getId).collect(Collectors.toSet());
+            Set<Long> missingIds = permissionIds.stream()
+                    .filter(permissionId -> !foundIds.contains(permissionId))
+                    .collect(Collectors.toSet());
+            throw new BusinessException(ErrorKeys.ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE, Map.of(
+                    "roleId", roleId,
+                    "missingPermissionIds", missingIds
+            ));
+        }
+        permissions.forEach(permission -> validateCustomRoleAssignment(role, permission));
+
+        // Validate the complete replacement before deleting existing rows.
         rolePermissionRepository.deleteByRoleId(roleId);
 
         // Assign new permissions
-        for (Long permissionId : permissionIds) {
-            // Validate permission exists
-            if (!permissionRepository.existsById(permissionId)) {
-                log.warn("Skipping non-existent permission: {}", permissionId);
-                continue;
-            }
+        for (SysPermission permission : permissions) {
 
             SysRolePermission rolePermission = SysRolePermission.builder()
                     .roleId(roleId)
-                    .permissionId(permissionId)
+                    .permissionId(permission.getId())
                     .grantedBy(grantedBy)
                     .build();
 
@@ -147,9 +170,10 @@ public class RolePermissionService {
 
         // Evict cache for all users with this role
         cacheService.onRolePermissionChanged(roleId);
+        securityVersionService.bumpForRoleAndDescendants(roleId);
 
         log.info("Batch permission assignment completed: {} permissions assigned to role {}",
-                permissionIds.size(), roleId);
+                permissions.size(), roleId);
     }
 
     /**
@@ -230,9 +254,45 @@ public class RolePermissionService {
                 .menuUrl(permission.getMenuUrl())
                 .menuIcon(permission.getMenuIcon())
                 .dataScope(permission.getDataScope())
+                .riskLevel(permission.getRiskLevel())
+                .customAssignable(permission.isCustomAssignable())
                 .description(permission.getDescription())
                 .status(permission.getStatus())
                 .sortOrder(permission.getSortOrder())
                 .build();
+    }
+
+    private void validateCustomRoleAssignment(SysRole role, SysPermission permission) {
+        if (!permission.isActive()
+                || !permission.isCustomAssignable()
+                || SysPermission.RISK_LEVEL_CRITICAL.equals(permission.getRiskLevel())
+                || SysPermission.isReservedPermissionCode(permission.getPermissionCode())) {
+            throw new BusinessException(ErrorKeys.ROLE_PACKAGE_PERMISSION_NOT_ASSIGNABLE, Map.of(
+                    "roleId", role.getId(),
+                    "permissionCode", permission.getPermissionCode()
+            ));
+        }
+    }
+
+    private void validateRoleEditable(SysRole role) {
+        if (role.isSystemRole() || role.isPrivilegedRole()) {
+            throw new BusinessException(ErrorKeys.ROLE_PACKAGE_NOT_CUSTOM, Map.of(
+                    "roleId", role.getId(),
+                    "roleCode", role.getRoleCode()
+            ));
+        }
+        if (role.isActive()) {
+            throw new BusinessException(ErrorKeys.ROLE_PACKAGE_ACTIVE_IMMUTABLE, Map.of(
+                    "roleId", role.getId(),
+                    "roleCode", role.getRoleCode()
+            ));
+        }
+        if (!role.isDraft()) {
+            throw new BusinessException(ErrorKeys.ROLE_PACKAGE_NOT_DRAFT, Map.of(
+                    "roleId", role.getId(),
+                    "roleCode", role.getRoleCode(),
+                    "reviewStatus", role.getReviewStatus()
+            ));
+        }
     }
 }

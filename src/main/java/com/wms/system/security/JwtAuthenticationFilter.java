@@ -1,7 +1,6 @@
 package com.wms.system.security;
 
-import com.wms.system.entity.SysRole;
-import com.wms.system.repository.SysRoleRepository;
+import com.wms.system.dto.UserPermissionDTO;
 import com.wms.system.service.DynamicPermissionService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -25,7 +24,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * JWT Authentication Filter
@@ -78,7 +76,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
-    private final SysRoleRepository roleRepository;
     private final DynamicPermissionService permissionService;
 
     /**
@@ -142,70 +139,70 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 7. Load user details from database
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 8. Validate token (signature + expiration + username match)
-                if (jwtUtil.isTokenValid(token, username)) {
-                    log.info("JWT token validated successfully: username={}, currentRole={}, path={}",
-                        username, currentRole, request.getRequestURI());
+                if (!(userDetails instanceof SecurityUser securityUser)) {
+                    throw new IllegalStateException(
+                            "JWT authentication requires SecurityUser principal");
+                }
 
-                    // 9. Create authorities list with current role from JWT token
-                    // Multi-Role System: Authorization is based on current_role in token, not all user roles
-                    List<GrantedAuthority> authorities = new ArrayList<>();
-                    if (currentRole != null && !currentRole.isEmpty()) {
+                if (!userDetails.isEnabled()) {
+                    log.warn("JWT rejected for disabled account: username={}", username);
+                } else if (currentRole == null || currentRole.isBlank()) {
+                    log.warn("JWT rejected without current_role: username={}", username);
+                } else {
+                    Long liveSecurityVersion = securityUser.getUser().getSecurityVersion();
+
+                    // 8. Validate token identity, expiry, and live security version.
+                    if (!jwtUtil.isTokenValid(token, username, liveSecurityVersion)) {
+                        log.warn("JWT token validation failed: username={}, token might be " +
+                                "expired, revoked, or invalid", username);
+                    } else {
+                        log.info("JWT token validated successfully: " +
+                                        "username={}, currentRole={}, path={}",
+                                username, currentRole, request.getRequestURI());
+
+                        // 9. Create authorities strictly from the active role.
+                        List<GrantedAuthority> authorities = new ArrayList<>();
                         // Add both forms because controllers use both hasRole("...")
                         // and hasAnyAuthority("SUPER_ADMIN", "...") during API tests.
                         authorities.add(new SimpleGrantedAuthority("ROLE_" + currentRole));
                         authorities.add(new SimpleGrantedAuthority(currentRole));
 
-                        // Method-level @PreAuthorize checks use permission codes
-                        // (for example "outbound:view"). Resolve them strictly from
-                        // the role selected in this JWT, including its inherited roles;
-                        // never union permissions from the user's other assigned roles.
-                        SysRole selectedRole = roleRepository.findByRoleCode(currentRole)
-                            .filter(SysRole::isActive)
-                            .orElseThrow(() -> new IllegalStateException(
-                                "Current role is missing or disabled: " + currentRole));
-                        Set<Long> effectiveRoleIds =
-                            permissionService.getInheritedRoleIds(Set.of(selectedRole.getId()));
-                        permissionService.getPermissionsByRoleIds(effectiveRoleIds).stream()
-                            .map(permission -> permission.getPermissionCode())
-                            .filter(code -> code != null && !code.isBlank())
-                            .map(SimpleGrantedAuthority::new)
-                            .forEach(authorities::add);
+                        // This call also verifies the role is active and assigned.
+                        UserPermissionDTO activeRolePermissions =
+                                permissionService.getUserPermissionsForRole(
+                                        securityUser.getId(),
+                                        currentRole,
+                                        liveSecurityVersion
+                                );
+                        activeRolePermissions.getPermissions().stream()
+                                .map(permission -> permission.getPermissionCode())
+                                .filter(code -> code != null && !code.isBlank())
+                                .map(SimpleGrantedAuthority::new)
+                                .forEach(authorities::add);
 
                         log.debug("Authorities granted for current role {}: {}",
-                            currentRole, authorities);
-                    } else {
-                        log.warn("No current_role found in JWT token for user: {}", username);
-                    }
+                                currentRole, authorities);
 
-                    // 10. Create Authentication object
-                    // This object contains:
-                    // - Principal: UserDetails (user information)
-                    // - Credentials: null (no password needed after authentication)
-                    // - Authorities: Current role from JWT token (not from User entity)
-                    UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(
-                            userDetails,           // Principal (authenticated user)
-                            null,                  // Credentials (not needed)
-                            authorities            // Authorities (current role from JWT)
+                        // 10. Create Authentication object.
+                        UsernamePasswordAuthenticationToken authenticationToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        userDetails,
+                                        null,
+                                        authorities
+                                );
+
+                        // 11. Set authentication details (request info like IP address).
+                        authenticationToken.setDetails(
+                                new WebAuthenticationDetailsSource().buildDetails(request)
                         );
 
-                    // 11. Set authentication details (request info like IP address)
-                    authenticationToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
+                        // 12. Publish authentication for downstream checks.
+                        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-                    // 12. Set Authentication in SecurityContext
-                    // This makes user "authenticated" for this request
-                    // Subsequent filters and controllers can access via SecurityContextHolder
-                    // @PreAuthorize checks will validate against the current_role
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-
-                    log.debug("Authentication set in SecurityContext: username={}, authorities={}",
-                        username, authorities);
-                } else {
-                    log.warn("JWT token validation failed: username={}, token might be expired or invalid",
-                        username);
+                        log.debug("Authentication set in SecurityContext: " +
+                                        "username={}, authorities={}",
+                                username, authorities);
+                    }
                 }
             }
 

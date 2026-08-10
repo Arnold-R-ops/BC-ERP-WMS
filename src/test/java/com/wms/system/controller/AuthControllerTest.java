@@ -8,6 +8,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.JwtUtil;
+import com.wms.system.service.DynamicPermissionService;
 import com.wms.system.service.UserRoleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -70,6 +72,9 @@ class AuthControllerTest {
 
     @Mock
     private UserRoleService userRoleService;
+
+    @Mock
+    private DynamicPermissionService dynamicPermissionService;
 
     @InjectMocks
     private AuthController authController;
@@ -127,6 +132,12 @@ class AuthControllerTest {
                 .sortOrder(40)
                 .status("DISABLED") // 閻庤鐡曠亸娆撱€呴敃鍌涘仺?
                 .build();
+
+        lenient().when(dynamicPermissionService.getUserPermissionsForRole(
+                anyLong(), anyString(), anyLong()))
+            .thenReturn(UserPermissionDTO.builder()
+                .permissionCodes(Set.of("inventory:view", "sales:view"))
+                .build());
     }
 
     // ========== 濠电偞娼欓鍫ユ儊椤栫偞鏅慨姗嗗墻濡鎮峰▎鎰濠㈢懓锕幆鍌滄嫚閼碱剛协 ==========
@@ -146,7 +157,8 @@ class AuthControllerTest {
         when(jwtUtil.generateTokenWithRoles(
                 eq("test_user"),
                 eq("WAREHOUSE_ADMIN"),
-                anyList()
+                anyList(),
+                eq(1L)
         )).thenReturn("mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -162,11 +174,13 @@ class AuthControllerTest {
         assertThat(body.getUsername()).isEqualTo("test_user");
         assertThat(body.getCurrentRole()).isEqualTo("WAREHOUSE_ADMIN");
         assertThat(body.getAvailableRoles()).containsExactly("WAREHOUSE_ADMIN", "SALESPERSON");
+        assertThat(body.getPermissionCodes()).containsExactly("inventory:view", "sales:view");
         assertThat(body.getExpiresIn()).isEqualTo(86400000L);
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRoleService).getUserRoles(1L);
-        verify(jwtUtil).generateTokenWithRoles(eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList());
+        verify(jwtUtil).generateTokenWithRoles(
+                eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList(), eq(1L));
     }
 
     @Test
@@ -183,7 +197,7 @@ class AuthControllerTest {
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole));
-        when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList()))
+        when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList(), anyLong()))
                 .thenReturn("mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -193,7 +207,8 @@ class AuthControllerTest {
         // Then
         assertThat(response.getBody().getCurrentRole()).isEqualTo("SALESPERSON");
 
-        verify(jwtUtil).generateTokenWithRoles(eq("test_user"), eq("SALESPERSON"), anyList());
+        verify(jwtUtil).generateTokenWithRoles(
+                eq("test_user"), eq("SALESPERSON"), anyList(), eq(1L));
     }
 
     @Test
@@ -210,7 +225,7 @@ class AuthControllerTest {
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(purchaserRole, salespersonRole, warehouseAdminRole)); // 婵炴垶鏌ㄥ畷顒傝姳?
-        when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList()))
+        when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList(), anyLong()))
                 .thenReturn("mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -221,7 +236,8 @@ class AuthControllerTest {
         // 闁圭厧鐡ㄥΛ渚€顢氬鑸电劵濠㈣泛顑呴?sortOrder 闂佸搫鐗冮崑鎾绘倶韫囨挾绠虫繛?warehouseAdminRole (sortOrder=10)
         assertThat(response.getBody().getCurrentRole()).isEqualTo("WAREHOUSE_ADMIN");
 
-        verify(jwtUtil).generateTokenWithRoles(eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList());
+        verify(jwtUtil).generateTokenWithRoles(
+                eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList(), eq(1L));
     }
 
     @Test
@@ -242,7 +258,8 @@ class AuthControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NO_ROLES);
 
         verify(userRoleService).getUserRoles(1L);
-        verify(jwtUtil, never()).generateTokenWithRoles(anyString(), anyString(), anyList());
+        verify(jwtUtil, never()).generateTokenWithRoles(
+                anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -263,7 +280,8 @@ class AuthControllerTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NO_ACTIVE_ROLES);
 
-        verify(jwtUtil, never()).generateTokenWithRoles(anyString(), anyString(), anyList());
+        verify(jwtUtil, never()).generateTokenWithRoles(
+                anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -319,7 +337,8 @@ class AuthControllerTest {
         when(jwtUtil.generateTokenWithRoles(
                 eq("test_user"),
                 eq("SALESPERSON"),
-                anyList()
+                anyList(),
+                anyLong()
         )).thenReturn("new_mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -333,13 +352,15 @@ class AuthControllerTest {
         SwitchRoleResponse body = response.getBody();
         assertThat(body.getToken()).isEqualTo("new_mock_jwt_token");
         assertThat(body.getCurrentRole()).isEqualTo("SALESPERSON");
+        assertThat(body.getPermissionCodes()).containsExactly("inventory:view", "sales:view");
         assertThat(body.getMessage()).contains("SALESPERSON");
         assertThat(body.getMessage()).contains("闂備礁绨遍崑鎾绘煕閻戝棗鏋涢柟?");
         assertThat(testUser.getDefaultRoleId()).isEqualTo(5L);
 
         verify(roleRepository).findByRoleCode("SALESPERSON");
         verify(userRoleService).userHasRole(1L, 5L);
-        verify(jwtUtil).generateTokenWithRoles(eq("test_user"), eq("SALESPERSON"), anyList());
+        verify(jwtUtil).generateTokenWithRoles(
+                eq("test_user"), eq("SALESPERSON"), anyList(), eq(2L));
         verify(userRepository).save(testUser);
     }
 
@@ -361,7 +382,8 @@ class AuthControllerTest {
 
         verify(roleRepository).findByRoleCode("NONEXISTENT_ROLE");
         verify(userRoleService, never()).userHasRole(anyLong(), anyLong());
-        verify(jwtUtil, never()).generateTokenWithRoles(anyString(), anyString(), anyList());
+        verify(jwtUtil, never()).generateTokenWithRoles(
+                anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -382,7 +404,8 @@ class AuthControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.ROLE_NOT_ASSIGNED);
 
         verify(userRoleService).userHasRole(1L, 7L);
-        verify(jwtUtil, never()).generateTokenWithRoles(anyString(), anyString(), anyList());
+        verify(jwtUtil, never()).generateTokenWithRoles(
+                anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -403,7 +426,8 @@ class AuthControllerTest {
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.ROLE_DISABLED);
 
         verify(userRoleService).userHasRole(1L, 9L);
-        verify(jwtUtil, never()).generateTokenWithRoles(anyString(), anyString(), anyList());
+        verify(jwtUtil, never()).generateTokenWithRoles(
+                anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test

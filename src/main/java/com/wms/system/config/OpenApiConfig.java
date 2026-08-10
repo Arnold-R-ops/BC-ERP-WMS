@@ -34,7 +34,10 @@ public class OpenApiConfig {
                 .title("2G WMS API")
                 .description("智能仓储管理系统接口契约。认证：POST /api/auth/login 获取 JWT，"
                     + "后续请求携带 Authorization: Bearer {token}。"
-                    + "登录响应中 mustChangePassword=true 时，除改密接口外全部被拦截。")
+                    + "登录响应中 mustChangePassword=true 时，除认证与改密接口外全部被拦截。"
+                    + "请求鉴权只使用 JWT 的 currentRole 及其启用的继承角色，不合并其他已分配角色。"
+                    + "角色切换以及账号、密码、角色或权限变更会使旧 JWT 立即失效；"
+                    + "客户端收到 401/403 后必须重新登录或使用角色切换返回的新令牌。")
                 .version("P1"))
             .components(new Components().addSecuritySchemes(BEARER_SCHEME,
                 new SecurityScheme()

@@ -3,11 +3,13 @@ package com.wms.system.repository;
 import com.wms.system.entity.OutboundTask;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import jakarta.persistence.LockModeType;
 
 /**
  * 出库任务数据访问接口
@@ -38,6 +40,10 @@ public interface OutboundTaskRepository extends JpaRepository<OutboundTask, Long
      * @return 该订单的所有出库任务
      */
     List<OutboundTask> findBySalesOrderId(Long salesOrderId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM OutboundTask o WHERE o.salesOrderId = :salesOrderId ORDER BY o.id")
+    List<OutboundTask> findBySalesOrderIdForUpdate(@Param("salesOrderId") Long salesOrderId);
 
     /**
      * 根据销售订单明细ID查询任务列表

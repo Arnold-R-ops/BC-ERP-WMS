@@ -11,6 +11,8 @@ import type { CorrectionAction } from './EmergencyCorrectionActionModal';
 interface EmergencyCorrectionDrawerProps {
   canAdjust: boolean;
   canApprove: boolean;
+  canReject: boolean;
+  canReview: boolean;
   correction?: EmergencyCorrection;
   onAction: (action: CorrectionAction, correction: EmergencyCorrection) => void;
   onApply: (correction: EmergencyCorrection) => void;
@@ -20,6 +22,8 @@ interface EmergencyCorrectionDrawerProps {
 export function EmergencyCorrectionDrawer({
   canAdjust,
   canApprove,
+  canReject,
+  canReview,
   correction,
   onAction,
   onApply,
@@ -44,17 +48,17 @@ export function EmergencyCorrectionDrawer({
       {correction?.status === 'DRAFT' && canAdjust ? (
         <Button icon={<SendOutlined />} onClick={() => onAction('submit', correction)} type="primary">{t('corrections.actions.submit')}</Button>
       ) : null}
-      {correction?.status === 'PENDING_REVIEW' && canApprove ? (
-        <>
-          <Button icon={<CheckOutlined />} onClick={() => onAction('review', correction)} type="primary">{t('corrections.actions.review')}</Button>
-          <Button danger icon={<CloseOutlined />} onClick={() => onAction('reject', correction)}>{t('corrections.actions.reject')}</Button>
-        </>
+      {correction?.status === 'PENDING_REVIEW' && canReview ? (
+        <Button icon={<CheckOutlined />} onClick={() => onAction('review', correction)} type="primary">{t('corrections.actions.review')}</Button>
+      ) : null}
+      {correction?.status === 'PENDING_REVIEW' && canReject ? (
+        <Button danger icon={<CloseOutlined />} onClick={() => onAction('reject', correction)}>{t('corrections.actions.reject')}</Button>
       ) : null}
       {correction?.status === 'PENDING_APPROVAL' && canApprove ? (
-        <>
-          <Button danger icon={<CheckOutlined />} onClick={() => onAction('approve', correction)} type="primary">{t('corrections.actions.approve')}</Button>
-          <Button danger icon={<CloseOutlined />} onClick={() => onAction('reject', correction)}>{t('corrections.actions.reject')}</Button>
-        </>
+        <Button danger icon={<CheckOutlined />} onClick={() => onAction('approve', correction)} type="primary">{t('corrections.actions.approve')}</Button>
+      ) : null}
+      {correction?.status === 'PENDING_APPROVAL' && canReject ? (
+        <Button danger icon={<CloseOutlined />} onClick={() => onAction('reject', correction)}>{t('corrections.actions.reject')}</Button>
       ) : null}
       {correction?.status === 'APPROVED' && canAdjust ? (
         <Button danger icon={<ThunderboltOutlined />} onClick={() => onApply(correction)} type="primary">{t('corrections.actions.apply')}</Button>

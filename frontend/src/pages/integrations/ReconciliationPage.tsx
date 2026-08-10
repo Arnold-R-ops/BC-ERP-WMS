@@ -17,6 +17,8 @@ import {
 import type { Key } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hasPermission } from '../../access';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import {
   INTEGRATION_CONFIGS_QUERY_KEY,
@@ -42,7 +44,9 @@ export function ReconciliationPage(): JSX.Element {
   const [repairResult, setRepairResult] = useState<ShopifyReconciliationRepairResult>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const { t } = useTranslation();
+  const { session } = useAuth();
   const { message, modal } = AntdApp.useApp();
+  const canRepair = hasPermission(session?.currentRole, session?.permissionCodes, 'integration:reconcile:repair');
 
   const configsQuery = useQuery({
     queryKey: INTEGRATION_CONFIGS_QUERY_KEY,
@@ -181,7 +185,7 @@ export function ReconciliationPage(): JSX.Element {
               <Typography.Title level={4}>{t('integrations.reconciliation.missingOrdersTitle')}</Typography.Title>
               <Typography.Text type="secondary">{t('integrations.reconciliation.missingOrdersDescription')}</Typography.Text>
             </div>
-            <Space>
+            {canRepair && <Space>
               <Typography.Text type="secondary">
                 {t('integrations.reconciliation.selectedCount', { count: selectedRowKeys.length })}
               </Typography.Text>
@@ -194,7 +198,7 @@ export function ReconciliationPage(): JSX.Element {
               >
                 {t('integrations.reconciliation.actions.repair')}
               </Button>
-            </Space>
+            </Space>}
           </div>
           <Table<ShopifyMissingOrder>
             columns={columns}
@@ -202,11 +206,11 @@ export function ReconciliationPage(): JSX.Element {
             locale={{ emptyText: t('integrations.reconciliation.empty') }}
             pagination={{ pageSize: 20, showSizeChanger: true }}
             rowKey={rowKey}
-            rowSelection={{
+            rowSelection={canRepair ? {
               getCheckboxProps: (row) => ({ disabled: row.repairEligible !== true || row.rawEventId === undefined }),
               onChange: setSelectedRowKeys,
               selectedRowKeys,
-            }}
+            } : undefined}
             scroll={{ x: 1050 }}
           />
         </>
