@@ -208,6 +208,8 @@
                     <source>17</source>
                     <target>17</target>
                     <encoding>UTF-8</encoding>
+                    <!-- Spring cache/security SpEL expressions rely on Java parameter names. -->
+                    <parameters>true</parameters>
                     <!-- 启用注解处理器（Lombok 需要） -->
                     <annotationProcessorPaths>
                         <path>
@@ -216,6 +218,21 @@
                             <version>${lombok.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- Include the two integration suites whose historical class names do not match Surefire defaults. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*TestCase.java</include>
+                        <include>**/ApiEndpointTestSuite.java</include>
+                        <include>**/CompleteModuleIntegrationTestFixed.java</include>
+                    </includes>
                 </configuration>
             </plugin>
         </plugins>

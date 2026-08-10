@@ -6,6 +6,9 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
+# Node.js dependencies（根目录和前端目录均不提交）
+node_modules/
+
 # IDE 相关文件
 .idea/
 *.iml
