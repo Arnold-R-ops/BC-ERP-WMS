@@ -31,13 +31,13 @@ import java.util.List;
  * </pre>
  *
  * Usage:
- * - User management interfaces (SUPER_ADMIN only)
+ * - User management interfaces (TENANT_ADMIN only)
  * - Display user list with role assignments
  * - User profile viewing
  *
  * Security:
  * - Password is NEVER included in this DTO
- * - Only accessible by SUPER_ADMIN role
+ * - Only accessible by TENANT_ADMIN role
  *
  * @author WMS Team
  * @since 2026-01-20

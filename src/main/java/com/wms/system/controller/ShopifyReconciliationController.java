@@ -21,7 +21,7 @@ public class ShopifyReconciliationController {
     private final ShopifyReconciliationService reconciliationService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('integration:reconcile:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('integration:reconcile:view', 'TENANT_ADMIN')")
     public ResponseEntity<ShopifyReconciliationReport> reconcile(
         @Valid @RequestBody ShopifyReconciliationRequest request
     ) {
@@ -29,7 +29,7 @@ public class ShopifyReconciliationController {
     }
 
     @PostMapping("/repair")
-    @PreAuthorize("hasAnyAuthority('integration:reconcile:repair', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('integration:reconcile:repair', 'TENANT_ADMIN')")
     public ResponseEntity<ShopifyReconciliationRepairResult> repair(
         @Valid @RequestBody ShopifyReconciliationRepairRequest request,
         Authentication authentication

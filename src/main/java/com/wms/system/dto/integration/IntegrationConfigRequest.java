@@ -57,7 +57,7 @@ public class IntegrationConfigRequest {
 
     /**
      * Null on update means "leave unchanged". Enabling or disabling this
-     * field requires SUPER_ADMIN authority.
+     * field requires TENANT_ADMIN authority.
      */
     private Boolean retailMode;
 }

@@ -41,7 +41,7 @@ class HistoricalTestDataArchiveControllerTest {
     @MockBean private HistoricalTestDataArchiveService archiveService;
 
     @Test
-    @WithMockUser(username = "admin", authorities = "SUPER_ADMIN")
+    @WithMockUser(username = "admin", authorities = "TENANT_ADMIN")
     void superAdminCanPreview() throws Exception {
         when(archiveService.preview(13L)).thenReturn(HistoricalTestDataArchivePreview.builder()
             .salesOrderId(13L)
@@ -60,7 +60,7 @@ class HistoricalTestDataArchiveControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = "SUPER_ADMIN")
+    @WithMockUser(username = "admin", authorities = "TENANT_ADMIN")
     void superAdminCanSubmitValidatedRequest() throws Exception {
         HistoricalTestDataArchiveRequest request = HistoricalTestDataArchiveRequest.builder()
             .reason("Archive V4.4 historical test data")
@@ -97,7 +97,7 @@ class HistoricalTestDataArchiveControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = "SUPER_ADMIN")
+    @WithMockUser(username = "admin", authorities = "TENANT_ADMIN")
     void invalidSubmissionIsRejectedBeforeService() throws Exception {
         HistoricalTestDataArchiveRequest request = HistoricalTestDataArchiveRequest.builder()
             .reason("")
@@ -113,7 +113,7 @@ class HistoricalTestDataArchiveControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = "SUPER_ADMIN")
+    @WithMockUser(username = "admin", authorities = "TENANT_ADMIN")
     void openApiPublishesPreviewAndArchiveContracts() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
             .andExpect(status().isOk())

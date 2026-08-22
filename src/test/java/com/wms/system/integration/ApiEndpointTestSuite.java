@@ -177,11 +177,22 @@ class ApiEndpointTestSuite {
 
         @Test
         @Order(2)
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
         void testSwitchRole() throws Exception {
-            String switchRequest = json(Map.of("targetRoleCode", "SUPER_ADMIN"));
+            String loginRequest = json(Map.of(
+                "username", "admin",
+                "password", "password123"
+            ));
+            MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(loginRequest))
+                .andExpect(status().isOk())
+                .andReturn();
+            String token = objectMapper.readTree(
+                loginResult.getResponse().getContentAsString()).path("token").asText();
+            String switchRequest = json(Map.of("targetRoleCode", "TENANT_ADMIN"));
 
             mockMvc.perform(post("/api/auth/switch-role")
+                    .header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(switchRequest))
                 .andDo(print())
@@ -204,7 +215,7 @@ class ApiEndpointTestSuite {
     class UserApiTests {
 
         @Test
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+        @WithMockUser(username = "admin", roles = {"TENANT_ADMIN"})
         void testGetAllUsers() throws Exception {
             mockMvc.perform(get("/api/users"))
                 .andDo(print())
@@ -213,7 +224,7 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+        @WithMockUser(username = "admin", roles = {"TENANT_ADMIN"})
         void testCreateUser() throws Exception {
             Long roleId = superAdminRoleId();
             String username = "newuser" + nextId();
@@ -231,11 +242,11 @@ class ApiEndpointTestSuite {
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value(username))
-                .andExpect(jsonPath("$.roleCodes", hasItem("SUPER_ADMIN")));
+                .andExpect(jsonPath("$.roleCodes", hasItem("TENANT_ADMIN")));
         }
 
         @Test
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+        @WithMockUser(username = "admin", roles = {"TENANT_ADMIN"})
         void testGetUserById() throws Exception {
             mockMvc.perform(get("/api/users"))
                 .andDo(print())
@@ -244,7 +255,7 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+        @WithMockUser(username = "admin", roles = {"TENANT_ADMIN"})
         void testUpdateUser() throws Exception {
             User user = userRepository.save(User.builder()
                 .username("upd" + nextId())
@@ -268,7 +279,7 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+        @WithMockUser(username = "admin", roles = {"TENANT_ADMIN"})
         void testDeleteUser() throws Exception {
             User user = userRepository.save(User.builder()
                 .username("del" + nextId())
@@ -283,7 +294,7 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+        @WithMockUser(username = "admin", roles = {"TENANT_ADMIN"})
         void testAssignRoles() throws Exception {
             Long roleId = superAdminRoleId();
             User user = userRepository.save(User.builder()
@@ -299,7 +310,7 @@ class ApiEndpointTestSuite {
                     .content(rolesRequest))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roleCodes", hasItem("SUPER_ADMIN")));
+                .andExpect(jsonPath("$.roleCodes", hasItem("TENANT_ADMIN")));
         }
     }
 
@@ -466,9 +477,7 @@ class ApiEndpointTestSuite {
         @WithMockUser(username = "sales", authorities = {"customer:create", "SALESPERSON"})
         void testCreateCustomer_AutoSetOwner() throws Exception {
             User sales = ensureUser("sales");
-            String code = "CUST-" + nextId();
             String createRequest = json(Map.of(
-                "code", code,
                 "name", "Test Customer",
                 "contact", "Zhang San",
                 "phone", "13912345678",
@@ -478,14 +487,17 @@ class ApiEndpointTestSuite {
                 "isActive", true
             ));
 
-            mockMvc.perform(post("/api/customers")
+            MvcResult result = mockMvc.perform(post("/api/customers")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code").value(code));
+                .andExpect(jsonPath("$.code", matchesPattern("\\d+")))
+                .andReturn();
 
-            Customer saved = customerRepository.findByCode(code).orElseThrow();
+            String generatedCode = objectMapper.readTree(
+                result.getResponse().getContentAsString()).get("code").asText();
+            Customer saved = customerRepository.findByCode(generatedCode).orElseThrow();
             assertEquals(sales.getId(), saved.getOwnerId());
         }
 
@@ -1062,9 +1074,9 @@ class ApiEndpointTestSuite {
     }
 
     private SysRole ensureSuperAdminRole() {
-        return sysRoleRepository.findByRoleCode("SUPER_ADMIN")
+        return sysRoleRepository.findByRoleCode("TENANT_ADMIN")
             .orElseGet(() -> sysRoleRepository.save(SysRole.builder()
-                .roleCode("SUPER_ADMIN")
+                .roleCode("TENANT_ADMIN")
                 .roleName("Super Admin")
                 .description("Created by ApiEndpointTestSuite")
                 .roleType("SYSTEM")

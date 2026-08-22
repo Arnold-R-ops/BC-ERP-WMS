@@ -33,6 +33,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -59,6 +60,20 @@ class RoleGovernanceServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(roleRepository.existsByCompanyIdAndRoleCode(eq(1L), any(String.class)))
+            .thenAnswer(invocation -> roleRepository.existsByRoleCode(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndIdForUpdate(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> roleRepository.findByIdForUpdate(invocation.getArgument(1)));
+        lenient().when(roleInheritRepository.findParentRoleIdsByCompanyIdAndChildRoleId(
+                eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> roleInheritRepository
+                .findParentRoleIdsByChildRoleId(invocation.getArgument(1)));
+        lenient().when(rolePermissionRepository.findPermissionIdsByCompanyIdAndRoleId(
+                eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> rolePermissionRepository
+                .findPermissionIdsByRoleId(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> permissionRepository.findByIdIn(invocation.getArgument(1)));
         role = SysRole.builder()
                 .id(41L)
                 .roleCode("CUSTOM_WAREHOUSE")
@@ -180,7 +195,7 @@ class RoleGovernanceServiceTest {
         assertThat(result.getAction()).isEqualTo("UPDATE_DRAFT");
         assertThat(result.getHighRiskCount()).isEqualTo(1);
         assertThat(role.getRoleName()).isEqualTo("Warehouse custom v2");
-        verify(rolePermissionRepository).deleteByRoleId(41L);
+        verify(rolePermissionRepository).deleteByCompanyIdAndRoleId(1L, 41L);
         verify(rolePermissionRepository).saveAll(any());
         verify(securityVersionService).bumpForRoleAndDescendants(41L);
 
@@ -271,7 +286,7 @@ class RoleGovernanceServiceTest {
                 RoleReviewRequest.builder().approved(true).comment("Approved").build(),
                 8L,
                 "super.reviewer",
-                SysRole.SUPER_ADMIN_ROLE_CODE
+                SysRole.TENANT_ADMIN_ROLE_CODE
         );
 
         assertThat(result.getAction()).isEqualTo("APPROVE");

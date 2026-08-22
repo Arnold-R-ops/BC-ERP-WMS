@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static com.wms.system.tenant.context.CompanyScope.LEGACY_COMPANY_ID;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryQueryServiceTest {
@@ -46,7 +47,7 @@ class InventoryQueryServiceTest {
     void getSummaryMapsProjectionAndUsesAvailableStockForStatus() {
         Pageable pageable = PageRequest.of(0, 20);
         InventoryBatchRepository.InventorySummaryRow row = summaryRow(32, 5, 27, 30);
-        when(inventoryBatchRepository.findInventorySummaryRows("", pageable))
+        when(inventoryBatchRepository.findInventorySummaryRows(LEGACY_COMPANY_ID, "", pageable))
             .thenReturn(new PageImpl<>(List.of(row), pageable, 1));
 
         Page<InventorySummaryDto> result = inventoryQueryService.getSummary(pageable, null);
@@ -66,7 +67,7 @@ class InventoryQueryServiceTest {
     void getSummaryMarksSufficientStock() {
         Pageable pageable = PageRequest.of(0, 20);
         InventoryBatchRepository.InventorySummaryRow row = summaryRow(32, 5, 27, 20);
-        when(inventoryBatchRepository.findInventorySummaryRows("tea", pageable))
+        when(inventoryBatchRepository.findInventorySummaryRows(LEGACY_COMPANY_ID, "tea", pageable))
             .thenReturn(new PageImpl<>(List.of(row), pageable, 1));
 
         InventorySummaryDto summary = inventoryQueryService
@@ -75,13 +76,13 @@ class InventoryQueryServiceTest {
             .get(0);
 
         assertThat(summary.getStockStatus()).isEqualTo(StockStatus.SUFFICIENT);
-        verify(inventoryBatchRepository).findInventorySummaryRows("tea", pageable);
+        verify(inventoryBatchRepository).findInventorySummaryRows(LEGACY_COMPANY_ID, "tea", pageable);
     }
 
     @Test
     void getSummaryReturnsEmptyPage() {
         Pageable pageable = PageRequest.of(0, 20);
-        when(inventoryBatchRepository.findInventorySummaryRows("", pageable))
+        when(inventoryBatchRepository.findInventorySummaryRows(LEGACY_COMPANY_ID, "", pageable))
             .thenReturn(Page.empty(pageable));
 
         assertThat(inventoryQueryService.getSummary(pageable, "")).isEmpty();

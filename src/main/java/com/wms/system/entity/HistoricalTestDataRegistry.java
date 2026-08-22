@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.TenantId;
 
 import java.time.LocalDateTime;
 
@@ -25,6 +26,7 @@ public class HistoricalTestDataRegistry {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @TenantId
     @Column(name = "company_id", nullable = false)
     private Long companyId;
 

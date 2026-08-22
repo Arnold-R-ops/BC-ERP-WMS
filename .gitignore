@@ -56,6 +56,7 @@ tmpclaude-*
 
 # 本地数据库备份（可能包含业务数据，严禁提交远程仓库）
 backups/
+data/platform-exports/
 
 # Codex/Claude 本机启动配置
 .claude/launch.json

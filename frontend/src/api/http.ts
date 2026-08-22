@@ -30,6 +30,7 @@ export class ApiError extends Error {
 interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   suppressAuthEvents?: boolean;
+  omitAuth?: boolean;
 }
 
 interface ApiRawRequestOptions extends Omit<RequestInit, 'body'> {
@@ -50,11 +51,11 @@ async function readErrorBody(response: Response): Promise<ApiErrorBody | undefin
   }
 }
 
-function buildHeaders(headersInit?: HeadersInit): Headers {
+function buildHeaders(headersInit?: HeadersInit, omitAuth = false): Headers {
   const headers = new Headers(headersInit);
   const session = readAuthSession();
 
-  if (session?.token) {
+  if (!omitAuth && session?.token) {
     headers.set('Authorization', `${session.tokenType} ${session.token}`);
   }
 
@@ -84,7 +85,7 @@ export async function apiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
-  const headers = buildHeaders(options.headers);
+  const headers = buildHeaders(options.headers, options.omitAuth);
 
   if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json');

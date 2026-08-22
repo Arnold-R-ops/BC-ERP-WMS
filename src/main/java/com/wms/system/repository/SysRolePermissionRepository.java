@@ -41,6 +41,8 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      */
     List<SysRolePermission> findByRoleId(Long roleId);
 
+    List<SysRolePermission> findByCompanyIdAndRoleId(Long companyId, Long roleId);
+
     /**
      * Find role-permission associations by permission ID
      *
@@ -48,6 +50,9 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      * @return List of role-permission associations
      */
     List<SysRolePermission> findByPermissionId(Long permissionId);
+
+    List<SysRolePermission> findByCompanyIdAndPermissionId(
+        Long companyId, Long permissionId);
 
     /**
      * Check if role has specific permission
@@ -57,6 +62,9 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      * @return true if association exists
      */
     boolean existsByRoleIdAndPermissionId(Long roleId, Long permissionId);
+
+    boolean existsByCompanyIdAndRoleIdAndPermissionId(
+        Long companyId, Long roleId, Long permissionId);
 
     /**
      * Delete role-permission association
@@ -68,6 +76,14 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
     @Query("DELETE FROM SysRolePermission srp WHERE srp.roleId = :roleId AND srp.permissionId = :permissionId")
     void deleteByRoleIdAndPermissionId(@Param("roleId") Long roleId, @Param("permissionId") Long permissionId);
 
+    @Modifying
+    @Query("DELETE FROM SysRolePermission srp WHERE srp.companyId = :companyId AND srp.roleId = :roleId AND srp.permissionId = :permissionId")
+    void deleteByCompanyIdAndRoleIdAndPermissionId(
+        @Param("companyId") Long companyId,
+        @Param("roleId") Long roleId,
+        @Param("permissionId") Long permissionId
+    );
+
     /**
      * Delete all permissions for a role
      *
@@ -75,6 +91,9 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      */
     @Modifying
     void deleteByRoleId(Long roleId);
+
+    @Modifying
+    void deleteByCompanyIdAndRoleId(Long companyId, Long roleId);
 
     /**
      * Delete all roles for a permission
@@ -93,6 +112,12 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
     @Query("SELECT srp.permissionId FROM SysRolePermission srp WHERE srp.roleId = :roleId")
     Set<Long> findPermissionIdsByRoleId(@Param("roleId") Long roleId);
 
+    @Query("SELECT srp.permissionId FROM SysRolePermission srp WHERE srp.companyId = :companyId AND srp.roleId = :roleId")
+    Set<Long> findPermissionIdsByCompanyIdAndRoleId(
+        @Param("companyId") Long companyId,
+        @Param("roleId") Long roleId
+    );
+
     /**
      * Get all role IDs for a permission
      *
@@ -101,6 +126,12 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      */
     @Query("SELECT srp.roleId FROM SysRolePermission srp WHERE srp.permissionId = :permissionId")
     Set<Long> findRoleIdsByPermissionId(@Param("permissionId") Long permissionId);
+
+    @Query("SELECT srp.roleId FROM SysRolePermission srp WHERE srp.companyId = :companyId AND srp.permissionId = :permissionId")
+    Set<Long> findRoleIdsByCompanyIdAndPermissionId(
+        @Param("companyId") Long companyId,
+        @Param("permissionId") Long permissionId
+    );
 
     /**
      * Find role-permission associations by role ID set (for batch queries)
@@ -111,6 +142,12 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      */
     @Query("SELECT srp FROM SysRolePermission srp WHERE srp.roleId IN :roleIds")
     List<SysRolePermission> findByRoleIdIn(@Param("roleIds") Set<Long> roleIds);
+
+    @Query("SELECT srp FROM SysRolePermission srp WHERE srp.companyId = :companyId AND srp.roleId IN :roleIds")
+    List<SysRolePermission> findByCompanyIdAndRoleIdIn(
+        @Param("companyId") Long companyId,
+        @Param("roleIds") Set<Long> roleIds
+    );
 
     /**
      * Find role-permission associations with permission details (eager loading)
@@ -127,6 +164,20 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
            "AND (r.roleType = 'SYSTEM' OR p.customAssignable = true)")
     List<SysRolePermission> findByRoleIdInWithPermission(@Param("roleIds") Set<Long> roleIds);
 
+    @Query("SELECT srp FROM SysRolePermission srp " +
+           "JOIN FETCH srp.permission p " +
+           "JOIN FETCH srp.role r " +
+           "WHERE srp.companyId = :companyId " +
+           "AND p.companyId = :companyId " +
+           "AND r.companyId = :companyId " +
+           "AND srp.roleId IN :roleIds " +
+           "AND p.status = 'ACTIVE' " +
+           "AND (r.roleType = 'SYSTEM' OR p.customAssignable = true)")
+    List<SysRolePermission> findByCompanyIdAndRoleIdInWithPermission(
+        @Param("companyId") Long companyId,
+        @Param("roleIds") Set<Long> roleIds
+    );
+
     /**
      * Count permissions for specific role
      *
@@ -135,6 +186,8 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      */
     long countByRoleId(Long roleId);
 
+    long countByCompanyIdAndRoleId(Long companyId, Long roleId);
+
     /**
      * Count roles with specific permission
      *
@@ -142,6 +195,8 @@ public interface SysRolePermissionRepository extends JpaRepository<SysRolePermis
      * @return Number of roles
      */
     long countByPermissionId(Long permissionId);
+
+    long countByCompanyIdAndPermissionId(Long companyId, Long permissionId);
 
     /**
      * Find all API permissions for a role (for authorization)

@@ -101,10 +101,10 @@ class LocationControllerIntegrationTest {
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
 
-        // Ensure SUPER_ADMIN role exists for integration tests
-        warehouseAdminRole = roleRepository.findByRoleCode("SUPER_ADMIN")
+        // Ensure TENANT_ADMIN role exists for integration tests
+        warehouseAdminRole = roleRepository.findByRoleCode("TENANT_ADMIN")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
-                        .roleCode("SUPER_ADMIN")
+                        .roleCode("TENANT_ADMIN")
                         .roleName("闂佺儵鍓濈敮鎺楀箠閹邦収娈介柛銉㈡櫇娑撳秹鏌ㄥ☉妯侯仾闁稿﹦鍋ら弻?")
                         .sortOrder(1)
                         .status("ACTIVE")
@@ -128,7 +128,10 @@ class LocationControllerIntegrationTest {
                 .build());
 
         // 闂備焦鐪归崹濠氬窗閹版澘鍨?JWT Token
-        warehouseAdminToken = jwtUtil.generateToken(warehouseAdminUser.getUsername(), "SUPER_ADMIN");
+        warehouseAdminToken = jwtUtil.generateTenantToken(
+            warehouseAdminUser.getId(), warehouseAdminUser.getCompanyId(),
+            warehouseAdminUser.getUsername(), "TENANT_ADMIN",
+            warehouseAdminUser.getSecurityVersion());
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵¤尙顭堥湁闁绘娅曠亸顓犵磼?
         testWarehouse = Warehouse.builder()

@@ -52,6 +52,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- SMTP delivery for signup email verification. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Spring Retry (重试机制，用于处理乐观锁冲突) -->
         <dependency>
             <groupId>org.springframework.retry</groupId>

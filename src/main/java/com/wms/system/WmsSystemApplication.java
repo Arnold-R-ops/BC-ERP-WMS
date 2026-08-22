@@ -2,6 +2,10 @@ package com.wms.system;
 
 import com.wms.system.entity.User;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.tenant.persistence.CompanyScopedJpaRepository;
+import com.wms.system.tenant.persistence.CompanyRlsJpaTransactionManager;
+import com.wms.system.tenant.persistence.CompanyTenantIdentifierResolver;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,11 +13,16 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import javax.sql.DataSource;
 
 import java.security.SecureRandom;
 import java.util.TimeZone;
@@ -38,6 +47,7 @@ import java.util.TimeZone;
 @EnableRetry  // Enable retry mechanism for @Retryable in InventoryService
 @EnableScheduling
 @EnableTransactionManagement
+@EnableJpaRepositories(repositoryBaseClass = CompanyScopedJpaRepository.class)
 public class WmsSystemApplication {
 
     static {
@@ -46,6 +56,23 @@ public class WmsSystemApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(WmsSystemApplication.class, args);
+    }
+
+    /**
+     * Registered on the root application configuration so JPA test slices and
+     * the production application use the exact same company discriminator.
+     */
+    @Bean
+    public CompanyTenantIdentifierResolver companyTenantIdentifierResolver() {
+        return new CompanyTenantIdentifierResolver();
+    }
+
+    /** Sets PostgreSQL's transaction-local company id before any ORM query. */
+    @Bean
+    public PlatformTransactionManager transactionManager(
+            EntityManagerFactory entityManagerFactory,
+            DataSource dataSource) {
+        return new CompanyRlsJpaTransactionManager(entityManagerFactory, dataSource);
     }
 
     /**
@@ -90,6 +117,10 @@ public class WmsSystemApplication {
      */
     @Bean
     @Transactional
+    @ConditionalOnProperty(
+        name = "wms.legacy-admin-bootstrap-enabled",
+        havingValue = "true"
+    )
     public CommandLineRunner initAdminUser(UserRepository userRepository,
                                             PasswordEncoder passwordEncoder,
                                             @Value("${ADMIN_INITIAL_PASSWORD:}") String initialPassword) {

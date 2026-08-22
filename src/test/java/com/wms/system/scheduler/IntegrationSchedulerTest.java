@@ -1,6 +1,8 @@
 package com.wms.system.scheduler;
 
 import com.wms.system.service.ShopifyIntegrationService;
+import com.wms.system.tenant.model.Tenant;
+import com.wms.system.tenant.task.ActiveCompanyTaskRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.Mockito.*;
+import java.util.function.Consumer;
 
 /**
  * IntegrationScheduler 闂佸憡顨嗗ú鏍储閹捐秮鍦偓锝庡幘濡?
@@ -31,6 +34,9 @@ class IntegrationSchedulerTest {
     @Mock
     private ShopifyIntegrationService shopifyIntegrationService;
 
+    @Mock
+    private ActiveCompanyTaskRunner activeCompanyTaskRunner;
+
     @InjectMocks
     private IntegrationScheduler integrationScheduler;
 
@@ -39,6 +45,17 @@ class IntegrationSchedulerTest {
 
     @BeforeEach
     void setUp() {
+        lenient().doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Consumer<Tenant> action = invocation.getArgument(1);
+            try {
+                action.accept(Tenant.builder().id(1L).slug("legacy").build());
+            } catch (RuntimeException ignored) {
+                // Production ActiveCompanyTaskRunner logs per-company failures
+                // and continues with the remaining companies.
+            }
+            return null;
+        }).when(activeCompanyTaskRunner).forEachActiveCompany(anyString(), any());
         // 闂佸憡甯楃粙鎴犵磽閹捐绠ｉ柟閭﹀墮椤娀鏌ｉ妸銉ヮ仼闁诡喗鎸搁～銏ゅΨ瑜忓▔銏ゆ煛?
         successResult = new ShopifyIntegrationService.SyncResult();
         successResult.incrementSuccess();

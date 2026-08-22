@@ -65,7 +65,7 @@ class CompleteModuleIntegrationTestFixed {
 
     @Test
     @Order(2)
-    @WithMockUser(username = "admin", authorities = {"warehouse:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"warehouse:view", "TENANT_ADMIN"})
     @DisplayName("case-3")
     void testModule2_Warehouse_ListAll() throws Exception {
         mockMvc.perform(get("/api/warehouses"))
@@ -91,7 +91,7 @@ class CompleteModuleIntegrationTestFixed {
 
     @Test
     @Order(4)
-    @WithMockUser(username = "admin", authorities = {"inventory:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"inventory:view", "TENANT_ADMIN"})
     @DisplayName("case-5")
     void testModule4_Inventory_QuerySummary() throws Exception {
         mockMvc.perform(get("/api/inventory/summary")
@@ -117,7 +117,7 @@ class CompleteModuleIntegrationTestFixed {
 
     @Test
     @Order(6)
-    @WithMockUser(username = "admin", authorities = {"customer:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"customer:view", "TENANT_ADMIN"})
     @DisplayName("case-7")
     void testModule5_Customer_AdminViewWithoutMasking() throws Exception {
         mockMvc.perform(get("/api/customers"))
@@ -166,7 +166,7 @@ class CompleteModuleIntegrationTestFixed {
 
     @Test
     @Order(10)
-    @WithMockUser(username = "admin", authorities = {"stocktake:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"stocktake:view", "TENANT_ADMIN"})
     @DisplayName("case-11")
     void testModule8_Stocktake_ListTasks() throws Exception {
         mockMvc.perform(get("/api/stocktake/tasks"))
@@ -191,7 +191,7 @@ class CompleteModuleIntegrationTestFixed {
 
     @Test
     @Order(12)
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("case-13")
     void testE2E_CompleteBusinessFlowSmokeTest() throws Exception {
         // Test authentication

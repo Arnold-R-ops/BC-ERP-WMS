@@ -134,6 +134,15 @@ public class Customer extends BaseEntity {
     @Column(length = 255)
     private String address;
 
+    @Column(name = "vat_rate", precision = 5, scale = 2)
+    private BigDecimal vatRate;
+
+    @Column(name = "secondary_tax_rate", precision = 5, scale = 2)
+    private BigDecimal secondaryTaxRate;
+
+    @Column(name = "vat_number", length = 100)
+    private String vatNumber;
+
     /**
      * 信用额度（预留 ERP 扩展）
      *

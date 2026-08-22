@@ -3,12 +3,14 @@ package com.wms.system.service;
 import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
 import com.wms.system.entity.Customer;
+import com.wms.system.entity.SystemConfig;
 import com.wms.system.entity.User;
 import com.wms.system.entity.enums.CustomerSource;
 import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CustomerRepository;
+import com.wms.system.repository.SystemConfigRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.util.MaskingUtils;
@@ -50,6 +52,8 @@ class CustomerServiceTest {
     @Mock
     private CustomerRepository customerRepository;
     @Mock
+    private SystemConfigRepository systemConfigRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private SecurityContext securityContext;
@@ -63,6 +67,7 @@ class CustomerServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         testCustomer = Customer.builder()
             .id(1L)
             .code("CUST001")
@@ -94,7 +99,8 @@ class CustomerServiceTest {
             .build();
 
         mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SALESPERSON")));
-        when(customerRepository.existsByCode("CUST001")).thenReturn(false);
+        mockNextCustomerCode(1L);
+        when(customerRepository.existsByCode("1")).thenReturn(false);
         when(customerRepository.save(any(Customer.class))).thenReturn(testCustomer);
 
         CustomerResponse response = customerService.createCustomer(request);
@@ -117,7 +123,8 @@ class CustomerServiceTest {
             .name(CUSTOMER_NAME)
             .build();
 
-        when(customerRepository.existsByCode("CUST001")).thenReturn(true);
+        mockNextCustomerCode(1L);
+        when(customerRepository.existsByCode("1")).thenReturn(true);
 
         assertThatThrownBy(() -> customerService.createCustomer(request))
             .isInstanceOf(BusinessException.class);
@@ -145,7 +152,7 @@ class CustomerServiceTest {
     @Test
     @DisplayName("listCustomers admin all unmasked")
     void testListCustomersAdminAllCustomers() {
-        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("TENANT_ADMIN")));
         when(customerRepository.findAll()).thenReturn(List.of(testCustomer));
 
         List<CustomerResponse> responses = customerService.listCustomers();
@@ -161,7 +168,7 @@ class CustomerServiceTest {
     @Test
     @DisplayName("listCustomers admin filters CLIENT in repository")
     void testListCustomersAdminFiltersClient() {
-        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("TENANT_ADMIN")));
         when(customerRepository.findByCustomerType(CustomerType.CLIENT)).thenReturn(List.of(testCustomer));
 
         List<CustomerResponse> responses = customerService.listCustomers(CustomerType.CLIENT);
@@ -229,7 +236,7 @@ class CustomerServiceTest {
     @Test
     @DisplayName("getCustomer admin original")
     void testGetCustomerAdminOriginalData() {
-        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("TENANT_ADMIN")));
         when(customerRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
 
         CustomerResponse response = customerService.getCustomer(1L);
@@ -264,7 +271,7 @@ class CustomerServiceTest {
             .isActive(true)
             .build();
 
-        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("TENANT_ADMIN")));
         when(customerRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
         when(customerRepository.save(any(Customer.class))).thenReturn(testCustomer);
 
@@ -333,7 +340,7 @@ class CustomerServiceTest {
     @Test
     @DisplayName("deleteCustomer soft delete")
     void testDeleteCustomerSuccessSoftDelete() {
-        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("SUPER_ADMIN")));
+        mockSecurityContext(1L, List.of(new SimpleGrantedAuthority("TENANT_ADMIN")));
         when(customerRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
         when(customerRepository.save(any(Customer.class))).thenReturn(testCustomer);
 
@@ -396,5 +403,15 @@ class CustomerServiceTest {
         lenient().when(authentication.getName()).thenReturn("testuser");
 
         SecurityContextHolder.setContext(securityContext);
+    }
+
+    private void mockNextCustomerCode(long nextNumber) {
+        SystemConfig sequence = SystemConfig.builder()
+            .configKey("customer.code.next_number")
+            .configValue(Long.toString(nextNumber))
+            .configType("INTEGER")
+            .build();
+        when(systemConfigRepository.findByConfigKeyForUpdate("customer.code.next_number"))
+            .thenReturn(Optional.of(sequence));
     }
 }

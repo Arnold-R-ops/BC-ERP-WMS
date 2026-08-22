@@ -62,7 +62,7 @@ public class SalesOrderController {
      * Returns: Excel file (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
      */
     @GetMapping("/template")
-    @PreAuthorize("hasAnyAuthority('sales:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:create', 'TENANT_ADMIN')")
     public ResponseEntity<byte[]> downloadTemplate() {
         log.info("API调用: downloadTemplate");
 
@@ -92,7 +92,7 @@ public class SalesOrderController {
      * Returns: List<SalesOrderItemData>
      */
     @PostMapping("/upload")
-    @PreAuthorize("hasAnyAuthority('sales:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:create', 'TENANT_ADMIN')")
     public ResponseEntity<List<CreateSalesOrderRequest.SalesOrderItemData>> uploadExcel(
         @RequestParam("file") MultipartFile file
     ) {
@@ -120,7 +120,7 @@ public class SalesOrderController {
      * Returns: List<BatchOptionDto>
      */
     @PostMapping("/batch-options")
-    @PreAuthorize("hasAnyAuthority('sales:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:create', 'TENANT_ADMIN')")
     public ResponseEntity<List<BatchOptionDto>> getBatchOptions(
         @RequestParam("productSkuId") Long productSkuId,
         @RequestParam("quantity") Integer quantity,
@@ -147,7 +147,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('sales:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:create', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> createSalesOrder(
         @Valid @RequestBody CreateSalesOrderRequest request,
         Authentication authentication
@@ -182,7 +182,7 @@ public class SalesOrderController {
      * Returns: List<SalesOrderResponse>
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<SalesOrderResponse>> listSalesOrders(
         @RequestParam(value = "status", required = false) String status,
         @RequestParam(value = "customerId", required = false) Long customerId
@@ -207,7 +207,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> getSalesOrder(@PathVariable("id") Long id) {
         log.info("API调用: getSalesOrder - id: {}", id);
 
@@ -230,7 +230,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('sales:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:edit', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> updateSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody UpdateSalesOrderRequest request,
@@ -260,7 +260,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyAuthority('sales:approve', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:approve', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> approveSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody ApprovalRequest request,
@@ -298,7 +298,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('sales:reject', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:reject', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> rejectSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody ApprovalRequest request,
@@ -333,7 +333,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyAuthority('sales:cancel', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:cancel', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> cancelSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody CancelOrderRequest request,
@@ -367,7 +367,7 @@ public class SalesOrderController {
      * Returns: SalesOrderResponse
      */
     @PostMapping("/{id}/void")
-    @PreAuthorize("hasAnyAuthority('sales:void', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:void', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> voidSalesOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody CancelOrderRequest request,

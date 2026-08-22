@@ -32,7 +32,7 @@ describe('responsive application navigation', () => {
       availableRoles: ['WAREHOUSE_STAFF'],
       currentRole: 'WAREHOUSE_STAFF',
       permissionCodes: ['menu:warehouse-mobile'],
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000,
       mustChangePassword: false,
       token: 'test-token',
       tokenType: 'Bearer',
@@ -70,5 +70,36 @@ describe('responsive application navigation', () => {
 
     expect(await screen.findByText('receiving destination')).toBeVisible();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('groups the desktop account controls and opens the account menu', async () => {
+    setMobileViewport(false);
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ConfigProvider>
+          <AntdApp>
+            <AuthProvider>
+              <Routes>
+                <Route element={<AppLayout />}>
+                  <Route element={<div>dashboard body</div>} index />
+                </Route>
+              </Routes>
+            </AuthProvider>
+          </AntdApp>
+        </ConfigProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: '切换组织机构' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '语言' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '帮助' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '系统公告' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: '打开账户菜单' }));
+
+    expect(await screen.findAllByRole('menuitem', { name: '账户设置' })).not.toHaveLength(0);
+    expect(screen.getAllByRole('menuitem', { name: '个人资料' })).not.toHaveLength(0);
+    expect(screen.getAllByRole('menuitem', { name: '修改密码' })).not.toHaveLength(0);
   });
 });

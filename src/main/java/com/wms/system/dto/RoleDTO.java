@@ -32,13 +32,13 @@ public class RoleDTO {
 
     /**
      * Role Code (unique identifier)
-     * Examples: SUPER_ADMIN, CHAIRMAN, WAREHOUSE_ADMIN
+     * Examples: TENANT_ADMIN, CHAIRMAN, WAREHOUSE_ADMIN
      */
     private String roleCode;
 
     /**
      * Role Name (display name)
-     * Examples: 超级管理员, 董事长
+     * Examples: 公司管理员, 董事长
      */
     private String roleName;
 
@@ -119,7 +119,7 @@ public class RoleDTO {
     }
 
     public boolean isPrivilegedRole() {
-        return "SUPER_ADMIN".equals(this.roleCode)
+        return "TENANT_ADMIN".equals(this.roleCode)
                 || "PRIVILEGED".equals(this.systemCategory);
     }
 

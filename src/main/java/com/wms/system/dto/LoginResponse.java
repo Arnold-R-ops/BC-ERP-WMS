@@ -68,7 +68,7 @@ public class LoginResponse {
      * This is the role embedded in the JWT token's 'current_role' claim.
      * All authorization checks (@PreAuthorize) are based on this role.
      *
-     * Example: "SUPER_ADMIN", "WAREHOUSE_ADMIN", "SALESPERSON"
+     * Example: "TENANT_ADMIN", "WAREHOUSE_ADMIN", "SALESPERSON"
      *
      * @since v3.3 (Multi-Role System)
      */
@@ -99,6 +99,9 @@ public class LoginResponse {
      * Example: 86400000 ms = 24 hours
      */
     private Long expiresIn;
+
+    /** Absolute tenant ERP sign-in deadline in Unix epoch milliseconds. */
+    private Long sessionEndsAt;
 
     /**
      * Forced password change indicator (P0.5)

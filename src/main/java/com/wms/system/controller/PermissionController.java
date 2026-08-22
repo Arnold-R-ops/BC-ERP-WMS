@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/permissions")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY_ADMIN')")
+@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'SECURITY_ADMIN')")
 public class PermissionController {
 
     private final PermissionService permissionService;

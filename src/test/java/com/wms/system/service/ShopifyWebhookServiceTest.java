@@ -12,6 +12,11 @@ import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.OutboundTaskRepository;
 import com.wms.system.repository.SalesOrderRepository;
+import com.wms.system.tenant.model.Tenant;
+import com.wms.system.tenant.model.ChannelWebhookRoute;
+import com.wms.system.tenant.model.TenantStatus;
+import com.wms.system.tenant.repository.TenantRepository;
+import com.wms.system.tenant.repository.ChannelWebhookRouteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 /**
  * ShopifyWebhookService 单元测试（P1 批次3）
@@ -44,6 +50,12 @@ class ShopifyWebhookServiceTest {
 
     @Mock
     private IntegrationConfigRepository integrationConfigRepository;
+
+    @Mock
+    private ChannelWebhookRouteRepository channelWebhookRouteRepository;
+
+    @Mock
+    private TenantRepository tenantRepository;
 
     @Mock
     private ChannelRawEventService rawEventService;
@@ -80,6 +92,7 @@ class ShopifyWebhookServiceTest {
     void setUp() {
         config = IntegrationConfig.builder()
             .id(1L).platform("SHOPIFY").storeUrl(SHOP)
+            .canonicalStoreIdentifier(SHOP)
             .clientId("cid").clientSecret(SECRET).isActive(true)
             .build();
         event = ChannelRawEvent.builder()
@@ -97,8 +110,20 @@ class ShopifyWebhookServiceTest {
     }
 
     private void stubKnownShop() {
-        when(integrationConfigRepository.findFirstByPlatformAndStoreUrlAndIsActiveTrue("SHOPIFY", SHOP))
-            .thenReturn(Optional.of(config));
+        ChannelWebhookRoute route = ChannelWebhookRoute.builder()
+            .integrationConfigId(1L)
+            .tenantId(1L)
+            .platform("SHOPIFY")
+            .canonicalStoreIdentifier(SHOP)
+            .signingSecret(SECRET)
+            .active(true)
+            .build();
+        when(channelWebhookRouteRepository
+            .findByPlatformAndCanonicalStoreIdentifierAndActiveTrue("SHOPIFY", SHOP))
+            .thenReturn(Optional.of(route));
+        lenient().when(tenantRepository.findById(1L)).thenReturn(Optional.of(Tenant.builder()
+            .id(1L).slug("test").status(TenantStatus.ACTIVE).build()));
+        lenient().when(integrationConfigRepository.findById(1L)).thenReturn(Optional.of(config));
     }
 
     // ===== 验签 =====
@@ -116,7 +141,8 @@ class ShopifyWebhookServiceTest {
 
     @Test
     void handle_UnknownShop_Rejected() {
-        when(integrationConfigRepository.findFirstByPlatformAndStoreUrlAndIsActiveTrue(anyString(), anyString()))
+        when(channelWebhookRouteRepository
+            .findByPlatformAndCanonicalStoreIdentifierAndActiveTrue(anyString(), anyString()))
             .thenReturn(Optional.empty());
 
         var outcome = webhookService.handle("stranger.myshopify.com", "orders/create", "wh-1", "sig", ORDER_BODY);

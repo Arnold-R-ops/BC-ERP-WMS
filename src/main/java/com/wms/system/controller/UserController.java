@@ -9,6 +9,7 @@ import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.AuthUserResolver;
+import com.wms.system.tenant.context.CompanyScope;
 import com.wms.system.service.PermissionCacheService;
 import com.wms.system.service.SecurityVersionService;
 import com.wms.system.service.UserManagementService;
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * User Management Controller
  *
- * Provides CRUD operations for user management to SUPER_ADMIN and the
+ * Provides CRUD operations for user management to TENANT_ADMIN and the
  * restricted SECURITY_ADMIN identity.
  *
  * API Endpoints:
@@ -45,13 +46,14 @@ import java.util.stream.Collectors;
  * - DELETE /api/users/{id}/roles/{roleId}: Remove single role from user
  * - PUT /api/users/me/password: Change own password (any authenticated user, P0.5)
  * - POST /api/users/{id}/reset-password: Admin reset to temporary password (P0.5)
+ * - POST /api/users/{id}/revoke-sessions: Admin revoke all tenant JWTs for a user
  *
  * Security:
- * - IAM endpoints require SUPER_ADMIN or SECURITY_ADMIN, except /me/password
+ * - IAM endpoints require TENANT_ADMIN or SECURITY_ADMIN, except /me/password
  *   which is available to any authenticated user
  * - SECURITY_ADMIN cannot grant or modify protected administrator identities
  * - Password is never returned in responses
- * - Prevents deletion of last SUPER_ADMIN (optional protection)
+ * - Prevents deletion of last TENANT_ADMIN (optional protection)
  * - Requires at least one role per user
  *
  * Multi-Role System (v3.3+):
@@ -68,7 +70,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY_ADMIN')")
+@PreAuthorize("hasAnyRole('TENANT_ADMIN', 'SECURITY_ADMIN')")
 public class UserController {
 
     private final UserRepository userRepository;
@@ -97,9 +99,9 @@ public class UserController {
      *     "username": "admin",
      *     "displayName": "System Administrator",
      *     "enabled": true,
-     *     "roleCodes": ["SUPER_ADMIN"],
+     *     "roleCodes": ["TENANT_ADMIN"],
      *     "roleNames": ["瓒呯骇绠＄悊鍛?],
-     *     "defaultRoleCode": "SUPER_ADMIN",
+     *     "defaultRoleCode": "TENANT_ADMIN",
      *     "createdAt": "2026-01-10T10:00:00",
      *     "updatedAt": "2026-01-20T10:00:00",
      *     "remark": "Auto-created admin user"
@@ -108,12 +110,14 @@ public class UserController {
      * </pre>
      *
      * @return List of users with roles
-     */
+    */
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<List<UserWithRolesDTO>> getAllUsers() {
         log.info("Fetching all users with roles");
 
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllByCompanyId(
+            CompanyScope.currentCompanyId());
 
         List<UserWithRolesDTO> userDTOs = users.stream()
             .map(this::convertToDTO)
@@ -169,7 +173,9 @@ public class UserController {
         log.info("Creating new user: username={}", request.getUsername());
 
         // 1. Verify username uniqueness
-        if (userRepository.existsByUsername(request.getUsername())) {
+        Long companyId = CompanyScope.currentCompanyId();
+        if (userRepository.existsByCompanyIdAndUsername(
+                companyId, request.getUsername())) {
             log.warn("Username already exists: username={}", request.getUsername());
             throw new BusinessException(
                 ErrorKeys.USER_ALREADY_EXISTS,
@@ -179,7 +185,7 @@ public class UserController {
 
         // 2. Verify all role IDs exist and are active
         List<SysRole> rolesToAssign = request.getRoleIds().stream()
-            .map(roleId -> roleRepository.findById(roleId)
+            .map(roleId -> roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> {
                     log.warn("Role not found: roleId={}", roleId);
                     throw new BusinessException(
@@ -219,6 +225,7 @@ public class UserController {
             .remark(request.getRemark())
             .defaultRoleId(request.getRoleIds().get(0))  // First role as default
             .build();
+        user.setCompanyId(companyId);
 
         // 5. Save user
         user = userRepository.save(user);
@@ -298,7 +305,8 @@ public class UserController {
         );
 
         // 1. Load user
-        User user = userRepository.findById(id)
+        Long companyId = CompanyScope.currentCompanyId();
+        User user = userRepository.findByIdAndCompanyId(id, companyId)
             .orElseThrow(() -> {
                 log.warn("User not found: userId={}", id);
                 throw new BusinessException(
@@ -324,7 +332,8 @@ public class UserController {
 
         if (request.getDefaultRoleId() != null) {
             // Verify user has this role assigned
-            SysRole role = roleRepository.findById(request.getDefaultRoleId())
+            SysRole role = roleRepository.findByCompanyIdAndId(
+                    companyId, request.getDefaultRoleId())
                 .orElseThrow(() -> {
                     log.warn("Default role not found: roleId={}", request.getDefaultRoleId());
                     throw new BusinessException(
@@ -440,7 +449,8 @@ public class UserController {
         log.info("Assigning roles to user: userId={}, roleCount={}", id, request.getRoleIds().size());
 
         // 1. Verify user exists
-        User user = userRepository.findById(id)
+        Long companyId = CompanyScope.currentCompanyId();
+        User user = userRepository.findByIdAndCompanyId(id, companyId)
             .orElseThrow(() -> {
                 log.warn("User not found: userId={}", id);
                 throw new BusinessException(
@@ -451,7 +461,7 @@ public class UserController {
 
         // 2. Verify all role IDs exist
         List<SysRole> rolesToAssign = request.getRoleIds().stream()
-            .map(roleId -> roleRepository.findById(roleId)
+            .map(roleId -> roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> {
                     log.warn("Role not found: roleId={}", roleId);
                     throw new BusinessException(
@@ -567,7 +577,8 @@ public class UserController {
         log.info("Removing role from user: userId={}, roleId={}", id, roleId);
 
         // 1. Verify user exists
-        User user = userRepository.findById(id)
+        Long companyId = CompanyScope.currentCompanyId();
+        User user = userRepository.findByIdAndCompanyId(id, companyId)
             .orElseThrow(() -> {
                 log.warn("User not found: userId={}", id);
                 throw new BusinessException(
@@ -577,7 +588,7 @@ public class UserController {
             });
 
         // 2. Verify role exists
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
             .orElseThrow(() -> {
                 log.warn("Role not found: roleId={}", roleId);
                 throw new BusinessException(
@@ -658,7 +669,7 @@ public class UserController {
      * ⭐ Change Own Password (P0.5)
      *
      * Allows the authenticated user to change their own password.
-     * Available to ANY authenticated user (not just SUPER_ADMIN): the
+     * Available to ANY authenticated user (not just TENANT_ADMIN): the
      * method-level @PreAuthorize overrides the class-level IAM administrator rule.
      *
      * API Endpoint:
@@ -748,6 +759,23 @@ public class UserController {
         ));
     }
 
+    @PostMapping("/{id}/revoke-sessions")
+    public ResponseEntity<Void> revokeUserSessions(
+        @PathVariable("id") Long id,
+        @Valid @RequestBody RevokeUserSessionsRequest request,
+        Authentication authentication
+    ) {
+        Long operatorId = resolveOperatorId(authentication);
+        userManagementService.revokeUserSessions(
+            id,
+            operatorId,
+            AuthUserResolver.resolveUsername(authentication),
+            AuthUserResolver.resolveCurrentRole(authentication),
+            request.getReason()
+        );
+        return ResponseEntity.noContent().build();
+    }
+
     /**
      * Resolve the operator's user ID from the authentication, falling back to
      * a username lookup (same pattern as deleteUser).
@@ -756,7 +784,8 @@ public class UserController {
         Long operatorId = AuthUserResolver.resolveUserId(authentication);
         if (operatorId == null || operatorId == 0L) {
             String operatorUsername = AuthUserResolver.resolveUsername(authentication);
-            operatorId = userRepository.findByUsername(operatorUsername)
+            operatorId = userRepository.findByCompanyIdAndUsername(
+                    CompanyScope.currentCompanyId(), operatorUsername)
                 .map(User::getId)
                 .orElse(0L);
         }
@@ -792,7 +821,8 @@ public class UserController {
         // Get default role code
         String defaultRoleCode = null;
         if (user.getDefaultRoleId() != null) {
-            defaultRoleCode = roleRepository.findById(user.getDefaultRoleId())
+            defaultRoleCode = roleRepository.findByCompanyIdAndId(
+                    user.getCompanyId(), user.getDefaultRoleId())
                 .map(SysRole::getRoleCode)
                 .orElse(null);
         }

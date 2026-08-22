@@ -5,6 +5,7 @@ import com.wms.system.repository.SysRoleInheritRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,6 +33,22 @@ class SecurityVersionServiceTest {
 
     @InjectMocks
     private SecurityVersionService securityVersionService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(userRepository.findByIdAndCompanyId(anyLong(), eq(1L)))
+            .thenAnswer(invocation -> userRepository.findById(invocation.getArgument(0)));
+        lenient().when(roleInheritRepository.findChildRoleIdsByCompanyIdAndParentRoleId(
+                eq(1L), anyLong()))
+            .thenAnswer(invocation -> roleInheritRepository
+                .findChildRoleIdsByParentRoleId(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.findUserIdsByCompanyIdAndRoleId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.findUserIdsByRoleId(invocation.getArgument(1)));
+        lenient().when(userRepository.findAllByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> userRepository.findAllById((Iterable<Long>) invocation.getArgument(1)));
+        lenient().when(userRepository.findAllByCompanyId(1L))
+            .thenAnswer(invocation -> userRepository.findAll());
+    }
 
     @Test
     void bumpTreatsNullVersionAsZero() {

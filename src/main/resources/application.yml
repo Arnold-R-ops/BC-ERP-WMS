@@ -66,12 +66,19 @@ spring:
 # JWT configuration
 # ====================================================================
 jwt:
-  # Base64-encoded HS256 key, injected via environment variable (no default on purpose).
-  # Rotating this key invalidates all issued tokens; users must log in again.
-  secret: ${JWT_SECRET}
+  # Company and platform credentials are deliberately non-interchangeable.
+  # Both are Base64-encoded HS256 keys (minimum 256 bits), with no defaults.
+  tenant-secret: ${TENANT_JWT_SECRET}
+  platform-secret: ${PLATFORM_JWT_SECRET}
+  # Tenant ERP sessions remain 24 hours; platform administrator sessions are independent.
   expiration: 86400000
-  issuer: WMS-System
+  platform-expiration: 43200000
+  issuer: BCWMS
+  tenant-audience: bcwms-tenant-api
+  platform-audience: bcwms-platform-api
   refresh-threshold: 3600000
+  # Active tenant users may refresh tokens, but must sign in again after 7 days.
+  tenant-session-max-age: 604800000
 
 # ====================================================================
 # Batch management configuration
@@ -84,6 +91,56 @@ batch:
     min-length: 6
 
 wms:
+  # One-time first platform-account bootstrap. Leave disabled except for the
+  # controlled local initialization; inputs are environment variables only.
+  platform-bootstrap:
+    enabled: ${WMS_PLATFORM_BOOTSTRAP_ENABLED:false}
+    email: ${WMS_PLATFORM_BOOTSTRAP_EMAIL:}
+    password: ${WMS_PLATFORM_BOOTSTRAP_PASSWORD:}
+    display-name: ${WMS_PLATFORM_BOOTSTRAP_DISPLAY_NAME:平台超级管理员}
+  platform-access:
+    export-directory: ${WMS_PLATFORM_EXPORT_DIR:data/platform-exports}
+    export-retention-hours: ${WMS_PLATFORM_EXPORT_RETENTION_HOURS:24}
+    max-page-size: 100
+  platform-mfa:
+    # Local fallback keeps development usable. Production requires the separate
+    # key overridden in application-prod.yml. Value is Base64, minimum 256 bits.
+    encryption-key: ${PLATFORM_MFA_ENCRYPTION_KEY:${PLATFORM_JWT_SECRET}}
+    challenge-minutes: 5
+    max-attempts: 5
+    lock-minutes: 15
+    challenge-cleanup-cron: ${WMS_PLATFORM_MFA_CLEANUP_CRON:0 10 * * * *}
+  # Legacy single-company bootstrap only. Production SaaS provisioning creates
+  # TENANT_ADMIN per company and platform admins in platform_users instead.
+  # New companies are created only through tenant provisioning. The legacy
+  # single-company administrator bootstrap must be explicitly enabled for a
+  # disposable development database.
+  legacy-admin-bootstrap-enabled: ${WMS_LEGACY_ADMIN_BOOTSTRAP_ENABLED:false}
+  tenancy:
+    # Keep runtime tenancy opt-in until onboarding, platform-access APIs and
+    # production routing have completed end-to-end verification.
+    enabled: ${WMS_TENANCY_ENABLED:false}
+    # Foundation-release startup validation deliberately rejects true until
+    # the remaining SaaS runtime stages are complete.
+    base-domain: ${WMS_BASE_DOMAIN:bcwms.com}
+    app-host: ${WMS_APP_HOST:app.bcwms.com}
+    platform-host: ${WMS_PLATFORM_HOST:platform.bcwms.com}
+    allow-local-development-host: ${WMS_ALLOW_LOCAL_HOST:true}
+    # Production overrides this to reject SUPERUSER/BYPASSRLS credentials.
+    require-safe-database-role: ${WMS_REQUIRE_SAFE_DB_ROLE:false}
+    # Hourly retryable cleanup for CLOSED companies whose retention deadline passed.
+    purge-cron: ${WMS_TENANT_PURGE_CRON:0 20 * * * *}
+  signup:
+    delivery-mode: ${WMS_SIGNUP_DELIVERY_MODE:DEVELOPMENT}
+    token-pepper: ${WMS_SIGNUP_TOKEN_PEPPER:local-development-signup-pepper-change-before-production}
+    from-address: ${WMS_MAIL_FROM:no-reply@bcwms.com}
+    from-name: ${WMS_MAIL_FROM_NAME:BCWMS}
+    verification-code-minutes: 10
+    signup-expiry-hours: 24
+    resend-seconds: 60
+    daily-send-limit: 10
+    max-attempts: 5
+    handoff-seconds: 60
   excel-templates:
     # Optional operator-maintained XLSX files. Invalid or missing files use the built-in fallback.
     external-directory: ${WMS_EXCEL_TEMPLATE_DIR:}
@@ -92,7 +149,8 @@ logging:
   level:
     root: INFO
     com.wms: DEBUG
-    org.springframework.web: DEBUG
+    # Request/response body DEBUG logging can expose tenant credentials.
+    org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:

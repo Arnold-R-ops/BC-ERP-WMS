@@ -19,6 +19,7 @@ import com.wms.system.repository.CustomerProductSummaryRepository;
 import com.wms.system.repository.CustomerRepository;
 import com.wms.system.repository.ProductSkuRepository;
 import com.wms.system.repository.SalesDailySummaryRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,8 +45,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReportQueryService {
 
-    private static final Long DEFAULT_COMPANY_ID = 1L;
-
     private final CustomerRepository customerRepository;
     private final CustomerFactSummaryRepository customerFactSummaryRepository;
     private final CustomerProductSummaryRepository customerProductSummaryRepository;
@@ -61,7 +60,7 @@ public class ReportQueryService {
     public CustomerFactSummaryResponse getCustomerFactSummary(Long customerId, int topProducts) {
         Customer customer = findCustomer(customerId);
         CustomerFactSummary summary = customerFactSummaryRepository
-            .findByCompanyIdAndCustomerId(DEFAULT_COMPANY_ID, customerId)
+            .findByCompanyIdAndCustomerId(companyId(), customerId)
             .orElse(null);
         List<CustomerProductSummaryResponse> productFacts = listTopProducts(customerId, topProducts);
 
@@ -95,7 +94,7 @@ public class ReportQueryService {
         );
 
         Page<CustomerFactSummary> summaries = customerFactSummaryRepository.search(
-            DEFAULT_COMPANY_ID,
+            companyId(),
             normalizeKeyword(keyword),
             customerType,
             source,
@@ -112,7 +111,7 @@ public class ReportQueryService {
     public List<SalesDailySummaryResponse> listSalesDailySummary(LocalDate startDate, LocalDate endDate) {
         validateDateRange(startDate, endDate);
         return salesDailySummaryRepository
-            .findByCompanyIdAndSummaryDateBetweenOrderBySummaryDateAsc(DEFAULT_COMPANY_ID, startDate, endDate)
+            .findByCompanyIdAndSummaryDateBetweenOrderBySummaryDateAsc(companyId(), startDate, endDate)
             .stream()
             .map(this::toSalesDailyResponse)
             .toList();
@@ -152,7 +151,6 @@ public class ReportQueryService {
 
     private Customer findCustomer(Long customerId) {
         return customerRepository.findById(customerId)
-            .filter(customer -> DEFAULT_COMPANY_ID.equals(customer.getCompanyId()))
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.CUSTOMER_NOT_FOUND,
                 Map.of("customerId", customerId)
@@ -221,7 +219,7 @@ public class ReportQueryService {
         int limit = Math.min(Math.max(requestedLimit, 1), 20);
         List<CustomerProductSummary> facts = customerProductSummaryRepository
             .findByCompanyIdAndCustomerIdOrderByTotalAmountDescTotalQuantityDesc(
-                DEFAULT_COMPANY_ID,
+                companyId(),
                 customerId,
                 PageRequest.of(0, limit)
             );
@@ -256,7 +254,6 @@ public class ReportQueryService {
         }
         Map<Long, Customer> customers = new HashMap<>();
         customerRepository.findAllById(customerIds).stream()
-            .filter(customer -> DEFAULT_COMPANY_ID.equals(customer.getCompanyId()))
             .forEach(customer -> customers.put(customer.getId(), customer));
         return customers;
     }
@@ -291,6 +288,10 @@ public class ReportQueryService {
                 Map.of("field", "dateRange", "constraint", "range must not exceed 366 days")
             );
         }
+    }
+
+    private Long companyId() {
+        return CompanyScope.currentCompanyId();
     }
 
     private BigDecimal averageAmount(BigDecimal amount, Long count) {

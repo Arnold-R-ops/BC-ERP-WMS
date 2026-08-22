@@ -11,6 +11,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CategoryRepository;
 import com.wms.system.repository.ProductRepository;
 import com.wms.system.repository.ProductSkuRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +23,6 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class ProductService {
-
-    private static final long DEFAULT_COMPANY_ID = 1L;
 
     private final ProductRepository productRepository;
     private final ProductSkuRepository productSkuRepository;
@@ -45,7 +44,7 @@ public class ProductService {
             .description(normalize(request.description()))
             .enabled(request.enabled() == null || request.enabled())
             .build();
-        product.setCompanyId(DEFAULT_COMPANY_ID);
+        product.setCompanyId(companyId());
         return toResponse(productRepository.save(product));
     }
 
@@ -111,7 +110,7 @@ public class ProductService {
     }
 
     private Category requireLeafCategory(Long categoryId) {
-        Category category = categoryRepository.findByIdAndCompanyId(categoryId, DEFAULT_COMPANY_ID)
+        Category category = categoryRepository.findByIdAndCompanyId(categoryId, companyId())
             .orElseThrow(() -> new BusinessException(ErrorKeys.CATEGORY_NOT_FOUND, Map.of("categoryId", categoryId)));
         if (category.getParent() == null || !Boolean.TRUE.equals(category.getEnabled())) {
             throw new BusinessException(
@@ -151,5 +150,9 @@ public class ProductService {
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private Long companyId() {
+        return CompanyScope.currentCompanyId();
     }
 }

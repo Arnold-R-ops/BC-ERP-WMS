@@ -8,6 +8,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CategoryRepository;
 import com.wms.system.repository.ProductRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CategoryService {
 
-    private static final long DEFAULT_COMPANY_ID = 1L;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
 
@@ -63,7 +63,7 @@ public class CategoryService {
         String code = normalizeCode(request.categoryCode());
         String name = normalizeName(request.categoryName());
 
-        if (categoryRepository.existsByCompanyIdAndCategoryCodeIgnoreCase(DEFAULT_COMPANY_ID, code)) {
+        if (categoryRepository.existsByCompanyIdAndCategoryCodeIgnoreCase(companyId(), code)) {
             throw conflict(ErrorKeys.CATEGORY_ALREADY_EXISTS, "categoryCode", code);
         }
 
@@ -78,7 +78,7 @@ public class CategoryService {
             .enabled(true)
             .description(normalizeOptional(request.description()))
             .build();
-        category.setCompanyId(DEFAULT_COMPANY_ID);
+        category.setCompanyId(companyId());
 
         return toResponse(categoryRepository.save(category), List.of());
     }
@@ -134,7 +134,7 @@ public class CategoryService {
     public CategoryResponse deactivate(Long id) {
         Category category = requireCategory(id);
         category.setEnabled(false);
-        List<Category> descendants = categoryRepository.findAllDescendants(DEFAULT_COMPANY_ID, id);
+        List<Category> descendants = categoryRepository.findAllDescendants(companyId(), id);
         descendants.forEach(descendant -> descendant.setEnabled(false));
         if (!descendants.isEmpty()) {
             categoryRepository.saveAll(descendants);
@@ -156,8 +156,8 @@ public class CategoryService {
 
     private List<Category> loadCategories(boolean enabledOnly) {
         return enabledOnly
-            ? categoryRepository.findAllByCompanyIdAndEnabledTrueOrderBySortOrderAscIdAsc(DEFAULT_COMPANY_ID)
-            : categoryRepository.findAllByCompanyIdOrderBySortOrderAscIdAsc(DEFAULT_COMPANY_ID);
+            ? categoryRepository.findAllByCompanyIdAndEnabledTrueOrderBySortOrderAscIdAsc(companyId())
+            : categoryRepository.findAllByCompanyIdOrderBySortOrderAscIdAsc(companyId());
     }
 
     private Category resolveParent(Long parentId) {
@@ -172,13 +172,13 @@ public class CategoryService {
     }
 
     private Category requireCategory(Long id) {
-        return categoryRepository.findByIdAndCompanyId(id, DEFAULT_COMPANY_ID)
+        return categoryRepository.findByIdAndCompanyId(id, companyId())
             .orElseThrow(() -> new BusinessException(ErrorKeys.CATEGORY_NOT_FOUND, Map.of("categoryId", id)));
     }
 
     private void ensureSiblingNameUnique(Category parent, String name, Long excludeId) {
         Long parentId = parent == null ? null : parent.getId();
-        if (categoryRepository.existsSiblingName(DEFAULT_COMPANY_ID, parentId, name, excludeId)) {
+        if (categoryRepository.existsSiblingName(companyId(), parentId, name, excludeId)) {
             throw new BusinessException(
                 ErrorKeys.CATEGORY_ALREADY_EXISTS,
                 Map.of("categoryName", name, "parentId", parentId == null ? 0L : parentId)
@@ -260,5 +260,9 @@ public class CategoryService {
 
     private BusinessException conflict(String errorKey, String key, Object value) {
         return new BusinessException(errorKey, Map.of(key, value));
+    }
+
+    private Long companyId() {
+        return CompanyScope.currentCompanyId();
     }
 }

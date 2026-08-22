@@ -48,6 +48,14 @@ function Invoke-Api {
         $parameters.Body = $Body | ConvertTo-Json -Depth 20 -Compress
     }
 
+    # PowerShell 7 returns HttpResponseMessage and can keep non-2xx bodies
+    # available with -SkipHttpErrorCheck. Windows PowerShell 5 uses the
+    # WebException response stream instead, so retain that fallback.
+    $supportsSkipHttpErrorCheck = (Get-Command Invoke-WebRequest).Parameters.ContainsKey("SkipHttpErrorCheck")
+    if ($supportsSkipHttpErrorCheck) {
+        $parameters.SkipHttpErrorCheck = $true
+    }
+
     try {
         $response = Invoke-WebRequest @parameters
         $status = [int]$response.StatusCode
@@ -57,7 +65,7 @@ function Invoke-Api {
             $response.Content | ConvertFrom-Json
         }
     } catch {
-        if ($null -eq $_.Exception.Response) {
+        if ($supportsSkipHttpErrorCheck -or $null -eq $_.Exception.Response) {
             throw
         }
         $response = $_.Exception.Response
@@ -98,14 +106,14 @@ $reviewerPassword = "Uat-Reviewer-$suffix!"
 
 try {
     $adminLogin = Login -Username $AdminUsername -Password $AdminPassword
-    Assert-True ($adminLogin.currentRole -eq "SUPER_ADMIN") "administrator logs in as SUPER_ADMIN"
+    Assert-True ($adminLogin.currentRole -eq "TENANT_ADMIN") "administrator logs in as TENANT_ADMIN"
     $script:adminToken = $adminLogin.token
 
     $roles = (Invoke-Api -Method GET -Path "/api/roles" -Token $script:adminToken).Body
     $generalRole = $roles | Where-Object { $_.roleCode -eq "GENERAL_MANAGER" } | Select-Object -First 1
     $salesRole = $roles | Where-Object { $_.roleCode -eq "SALESPERSON" } | Select-Object -First 1
     $warehouseAdminRole = $roles | Where-Object { $_.roleCode -eq "WAREHOUSE_ADMIN" } | Select-Object -First 1
-    $superAdminRole = $roles | Where-Object { $_.roleCode -eq "SUPER_ADMIN" } | Select-Object -First 1
+    $superAdminRole = $roles | Where-Object { $_.roleCode -eq "TENANT_ADMIN" } | Select-Object -First 1
     Assert-True ($null -ne $generalRole -and $null -ne $salesRole -and $null -ne $warehouseAdminRole -and $null -ne $superAdminRole) "required role fixtures are available"
 
     $users = (Invoke-Api -Method GET -Path "/api/users" -Token $script:adminToken).Body
@@ -123,7 +131,7 @@ try {
     $script:reviewerUserId = [long]$reviewerUser.id
     $reviewerLogin = Login -Username $reviewerUsername -Password $reviewerPassword
     $reviewerToken = $reviewerLogin.token
-    Assert-True ($reviewerLogin.currentRole -eq "SUPER_ADMIN") "independent high-risk reviewer logs in as SUPER_ADMIN"
+    Assert-True ($reviewerLogin.currentRole -eq "TENANT_ADMIN") "independent high-risk reviewer logs in as TENANT_ADMIN"
 
     $createdUser = (Invoke-Api -Method POST -Path "/api/users" -Token $script:adminToken -ExpectedStatus @(201) -Body @{
         username = $targetUsername
@@ -223,13 +231,13 @@ try {
         approved = $true
         comment = "negative same-reviewer acceptance"
     }
-    Assert-True ($sameReviewer.Status -eq 403) "high-risk request requires a different SUPER_ADMIN approver"
+    Assert-True ($sameReviewer.Status -eq 403) "high-risk request requires a different TENANT_ADMIN approver"
 
     $approvedHighRisk = (Invoke-Api -Method POST -Path "/api/permission-requests/$($highRiskRequest.id)/review" -Token $reviewerToken -Body @{
         approved = $true
         comment = "approved by independent high-risk reviewer"
     }).Body
-    Assert-True ($approvedHighRisk.status -eq "APPROVED" -and $approvedHighRisk.reviewedByUsername -eq $reviewerUsername) "different SUPER_ADMIN can approve the high-risk request"
+    Assert-True ($approvedHighRisk.status -eq "APPROVED" -and $approvedHighRisk.reviewedByUsername -eq $reviewerUsername) "different TENANT_ADMIN can approve the high-risk request"
 
     $revokedHighRisk = (Invoke-Api -Method POST -Path "/api/permission-requests/$($highRiskRequest.id)/revoke" -Token $script:adminToken -Body @{
         comment = "high-risk acceptance grant cleanup"

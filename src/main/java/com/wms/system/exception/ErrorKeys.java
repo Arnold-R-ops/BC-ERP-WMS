@@ -23,6 +23,22 @@ public final class ErrorKeys {
         throw new UnsupportedOperationException("ErrorKeys is a utility class and cannot be instantiated");
     }
 
+    // ========== Public SaaS Signup ==========
+    public static final String SIGNUP_INVALID_REQUEST = "SIGNUP_INVALID_REQUEST";
+    public static final String SIGNUP_REQUEST_NOT_FOUND = "SIGNUP_REQUEST_NOT_FOUND";
+    public static final String SIGNUP_REQUEST_EXPIRED = "SIGNUP_REQUEST_EXPIRED";
+    public static final String SIGNUP_EMAIL_VERIFICATION_REQUIRED = "SIGNUP_EMAIL_VERIFICATION_REQUIRED";
+    public static final String SIGNUP_VERIFICATION_CODE_INVALID = "SIGNUP_VERIFICATION_CODE_INVALID";
+    public static final String SIGNUP_VERIFICATION_CODE_EXPIRED = "SIGNUP_VERIFICATION_CODE_EXPIRED";
+    public static final String SIGNUP_VERIFICATION_ATTEMPTS_EXCEEDED = "SIGNUP_VERIFICATION_ATTEMPTS_EXCEEDED";
+    public static final String SIGNUP_RESEND_TOO_SOON = "SIGNUP_RESEND_TOO_SOON";
+    public static final String SIGNUP_SEND_LIMIT_EXCEEDED = "SIGNUP_SEND_LIMIT_EXCEEDED";
+    public static final String SIGNUP_EMAIL_UNAVAILABLE = "SIGNUP_EMAIL_UNAVAILABLE";
+    public static final String SIGNUP_SLUG_UNAVAILABLE = "SIGNUP_SLUG_UNAVAILABLE";
+    public static final String SIGNUP_IDEMPOTENCY_CONFLICT = "SIGNUP_IDEMPOTENCY_CONFLICT";
+    public static final String SIGNUP_PROVISIONING_FAILED = "SIGNUP_PROVISIONING_FAILED";
+    public static final String SESSION_HANDOFF_INVALID = "SESSION_HANDOFF_INVALID";
+
     // ========== ProductSku Related Errors ==========
 
     /**
@@ -403,6 +419,8 @@ public final class ErrorKeys {
      * - currentTime (String): Current timestamp (ISO 8601)
      */
     public static final String AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED";
+
+    public static final String AUTH_SESSION_INVALIDATED = "AUTH_SESSION_INVALIDATED";
 
     /**
      * Authentication failed (generic)

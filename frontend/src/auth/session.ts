@@ -21,6 +21,7 @@ export function createAuthSession(response: LoginResponse, now = Date.now()): Au
     availableRoles: response.availableRoles,
     permissionCodes: response.permissionCodes,
     expiresAt: now + response.expiresIn,
+    sessionEndsAt: response.sessionEndsAt ?? now + 7 * 24 * 60 * 60 * 1000,
     mustChangePassword: response.mustChangePassword ?? false,
   };
 }
@@ -41,5 +42,6 @@ export function mergeRoleSwitchSession(
     currentRole: response.currentRole,
     permissionCodes: response.permissionCodes,
     expiresAt: now + (response.expiresIn ?? 86_400_000),
+    sessionEndsAt: response.sessionEndsAt ?? current.sessionEndsAt,
   };
 }

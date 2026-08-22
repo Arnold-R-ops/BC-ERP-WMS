@@ -3,9 +3,11 @@ package com.wms.system.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.TenantId;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.wms.system.tenant.context.CompanyScope;
 
 import java.time.LocalDateTime;
 
@@ -37,10 +39,15 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     /**
-     * SaaS tenant placeholder. Current single-company deployment always uses 1.
+     * Authoritative company discriminator for every tenant-owned entity.
+     *
+     * <p>{@link TenantId} makes Hibernate add {@code company_id = currentCompany}
+     * to entity loads and queries. The value is also assigned by Hibernate on
+     * insert, so controllers and request payloads cannot choose a company.</p>
      */
+    @TenantId
     @Column(name = "company_id", nullable = false)
-    private Long companyId = 1L;
+    private Long companyId;
 
     /**
      * Creation timestamp (auto-filled on first save, immutable)
@@ -62,6 +69,7 @@ public abstract class BaseEntity {
 
     @PrePersist
     protected void initializeAuditTimestamps() {
+        enforceCompanyBoundary();
         LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) {
             createdAt = now;
@@ -73,6 +81,17 @@ public abstract class BaseEntity {
 
     @PreUpdate
     protected void refreshUpdatedAt() {
+        enforceCompanyBoundary();
         updatedAt = LocalDateTime.now();
+    }
+
+    private void enforceCompanyBoundary() {
+        Long currentCompanyId = CompanyScope.currentCompanyId();
+        if (companyId == null) {
+            companyId = currentCompanyId;
+        } else if (!companyId.equals(currentCompanyId)) {
+            throw new IllegalStateException(
+                "Entity company does not match the current company context");
+        }
     }
 }

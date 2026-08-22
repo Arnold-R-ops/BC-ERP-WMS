@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 仓库数据访问接口
@@ -80,6 +81,16 @@ public interface WarehouseRepository extends JpaRepository<Warehouse, Long> {
      */
     @Query("SELECT w FROM Warehouse w WHERE w.isActive = true ORDER BY w.code")
     List<Warehouse> findAllActive();
+
+    @Query("""
+        SELECT w FROM Warehouse w
+        WHERE w.companyId = :companyId AND w.isActive = true
+        ORDER BY w.code
+        """)
+    List<Warehouse> findAllActiveByCompanyId(@Param("companyId") Long companyId);
+
+    List<Warehouse> findAllByCompanyIdAndIdIn(
+        Long companyId, Set<Long> warehouseIds);
 
     /**
      * 根据名称模糊查询仓库

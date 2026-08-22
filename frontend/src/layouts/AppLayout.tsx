@@ -2,6 +2,9 @@ import {
   ApartmentOutlined,
   AppstoreOutlined,
   AuditOutlined,
+  BellOutlined,
+  DownOutlined,
+  QuestionCircleOutlined,
   ControlOutlined,
   DatabaseOutlined,
   ExportOutlined,
@@ -26,11 +29,12 @@ import {
   UsergroupAddOutlined,
 } from '@ant-design/icons';
 import { ProLayout, type MenuDataItem } from '@ant-design/pro-components';
-import { Button, Drawer, Menu, Tag, Tooltip, type MenuProps } from 'antd';
+import { App as AntdApp, Avatar, Button, Dropdown, Drawer, Empty, Form, Input, Menu, Modal, type MenuProps } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { canAccessModule, type AppModule } from '../access';
+import { getErrorMessage } from '../api/errors';
 import { useAuth } from '../auth/AuthProvider';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { PasswordChangeModal } from '../components/PasswordChangeModal';
@@ -48,10 +52,10 @@ interface MenuDefinition {
 const menuDefinitions: MenuDefinition[] = [
   { path: '/', module: 'dashboard', nameKey: 'menu.dashboard', icon: <AppstoreOutlined />, delivered: true },
   {
-    path: '/catalog', module: 'products', nameKey: 'menu.productOperations', icon: <ProductOutlined />, delivered: true,
+    path: '/analytics', module: 'analytics', nameKey: 'menu.analytics', icon: <LineChartOutlined />, delivered: true,
     children: [
-      { path: '/products', module: 'products', nameKey: 'menu.products', icon: <ProductOutlined />, delivered: true },
-      { path: '/categories', module: 'products', nameKey: 'menu.categories', icon: <TagsOutlined />, delivered: true },
+      { path: '/analytics/sales', module: 'analytics', nameKey: 'menu.salesAnalytics', icon: <LineChartOutlined />, delivered: true },
+      { path: '/analytics/customers', module: 'analytics', nameKey: 'menu.customerAnalytics', icon: <UsergroupAddOutlined />, delivered: true },
     ],
   },
   {
@@ -62,15 +66,15 @@ const menuDefinitions: MenuDefinition[] = [
       { path: '/master-data/suppliers', module: 'suppliers', nameKey: 'menu.suppliers', icon: <TruckOutlined />, delivered: true },
     ],
   },
-  { path: '/inventory', module: 'inventory', nameKey: 'menu.inventory', icon: <DatabaseOutlined />, delivered: true },
-  { path: '/sales', module: 'sales', nameKey: 'menu.sales', icon: <ShoppingCartOutlined />, delivered: true },
   {
-    path: '/analytics', module: 'analytics', nameKey: 'menu.analytics', icon: <LineChartOutlined />, delivered: true,
+    path: '/catalog', module: 'products', nameKey: 'menu.productOperations', icon: <ProductOutlined />, delivered: true,
     children: [
-      { path: '/analytics/sales', module: 'analytics', nameKey: 'menu.salesAnalytics', icon: <LineChartOutlined />, delivered: true },
-      { path: '/analytics/customers', module: 'analytics', nameKey: 'menu.customerAnalytics', icon: <UsergroupAddOutlined />, delivered: true },
+      { path: '/categories', module: 'products', nameKey: 'menu.categories', icon: <TagsOutlined />, delivered: true },
+      { path: '/products', module: 'products', nameKey: 'menu.products', icon: <ProductOutlined />, delivered: true },
     ],
   },
+  { path: '/inventory', module: 'inventory', nameKey: 'menu.inventory', icon: <DatabaseOutlined />, delivered: true },
+  { path: '/sales', module: 'sales', nameKey: 'menu.sales', icon: <ShoppingCartOutlined />, delivered: true },
   { path: '/purchasing', module: 'purchasing', nameKey: 'menu.purchasing', icon: <TruckOutlined />, delivered: true },
   { path: '/inbound', module: 'inbound', nameKey: 'menu.inbound', icon: <InboxOutlined />, delivered: true },
   { path: '/outbound', module: 'outbound', nameKey: 'menu.outbound', icon: <ExportOutlined />, delivered: true },
@@ -97,8 +101,9 @@ const menuDefinitions: MenuDefinition[] = [
     ],
   },
   {
-    path: '/system', module: 'iam', nameKey: 'menu.systemManagement', icon: <ControlOutlined />, delivered: true,
+    path: '/system', module: 'security', nameKey: 'menu.systemManagement', icon: <ControlOutlined />, delivered: true,
     children: [
+      { path: '/system/security', module: 'security', nameKey: 'menu.securityManagement', icon: <SafetyCertificateOutlined />, delivered: true },
       { path: '/system/users', module: 'iam', nameKey: 'menu.userManagement', icon: <TeamOutlined />, delivered: true },
       { path: '/system/roles', module: 'iam', nameKey: 'menu.rolePermissions', icon: <SafetyCertificateOutlined />, delivered: true },
       { path: '/system/permission-requests', module: 'iam', nameKey: 'menu.permissionRequests', icon: <AuditOutlined />, delivered: true },
@@ -146,10 +151,15 @@ function useMobileViewport(): boolean {
 }
 
 export function AppLayout(): JSX.Element {
-  const { session, logout } = useAuth();
+  const { session, logout, revokeAllSessions } = useAuth();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [revokeSessionsOpen, setRevokeSessionsOpen] = useState(false);
+  const [revokeSessionsSubmitting, setRevokeSessionsSubmitting] = useState(false);
+  const [revokeSessionsForm] = Form.useForm<{ currentPassword: string }>();
   const [openMenuKeys, setOpenMenuKeys] = useState<string[]>([]);
+  const [siderCollapsed, setSiderCollapsed] = useState(false);
+  const { message } = AntdApp.useApp();
   const mobileViewport = useMobileViewport();
   const location = useLocation();
   const navigate = useNavigate();
@@ -194,6 +204,50 @@ export function AppLayout(): JSX.Element {
     navigate('/login', { replace: true });
   };
   const currentRoleLabel = t(`roles.${session.currentRole}`, { defaultValue: session.currentRole });
+  const submitRevokeAllSessions = async (): Promise<void> => {
+    try {
+      const values = await revokeSessionsForm.validateFields();
+      setRevokeSessionsSubmitting(true);
+      await revokeAllSessions(values.currentPassword);
+      setRevokeSessionsOpen(false);
+      revokeSessionsForm.resetFields();
+      message.success(t('auth.revokeAllSuccess'));
+      navigate('/login', { replace: true });
+    } catch (error) {
+      if (error && typeof error === 'object' && 'errorFields' in error) return;
+      message.error(getErrorMessage(error, t));
+    } finally {
+      setRevokeSessionsSubmitting(false);
+    }
+  };
+  const accountMenu: MenuProps = {
+    items: [
+      { key: 'account-settings', label: t('accountMenu.settings') },
+      { key: 'personal-profile', label: t('accountMenu.profile') },
+      { key: 'change-password', label: t('common.changePassword') },
+      { key: 'revoke-all-sessions', danger: true, label: t('auth.revokeAllSessions') },
+      { type: 'divider' },
+      { key: 'logout', danger: true, icon: <LogoutOutlined />, label: t('common.logout') },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'change-password') {
+        setPasswordModalOpen(true);
+        return;
+      }
+      if (key === 'logout') {
+        handleLogout();
+        return;
+      }
+      if (key === 'revoke-all-sessions') {
+        setRevokeSessionsOpen(true);
+        return;
+      }
+      message.info(t('common.nextDelivery'));
+    },
+  };
+  const openHelp = (): void => {
+    message.info(t('common.nextDelivery'));
+  };
 
   return (
     <>
@@ -221,35 +275,38 @@ export function AppLayout(): JSX.Element {
         <ProLayout
           actionsRender={() => [
             <LanguageSwitcher key="language" />,
-            <RoleSwitcher key="role" />,
-            <Tag bordered={false} className="header-user-tag" icon={<UserOutlined />} key="user">
-              {session.username}
-            </Tag>,
-            <Tooltip key="change-password" title={t('common.changePassword')}>
-              <Button
-                aria-label={t('common.changePassword')}
-                className="header-action-button"
-                icon={<SafetyCertificateOutlined />}
-                onClick={() => setPasswordModalOpen(true)}
-                type="text"
-              >
-                <span className="header-action-label">{t('common.changePassword')}</span>
+            <RoleSwitcher iconOnly key="organization" tooltip={t('header.switchOrganization')} />,
+            <Dropdown
+              key="announcements"
+              popupRender={() => <div className="system-announcement-panel"><Empty description={t('header.noAnnouncements')} image={Empty.PRESENTED_IMAGE_SIMPLE} /></div>}
+              trigger={['click']}
+            >
+              <Button aria-label={t('header.systemAnnouncements')} className="header-action-button" icon={<BellOutlined />} type="text">
+                <span className="header-action-label">{t('header.systemAnnouncements')}</span>
               </Button>
-            </Tooltip>,
-            <Tooltip key="logout" title={t('common.logout')}>
-              <Button
-                aria-label={t('common.logout')}
-                className="header-logout-button"
-                danger
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                type="text"
-              >
-                <span className="header-action-label">{t('common.logout')}</span>
+            </Dropdown>,
+            <Dropdown key="account" menu={accountMenu} trigger={['click']}>
+              <Button aria-label={t('header.openAccountMenu')} className="header-account-trigger" type="text">
+                <Avatar className="header-account-avatar" size={28}>
+                  {session.username.slice(0, 1).toUpperCase()}
+                </Avatar>
+                <span className="header-account-name">{session.username}</span>
+                <DownOutlined className="header-account-chevron" />
               </Button>
-            </Tooltip>,
+            </Dropdown>,
+            <Button
+              aria-label={t('header.help')}
+              className="header-action-button header-help-button"
+              icon={<QuestionCircleOutlined />}
+              key="help"
+              onClick={openHelp}
+              type="text"
+            >
+              <span className="header-action-label">{t('header.help')}</span>
+            </Button>,
           ]}
-          contentStyle={{ padding: 20 }}
+          collapsed={siderCollapsed}
+          contentStyle={{ background: '#ffffff', padding: 20 }}
           fixSiderbar
           fixedHeader
           layout="mix"
@@ -264,21 +321,22 @@ export function AppLayout(): JSX.Element {
               setOpenMenuKeys(newlyOpened ? [newlyOpened] : []);
             },
           }}
+          onCollapse={setSiderCollapsed}
           navTheme="realDark"
           route={{ path: '/', routes }}
           siderWidth={232}
           title={t('app.shortName')}
           token={{
             header: {
-              colorBgHeader: '#ffffff',
-              colorBgRightActionsItemHover: '#e8f3f1',
-              colorTextRightActionsItem: '#183b3a',
+              colorBgHeader: '#115095',
+              colorBgRightActionsItemHover: '#2866a8',
+              colorTextRightActionsItem: '#ffffff',
             },
             sider: {
-              colorBgMenuItemHover: '#174445',
-              colorBgMenuItemSelected: '#0f766e',
-              colorMenuBackground: '#102a2b',
-              colorTextMenu: '#d8e7e5',
+              colorBgMenuItemHover: '#5b91bd',
+              colorBgMenuItemSelected: '#115095',
+              colorMenuBackground: '#4682B4',
+              colorTextMenu: '#f4f8fc',
               colorTextMenuActive: '#ffffff',
               colorTextMenuSelected: '#ffffff',
             },
@@ -333,6 +391,9 @@ export function AppLayout(): JSX.Element {
             <Button danger icon={<LogoutOutlined />} onClick={handleLogout} type="text">
               {t('common.logout')}
             </Button>
+            <Button danger onClick={() => setRevokeSessionsOpen(true)} type="text">
+              {t('auth.revokeAllSessions')}
+            </Button>
           </div>
         </div>
       </Drawer>
@@ -343,6 +404,30 @@ export function AppLayout(): JSX.Element {
         open={passwordModalOpen}
       />
       <PasswordChangeModal forced open={session.mustChangePassword} />
+      <Modal
+        confirmLoading={revokeSessionsSubmitting}
+        destroyOnHidden
+        okButtonProps={{ danger: true }}
+        okText={t('auth.revokeAllConfirm')}
+        onCancel={() => {
+          setRevokeSessionsOpen(false);
+          revokeSessionsForm.resetFields();
+        }}
+        onOk={() => void submitRevokeAllSessions()}
+        open={revokeSessionsOpen}
+        title={t('auth.revokeAllTitle')}
+      >
+        <p>{t('auth.revokeAllDescription')}</p>
+        <Form form={revokeSessionsForm} layout="vertical">
+          <Form.Item
+            label={t('auth.oldPassword')}
+            name="currentPassword"
+            rules={[{ required: true, message: t('auth.oldPasswordRequired') }]}
+          >
+            <Input.Password autoComplete="current-password" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }

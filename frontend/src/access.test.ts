@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { canAccessModule, hasPermission } from './access';
 
 describe('effective-permission module access', () => {
-  it('allows the active super administrator to access every module', () => {
-    expect(canAccessModule('SUPER_ADMIN', 'integrations', [])).toBe(true);
-    expect(canAccessModule('SUPER_ADMIN', 'iam', [])).toBe(true);
-    expect(hasPermission('SUPER_ADMIN', [], 'sales:void')).toBe(true);
+  it('gives the company administrator full company access', () => {
+    expect(canAccessModule('TENANT_ADMIN', 'integrations', [])).toBe(true);
+    expect(canAccessModule('TENANT_ADMIN', 'iam', [])).toBe(true);
+    expect(hasPermission('TENANT_ADMIN', [], 'sales:void')).toBe(true);
   });
 
   it('derives IAM access from effective permission codes', () => {
@@ -44,5 +44,7 @@ describe('effective-permission module access', () => {
   it('requires a current role even for the dashboard', () => {
     expect(canAccessModule(undefined, 'dashboard', [])).toBe(false);
     expect(canAccessModule('CUSTOM_ROLE', 'dashboard', [])).toBe(true);
+    expect(canAccessModule(undefined, 'security', [])).toBe(false);
+    expect(canAccessModule('WAREHOUSE_STAFF', 'security', [])).toBe(true);
   });
 });

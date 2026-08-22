@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 /**
  * 集成配置实体
@@ -36,6 +37,10 @@ public class IntegrationConfig extends BaseEntity {
      */
     @Column(name = "store_url", nullable = false)
     private String storeUrl;
+
+    /** Canonical, globally routable channel endpoint identifier. */
+    @Column(name = "canonical_store_identifier", nullable = false, length = 255)
+    private String canonicalStoreIdentifier;
 
     /**
      * API Key（可选）
@@ -88,4 +93,21 @@ public class IntegrationConfig extends BaseEntity {
      */
     @Column(name = "last_sync_at")
     private LocalDateTime lastSyncAt;
+
+    @PrePersist
+    @PreUpdate
+    void normalizeStoreIdentifier() {
+        canonicalStoreIdentifier = canonicalizeStoreIdentifier(storeUrl);
+        storeUrl = canonicalStoreIdentifier;
+    }
+
+    public static String canonicalizeStoreIdentifier(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.trim()
+            .replaceFirst("(?i)^https?://", "")
+            .replaceAll("/+$", "")
+            .toLowerCase(Locale.ROOT);
+    }
 }

@@ -19,7 +19,7 @@ const permissions: Permission[] = [
 describe('permission request preview rules', () => {
   it('allows active ordinary packages but rejects protected and unapproved packages', () => {
     expect(isRequestableRole(role)).toBe(true);
-    expect(isRequestableRole({ ...role, roleCode: 'SUPER_ADMIN', privilegedRole: true })).toBe(false);
+    expect(isRequestableRole({ ...role, roleCode: 'TENANT_ADMIN', privilegedRole: true })).toBe(false);
     expect(isRequestableRole({ ...role, roleType: 'CUSTOM', reviewStatus: 'DRAFT' })).toBe(false);
     expect(isRequestableRole({ ...role, status: 'DISABLED' })).toBe(false);
   });

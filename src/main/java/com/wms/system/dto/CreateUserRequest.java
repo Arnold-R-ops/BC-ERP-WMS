@@ -7,13 +7,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.List;
 
 /**
  * Create User Request DTO
  *
- * Used by SUPER_ADMIN to create new user accounts with role assignments.
+ * Used by TENANT_ADMIN to create new user accounts with role assignments.
  *
  * Request Format:
  * <pre>
@@ -45,7 +46,7 @@ import java.util.List;
  * 5. Set first role as default_role_id
  *
  * Security:
- * - Only accessible by SUPER_ADMIN role
+ * - Only accessible by TENANT_ADMIN role
  * - Password is immediately encrypted (never stored in plain text)
  *
  * @author WMS Team
@@ -73,6 +74,7 @@ public class CreateUserRequest {
      */
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 6, message = "Password must be at least 6 characters")
+    @ToString.Exclude
     private String password;
 
     /**

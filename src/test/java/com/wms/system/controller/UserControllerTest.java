@@ -102,6 +102,7 @@ class UserControllerTest {
                 .build();
         testUser.setCreatedAt(LocalDateTime.now());
         testUser.setUpdatedAt(LocalDateTime.now());
+        testUser.setCompanyId(1L);
 
         // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎹愮М閸︻厸鍋撻敐搴″箻婵″弶鎮傞幃宄扳枎閹邦剛顑勬繝?
         warehouseAdminRole = SysRole.builder()
@@ -111,6 +112,7 @@ class UserControllerTest {
                 .sortOrder(10)
                 .status("ACTIVE")
                 .build();
+        warehouseAdminRole.setCompanyId(1L);
 
         salespersonRole = SysRole.builder()
                 .id(5L)
@@ -119,6 +121,7 @@ class UserControllerTest {
                 .sortOrder(20)
                 .status("ACTIVE")
                 .build();
+        salespersonRole.setCompanyId(1L);
 
         purchaserRole = SysRole.builder()
                 .id(7L)
@@ -127,6 +130,7 @@ class UserControllerTest {
                 .sortOrder(30)
                 .status("ACTIVE")
                 .build();
+        purchaserRole.setCompanyId(1L);
     }
 
     // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥΟ鍝勬毐缂佺媭鍨堕弻娑樷枎閹邦喖顫ф繝鈷€鍐х€殿喖鐏氬鍕沪閻愵剚顓归梻?==========
@@ -136,10 +140,10 @@ class UserControllerTest {
     void getAllUsers_Success() {
         // Given
         List<User> users = Arrays.asList(testUser);
-        when(userRepository.findAll()).thenReturn(users);
+        when(userRepository.findAllByCompanyId(1L)).thenReturn(users);
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole));
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
 
         // When
         ResponseEntity<List<UserWithRolesDTO>> response = userController.getAllUsers();
@@ -156,7 +160,7 @@ class UserControllerTest {
         assertThat(dto.getRoleNames()).containsExactly("Warehouse Admin", "Salesperson");
         assertThat(dto.getDefaultRoleCode()).isEqualTo("WAREHOUSE_ADMIN");
 
-        verify(userRepository).findAll();
+        verify(userRepository).findAllByCompanyId(1L);
         verify(userRoleService).getUserRoles(1L);
     }
 
@@ -164,7 +168,7 @@ class UserControllerTest {
     @DisplayName("case-3")
     void getAllUsers_EmptyList() {
         // Given
-        when(userRepository.findAll()).thenReturn(Collections.emptyList());
+        when(userRepository.findAllByCompanyId(1L)).thenReturn(Collections.emptyList());
 
         // When
         ResponseEntity<List<UserWithRolesDTO>> response = userController.getAllUsers();
@@ -173,7 +177,7 @@ class UserControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEmpty();
 
-        verify(userRepository).findAll();
+        verify(userRepository).findAllByCompanyId(1L);
         verifyNoInteractions(userRoleService);
     }
 
@@ -192,9 +196,9 @@ class UserControllerTest {
                 .remark("Created in unit test")
                 .build();
 
-        when(userRepository.existsByUsername("new_user")).thenReturn(false);
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
-        when(roleRepository.findById(5L)).thenReturn(Optional.of(salespersonRole));
+        when(userRepository.existsByCompanyIdAndUsername(1L, "new_user")).thenReturn(false);
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(roleRepository.findByCompanyIdAndId(1L, 5L)).thenReturn(Optional.of(salespersonRole));
         when(passwordEncoder.encode("Password@123")).thenReturn("encoded_password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -215,7 +219,7 @@ class UserControllerTest {
         assertThat(response.getBody().getUsername()).isEqualTo("new_user");
         assertThat(response.getBody().getRoleCodes()).containsExactly("WAREHOUSE_ADMIN", "SALESPERSON");
 
-        verify(userRepository).existsByUsername("new_user");
+        verify(userRepository).existsByCompanyIdAndUsername(1L, "new_user");
         verify(passwordEncoder).encode("Password@123");
         verify(userRepository).save(any(User.class));
         verify(userRoleService).assignRolesToUser(eq(10L), anySet(), eq(10L));
@@ -231,14 +235,14 @@ class UserControllerTest {
                 .roleIds(Arrays.asList(3L))
                 .build();
 
-        when(userRepository.existsByUsername("existing_user")).thenReturn(true);
+        when(userRepository.existsByCompanyIdAndUsername(1L, "existing_user")).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> userController.createUser(request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_ALREADY_EXISTS);
 
-        verify(userRepository).existsByUsername("existing_user");
+        verify(userRepository).existsByCompanyIdAndUsername(1L, "existing_user");
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -252,8 +256,8 @@ class UserControllerTest {
                 .roleIds(Arrays.asList(999L))
                 .build();
 
-        when(userRepository.existsByUsername("new_user")).thenReturn(false);
-        when(roleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.existsByCompanyIdAndUsername(1L, "new_user")).thenReturn(false);
+        when(roleRepository.findByCompanyIdAndId(1L, 999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.createUser(request))
@@ -275,11 +279,11 @@ class UserControllerTest {
                 .remark("Updated in unit test")
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole));
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
 
         // When
         ResponseEntity<UserWithRolesDTO> response = userController.updateUser(1L, request);
@@ -290,7 +294,7 @@ class UserControllerTest {
         assertThat(testUser.getEnabled()).isFalse();
         assertThat(testUser.getRemark()).isEqualTo("Updated in unit test");
 
-        verify(userRepository).findById(1L);
+        verify(userRepository).findByIdAndCompanyId(1L, 1L);
         verify(userRepository).save(testUser);
         verify(cacheService).onUserUpdated(1L);
     }
@@ -303,14 +307,14 @@ class UserControllerTest {
                 .displayName("User Not Found")
                 .build();
 
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(999L, 1L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.updateUser(999L, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NOT_FOUND);
 
-        verify(userRepository).findById(999L);
+        verify(userRepository).findByIdAndCompanyId(999L, 1L);
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -322,8 +326,8 @@ class UserControllerTest {
                 .defaultRoleId(999L)
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.updateUser(1L, request))
@@ -341,8 +345,8 @@ class UserControllerTest {
                 .defaultRoleId(7L) // PURCHASER
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(7L)).thenReturn(Optional.of(purchaserRole));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 7L)).thenReturn(Optional.of(purchaserRole));
         when(userRoleService.userHasRole(1L, 7L)).thenReturn(false);
 
         // When & Then
@@ -398,14 +402,14 @@ class UserControllerTest {
                 .defaultRoleId(5L)
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
-        when(roleRepository.findById(5L)).thenReturn(Optional.of(salespersonRole));
-        when(roleRepository.findById(7L)).thenReturn(Optional.of(purchaserRole));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(roleRepository.findByCompanyIdAndId(1L, 5L)).thenReturn(Optional.of(salespersonRole));
+        when(roleRepository.findByCompanyIdAndId(1L, 7L)).thenReturn(Optional.of(purchaserRole));
         doNothing().when(userRoleService).assignRolesToUser(anyLong(), anySet(), anyLong());
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole, purchaserRole));
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
 
         // When
         ResponseEntity<UserWithRolesDTO> response = userController.assignRoles(1L, request);
@@ -429,8 +433,8 @@ class UserControllerTest {
                 .defaultRoleId(5L)
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
 
         assertThatThrownBy(() -> userController.assignRoles(1L, request))
                 .isInstanceOf(BusinessException.class)
@@ -447,7 +451,7 @@ class UserControllerTest {
                 .roleIds(Arrays.asList(3L))
                 .build();
 
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(999L, 1L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.assignRoles(999L, request))
@@ -465,8 +469,8 @@ class UserControllerTest {
                 .roleIds(Arrays.asList(999L))
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.assignRoles(1L, request))
@@ -482,8 +486,8 @@ class UserControllerTest {
     @DisplayName("case-16")
     void removeRole_Success() {
         // Given
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(5L)).thenReturn(Optional.of(salespersonRole));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 5L)).thenReturn(Optional.of(salespersonRole));
         when(userRoleService.userHasRole(1L, 5L)).thenReturn(true);
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole)); // 闂?濠电偞鍨堕幖鈺傜閿濆缍栨俊銈呮噺閸?
@@ -504,7 +508,7 @@ class UserControllerTest {
     @DisplayName("case-17")
     void removeRole_UserNotFound() {
         // Given
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(999L, 1L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.removeRole(999L, 5L))
@@ -518,8 +522,8 @@ class UserControllerTest {
     @DisplayName("case-18")
     void removeRole_RoleNotFound() {
         // Given
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> userController.removeRole(1L, 999L))
@@ -533,8 +537,8 @@ class UserControllerTest {
     @DisplayName("case-19")
     void removeRole_RoleNotAssigned() {
         // Given
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(7L)).thenReturn(Optional.of(purchaserRole));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 7L)).thenReturn(Optional.of(purchaserRole));
         when(userRoleService.userHasRole(1L, 7L)).thenReturn(false);
 
         // When & Then
@@ -549,8 +553,8 @@ class UserControllerTest {
     @DisplayName("case-20")
     void removeRole_CannotRemoveLastRole() {
         // Given
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(roleRepository.findById(3L)).thenReturn(Optional.of(warehouseAdminRole));
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndId(1L, 3L)).thenReturn(Optional.of(warehouseAdminRole));
         when(userRoleService.userHasRole(1L, 3L)).thenReturn(true);
         when(userRoleService.getUserRoles(1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole)); // 闂備礁鎲￠悷顖涚濠靛棴鑰?濠电偞鍨堕幖鈺傜閿濆缍栨俊銈呮噺閸?

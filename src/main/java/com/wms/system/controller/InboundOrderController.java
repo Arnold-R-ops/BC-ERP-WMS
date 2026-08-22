@@ -21,10 +21,10 @@ import java.util.List;
  *
  * 提供入库单的 RESTful API：
  * - 创建入库单（BUYER, SELLER, WAREHOUSE_ADMIN）
- * - 总经理审批（CHAIRMAN, SUPER_ADMIN）
+ * - 总经理审批（CHAIRMAN, TENANT_ADMIN）
  * - 采购员确认（BUYER, 原申请人）
  * - 仓库收货（WAREHOUSE_ADMIN）
- * - 拒绝入库单（CHAIRMAN, SUPER_ADMIN）
+ * - 拒绝入库单（CHAIRMAN, TENANT_ADMIN）
  * - 查询操作（所有角色）
  *
  * 业务流程：
@@ -67,7 +67,7 @@ public class InboundOrderController {
      * }
      */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('inbound:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:create', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> createInboundOrder(
         @Valid @RequestBody CreateInboundOrderRequest request,
         Authentication authentication
@@ -89,7 +89,7 @@ public class InboundOrderController {
      *
      * POST /api/inbound-orders/{id}/approve-plan
      *
-     * 权限：CHAIRMAN, SUPER_ADMIN
+     * 权限：CHAIRMAN, TENANT_ADMIN
      *
      * Request Body:
      * {
@@ -97,7 +97,7 @@ public class InboundOrderController {
      * }
      */
     @PostMapping("/{id}/approve-plan")
-    @PreAuthorize("hasAnyAuthority('inbound:approve_plan', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:approve_plan', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> approvePlan(
         @PathVariable Long id,
         @Valid @RequestBody ApprovalRequest request,
@@ -139,7 +139,7 @@ public class InboundOrderController {
      * }
      */
     @PostMapping("/{id}/confirm-order")
-    @PreAuthorize("hasAnyAuthority('inbound:confirm_order', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:confirm_order', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> confirmOrder(
         @PathVariable Long id,
         @Valid @RequestBody ConfirmOrderRequest request,
@@ -177,7 +177,7 @@ public class InboundOrderController {
      * }
      */
     @PostMapping("/{id}/receive-goods")
-    @PreAuthorize("hasAnyAuthority('inbound:receive_goods', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:receive_goods', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> receiveGoods(
         @PathVariable Long id,
         @Valid @RequestBody ReceiveGoodsRequest request,
@@ -205,7 +205,7 @@ public class InboundOrderController {
      *
      * POST /api/inbound-orders/{id}/reject
      *
-     * 权限：CHAIRMAN, SUPER_ADMIN
+     * 权限：CHAIRMAN, TENANT_ADMIN
      *
      * Request Body:
      * {
@@ -213,7 +213,7 @@ public class InboundOrderController {
      * }
      */
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('inbound:reject', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:reject', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> rejectOrder(
         @PathVariable Long id,
         @Valid @RequestBody RejectRequest request,
@@ -240,7 +240,7 @@ public class InboundOrderController {
      * 权限：所有角色
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('inbound:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:view', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> getInboundOrderById(
         @PathVariable Long id,
         Authentication authentication
@@ -261,7 +261,7 @@ public class InboundOrderController {
      * 权限：所有角色
      */
     @GetMapping("/by-order-no/{orderNo}")
-    @PreAuthorize("hasAnyAuthority('inbound:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:view', 'TENANT_ADMIN')")
     public ResponseEntity<InboundOrderResponse> getInboundOrderByOrderNo(
         @PathVariable String orderNo,
         Authentication authentication
@@ -282,7 +282,7 @@ public class InboundOrderController {
      * 权限：所有角色
      */
     @GetMapping("/by-status/{status}")
-    @PreAuthorize("hasAnyAuthority('inbound:list', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:list', 'TENANT_ADMIN')")
     public ResponseEntity<List<InboundOrderResponse>> getInboundOrdersByStatus(
         @PathVariable InboundOrderStatus status,
         Authentication authentication
@@ -302,7 +302,7 @@ public class InboundOrderController {
      * 权限：所有角色
      */
     @GetMapping("/my-orders")
-    @PreAuthorize("hasAnyAuthority('inbound:list', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:list', 'TENANT_ADMIN')")
     public ResponseEntity<List<InboundOrderResponse>> getMyInboundOrders(Authentication authentication) {
         SecurityUser user = (SecurityUser) authentication.getPrincipal();
         log.info("Getting inbound orders for user: {}", user.getUsername());
@@ -317,10 +317,10 @@ public class InboundOrderController {
      *
      * GET /api/inbound-orders/pending-approval
      *
-     * 权限：CHAIRMAN, SUPER_ADMIN
+     * 权限：CHAIRMAN, TENANT_ADMIN
      */
     @GetMapping("/pending-approval")
-    @PreAuthorize("hasAnyAuthority('inbound:approve_plan', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:approve_plan', 'TENANT_ADMIN')")
     public ResponseEntity<List<InboundOrderResponse>> getPendingApprovalOrders() {
         log.info("Getting pending approval inbound orders");
 
@@ -338,7 +338,7 @@ public class InboundOrderController {
      * 权限：BUYER
      */
     @GetMapping("/pending-confirmation")
-    @PreAuthorize("hasAnyAuthority('inbound:confirm_order', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:confirm_order', 'TENANT_ADMIN')")
     public ResponseEntity<List<InboundOrderResponse>> getPendingConfirmationOrders() {
         log.info("Getting pending confirmation inbound orders");
 
@@ -356,7 +356,7 @@ public class InboundOrderController {
      * 权限：WAREHOUSE_ADMIN
      */
     @GetMapping("/pending-receival")
-    @PreAuthorize("hasAnyAuthority('inbound:receive_goods', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inbound:receive_goods', 'TENANT_ADMIN')")
     public ResponseEntity<List<InboundOrderResponse>> getPendingReceivalOrders(
         Authentication authentication
     ) {

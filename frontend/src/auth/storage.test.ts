@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AUTH_STORAGE_KEY,
   clearAuthSession,
+  clearUserActivity,
   type AuthSession,
   readAuthSession,
   writeAuthSession,
@@ -11,8 +12,8 @@ const validSession: AuthSession = {
   token: 'token',
   tokenType: 'Bearer',
   username: 'admin',
-  currentRole: 'SUPER_ADMIN',
-  availableRoles: ['SUPER_ADMIN'],
+  currentRole: 'TENANT_ADMIN',
+  availableRoles: ['TENANT_ADMIN'],
   permissionCodes: [],
   expiresAt: 2_000,
   mustChangePassword: false,
@@ -41,8 +42,11 @@ describe('auth session storage', () => {
   });
 
   it('clears the persisted session', () => {
+    localStorage.setItem('2g-wms.platform-auth-session', 'platform-session');
     writeAuthSession(validSession);
     clearAuthSession();
+    clearUserActivity();
     expect(readAuthSession()).toBeNull();
+    expect(localStorage.getItem('2g-wms.platform-auth-session')).toBe('platform-session');
   });
 });

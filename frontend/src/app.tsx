@@ -9,6 +9,7 @@ import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { canAccessModule, type AppModule } from './access';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { LoginPage } from './pages/LoginPage';
+import { SessionHandoffPage } from './pages/SessionHandoffPage';
 
 const AppLayout = lazy(() =>
   import('./layouts/AppLayout').then((module) => ({ default: module.AppLayout })),
@@ -57,6 +58,9 @@ const RolePermissionPage = lazy(() =>
 );
 const PermissionRequestPage = lazy(() =>
   import('./pages/iam/PermissionRequestPage').then((module) => ({ default: module.PermissionRequestPage })),
+);
+const SessionSecurityPage = lazy(() =>
+  import('./pages/security/SessionSecurityPage').then((module) => ({ default: module.SessionSecurityPage })),
 );
 const IntegrationConfigPage = lazy(() =>
   import('./pages/integrations/IntegrationConfigPage').then((module) => ({ default: module.IntegrationConfigPage })),
@@ -163,6 +167,7 @@ function AppRoutes(): JSX.Element {
   return (
     <Suspense fallback={<Spin fullscreen size="large" />}>
       <Routes>
+        <Route element={<SessionHandoffPage />} path="/session/handoff" />
         <Route element={<PublicOnlyRoute />}>
           <Route element={<LoginPage />} path="/login" />
         </Route>
@@ -217,7 +222,8 @@ function AppRoutes(): JSX.Element {
             <Route element={<ModuleRoute module="warehouseSetup"><Navigate replace to="warehouses" /></ModuleRoute>} path="warehouse-setup" />
             <Route element={<ModuleRoute module="warehouseSetup"><WarehousePage /></ModuleRoute>} path="warehouse-setup/warehouses" />
             <Route element={<ModuleRoute module="warehouseSetup"><LocationPage /></ModuleRoute>} path="warehouse-setup/locations" />
-            <Route element={<ModuleRoute module="iam"><Navigate replace to="users" /></ModuleRoute>} path="system" />
+            <Route element={<ModuleRoute module="security"><Navigate replace to="security" /></ModuleRoute>} path="system" />
+            <Route element={<ModuleRoute module="security"><SessionSecurityPage /></ModuleRoute>} path="system/security" />
             <Route element={<ModuleRoute module="iam"><UserManagementPage /></ModuleRoute>} path="system/users" />
             <Route element={<ModuleRoute module="iam"><RolePermissionPage /></ModuleRoute>} path="system/roles" />
             <Route element={<ModuleRoute module="iam"><PermissionRequestPage /></ModuleRoute>} path="system/permission-requests" />
@@ -252,9 +258,30 @@ export function App(): JSX.Element {
         algorithm: theme.defaultAlgorithm,
         token: {
           borderRadius: 6,
-          colorPrimary: '#0f766e',
+          colorBgBase: '#ffffff',
+          colorBgContainer: '#ffffff',
+          colorBgElevated: '#ffffff',
+          colorBgLayout: '#ffffff',
+          colorBorder: '#d9d9d9',
+          colorBorderSecondary: '#e5e7eb',
+          colorPrimary: '#115095',
           colorInfo: '#2563eb',
+          colorText: '#172525',
+          colorTextSecondary: '#526866',
           fontFamily: 'Inter, "Segoe UI", "Microsoft YaHei", sans-serif',
+        },
+        components: {
+          Card: {
+            colorBorderSecondary: '#d9d9d9',
+            colorBgContainer: '#ffffff',
+          },
+          Table: {
+            borderColor: '#e5e7eb',
+            colorBgContainer: '#ffffff',
+            headerBg: '#f5f7fa',
+            headerColor: '#172525',
+            rowHoverBg: '#f3f7fb',
+          },
         },
       }}
     >

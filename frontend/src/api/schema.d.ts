@@ -3205,12 +3205,15 @@ export interface components {
             updatedAt?: string;
         };
         CreateCustomerRequest: {
-            code: string;
+            code?: string;
             name: string;
             contact?: string;
             phone?: string;
             email?: string;
             address?: string;
+            vatRate?: number;
+            secondaryTaxRate?: number;
+            vatNumber?: string;
             creditLimit?: number;
             isActive?: boolean;
         };
@@ -3229,6 +3232,9 @@ export interface components {
             email?: string;
             normalizedEmail?: string;
             address?: string;
+            vatRate?: number;
+            secondaryTaxRate?: number;
+            vatNumber?: string;
             creditLimit?: number;
             isActive?: boolean;
             /** Format: date-time */

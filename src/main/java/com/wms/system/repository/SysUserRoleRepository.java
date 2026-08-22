@@ -38,6 +38,8 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      */
     List<SysUserRole> findByUserId(Long userId);
 
+    List<SysUserRole> findByCompanyIdAndUserId(Long companyId, Long userId);
+
     /**
      * Find user-role associations by role ID
      *
@@ -45,6 +47,8 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @return List of user-role associations
      */
     List<SysUserRole> findByRoleId(Long roleId);
+
+    List<SysUserRole> findByCompanyIdAndRoleId(Long companyId, Long roleId);
 
     /**
      * Check if user has specific role
@@ -54,6 +58,9 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @return true if association exists
      */
     boolean existsByUserIdAndRoleId(Long userId, Long roleId);
+
+    boolean existsByCompanyIdAndUserIdAndRoleId(
+        Long companyId, Long userId, Long roleId);
 
     /**
      * Delete user-role association
@@ -66,6 +73,15 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
     @Query("DELETE FROM SysUserRole sur WHERE sur.userId = :userId AND sur.roleId = :roleId")
     void deleteByUserIdAndRoleId(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM SysUserRole sur WHERE sur.companyId = :companyId AND sur.userId = :userId AND sur.roleId = :roleId")
+    void deleteByCompanyIdAndUserIdAndRoleId(
+        @Param("companyId") Long companyId,
+        @Param("userId") Long userId,
+        @Param("roleId") Long roleId
+    );
+
     /**
      * Delete all roles for a user
      *
@@ -75,6 +91,14 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
     @Transactional
     @Query("DELETE FROM SysUserRole sur WHERE sur.userId = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM SysUserRole sur WHERE sur.companyId = :companyId AND sur.userId = :userId")
+    void deleteByCompanyIdAndUserId(
+        @Param("companyId") Long companyId,
+        @Param("userId") Long userId
+    );
 
     /**
      * Delete all users for a role
@@ -95,6 +119,12 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
     @Query("SELECT sur.roleId FROM SysUserRole sur WHERE sur.userId = :userId")
     Set<Long> findRoleIdsByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT sur.roleId FROM SysUserRole sur WHERE sur.companyId = :companyId AND sur.userId = :userId")
+    Set<Long> findRoleIdsByCompanyIdAndUserId(
+        @Param("companyId") Long companyId,
+        @Param("userId") Long userId
+    );
+
     /**
      * Get all user IDs for a role
      *
@@ -104,6 +134,12 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
     @Query("SELECT sur.userId FROM SysUserRole sur WHERE sur.roleId = :roleId")
     Set<Long> findUserIdsByRoleId(@Param("roleId") Long roleId);
 
+    @Query("SELECT sur.userId FROM SysUserRole sur WHERE sur.companyId = :companyId AND sur.roleId = :roleId")
+    Set<Long> findUserIdsByCompanyIdAndRoleId(
+        @Param("companyId") Long companyId,
+        @Param("roleId") Long roleId
+    );
+
     /**
      * Count users with specific role
      *
@@ -112,6 +148,8 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      */
     long countByRoleId(Long roleId);
 
+    long countByCompanyIdAndRoleId(Long companyId, Long roleId);
+
     /**
      * Count roles for specific user
      *
@@ -119,6 +157,8 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @return Number of roles
      */
     long countByUserId(Long userId);
+
+    long countByCompanyIdAndUserId(Long companyId, Long userId);
 
     /**
      * Count active, non-deleted users assigned to a role code.
@@ -134,6 +174,23 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
         """)
     long countActiveUsersByRoleCode(@Param("roleCode") String roleCode);
 
+    @Query("""
+        SELECT COUNT(DISTINCT sur.userId)
+        FROM SysUserRole sur
+        JOIN SysRole role ON role.id = sur.roleId
+        JOIN User user ON user.id = sur.userId
+        WHERE sur.companyId = :companyId
+          AND role.companyId = :companyId
+          AND user.companyId = :companyId
+          AND role.roleCode = :roleCode
+          AND user.isDeleted = false
+          AND user.enabled = true
+        """)
+    long countActiveUsersByCompanyIdAndRoleCode(
+        @Param("companyId") Long companyId,
+        @Param("roleCode") String roleCode
+    );
+
     /**
      * Find users with multiple roles (batch query)
      *
@@ -141,6 +198,8 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, Long> 
      * @return List of user-role associations
      */
     List<SysUserRole> findByUserIdIn(Set<Long> userIds);
+
+    List<SysUserRole> findByCompanyIdAndUserIdIn(Long companyId, Set<Long> userIds);
 
     /**
      * Find all user-role associations with role details (for eager loading)

@@ -3,11 +3,13 @@ package com.wms.system.service;
 import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.customer.CustomerResponse;
 import com.wms.system.entity.Customer;
+import com.wms.system.entity.SystemConfig;
 import com.wms.system.entity.User;
 import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CustomerRepository;
+import com.wms.system.repository.SystemConfigRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.SecurityUser;
 import com.wms.system.util.MaskingUtils;
@@ -64,7 +66,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomerService {
 
+    private static final String CUSTOMER_CODE_NEXT_NUMBER = "customer.code.next_number";
+
     private final CustomerRepository customerRepository;
+    private final SystemConfigRepository systemConfigRepository;
     private final UserRepository userRepository;
 
     /**
@@ -87,12 +92,12 @@ public class CustomerService {
     public CustomerResponse createCustomer(CreateCustomerRequest request) {
         log.info("Creating customer: code={}, name={}", request.getCode(), request.getName());
 
-        // 验证客户编码唯一性
-        if (customerRepository.existsByCode(request.getCode())) {
-            log.error("Customer code already exists: {}", request.getCode());
+        String generatedCode = nextCustomerCode();
+        if (customerRepository.existsByCode(generatedCode)) {
+            log.error("Customer code already exists: {}", generatedCode);
             throw new BusinessException(
                 ErrorKeys.CUSTOMER_ALREADY_EXISTS,
-                Map.of("customerCode", request.getCode())
+                Map.of("customerCode", generatedCode)
             );
         }
 
@@ -101,13 +106,16 @@ public class CustomerService {
 
         // 创建客户实体
         Customer customer = Customer.builder()
-            .code(request.getCode())
+            .code(generatedCode)
             .name(request.getName())
             .customerType(CustomerType.CLIENT)
             .contact(request.getContact())
             .phone(request.getPhone())
             .email(request.getEmail())
             .address(request.getAddress())
+            .vatRate(request.getVatRate())
+            .secondaryTaxRate(request.getSecondaryTaxRate())
+            .vatNumber(request.getVatNumber())
             .creditLimit(request.getCreditLimit() != null ? request.getCreditLimit() : BigDecimal.ZERO)
             .isActive(request.getIsActive() != null ? request.getIsActive() : true)
             .ownerId(currentUserId)  // V4.1: 自动设置归属人
@@ -148,6 +156,7 @@ public class CustomerService {
 
         // 查询客户
         Customer customer = getCustomerEntityById(id);
+        requireCustomerAccess(customer);
         requireManagedClient(customer);
 
         // 更新字段（编码不可修改）
@@ -209,6 +218,7 @@ public class CustomerService {
         log.debug("Querying customer by id: {}", id);
 
         Customer customer = getCustomerEntityById(id);
+        requireCustomerAccess(customer);
 
         // V4.1: 动态脱敏
         boolean shouldMask = isSalesRole() && !isManagerOrAdmin();
@@ -289,7 +299,6 @@ public class CustomerService {
                 : customerRepository.findByCustomerType(customerType);
             log.debug("Admin/Manager querying all customers: count={}", customers.size());
         }
-
         // V4.1: 动态脱敏
         boolean shouldMask = isSalesRole() && !isManagerOrAdmin();
 
@@ -371,6 +380,7 @@ public class CustomerService {
         log.info("Deleting customer (soft delete): id={}", id);
 
         Customer customer = getCustomerEntityById(id);
+        requireCustomerAccess(customer);
         requireManagedClient(customer);
         customer.setIsActive(false);
 
@@ -437,6 +447,30 @@ public class CustomerService {
                 Map.of("customerId", customer.getId(), "source", customer.getSource().name())
             );
         }
+    }
+
+    private void requireCustomerAccess(Customer customer) {
+        if (isSalesRole() && !isManagerOrAdmin()
+            && !java.util.Objects.equals(customer.getOwnerId(), getCurrentUserId())) {
+            throw new BusinessException(ErrorKeys.CUSTOMER_NOT_FOUND, Map.of("customerId", customer.getId()));
+        }
+    }
+
+    private String nextCustomerCode() {
+        SystemConfig config = systemConfigRepository.findByConfigKeyForUpdate(CUSTOMER_CODE_NEXT_NUMBER)
+            .orElseGet(() -> systemConfigRepository.save(SystemConfig.builder()
+                .configKey(CUSTOMER_CODE_NEXT_NUMBER)
+                .configValue("1")
+                .configType("INTEGER")
+                .description("下一企业客户自然数编号")
+                .build()));
+        long nextNumber = Long.parseLong(config.getConfigValue());
+        if (nextNumber < 1) {
+            throw new IllegalStateException("Customer code sequence must be a positive integer");
+        }
+        config.setConfigValue(Long.toString(nextNumber + 1));
+        systemConfigRepository.save(config);
+        return Long.toString(nextNumber);
     }
 
     @Transactional(readOnly = true)
@@ -508,6 +542,9 @@ public class CustomerService {
                 .email(MaskingUtils.maskEmail(customer.getEmail()))
                 .normalizedEmail(MaskingUtils.maskEmail(customer.getNormalizedEmail()))
                 .address(MaskingUtils.maskAddress(customer.getAddress()))
+                .vatRate(customer.getVatRate())
+                .secondaryTaxRate(customer.getSecondaryTaxRate())
+                .vatNumber(customer.getVatNumber())
                 .creditLimit(customer.getCreditLimit())
                 .isActive(customer.getIsActive())
                 .createdAt(customer.getCreatedAt())
@@ -527,6 +564,9 @@ public class CustomerService {
                 .email(customer.getEmail())
                 .normalizedEmail(customer.getNormalizedEmail())
                 .address(customer.getAddress())
+                .vatRate(customer.getVatRate())
+                .secondaryTaxRate(customer.getSecondaryTaxRate())
+                .vatNumber(customer.getVatNumber())
                 .creditLimit(customer.getCreditLimit())
                 .isActive(customer.getIsActive())
                 .createdAt(customer.getCreatedAt())
@@ -570,7 +610,9 @@ public class CustomerService {
             return null;
         }
 
-        return userRepository.findByUsername(username).map(User::getId).orElse(null);
+        return userRepository.findByCompanyIdAndUsername(
+                com.wms.system.tenant.context.CompanyScope.currentCompanyId(), username)
+            .map(User::getId).orElse(null);
     }
 
     /**
@@ -599,7 +641,7 @@ public class CustomerService {
             return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(auth ->
-                    auth.equals("SUPER_ADMIN") ||
+                    auth.equals("TENANT_ADMIN") ||
                     auth.equals("WAREHOUSE_ADMIN") ||
                     auth.equals("CHAIRMAN") ||
                     auth.equals("MANAGER")

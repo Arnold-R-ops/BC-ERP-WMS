@@ -6,6 +6,11 @@ import com.wms.system.entity.User;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.tenant.context.RequestSurface;
+import com.wms.system.tenant.context.TenantContext;
+import com.wms.system.tenant.context.TenantContextHolder;
+import com.wms.system.tenant.model.TenantStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -74,6 +79,24 @@ class UserRoleServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(userRepository.findByIdAndCompanyId(anyLong(), eq(1L)))
+            .thenAnswer(invocation -> userRepository.findById(invocation.getArgument(0)));
+        lenient().when(roleRepository.findByCompanyIdAndId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> roleRepository.findById(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> roleRepository.findByIdIn(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                eq(1L), anyLong(), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.existsByUserIdAndRoleId(
+                invocation.getArgument(1), invocation.getArgument(2)));
+        lenient().when(userRoleRepository.findRoleIdsByCompanyIdAndUserId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.findRoleIdsByUserId(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.findUserIdsByCompanyIdAndRoleId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.findUserIdsByRoleId(invocation.getArgument(1)));
+        lenient().when(userRepository.findAllByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> userRepository.findAllById((Iterable<Long>) invocation.getArgument(1)));
+        lenient().when(userRoleRepository.countByCompanyIdAndRoleId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.countByRoleId(invocation.getArgument(1)));
         testUser = User.builder()
                 .id(1L)
                 .username("test_user")
@@ -94,6 +117,11 @@ class UserRoleServiceTest {
                 .roleName("婵炲濮甸幐鍝ヨ姳鏉堚晝涓嶉柨娑樺閸婄偤鏌?")
                 .status("ACTIVE")
                 .build();
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        TenantContextHolder.clear();
     }
 
     @Test
@@ -119,6 +147,35 @@ class UserRoleServiceTest {
         // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾介柟鎯х－閹界姴顭块幆浼村摵闁?
         verify(cacheService, times(1)).onUserRoleAssigned(1L);
         verify(securityVersionService).bumpForUser(1L);
+    }
+
+    @Test
+    @DisplayName("cannot assign another company's role even when the role ID exists globally")
+    void assignRoleToUser_RejectsCrossCompanyRole() {
+        TenantContextHolder.set(new TenantContext(
+            20L, "beta", "beta.bcwms.com", RequestSurface.TENANT,
+            TenantStatus.ACTIVE));
+        User companyBUser = User.builder()
+            .id(501L)
+            .username("operator")
+            .password("password")
+            .enabled(true)
+            .build();
+        companyBUser.setCompanyId(20L);
+
+        when(userRepository.findByIdAndCompanyId(501L, 20L))
+            .thenReturn(Optional.of(companyBUser));
+        when(roleRepository.findByCompanyIdAndId(20L, 10L))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            userRoleService.assignRoleToUser(501L, 10L, 999L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Role not found");
+
+        verify(roleRepository).findByCompanyIdAndId(20L, 10L);
+        verify(roleRepository, never()).findById(10L);
+        verify(userRoleRepository, never()).save(any());
     }
 
     @Test
@@ -170,11 +227,15 @@ class UserRoleServiceTest {
     @Test
     @DisplayName("case-6")
     void removeRoleFromUser_Success() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findById(10L)).thenReturn(Optional.of(chairmanRole));
+
         // When: 缂備礁顦…宄扳枍鎼达絾鍠嗛柟鐑樻礀椤?
         userRoleService.removeRoleFromUser(1L, 10L);
 
         // Then: 婵°倗濮撮惌渚€鎯佹径鎰闁绘绮悵鐔兼煙閸喚小缂?
-        verify(userRoleRepository, times(1)).deleteByUserIdAndRoleId(1L, 10L);
+        verify(userRoleRepository, times(1))
+                .deleteByCompanyIdAndUserIdAndRoleId(1L, 1L, 10L);
 
         // Then: 婵°倗濮撮惌渚€鎯佹径宀€纾介柟鎯х－閹界姴顭块幆浼村摵闁?
         verify(cacheService, times(1)).onUserRoleRemoved(1L);
@@ -194,7 +255,7 @@ class UserRoleServiceTest {
         userRoleService.assignRolesToUser(1L, roleIds, 999L);
 
         // Then: 婵°倗濮撮惌渚€鎯佹径鎰闁割偅绻傞悘鈺呮⒒閸曗晛鈧牗鏅跺澶婂珘濠㈣泛瀵掑锟犳煠?
-        verify(userRoleRepository, times(1)).deleteByUserId(1L);
+        verify(userRoleRepository, times(1)).deleteByCompanyIdAndUserId(1L, 1L);
 
         // Then: 婵°倗濮撮惌渚€鎯佹径瀣攳婵犻潧妫涢幗?2 濠电偛妫屽Σ鍕? 婵炴垶鎼╂禍锝夛綖濡ゅ懏鍤岄悹鍥囧懐顦?
         verify(userRoleRepository, times(2)).save(any(SysUserRole.class));

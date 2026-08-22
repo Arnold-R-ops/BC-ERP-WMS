@@ -46,7 +46,7 @@ class InventoryControllerTest {
     // ========== POST /api/inventory/adjust ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("adjustStock - returns 200 when successful")
     void testAdjustStock_Success() throws Exception {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
@@ -79,7 +79,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("adjustStock - returns 400 when request is invalid (missing productSkuId)")
     void testAdjustStock_InvalidRequest() throws Exception {
         String invalidJson = """
@@ -99,7 +99,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("adjustStock - returns error when product not found")
     void testAdjustStock_ProductNotFound() throws Exception {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
@@ -122,7 +122,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("adjustStock - returns error when stock insufficient")
     void testAdjustStock_InsufficientStock() throws Exception {
         StockAdjustmentRequest request = StockAdjustmentRequest.builder()
@@ -147,7 +147,7 @@ class InventoryControllerTest {
     // ========== GET /api/inventory/total-stock/{productSkuId} ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getTotalStock - returns total stock for product")
     void testGetTotalStock_Success() throws Exception {
         when(inventoryService.getTotalStock(1L)).thenReturn(350);
@@ -159,7 +159,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getTotalStock - returns 0 when no inventory")
     void testGetTotalStock_Zero() throws Exception {
         when(inventoryService.getTotalStock(1L)).thenReturn(0);

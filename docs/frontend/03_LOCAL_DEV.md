@@ -2,7 +2,7 @@
 
 ## 后端启动
 
-前置（本机已具备）：JDK 17、PostgreSQL（本地 5432，库 wms_db）、环境变量 `DB_PASSWORD`/`JWT_SECRET`/`BATCH_SALT`（已在用户环境变量中配置）。
+前置（本机已具备）：JDK 17、PostgreSQL（本地 5432，库 wms_db）、环境变量 `DB_PASSWORD`/`TENANT_JWT_SECRET`/`PLATFORM_JWT_SECRET`/`BATCH_SALT`（已在用户环境变量中配置）。
 
 ```powershell
 # 仓库根目录（2G/）

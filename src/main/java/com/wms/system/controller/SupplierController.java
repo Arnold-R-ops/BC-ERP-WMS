@@ -29,7 +29,7 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('supplier:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<SupplierResponse>> list(
         @RequestParam(value = "activeOnly", defaultValue = "false") boolean activeOnly
     ) {
@@ -37,13 +37,13 @@ public class SupplierController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('supplier:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:view', 'TENANT_ADMIN')")
     public ResponseEntity<SupplierResponse> get(@PathVariable("id") Long id) {
         return ResponseEntity.ok(supplierService.get(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('supplier:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:create', 'TENANT_ADMIN')")
     public ResponseEntity<SupplierResponse> create(
         @Valid @RequestBody CreateSupplierRequest request
     ) {
@@ -51,7 +51,7 @@ public class SupplierController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('supplier:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:update', 'TENANT_ADMIN')")
     public ResponseEntity<SupplierResponse> update(
         @PathVariable("id") Long id,
         @Valid @RequestBody UpdateSupplierRequest request
@@ -60,19 +60,19 @@ public class SupplierController {
     }
 
     @PutMapping("/{id}/activate")
-    @PreAuthorize("hasAnyAuthority('supplier:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:update', 'TENANT_ADMIN')")
     public ResponseEntity<SupplierResponse> activate(@PathVariable("id") Long id) {
         return ResponseEntity.ok(supplierService.activate(id));
     }
 
     @PutMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyAuthority('supplier:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:update', 'TENANT_ADMIN')")
     public ResponseEntity<SupplierResponse> deactivate(@PathVariable("id") Long id) {
         return ResponseEntity.ok(supplierService.deactivate(id));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('supplier:delete', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('supplier:delete', 'TENANT_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         supplierService.delete(id);
         return ResponseEntity.noContent().build();

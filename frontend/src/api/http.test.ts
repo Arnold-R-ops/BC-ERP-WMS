@@ -18,9 +18,9 @@ describe('API request authentication handling', () => {
       token: 'abc123',
       tokenType: 'Bearer',
       username: 'admin',
-      currentRole: 'SUPER_ADMIN',
+      currentRole: 'TENANT_ADMIN',
       permissionCodes: [],
-      availableRoles: ['SUPER_ADMIN'],
+      availableRoles: ['TENANT_ADMIN'],
       expiresAt: Date.now() + 10_000,
       mustChangePassword: false,
     });
@@ -33,6 +33,31 @@ describe('API request authentication handling', () => {
     const requestInit = fetchMock.mock.calls[0]?.[1];
     const headers = new Headers(requestInit?.headers);
     expect(headers.get('Authorization')).toBe('Bearer abc123');
+  });
+
+  it('omits an existing bearer token for one-time session exchange', async () => {
+    writeAuthSession({
+      token: 'stale-company-token',
+      tokenType: 'Bearer',
+      username: 'admin',
+      currentRole: 'TENANT_ADMIN',
+      permissionCodes: [],
+      availableRoles: ['TENANT_ADMIN'],
+      expiresAt: Date.now() + 10_000,
+      mustChangePassword: false,
+    });
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+    await apiRequest<{ ok: boolean }>('/public/v1/session-handoff/consume', {
+      method: 'POST',
+      body: { code: 'one-time-code' },
+      omitAuth: true,
+    });
+
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(headers.has('Authorization')).toBe(false);
   });
 
   it('emits the unauthorized event for a 401 response', async () => {
@@ -69,9 +94,9 @@ describe('API request authentication handling', () => {
       token: 'abc123',
       tokenType: 'Bearer',
       username: 'admin',
-      currentRole: 'SUPER_ADMIN',
+      currentRole: 'TENANT_ADMIN',
       permissionCodes: [],
-      availableRoles: ['SUPER_ADMIN'],
+      availableRoles: ['TENANT_ADMIN'],
       expiresAt: Date.now() + 10_000,
       mustChangePassword: false,
     });

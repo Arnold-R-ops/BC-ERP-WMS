@@ -7,5 +7,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
+    // Ant Design/Pro components can cross Vitest's 5 s default when the
+    // complete UI suite is importing and rendering in parallel.
+    testTimeout: 10_000,
   },
 });

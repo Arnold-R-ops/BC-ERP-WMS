@@ -55,7 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @Transactional
-@WithMockUser(authorities = {"SUPER_ADMIN"})
+@WithMockUser(authorities = {"TENANT_ADMIN"})
 @DisplayName("case-1")
 class InboundOrderControllerIntegrationTest {
 
@@ -228,7 +228,7 @@ class InboundOrderControllerIntegrationTest {
                 .user(buyerUser)
                 .role(buyerRole)
                 .build());
-        buyerToken = jwtUtil.generateToken(buyerUser.getUsername(), buyerRole.getRoleCode());
+        buyerToken = tenantToken(buyerUser, buyerRole.getRoleCode());
 
         // 闂佸憡甯楃粙鎴犵磽閹捐绠戦柤濮愬€楅惀鍛存煟閻愬弶顥犻柡浣靛€濋獮?
         gmUser = userRepository.save(User.builder()
@@ -243,7 +243,7 @@ class InboundOrderControllerIntegrationTest {
                 .user(gmUser)
                 .role(chairmanRole)
                 .build());
-        gmToken = jwtUtil.generateToken(gmUser.getUsername(), chairmanRole.getRoleCode());
+        gmToken = tenantToken(gmUser, chairmanRole.getRoleCode());
 
         // 闂佸憡甯楃粙鎴犵磽閹惧顩烽柟鎯х－濮樸劎绱掗悪鍛？闁诡喖锕畷銊ノ熼崗鍏兼闂?
         warehouseUser = userRepository.save(User.builder()
@@ -258,7 +258,13 @@ class InboundOrderControllerIntegrationTest {
                 .user(warehouseUser)
                 .role(warehouseRole)
                 .build());
-        warehouseToken = jwtUtil.generateToken(warehouseUser.getUsername(), warehouseRole.getRoleCode());
+        warehouseToken = tenantToken(warehouseUser, warehouseRole.getRoleCode());
+    }
+
+    private String tenantToken(User user, String roleCode) {
+        return jwtUtil.generateTenantToken(
+            user.getId(), user.getCompanyId(), user.getUsername(), roleCode,
+            user.getSecurityVersion());
     }
 
     /**

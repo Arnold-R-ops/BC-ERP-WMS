@@ -8,6 +8,7 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysUserWarehouseRepository;
 import com.wms.system.repository.WarehouseRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,8 @@ public class UserWarehouseService {
 
     @Transactional(readOnly = true)
     public List<AssignableWarehouseDTO> listAssignableWarehouses() {
-        return warehouseRepository.findAllActive().stream()
+        return warehouseRepository.findAllActiveByCompanyId(
+                CompanyScope.currentCompanyId()).stream()
             .map(warehouse -> AssignableWarehouseDTO.builder()
                 .id(warehouse.getId())
                 .code(warehouse.getCode())
@@ -39,11 +41,14 @@ public class UserWarehouseService {
 
     @Transactional(readOnly = true)
     public List<AssignableWarehouseDTO> getAssignedWarehouses(Long userId) {
-        Set<Long> warehouseIds = userWarehouseRepository.findWarehouseIdsByUserId(userId);
+        Set<Long> warehouseIds = userWarehouseRepository
+            .findWarehouseIdsByCompanyIdAndUserId(
+                CompanyScope.currentCompanyId(), userId);
         if (warehouseIds.isEmpty()) {
             return List.of();
         }
-        return warehouseRepository.findAllById(warehouseIds).stream()
+        return warehouseRepository.findAllByCompanyIdAndIdIn(
+                CompanyScope.currentCompanyId(), warehouseIds).stream()
             .sorted((left, right) -> left.getCode().compareTo(right.getCode()))
             .map(warehouse -> AssignableWarehouseDTO.builder()
                 .id(warehouse.getId())
@@ -55,7 +60,8 @@ public class UserWarehouseService {
 
     @Transactional(readOnly = true)
     public Set<Long> getAssignedWarehouseIds(Long userId) {
-        return userWarehouseRepository.findWarehouseIdsByUserId(userId);
+        return userWarehouseRepository.findWarehouseIdsByCompanyIdAndUserId(
+            CompanyScope.currentCompanyId(), userId);
     }
 
     /** Validate before role mutation so an invalid selection cannot partially change IAM state. */
@@ -75,7 +81,9 @@ public class UserWarehouseService {
             );
         }
 
-        List<Warehouse> warehouses = warehouseRepository.findAllById(warehouseIds);
+        List<Warehouse> warehouses = warehouseRepository
+            .findAllByCompanyIdAndIdIn(
+                CompanyScope.currentCompanyId(), warehouseIds);
         if (warehouses.size() != warehouseIds.size()) {
             throw new BusinessException(
                 ErrorKeys.WAREHOUSE_NOT_FOUND,
@@ -102,14 +110,16 @@ public class UserWarehouseService {
         List<Long> requestedWarehouseIds,
         Long assignedBy
     ) {
+        Long companyId = CompanyScope.currentCompanyId();
         List<Warehouse> warehouses = validateSelection(roles, requestedWarehouseIds);
-        userWarehouseRepository.deleteByUserId(userId);
+        userWarehouseRepository.deleteByCompanyIdAndUserId(companyId, userId);
         userWarehouseRepository.flush();
         if (warehouses.isEmpty()) {
             return;
         }
         List<SysUserWarehouse> assignments = warehouses.stream()
             .map(warehouse -> SysUserWarehouse.builder()
+                .companyId(companyId)
                 .userId(userId)
                 .warehouseId(warehouse.getId())
                 .assignedBy(assignedBy)
@@ -120,7 +130,8 @@ public class UserWarehouseService {
 
     @Transactional
     public void clearAssignments(Long userId) {
-        userWarehouseRepository.deleteByUserId(userId);
+        userWarehouseRepository.deleteByCompanyIdAndUserId(
+            CompanyScope.currentCompanyId(), userId);
     }
 
     private Set<Long> normalize(List<Long> warehouseIds) {

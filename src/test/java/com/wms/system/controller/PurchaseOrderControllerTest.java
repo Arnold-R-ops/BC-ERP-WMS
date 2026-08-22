@@ -22,12 +22,15 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -71,7 +74,7 @@ class PurchaseOrderControllerTest {
     // ========== POST /api/purchase-orders ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("createPurchaseOrder - returns 201 when successful")
     void testCreatePurchaseOrder_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
@@ -99,7 +102,7 @@ class PurchaseOrderControllerTest {
     // ========== PUT /api/purchase-orders/{id} ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("updateOrderingPurchaseOrder - returns updated version")
     void testUpdateOrderingPurchaseOrder_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
@@ -126,7 +129,7 @@ class PurchaseOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("updateOrderingPurchaseOrder - stale version returns 409")
     void testUpdateOrderingPurchaseOrder_StaleVersion() throws Exception {
         when(purchaseOrderService.updateOrderingPurchaseOrder(any(), any(), any(), any(), any(), any(), any(), any()))
@@ -148,7 +151,7 @@ class PurchaseOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("downloadImportTemplate - returns xlsx attachment")
     void testDownloadImportTemplate_Success() throws Exception {
         when(excelImportService.downloadPurchaseOrderTemplate()).thenReturn(new byte[]{1, 2, 3});
@@ -166,7 +169,7 @@ class PurchaseOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("uploadExcel - returns 201 when valid xlsx uploaded")
     void testUploadExcel_Success() throws Exception {
         PurchaseOrderService.PurchaseOrderItemData item =
@@ -197,7 +200,7 @@ class PurchaseOrderControllerTest {
     // ========== GET /api/purchase-orders/{id} ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getById - returns 200 with purchase order details")
     void testGetById_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
@@ -211,7 +214,7 @@ class PurchaseOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getById - returns 404 when not found")
     void testGetById_NotFound() throws Exception {
         when(purchaseOrderService.findById(99L)).thenThrow(
@@ -240,7 +243,7 @@ class PurchaseOrderControllerTest {
     // ========== PUT /api/purchase-orders/{id}/rollback ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("rollback - returns 200 when successful")
     void testRollback_Success() throws Exception {
         PurchaseOrder rolledBack = buildPurchaseOrder();
@@ -252,7 +255,7 @@ class PurchaseOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("rollback - returns error when wrong status")
     void testRollback_WrongStatus() throws Exception {
         when(purchaseOrderService.rollbackToOrdering(any(), any())).thenThrow(
@@ -267,7 +270,7 @@ class PurchaseOrderControllerTest {
     // ========== V4.4 幂等性防御：重复采购单号 ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("createPurchaseOrder - 重复 po_number -> 409 ORDER_NUMBER_DUPLICATE")
     void testCreatePurchaseOrder_DuplicatePoNumber_Returns409() throws Exception {
         when(purchaseOrderService.createPurchaseOrder(any(), any(), any(), any(), any(), any()))
@@ -299,7 +302,7 @@ class PurchaseOrderControllerTest {
     // ========== PUT /api/purchase-orders/{id}/confirm ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("confirmAndGenerateBatchCodes - returns 200 when successful")
     void testConfirmAndGenerateBatchCodes_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
@@ -326,7 +329,7 @@ class PurchaseOrderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("confirmAndGenerateBatchCodes - returns 400 when status invalid")
     void testConfirmAndGenerateBatchCodes_InvalidStatus() throws Exception {
         when(purchaseOrderService.confirmAndGenerateBatchCodes(eq(1L), any()))
@@ -346,7 +349,7 @@ class PurchaseOrderControllerTest {
     // ========== PUT /api/purchase-orders/{id}/receive ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("receiveGoods - returns 200 when successful (partial)")
     void testReceiveGoods_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
@@ -376,20 +379,32 @@ class PurchaseOrderControllerTest {
     // ========== GET /api/purchase-orders ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getPurchaseOrders - returns 200 with list")
     void testGetPurchaseOrders_Success() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
+        AtomicBoolean supplierReadInsideTransaction = new AtomicBoolean(false);
+        Supplier supplier = mock(Supplier.class);
+        when(supplier.getId()).thenReturn(4L);
+        when(supplier.getCode()).thenAnswer(invocation -> {
+            supplierReadInsideTransaction.set(
+                TransactionSynchronizationManager.isActualTransactionActive());
+            return "SUP-TEST";
+        });
+        order.setSupplierReference(supplier);
         when(purchaseOrderService.findAll(any())).thenReturn(List.of(order));
 
         mockMvc.perform(get("/api/purchase-orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].poNumber").value("PO-20260101-001"));
+
+        assertTrue(supplierReadInsideTransaction.get(),
+            "supplier association must be mapped while tenant transaction context is active");
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getPurchaseOrders - filter by status returns 200")
     void testGetPurchaseOrders_FilterByStatus() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();

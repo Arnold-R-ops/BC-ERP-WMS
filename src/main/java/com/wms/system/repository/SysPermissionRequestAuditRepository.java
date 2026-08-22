@@ -11,5 +11,8 @@ public interface SysPermissionRequestAuditRepository
     List<SysPermissionRequestAudit> findByPermissionRequestIdOrderByCreatedAtDesc(
         Long permissionRequestId
     );
-}
 
+    List<SysPermissionRequestAudit>
+        findByCompanyIdAndPermissionRequestIdOrderByCreatedAtDesc(
+            Long companyId, Long permissionRequestId);
+}

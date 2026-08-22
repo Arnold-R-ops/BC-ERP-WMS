@@ -35,8 +35,8 @@ class PermissionRequestControllerTest {
             .requestedRoleId(4L)
             .build();
         PermissionRequestDTO result = PermissionRequestDTO.builder().id(12L).build();
-        Authentication authentication = authentication(7L, "requester.admin", "SUPER_ADMIN");
-        when(service.create(request, 7L, "requester.admin", "SUPER_ADMIN")).thenReturn(result);
+        Authentication authentication = authentication(7L, "requester.admin", "TENANT_ADMIN");
+        when(service.create(request, 7L, "requester.admin", "TENANT_ADMIN")).thenReturn(result);
 
         var response = controller.create(request, authentication);
 
@@ -62,11 +62,11 @@ class PermissionRequestControllerTest {
         PermissionRequestRevokeRequest request = PermissionRequestRevokeRequest.builder()
             .comment("Assignment ended")
             .build();
-        Authentication authentication = authentication(7L, "admin", "SUPER_ADMIN");
+        Authentication authentication = authentication(7L, "admin", "TENANT_ADMIN");
 
         controller.revoke(12L, request, authentication);
 
-        verify(service).revoke(12L, request, 7L, "admin", "SUPER_ADMIN");
+        verify(service).revoke(12L, request, 7L, "admin", "TENANT_ADMIN");
     }
 
     private Authentication authentication(Long id, String username, String roleCode) {

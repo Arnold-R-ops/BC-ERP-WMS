@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { getIamCapabilities } from './capabilities';
 
 describe('IAM capabilities', () => {
-  it('keeps protected identities and high-risk approval exclusive to SUPER_ADMIN', () => {
-    expect(getIamCapabilities('SUPER_ADMIN')).toEqual({
+  it('allows the company administrator to govern company IAM', () => {
+    expect(getIamCapabilities('TENANT_ADMIN')).toEqual({
       canManage: true,
       canManageProtectedIdentities: true,
       canApproveHighRiskPackages: true,

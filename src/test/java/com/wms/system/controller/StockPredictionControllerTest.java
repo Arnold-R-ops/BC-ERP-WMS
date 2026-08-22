@@ -59,7 +59,7 @@ class StockPredictionControllerTest {
     // ========== GET /api/predictions/reorder/{productSkuId} ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getReorderSuggestion - returns suggestion for product")
     void testGetReorderSuggestion_Success() throws Exception {
         ReorderSuggestion suggestion = buildSuggestion(1L, "HIGH");
@@ -75,7 +75,7 @@ class StockPredictionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getReorderSuggestion - uses default 30 days when no param")
     void testGetReorderSuggestion_DefaultDays() throws Exception {
         ReorderSuggestion suggestion = buildSuggestion(1L, "MEDIUM");
@@ -90,7 +90,7 @@ class StockPredictionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getReorderSuggestion - returns 404 when product not found")
     void testGetReorderSuggestion_NotFound() throws Exception {
         when(predictionService.getReorderSuggestion(99L, 30)).thenThrow(
@@ -104,7 +104,7 @@ class StockPredictionControllerTest {
     // ========== GET /api/predictions/reorder ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getAllReorderSuggestions - returns suggestions with totalCount and totalCost")
     void testGetAllReorderSuggestions_Success() throws Exception {
         ReorderSuggestion s = buildSuggestion(1L, "LOW");
@@ -121,7 +121,7 @@ class StockPredictionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getAllReorderSuggestions - returns empty list when no low stock")
     void testGetAllReorderSuggestions_Empty() throws Exception {
         when(predictionService.getAllReorderSuggestions(30)).thenReturn(List.of());
@@ -135,7 +135,7 @@ class StockPredictionControllerTest {
     // ========== GET /api/predictions/reorder/urgent ==========
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("getUrgentReorderSuggestions - returns only high priority suggestions")
     void testGetUrgentReorderSuggestions_Success() throws Exception {
         when(predictionService.getHighPriorityReorderSuggestions(30)).thenReturn(List.of());

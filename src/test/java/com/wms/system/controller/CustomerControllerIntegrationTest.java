@@ -82,7 +82,7 @@ class CustomerControllerIntegrationTest {
         // 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幑鎰滈柛锔诲幐閸嬫捇鏁愭惔鈥崇濠碘€冲级閹倿寮婚敐澶涚稏妞ゆ巻鍋撳┑鈥茬矙閺?
         salesUser1 = createUser("sales1", "SALESPERSON");
         salesUser2 = createUser("sales2", "SALESPERSON");
-        adminUser = createUser("admin", "SUPER_ADMIN");
+        adminUser = createUser("admin", "TENANT_ADMIN");
     }
 
     private User createUser(String username, String role) {
@@ -106,7 +106,6 @@ class CustomerControllerIntegrationTest {
     void testCreateCustomer_AutoSetOwner() throws Exception {
         // Given
         CreateCustomerRequest request = CreateCustomerRequest.builder()
-            .code("CUST001")
             .name("Customer A")
             .contact("Alice")
             .phone("13912345678")
@@ -122,7 +121,7 @@ class CustomerControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.code").value("CUST001"))
+            .andExpect(jsonPath("$.code", matchesPattern("\\d+")))
             .andExpect(jsonPath("$.name").value("Customer A"))
             .andReturn();
 
@@ -132,7 +131,7 @@ class CustomerControllerIntegrationTest {
 
         Customer savedCustomer = customerRepository.findById(response.getId()).orElseThrow();
         assertThat(savedCustomer.getOwnerId()).isNotNull();
-        assertThat(savedCustomer.getCode()).isEqualTo("CUST001");
+        assertThat(savedCustomer.getCode()).isEqualTo(response.getCode());
     }
 
     // ========== 闂備浇宕甸崑鐐电矙閹达附鍎旈柛蹇曗拡濞堜粙鏌涢妷顔煎闁抽攱娲熼弻锟犲礃閵娿儰绨介梺璇查瀵墎鎹㈠☉銏犵骇闁规惌鍘奸崜鐢告⒑?==========
@@ -158,7 +157,7 @@ class CustomerControllerIntegrationTest {
 
     @Test
     @Order(3)
-    @WithMockUser(username = "admin", authorities = {"customer:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"customer:view", "TENANT_ADMIN"})
     @DisplayName("case-4")
     void testRowLevelSecurity_AdminSeesAllCustomers() throws Exception {
         // Given - 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褜鍤熼柍缁樻閺屾洟宕煎┑鍡╀純闂佹悶鍊曢澶婎潖閻戞ɑ鍎熼柟鎯у帠婢规洟姊绘担鍛婃喐闁稿孩鍔欏畷浼村冀椤撶偟鐤呴梺瑙勫劶婵倝宕曞澶嬬厱闁哄洢鍔屾禍浠嬫煕濮橆剙鈧潡寮?
@@ -201,7 +200,7 @@ class CustomerControllerIntegrationTest {
 
     @Test
     @Order(5)
-    @WithMockUser(username = "admin", authorities = {"customer:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"customer:view", "TENANT_ADMIN"})
     @DisplayName("case-6")
     void testDynamicMasking_AdminSeesOriginalData() throws Exception {
         // Given
@@ -272,7 +271,6 @@ class CustomerControllerIntegrationTest {
     void testCompleteCRUDFlow() throws Exception {
         // 1. 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褏浜柛瀣崌閻涱噣宕归鍙ョ棯闂?
         CreateCustomerRequest createRequest = CreateCustomerRequest.builder()
-            .code("CUST999")
             .name("CRUD Customer")
             .contact("CRUD Contact")
             .phone("13900000000")
@@ -297,11 +295,10 @@ class CustomerControllerIntegrationTest {
         // 2. 闂傚倷绀侀幖顐ゆ偖椤愶箑纾块柟缁㈠櫘閺佸淇婇妶鍛殜闁稿鎹囬悰顕€宕归鍙ョ棯闂備胶纭堕弲婊呯矙閹捐绠柣妯肩帛閺呮粓鏌﹀Ο渚Ц濠?
         mockMvc.perform(get("/api/customers/" + customerId))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value("CUST999"));
+            .andExpect(jsonPath("$.code").value(createdCustomer.getCode()));
 
         // 3. 闂傚倷绀侀幖顐⒚洪妶澶嬪仱闁靛ň鏅涢拑鐔封攽閻樻彃顏ら柛瀣崌閻涱噣宕归鍙ョ棯闂?
         CreateCustomerRequest updateRequest = CreateCustomerRequest.builder()
-            .code("CUST999")
             .name("CRUD Customer Updated")
             .contact("CRUD Contact Updated")
             .phone("13900000001")

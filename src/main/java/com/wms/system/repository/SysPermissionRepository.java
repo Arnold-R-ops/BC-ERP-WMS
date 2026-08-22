@@ -32,6 +32,8 @@ import java.util.Set;
 @Repository
 public interface SysPermissionRepository extends JpaRepository<SysPermission, Long> {
 
+    Optional<SysPermission> findByCompanyIdAndId(Long companyId, Long id);
+
     /**
      * Find permission by permission code
      *
@@ -39,6 +41,9 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      * @return Optional<SysPermission>
      */
     Optional<SysPermission> findByPermissionCode(String permissionCode);
+
+    Optional<SysPermission> findByCompanyIdAndPermissionCode(
+        Long companyId, String permissionCode);
 
     /**
      * Check if permission code exists
@@ -48,6 +53,9 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      */
     boolean existsByPermissionCode(String permissionCode);
 
+    boolean existsByCompanyIdAndPermissionCode(
+        Long companyId, String permissionCode);
+
     /**
      * Find permissions by permission type
      *
@@ -56,6 +64,9 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      */
     List<SysPermission> findByPermissionType(String permissionType);
 
+    List<SysPermission> findByCompanyIdAndPermissionType(
+        Long companyId, String permissionType);
+
     /**
      * Find permissions by parent ID (for tree structure)
      *
@@ -63,6 +74,8 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      * @return List of child permissions
      */
     List<SysPermission> findByParentId(Long parentId);
+
+    List<SysPermission> findByCompanyIdAndParentId(Long companyId, Long parentId);
 
     /**
      * Find root permissions (parent_id IS NULL)
@@ -80,6 +93,8 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      */
     List<SysPermission> findByStatus(String status);
 
+    List<SysPermission> findByCompanyIdAndStatus(Long companyId, String status);
+
     /**
      * Find permissions by type and status
      *
@@ -88,6 +103,9 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      * @return List of permissions
      */
     List<SysPermission> findByPermissionTypeAndStatus(String permissionType, String status);
+
+    List<SysPermission> findByCompanyIdAndPermissionTypeAndStatus(
+        Long companyId, String permissionType, String status);
 
     /**
      * Find all active permissions
@@ -124,12 +142,17 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      */
     List<SysPermission> findByIdIn(Set<Long> permissionIds);
 
+    List<SysPermission> findByCompanyIdAndIdIn(
+        Long companyId, Set<Long> permissionIds);
+
     /**
      * Find permissions ordered by sort order
      *
      * @return List of permissions ordered by sort_order ASC
      */
     List<SysPermission> findAllByOrderBySortOrderAsc();
+
+    List<SysPermission> findByCompanyIdOrderBySortOrderAsc(Long companyId);
 
     /**
      * Search permissions by name (fuzzy match)
@@ -139,6 +162,9 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      */
     List<SysPermission> findByPermissionNameContaining(String keyword);
 
+    List<SysPermission> findByCompanyIdAndPermissionNameContaining(
+        Long companyId, String keyword);
+
     /**
      * Find API permissions by resource path (for authorization)
      *
@@ -147,6 +173,9 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      */
     List<SysPermission> findByResourcePath(String resourcePath);
 
+    List<SysPermission> findByCompanyIdAndResourcePath(
+        Long companyId, String resourcePath);
+
     /**
      * Find API permissions by HTTP method
      *
@@ -154,6 +183,8 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
      * @return List of matching API permissions
      */
     List<SysPermission> findByHttpMethod(String httpMethod);
+
+    List<SysPermission> findByCompanyIdAndHttpMethod(Long companyId, String httpMethod);
 
     /**
      * Find permission tree structure

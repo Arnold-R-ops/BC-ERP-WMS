@@ -8,6 +8,7 @@ import com.wms.system.entity.SysRole;
 import com.wms.system.entity.SysRolePermission;
 import com.wms.system.entity.SysUserRole;
 import com.wms.system.repository.*;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -67,34 +68,42 @@ public class DynamicPermissionService {
      * @param userId User ID
      * @return UserPermissionDTO with all permissions
      */
-    @Cacheable(value = CacheConfig.USER_PERMISSIONS_CACHE, key = "#userId")
+    @Cacheable(value = CacheConfig.USER_PERMISSIONS_CACHE,
+            key = "'all:' + T(com.wms.system.tenant.context.CompanyScope).currentCompanyId() + ':' + #userId")
     public UserPermissionDTO getUserPermissions(Long userId) {
+        return getUserPermissions(CompanyScope.currentCompanyId(), userId);
+    }
+
+    @Cacheable(value = CacheConfig.USER_PERMISSIONS_CACHE,
+            key = "'all:' + #companyId + ':' + #userId")
+    public UserPermissionDTO getUserPermissions(Long companyId, Long userId) {
         log.info("Loading permissions for user ID: {} (cache miss)", userId);
 
         // 1. Get user's enabled direct role IDs. Disabled roles never
         // contribute permissions, even through the legacy all-role resolver.
-        Set<Long> assignedRoleIds = userRoleRepository.findRoleIdsByUserId(userId);
+        Set<Long> assignedRoleIds = userRoleRepository
+                .findRoleIdsByCompanyIdAndUserId(companyId, userId);
         if (assignedRoleIds.isEmpty()) {
             log.warn("User {} has no roles assigned", userId);
             return buildEmptyPermissionDTO(userId);
         }
-        Set<Long> directRoleIds = findActiveRoleIds(assignedRoleIds);
+        Set<Long> directRoleIds = findActiveRoleIds(companyId, assignedRoleIds);
         if (directRoleIds.isEmpty()) {
             log.warn("User {} has no active roles assigned", userId);
             return buildEmptyPermissionDTO(userId);
         }
 
         // 2. Recursively get all inherited role IDs
-        Set<Long> allRoleIds = getInheritedRoleIds(directRoleIds);
+        Set<Long> allRoleIds = getInheritedRoleIds(companyId, directRoleIds);
         log.debug("User {} has {} direct roles, {} effective roles (including inherited)",
                 userId, directRoleIds.size(), allRoleIds.size());
 
         // 3. Get all permissions from all roles
-        List<PermissionDTO> allPermissions = getPermissionsByRoleIds(allRoleIds);
+        List<PermissionDTO> allPermissions = getPermissionsByRoleIds(companyId, allRoleIds);
         log.debug("User {} has {} total permissions", userId, allPermissions.size());
 
         // 4. Build UserPermissionDTO
-        return buildUserPermissionDTO(userId, directRoleIds, allRoleIds, allPermissions);
+        return buildUserPermissionDTO(companyId, userId, directRoleIds, allRoleIds, allPermissions);
     }
 
     /**
@@ -110,9 +119,10 @@ public class DynamicPermissionService {
      */
     @Cacheable(
             value = CacheConfig.USER_PERMISSIONS_CACHE,
-            key = "'active:' + #userId + ':' + #roleCode + ':' + #securityVersion"
+            key = "'active:' + #companyId + ':' + #userId + ':' + #roleCode + ':' + #securityVersion"
     )
     public UserPermissionDTO getUserPermissionsForRole(
+            Long companyId,
             Long userId,
             String roleCode,
             Long securityVersion
@@ -121,7 +131,7 @@ public class DynamicPermissionService {
             throw new IllegalArgumentException("Current role is required");
         }
 
-        SysRole selectedRole = roleRepository.findByRoleCode(roleCode)
+        SysRole selectedRole = roleRepository.findByCompanyIdAndRoleCode(companyId, roleCode)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Current role does not exist: " + roleCode));
 
@@ -129,25 +139,47 @@ public class DynamicPermissionService {
             throw new IllegalArgumentException("Current role is disabled: " + roleCode);
         }
 
-        if (!userRoleRepository.existsByUserIdAndRoleId(userId, selectedRole.getId())) {
+        if (!userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, userId, selectedRole.getId())) {
             throw new IllegalArgumentException(
                     "Current role is not assigned to user: " + roleCode);
         }
 
         Set<Long> directRoleIds = Set.of(selectedRole.getId());
-        Set<Long> effectiveRoleIds = getInheritedRoleIds(directRoleIds);
-        List<PermissionDTO> permissions = getPermissionsByRoleIds(effectiveRoleIds);
+        if (SysRole.TENANT_ADMIN_ROLE_CODE.equals(selectedRole.getRoleCode())) {
+            List<PermissionDTO> companyPermissions = permissionRepository
+                .findByCompanyIdAndStatus(companyId, "ACTIVE")
+                .stream()
+                .map(this::convertToDTO)
+                .sorted(Comparator.comparing(PermissionDTO::getSortOrder,
+                    Comparator.nullsLast(Integer::compareTo)))
+                .toList();
+            return buildUserPermissionDTO(
+                companyId, userId, directRoleIds, directRoleIds, companyPermissions);
+        }
+        Set<Long> effectiveRoleIds = getInheritedRoleIds(companyId, directRoleIds);
+        List<PermissionDTO> permissions = getPermissionsByRoleIds(companyId, effectiveRoleIds);
 
         log.debug("Resolved active-role permissions: userId={}, roleCode={}, " +
                         "securityVersion={}, effectiveRoles={}, permissions={}",
                 userId, roleCode, securityVersion, effectiveRoleIds.size(), permissions.size());
 
         return buildUserPermissionDTO(
-                userId,
+                companyId, userId,
                 directRoleIds,
                 effectiveRoleIds,
                 permissions
         );
+    }
+
+    @Cacheable(
+            value = CacheConfig.USER_PERMISSIONS_CACHE,
+            key = "'active:' + T(com.wms.system.tenant.context.CompanyScope).currentCompanyId() + ':' + #userId + ':' + #roleCode + ':' + #securityVersion"
+    )
+    public UserPermissionDTO getUserPermissionsForRole(
+            Long userId, String roleCode, Long securityVersion) {
+        return getUserPermissionsForRole(
+            CompanyScope.currentCompanyId(), userId, roleCode, securityVersion);
     }
 
     /**
@@ -171,8 +203,9 @@ public class DynamicPermissionService {
      * @param roleIds Starting role IDs (user's direct roles)
      * @return All role IDs (direct + inherited)
      */
-    @Cacheable(value = CacheConfig.ROLE_INHERIT_CACHE, key = "#roleIds")
-    public Set<Long> getInheritedRoleIds(Set<Long> roleIds) {
+    @Cacheable(value = CacheConfig.ROLE_INHERIT_CACHE,
+            key = "#companyId + ':' + #roleIds")
+    public Set<Long> getInheritedRoleIds(Long companyId, Set<Long> roleIds) {
         Set<Long> result = new HashSet<>(roleIds);
         Set<Long> currentLevel = new HashSet<>(roleIds);
         int depth = 0;
@@ -183,7 +216,8 @@ public class DynamicPermissionService {
 
             // Query parent roles for current level
             for (Long roleId : currentLevel) {
-                Set<Long> parentRoleIds = roleInheritRepository.findParentRoleIdsByChildRoleId(roleId);
+                Set<Long> parentRoleIds = roleInheritRepository
+                    .findParentRoleIdsByCompanyIdAndChildRoleId(companyId, roleId);
                 for (Long parentRoleId : parentRoleIds) {
                     if (!result.contains(parentRoleId)) {
                         candidateParentRoleIds.add(parentRoleId);
@@ -193,7 +227,7 @@ public class DynamicPermissionService {
 
             // A disabled parent contributes no permissions and terminates that
             // inheritance branch, so only active parents enter the next level.
-            Set<Long> nextLevel = findActiveRoleIds(candidateParentRoleIds);
+            Set<Long> nextLevel = findActiveRoleIds(companyId, candidateParentRoleIds);
             result.addAll(nextLevel);
             currentLevel = nextLevel;
             depth++;
@@ -206,12 +240,18 @@ public class DynamicPermissionService {
         return result;
     }
 
-    private Set<Long> findActiveRoleIds(Set<Long> roleIds) {
+    @Cacheable(value = CacheConfig.ROLE_INHERIT_CACHE,
+            key = "T(com.wms.system.tenant.context.CompanyScope).currentCompanyId() + ':' + #roleIds")
+    public Set<Long> getInheritedRoleIds(Set<Long> roleIds) {
+        return getInheritedRoleIds(CompanyScope.currentCompanyId(), roleIds);
+    }
+
+    private Set<Long> findActiveRoleIds(Long companyId, Set<Long> roleIds) {
         if (roleIds.isEmpty()) {
             return Collections.emptySet();
         }
 
-        return roleRepository.findByIdIn(roleIds).stream()
+        return roleRepository.findByCompanyIdAndIdIn(companyId, roleIds).stream()
                 .filter(SysRole::isActive)
                 .map(SysRole::getId)
                 .collect(Collectors.toSet());
@@ -227,13 +267,15 @@ public class DynamicPermissionService {
      * @param roleIds Set of role IDs (including inherited roles)
      * @return List of permission DTOs
      */
-    public List<PermissionDTO> getPermissionsByRoleIds(Set<Long> roleIds) {
+    public List<PermissionDTO> getPermissionsByRoleIds(
+            Long companyId, Set<Long> roleIds) {
         if (roleIds.isEmpty()) {
             return Collections.emptyList();
         }
 
         // Query role-permission associations with permission details
-        List<SysRolePermission> rolePermissions = rolePermissionRepository.findByRoleIdInWithPermission(roleIds);
+        List<SysRolePermission> rolePermissions = rolePermissionRepository
+            .findByCompanyIdAndRoleIdInWithPermission(companyId, roleIds);
 
         // Extract unique permissions (deduplicate by ID)
         Map<Long, SysPermission> permissionMap = new HashMap<>();
@@ -255,6 +297,10 @@ public class DynamicPermissionService {
                 .collect(Collectors.toList());
     }
 
+    public List<PermissionDTO> getPermissionsByRoleIds(Set<Long> roleIds) {
+        return getPermissionsByRoleIds(CompanyScope.currentCompanyId(), roleIds);
+    }
+
     /**
      * Build UserPermissionDTO from permission list
      *
@@ -272,12 +318,14 @@ public class DynamicPermissionService {
      * @param permissions All permissions
      * @return UserPermissionDTO
      */
-    private UserPermissionDTO buildUserPermissionDTO(Long userId,
+    private UserPermissionDTO buildUserPermissionDTO(Long companyId,
+                                                     Long userId,
                                                      Set<Long> directRoleIds,
                                                      Set<Long> allRoleIds,
                                                      List<PermissionDTO> permissions) {
         // Get role codes
-        List<SysRole> roles = roleRepository.findByIdIn(directRoleIds);
+        List<SysRole> roles = roleRepository
+            .findByCompanyIdAndIdIn(companyId, directRoleIds);
         Set<String> roleCodes = roles.stream()
                 .map(SysRole::getRoleCode)
                 .collect(Collectors.toSet());

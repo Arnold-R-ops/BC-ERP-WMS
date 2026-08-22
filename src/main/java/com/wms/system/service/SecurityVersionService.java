@@ -4,6 +4,7 @@ import com.wms.system.entity.User;
 import com.wms.system.repository.SysRoleInheritRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,8 @@ public class SecurityVersionService {
      */
     @Transactional
     public long bumpForUser(Long userId) {
-        User user = userRepository.findById(userId)
+        Long companyId = CompanyScope.currentCompanyId();
+        User user = userRepository.findByIdAndCompanyId(userId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         long next = bump(user);
         userRepository.save(user);
@@ -57,10 +59,12 @@ public class SecurityVersionService {
      */
     @Transactional
     public void bumpForRoleAndDescendants(Long roleId) {
-        Set<Long> affectedRoleIds = collectRoleAndDescendants(roleId);
+        Long companyId = CompanyScope.currentCompanyId();
+        Set<Long> affectedRoleIds = collectRoleAndDescendants(companyId, roleId);
         Set<Long> userIds = new HashSet<>();
-        affectedRoleIds.forEach(id -> userIds.addAll(userRoleRepository.findUserIdsByRoleId(id)));
-        bumpUsers(userIds);
+        affectedRoleIds.forEach(id -> userIds.addAll(
+            userRoleRepository.findUserIdsByCompanyIdAndRoleId(companyId, id)));
+        bumpUsers(companyId, userIds);
         log.info("Security versions advanced for role change: roleId={}, affectedRoles={}, users={}",
                 roleId, affectedRoleIds.size(), userIds.size());
     }
@@ -70,13 +74,14 @@ public class SecurityVersionService {
      */
     @Transactional
     public void bumpAllUsers() {
-        List<User> users = userRepository.findAll();
+        Long companyId = CompanyScope.currentCompanyId();
+        List<User> users = userRepository.findAllByCompanyId(companyId);
         users.forEach(this::bump);
         userRepository.saveAll(users);
         log.warn("Security versions advanced for all users: count={}", users.size());
     }
 
-    private Set<Long> collectRoleAndDescendants(Long roleId) {
+    private Set<Long> collectRoleAndDescendants(Long companyId, Long roleId) {
         Set<Long> visited = new HashSet<>();
         ArrayDeque<Long> queue = new ArrayDeque<>();
         queue.add(roleId);
@@ -86,7 +91,8 @@ public class SecurityVersionService {
             if (!visited.add(current)) {
                 continue;
             }
-            roleInheritRepository.findChildRoleIdsByParentRoleId(current).stream()
+            roleInheritRepository
+                    .findChildRoleIdsByCompanyIdAndParentRoleId(companyId, current).stream()
                     .filter(childRoleId -> !visited.contains(childRoleId))
                     .forEach(queue::addLast);
         }
@@ -94,11 +100,11 @@ public class SecurityVersionService {
         return visited;
     }
 
-    private void bumpUsers(Set<Long> userIds) {
+    private void bumpUsers(Long companyId, Set<Long> userIds) {
         if (userIds.isEmpty()) {
             return;
         }
-        List<User> users = userRepository.findAllById(userIds);
+        List<User> users = userRepository.findAllByCompanyIdAndIdIn(companyId, userIds);
         users.forEach(this::bump);
         userRepository.saveAll(users);
     }

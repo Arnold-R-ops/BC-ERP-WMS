@@ -8,8 +8,12 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.JwtUtil;
+import com.wms.system.security.SecurityUser;
+import com.wms.system.security.TenantJwtClaims;
 import com.wms.system.service.DynamicPermissionService;
 import com.wms.system.service.UserRoleService;
+import com.wms.system.service.UserManagementService;
+import com.wms.system.tenant.config.TenancyProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,6 +80,12 @@ class AuthControllerTest {
     @Mock
     private DynamicPermissionService dynamicPermissionService;
 
+    @Mock
+    private TenancyProperties tenancyProperties;
+
+    @Mock
+    private UserManagementService userManagementService;
+
     @InjectMocks
     private AuthController authController;
 
@@ -89,6 +99,7 @@ class AuthControllerTest {
     void setUp() {
         // 闁荤姳绀佹晶浠嬫偪?JWT 闁哄鏅涘ú锕€锕㈤敓鐘茬睄闁割偅娲橀敍?
         ReflectionTestUtils.setField(authController, "jwtExpiration", 86400000L);
+        lenient().when(tenancyProperties.isEnabled()).thenReturn(false);
 
         // 闂佸憡甯楃粙鎴犵磽閹捐秮鍦偓锝庡幘濡叉悂鏌ｉ～顒€濡介柛?
         testUser = User.builder()
@@ -132,9 +143,10 @@ class AuthControllerTest {
                 .sortOrder(40)
                 .status("DISABLED") // 閻庤鐡曠亸娆撱€呴敃鍌涘仺?
                 .build();
+        testUser.setCompanyId(1L);
 
         lenient().when(dynamicPermissionService.getUserPermissionsForRole(
-                anyLong(), anyString(), anyLong()))
+                anyLong(), anyLong(), anyString(), anyLong()))
             .thenReturn(UserPermissionDTO.builder()
                 .permissionCodes(Set.of("inventory:view", "sales:view"))
                 .build());
@@ -152,9 +164,11 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(userRoleService.getUserRoles(1L))
+        when(userRoleService.getUserRoles(1L, 1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole));
-        when(jwtUtil.generateTokenWithRoles(
+        when(jwtUtil.generateTenantToken(
+                eq(1L),
+                eq(1L),
                 eq("test_user"),
                 eq("WAREHOUSE_ADMIN"),
                 anyList(),
@@ -178,9 +192,9 @@ class AuthControllerTest {
         assertThat(body.getExpiresIn()).isEqualTo(86400000L);
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userRoleService).getUserRoles(1L);
-        verify(jwtUtil).generateTokenWithRoles(
-                eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList(), eq(1L));
+        verify(userRoleService).getUserRoles(1L, 1L);
+        verify(jwtUtil).generateTenantToken(
+                eq(1L), eq(1L), eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList(), eq(1L));
     }
 
     @Test
@@ -195,9 +209,9 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(userRoleService.getUserRoles(1L))
+        when(userRoleService.getUserRoles(1L, 1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole));
-        when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList(), anyLong()))
+        when(jwtUtil.generateTenantToken(anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong()))
                 .thenReturn("mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -207,8 +221,8 @@ class AuthControllerTest {
         // Then
         assertThat(response.getBody().getCurrentRole()).isEqualTo("SALESPERSON");
 
-        verify(jwtUtil).generateTokenWithRoles(
-                eq("test_user"), eq("SALESPERSON"), anyList(), eq(1L));
+        verify(jwtUtil).generateTenantToken(
+                eq(1L), eq(1L), eq("test_user"), eq("SALESPERSON"), anyList(), eq(1L));
     }
 
     @Test
@@ -223,9 +237,9 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(userRoleService.getUserRoles(1L))
+        when(userRoleService.getUserRoles(1L, 1L))
                 .thenReturn(Arrays.asList(purchaserRole, salespersonRole, warehouseAdminRole)); // 婵炴垶鏌ㄥ畷顒傝姳?
-        when(jwtUtil.generateTokenWithRoles(anyString(), anyString(), anyList(), anyLong()))
+        when(jwtUtil.generateTenantToken(anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong()))
                 .thenReturn("mock_jwt_token");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
@@ -236,8 +250,8 @@ class AuthControllerTest {
         // 闁圭厧鐡ㄥΛ渚€顢氬鑸电劵濠㈣泛顑呴?sortOrder 闂佸搫鐗冮崑鎾绘倶韫囨挾绠虫繛?warehouseAdminRole (sortOrder=10)
         assertThat(response.getBody().getCurrentRole()).isEqualTo("WAREHOUSE_ADMIN");
 
-        verify(jwtUtil).generateTokenWithRoles(
-                eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList(), eq(1L));
+        verify(jwtUtil).generateTenantToken(
+                eq(1L), eq(1L), eq("test_user"), eq("WAREHOUSE_ADMIN"), anyList(), eq(1L));
     }
 
     @Test
@@ -250,16 +264,16 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(userRoleService.getUserRoles(1L)).thenReturn(Collections.emptyList());
+        when(userRoleService.getUserRoles(1L, 1L)).thenReturn(Collections.emptyList());
 
         // When & Then
         assertThatThrownBy(() -> authController.login(request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NO_ROLES);
 
-        verify(userRoleService).getUserRoles(1L);
-        verify(jwtUtil, never()).generateTokenWithRoles(
-                anyString(), anyString(), anyList(), anyLong());
+        verify(userRoleService).getUserRoles(1L, 1L);
+        verify(jwtUtil, never()).generateTenantToken(
+                anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -272,7 +286,7 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(userRoleService.getUserRoles(1L))
+        when(userRoleService.getUserRoles(1L, 1L))
                 .thenReturn(Arrays.asList(disabledRole)); // 闂佸憡鐟禍婵嗭耿娴ｅ壊鍟呴柤纰卞墻濞诧綁鏌ｉ～顒€濡挎繛鍫熷灩閹叉挳骞掗弴鐑嗘
 
         // When & Then
@@ -280,8 +294,8 @@ class AuthControllerTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NO_ACTIVE_ROLES);
 
-        verify(jwtUtil, never()).generateTokenWithRoles(
-                anyString(), anyString(), anyList(), anyLong());
+        verify(jwtUtil, never()).generateTenantToken(
+                anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -326,15 +340,16 @@ class AuthControllerTest {
     void switchRole_Success() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("SALESPERSON");
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn("test_user");
+        Authentication authentication = tenantAuthentication();
 
-        when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(roleRepository.findByRoleCode("SALESPERSON")).thenReturn(Optional.of(salespersonRole));
-        when(userRoleService.userHasRole(1L, 5L)).thenReturn(true);
-        when(userRoleService.getUserRoles(1L))
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndRoleCode(1L, "SALESPERSON")).thenReturn(Optional.of(salespersonRole));
+        when(userRoleService.userHasRole(1L, 1L, 5L)).thenReturn(true);
+        when(userRoleService.getUserRoles(1L, 1L))
                 .thenReturn(Arrays.asList(warehouseAdminRole, salespersonRole));
-        when(jwtUtil.generateTokenWithRoles(
+        when(jwtUtil.generateTenantToken(
+                eq(1L),
+                eq(1L),
                 eq("test_user"),
                 eq("SALESPERSON"),
                 anyList(),
@@ -357,10 +372,10 @@ class AuthControllerTest {
         assertThat(body.getMessage()).contains("闂備礁绨遍崑鎾绘煕閻戝棗鏋涢柟?");
         assertThat(testUser.getDefaultRoleId()).isEqualTo(5L);
 
-        verify(roleRepository).findByRoleCode("SALESPERSON");
-        verify(userRoleService).userHasRole(1L, 5L);
-        verify(jwtUtil).generateTokenWithRoles(
-                eq("test_user"), eq("SALESPERSON"), anyList(), eq(2L));
+        verify(roleRepository).findByCompanyIdAndRoleCode(1L, "SALESPERSON");
+        verify(userRoleService).userHasRole(1L, 1L, 5L);
+        verify(jwtUtil).generateTenantToken(
+                eq(1L), eq(1L), eq("test_user"), eq("SALESPERSON"), anyList(), eq(2L));
         verify(userRepository).save(testUser);
     }
 
@@ -369,21 +384,20 @@ class AuthControllerTest {
     void switchRole_Fail_RoleNotFound() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("NONEXISTENT_ROLE");
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn("test_user");
+        Authentication authentication = tenantAuthentication();
 
-        when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(roleRepository.findByRoleCode("NONEXISTENT_ROLE")).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndRoleCode(1L, "NONEXISTENT_ROLE")).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> authController.switchRole(request, authentication))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.ROLE_NOT_FOUND);
 
-        verify(roleRepository).findByRoleCode("NONEXISTENT_ROLE");
-        verify(userRoleService, never()).userHasRole(anyLong(), anyLong());
-        verify(jwtUtil, never()).generateTokenWithRoles(
-                anyString(), anyString(), anyList(), anyLong());
+        verify(roleRepository).findByCompanyIdAndRoleCode(1L, "NONEXISTENT_ROLE");
+        verify(userRoleService, never()).userHasRole(anyLong(), anyLong(), anyLong());
+        verify(jwtUtil, never()).generateTenantToken(
+                anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -391,21 +405,20 @@ class AuthControllerTest {
     void switchRole_Fail_RoleNotAssigned() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("PURCHASER");
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn("test_user");
+        Authentication authentication = tenantAuthentication();
 
-        when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(roleRepository.findByRoleCode("PURCHASER")).thenReturn(Optional.of(purchaserRole));
-        when(userRoleService.userHasRole(1L, 7L)).thenReturn(false);
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndRoleCode(1L, "PURCHASER")).thenReturn(Optional.of(purchaserRole));
+        when(userRoleService.userHasRole(1L, 1L, 7L)).thenReturn(false);
 
         // When & Then
         assertThatThrownBy(() -> authController.switchRole(request, authentication))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.ROLE_NOT_ASSIGNED);
 
-        verify(userRoleService).userHasRole(1L, 7L);
-        verify(jwtUtil, never()).generateTokenWithRoles(
-                anyString(), anyString(), anyList(), anyLong());
+        verify(userRoleService).userHasRole(1L, 1L, 7L);
+        verify(jwtUtil, never()).generateTenantToken(
+                anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -413,21 +426,20 @@ class AuthControllerTest {
     void switchRole_Fail_RoleDisabled() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("DISABLED_ROLE");
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn("test_user");
+        Authentication authentication = tenantAuthentication();
 
-        when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(testUser));
-        when(roleRepository.findByRoleCode("DISABLED_ROLE")).thenReturn(Optional.of(disabledRole));
-        when(userRoleService.userHasRole(1L, 9L)).thenReturn(true);
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(roleRepository.findByCompanyIdAndRoleCode(1L, "DISABLED_ROLE")).thenReturn(Optional.of(disabledRole));
+        when(userRoleService.userHasRole(1L, 1L, 9L)).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> authController.switchRole(request, authentication))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.ROLE_DISABLED);
 
-        verify(userRoleService).userHasRole(1L, 9L);
-        verify(jwtUtil, never()).generateTokenWithRoles(
-                anyString(), anyString(), anyList(), anyLong());
+        verify(userRoleService).userHasRole(1L, 1L, 9L);
+        verify(jwtUtil, never()).generateTenantToken(
+                anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong());
     }
 
     @Test
@@ -435,17 +447,86 @@ class AuthControllerTest {
     void switchRole_Fail_UserNotFound() {
         // Given
         SwitchRoleRequest request = new SwitchRoleRequest("SALESPERSON");
+        SecurityUser missingUser = new SecurityUser(User.builder()
+            .id(999L).username("nonexistent_user").password("encoded").build());
+        missingUser.getUser().setCompanyId(1L);
         Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn("nonexistent_user");
+        when(authentication.getPrincipal()).thenReturn(missingUser);
 
-        when(userRepository.findByUsername("nonexistent_user")).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndCompanyId(999L, 1L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> authController.switchRole(request, authentication))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.USER_NOT_FOUND);
 
-        verify(userRepository).findByUsername("nonexistent_user");
-        verify(roleRepository, never()).findByRoleCode(anyString());
+        verify(userRepository).findByIdAndCompanyId(999L, 1L);
+        verify(roleRepository, never()).findByCompanyIdAndRoleCode(anyLong(), anyString());
+    }
+
+    @Test
+    void refreshesNearExpiryTenantTokenWithoutResettingSessionStart() {
+        Authentication authentication = tenantAuthentication();
+        long sessionStartedAt = 1_755_504_000_000L;
+        TenantJwtClaims claims = new TenantJwtClaims(
+            1L, 1L, "test_user", "WAREHOUSE_ADMIN",
+            List.of("WAREHOUSE_ADMIN"), 1L,
+            sessionStartedAt, sessionStartedAt + 86_400_000L, sessionStartedAt);
+        when(jwtUtil.parseTenantToken("old-token")).thenReturn(claims);
+        when(jwtUtil.tenantTokenNeedsRefresh("old-token")).thenReturn(true);
+        when(userRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(testUser));
+        when(userRoleService.getUserRoles(1L, 1L))
+            .thenReturn(List.of(warehouseAdminRole, disabledRole));
+        when(jwtUtil.generateTenantToken(
+            eq(1L), eq(1L), eq("test_user"), eq("WAREHOUSE_ADMIN"),
+            eq(List.of("WAREHOUSE_ADMIN")), eq(1L), eq(sessionStartedAt)))
+            .thenReturn("new-token");
+        when(jwtUtil.getTenantTokenRemainingTime("new-token")).thenReturn(86_400_000L);
+        when(jwtUtil.getTenantSessionEndsAt("new-token"))
+            .thenReturn(sessionStartedAt + 604_800_000L);
+
+        ResponseEntity<LoginResponse> response = authController.refreshToken(
+            "Bearer old-token", authentication);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getToken()).isEqualTo("new-token");
+        assertThat(response.getBody().getAvailableRoles())
+            .containsExactly("WAREHOUSE_ADMIN");
+        verify(jwtUtil).generateTenantToken(
+            1L, 1L, "test_user", "WAREHOUSE_ADMIN",
+            List.of("WAREHOUSE_ADMIN"), 1L, sessionStartedAt);
+    }
+
+    @Test
+    void doesNotReissueTenantTokenOutsideRefreshThreshold() {
+        Authentication authentication = tenantAuthentication();
+        when(jwtUtil.parseTenantToken("old-token")).thenReturn(new TenantJwtClaims(
+            1L, 1L, "test_user", "WAREHOUSE_ADMIN",
+            List.of("WAREHOUSE_ADMIN"), 1L));
+        when(jwtUtil.tenantTokenNeedsRefresh("old-token")).thenReturn(false);
+
+        ResponseEntity<LoginResponse> response = authController.refreshToken(
+            "Bearer old-token", authentication);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(jwtUtil, never()).generateTenantToken(
+            anyLong(), anyLong(), anyString(), anyString(), anyList(), anyLong(), anyLong());
+    }
+
+    @Test
+    void selfSessionRevocationDelegatesPasswordVerificationAndRevocation() {
+        Authentication authentication = tenantAuthentication();
+
+        ResponseEntity<Void> response = authController.revokeAllSessions(
+            new RevokeOwnSessionsRequest("current-pass"), authentication);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(userManagementService).revokeOwnSessions(1L, "current-pass");
+    }
+
+    private Authentication tenantAuthentication() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(new SecurityUser(testUser));
+        return authentication;
     }
 }

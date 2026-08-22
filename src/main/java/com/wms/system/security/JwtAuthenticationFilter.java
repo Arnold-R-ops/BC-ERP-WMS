@@ -2,21 +2,24 @@ package com.wms.system.security;
 
 import com.wms.system.dto.UserPermissionDTO;
 import com.wms.system.service.DynamicPermissionService;
+import com.wms.system.tenant.config.TenancyProperties;
+import com.wms.system.tenant.context.RequestSurface;
+import com.wms.system.tenant.context.TenantContext;
+import com.wms.system.tenant.context.TenantContextHolder;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -26,48 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * JWT Authentication Filter
- *
- * Core Responsibility:
- * - Intercept ALL incoming HTTP requests BEFORE they reach Controllers
- * - Extract JWT token from Authorization header
- * - Validate token signature and expiration
- * - Extract current_role from token and set in SecurityContext
- * - Set Authentication object in SecurityContext if valid
- *
- * Multi-Role System (v3.3+):
- * - Extracts 'current_role' claim from JWT token
- * - Creates GrantedAuthority with ROLE_ prefix for authorization
- * - Supports identity switching via role-specific tokens
- * - Authorization checks use current_role, not all user roles
- *
- * Filter Chain Position:
- * - Executes BEFORE UsernamePasswordAuthenticationFilter
- * - Configured in SecurityConfig via addFilterBefore()
- *
- * Authentication Flow:
- * 1. Client sends request with Authorization header: "Bearer {token}"
- * 2. This filter extracts and validates the token
- * 3. Extracts current_role from token claims
- * 4. If valid, creates Authentication object with role-based authority
- * 5. Sets Authentication in SecurityContext for this request
- * 6. Subsequent filters and Controllers can access via SecurityContextHolder
- * 7. @PreAuthorize annotations check against the current_role in token
- *
- * Token Format:
- * - Header name: Authorization
- * - Header value: Bearer {jwt_token}
- * - Example: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- *
- * Exception Handling:
- * - Token expired: Log warning, continue without authentication
- * - Invalid signature: Log error, continue without authentication
- * - Malformed token: Log error, continue without authentication
- * - DO NOT throw exceptions here (handled by SecurityConfig and GlobalExceptionHandler)
- *
- * @author WMS Team
- * @since 2025-01-11
- * @version 3.3 (Multi-Role RBAC System)
+ * Authenticates either a company principal or a platform principal according
+ * to the Host-derived request surface. Company/Host mismatch is rejected
+ * before any user, role or permission lookup occurs.
  */
 @Slf4j
 @Component
@@ -77,186 +41,164 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
     private final DynamicPermissionService permissionService;
+    private final PlatformUserDetailsService platformUserDetailsService;
+    private final TenancyProperties tenancyProperties;
 
-    /**
-     * ⭐ Filter Incoming Requests (Called for EVERY HTTP request)
-     *
-     * Execution Steps:
-     * 1. Extract Authorization header from request
-     * 2. Check if header starts with "Bearer "
-     * 3. Extract JWT token (remove "Bearer " prefix)
-     * 4. Extract username from token
-     * 5. Load user details from database
-     * 6. Validate token (signature + expiration)
-     * 7. If valid, set Authentication in SecurityContext
-     * 8. Continue filter chain (pass request to next filter/controller)
-     *
-     * @param request HTTP request
-     * @param response HTTP response
-     * @param filterChain Filter chain (to pass request to next filter)
-     * @throws ServletException if servlet error occurs
-     * @throws IOException if I/O error occurs
-     */
     @Override
     protected void doFilterInternal(
         @NonNull HttpServletRequest request,
         @NonNull HttpServletResponse response,
         @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-
-        // 1. Extract Authorization header
-        String authorizationHeader = request.getHeader("Authorization");
-
-        // 2. Check if Authorization header exists and starts with "Bearer "
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            log.debug("No JWT token found in request: path={}", request.getRequestURI());
-
-            // No token provided, continue without authentication
-            // SecurityConfig will reject if path requires authentication
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        String token = header.substring(7);
+        TenantContext context = TenantContextHolder.current().orElse(null);
+
         try {
-            // 3. Extract JWT token (remove "Bearer " prefix)
-            String token = authorizationHeader.substring(7);  // "Bearer ".length() = 7
-
-            log.debug("JWT token found in request: path={}, token={}",
-                request.getRequestURI(), token.substring(0, Math.min(20, token.length())) + "...");
-
-            // 4. Extract username from token
-            String username = jwtUtil.extractUsername(token);
-
-            // 5. Extract current role from token (Multi-Role System v3.3+)
-            String currentRole = jwtUtil.extractCurrentRole(token);
-
-            log.debug("JWT token parsed: username={}, currentRole={}", username, currentRole);
-
-            // 6. Check if user is NOT already authenticated
-            // (SecurityContextHolder.getContext().getAuthentication() == null means not authenticated yet)
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                // 7. Load user details from database
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-                if (!(userDetails instanceof SecurityUser securityUser)) {
-                    throw new IllegalStateException(
-                            "JWT authentication requires SecurityUser principal");
+            if (context == null) {
+                // The runtime tenancy switch remains locked off until all
+                // repositories/RLS are ready. Local development still has two
+                // strictly separate API surfaces, so platform paths must be
+                // parsed with the platform key rather than the tenant key.
+                if (tenancyProperties.isEnabled()) {
+                    reject(response, "AUTH_TOKEN_INVALID");
+                    return;
                 }
-
-                if (!userDetails.isEnabled()) {
-                    log.warn("JWT rejected for disabled account: username={}", username);
-                } else if (currentRole == null || currentRole.isBlank()) {
-                    log.warn("JWT rejected without current_role: username={}", username);
+                if (tenancyProperties.isAllowLocalDevelopmentHost()
+                        && request.getRequestURI().startsWith("/api/platform/")) {
+                    authenticatePlatform(token, request);
                 } else {
-                    Long liveSecurityVersion = securityUser.getUser().getSecurityVersion();
-
-                    // 8. Validate token identity, expiry, and live security version.
-                    if (!jwtUtil.isTokenValid(token, username, liveSecurityVersion)) {
-                        log.warn("JWT token validation failed: username={}, token might be " +
-                                "expired, revoked, or invalid", username);
-                    } else {
-                        log.info("JWT token validated successfully: " +
-                                        "username={}, currentRole={}, path={}",
-                                username, currentRole, request.getRequestURI());
-
-                        // 9. Create authorities strictly from the active role.
-                        List<GrantedAuthority> authorities = new ArrayList<>();
-                        // Add both forms because controllers use both hasRole("...")
-                        // and hasAnyAuthority("SUPER_ADMIN", "...") during API tests.
-                        authorities.add(new SimpleGrantedAuthority("ROLE_" + currentRole));
-                        authorities.add(new SimpleGrantedAuthority(currentRole));
-
-                        // This call also verifies the role is active and assigned.
-                        UserPermissionDTO activeRolePermissions =
-                                permissionService.getUserPermissionsForRole(
-                                        securityUser.getId(),
-                                        currentRole,
-                                        liveSecurityVersion
-                                );
-                        activeRolePermissions.getPermissions().stream()
-                                .map(permission -> permission.getPermissionCode())
-                                .filter(code -> code != null && !code.isBlank())
-                                .map(SimpleGrantedAuthority::new)
-                                .forEach(authorities::add);
-
-                        log.debug("Authorities granted for current role {}: {}",
-                                currentRole, authorities);
-
-                        // 10. Create Authentication object.
-                        UsernamePasswordAuthenticationToken authenticationToken =
-                                new UsernamePasswordAuthenticationToken(
-                                        userDetails,
-                                        null,
-                                        authorities
-                                );
-
-                        // 11. Set authentication details (request info like IP address).
-                        authenticationToken.setDetails(
-                                new WebAuthenticationDetailsSource().buildDetails(request)
-                        );
-
-                        // 12. Publish authentication for downstream checks.
-                        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-
-                        log.debug("Authentication set in SecurityContext: " +
-                                        "username={}, authorities={}",
-                                username, authorities);
-                    }
+                    authenticateTenant(token, null, request);
                 }
+            } else if (context.surface() == RequestSurface.TENANT) {
+                authenticateTenant(token, context, request);
+            } else if (context.surface() == RequestSurface.PLATFORM) {
+                authenticatePlatform(token, request);
+            } else if (context.surface() == RequestSurface.LOCAL_DEVELOPMENT
+                    && tenancyProperties.isAllowLocalDevelopmentHost()) {
+                authenticateTenant(token, null, request);
+            } else {
+                reject(response, "AUTH_TOKEN_INVALID");
+                return;
             }
-
-        } catch (ExpiredJwtException e) {
-            log.warn("JWT token expired: path={}, message={}",
-                request.getRequestURI(), e.getMessage());
-
-            // Token expired, continue without authentication
-            // SecurityConfig will reject if path requires authentication
-
-        } catch (SignatureException e) {
-            log.error("JWT token signature invalid: path={}, message={}",
-                request.getRequestURI(), e.getMessage());
-
-            // Invalid signature (token tampered), continue without authentication
-
-        } catch (MalformedJwtException e) {
-            log.error("JWT token malformed: path={}, message={}",
-                request.getRequestURI(), e.getMessage());
-
-            // Malformed token format, continue without authentication
-
-        } catch (Exception e) {
-            log.error("JWT token processing error: path={}, error={}",
-                request.getRequestURI(), e.getMessage(), e);
-
-            // Unexpected error, continue without authentication
+        } catch (ExpiredJwtException exception) {
+            log.info("Expired tenant or platform JWT rejected: path={}", request.getRequestURI());
+            reject(response, "AUTH_TOKEN_EXPIRED");
+            return;
+        } catch (TenantSessionInvalidatedException exception) {
+            log.info("Tenant session invalidated by identity or permission change: path={}",
+                request.getRequestURI());
+            reject(response, "AUTH_SESSION_INVALIDATED");
+            return;
+        } catch (JwtException | IllegalArgumentException exception) {
+            log.warn("JWT rejected: path={}, reason={}",
+                request.getRequestURI(), exception.getClass().getSimpleName());
+            reject(response, "AUTH_TOKEN_INVALID");
+            return;
+        } catch (Exception exception) {
+            log.warn("JWT authentication failed: path={}, reason={}",
+                request.getRequestURI(), exception.getClass().getSimpleName());
+            reject(response, "AUTH_TOKEN_INVALID");
+            return;
         }
 
-        // 13. Continue filter chain (pass request to next filter/controller)
-        // If authentication was set, request is authenticated with current_role
-        // If not, request continues unauthenticated (will be rejected by SecurityConfig if needed)
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Determine if Filter Should Execute for This Request
-     *
-     * Override this method to skip filtering for certain paths (optimization).
-     * For example, public endpoints like /api/auth/login don't need JWT validation.
-     *
-     * Current Implementation: Filter ALL requests (including public endpoints)
-     * This is safe because SecurityConfig handles access control.
-     *
-     * @param request HTTP request
-     * @return true to skip this filter, false to execute it
-     */
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Optional optimization: Skip filtering for public endpoints
-        // String path = request.getRequestURI();
-        // return path.startsWith("/api/auth/");
+    private void authenticateTenant(
+        String token,
+        TenantContext context,
+        HttpServletRequest request
+    ) {
+        TenantJwtClaims claims = jwtUtil.parseTenantToken(token);
 
-        // Current: Filter all requests
-        return false;
+        if (context != null && (!context.isTenantRequest()
+                || !claims.companyId().equals(context.tenantId()))) {
+            throw new JwtException("Company token does not match request Host");
+        }
+
+        SecurityUser securityUser = userDetailsService.loadTenantUser(
+            claims.userId(), claims.companyId());
+        if (!securityUser.isEnabled()
+                || !claims.securityVersion().equals(
+                    securityUser.getUser().getSecurityVersion())
+                || !claims.username().equals(securityUser.getUsername())
+                || !claims.companyId().equals(
+                    securityUser.getUser().getCompanyId())) {
+            throw new TenantSessionInvalidatedException();
+        }
+
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + claims.currentRole()));
+        authorities.add(new SimpleGrantedAuthority(claims.currentRole()));
+
+        UserPermissionDTO permissions = permissionService.getUserPermissionsForRole(
+            claims.companyId(), securityUser.getId(),
+            claims.currentRole(), claims.securityVersion());
+        permissions.getPermissions().stream()
+            .map(permission -> permission.getPermissionCode())
+            .filter(code -> code != null && !code.isBlank())
+            .map(SimpleGrantedAuthority::new)
+            .forEach(authorities::add);
+
+        publishAuthentication(securityUser, authorities, request);
+    }
+
+    private void authenticatePlatform(String token, HttpServletRequest request) {
+        PlatformJwtClaims claims = jwtUtil.parsePlatformToken(token);
+        PlatformSecurityUser platformUser =
+            platformUserDetailsService.loadEnabledUser(claims.platformUserId());
+        if (!claims.securityVersion().equals(
+                platformUser.getUser().getSecurityVersion())
+                || !claims.normalizedEmail().equals(
+                    platformUser.getUser().getNormalizedEmail())) {
+            throw new JwtException("Platform token identity is stale or invalid");
+        }
+
+        List<String> liveRoles = platformUserDetailsService
+            .loadRoleCodes(claims.platformUserId());
+        if (!new java.util.HashSet<>(liveRoles)
+                .equals(new java.util.HashSet<>(claims.roles()))) {
+            throw new JwtException("Platform token roles are stale");
+        }
+
+        List<GrantedAuthority> authorities = liveRoles.stream()
+            .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role))
+            .toList();
+        publishAuthentication(platformUser, authorities, request);
+    }
+
+    private void publishAuthentication(
+        Object principal,
+        List<GrantedAuthority> authorities,
+        HttpServletRequest request
+    ) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            return;
+        }
+        UsernamePasswordAuthenticationToken authentication =
+            new UsernamePasswordAuthenticationToken(principal, null, authorities);
+        authentication.setDetails(
+            new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private void reject(HttpServletResponse response, String errorKey)
+            throws IOException {
+        SecurityContextHolder.clearContext();
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write("{\"errorKey\":\"" + errorKey + "\"}");
+    }
+
+    private static final class TenantSessionInvalidatedException extends JwtException {
+        private TenantSessionInvalidatedException() {
+            super("Tenant session identity or authorization context changed");
+        }
     }
 }

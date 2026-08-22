@@ -93,6 +93,7 @@ class HistoricalTestDataArchiveServiceTest {
             .auditLog("[]")
             .build();
         order.setCreatedAt(LocalDateTime.of(2026, 6, 10, 8, 0));
+        order.setCompanyId(1L);
 
         item = SalesOrderItem.builder()
             .id(21L)

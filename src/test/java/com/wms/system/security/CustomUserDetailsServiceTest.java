@@ -60,6 +60,7 @@ class CustomUserDetailsServiceTest {
                 .displayName("Test User")
                 .enabled(true)
                 .build();
+        testUser.setCompanyId(1L);
     }
 
     @Test
@@ -134,7 +135,7 @@ class CustomUserDetailsServiceTest {
     @DisplayName("case-5")
     void loadUserByUsernameWithException_Success() {
         // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋?Repository 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤撶喎浠洪梺闈涱煭缁犳垿鎮?
-        when(userRepository.findByUsername("test_user"))
+        when(userRepository.findByCompanyIdAndUsername(1L, "test_user"))
                 .thenReturn(Optional.of(testUser));
 
         // When: 闂佽崵濮撮鍛村疮娴兼潙鏋?loadUserByUsernameWithException
@@ -146,14 +147,14 @@ class CustomUserDetailsServiceTest {
         assertThat(user.getId()).isEqualTo(1L);
 
         // Then: 濠德板€楁慨鎾儗娓氣偓閹?Repository 闂佽崵鍋為崙褰掑磻婢舵劖鍎嶉柣鏂垮悑閸嬨劑鏌曟繛鍨偓妤咁敂鏉堛劎绠?
-        verify(userRepository, times(1)).findByUsername("test_user");
+        verify(userRepository, times(1)).findByCompanyIdAndUsername(1L, "test_user");
     }
 
     @Test
     @DisplayName("case-6")
     void loadUserByUsernameWithException_UserNotFound() {
         // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋?Repository 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤愩倗鐓?
-        when(userRepository.findByUsername(anyString()))
+        when(userRepository.findByCompanyIdAndUsername(eq(1L), anyString()))
                 .thenReturn(Optional.empty());
 
         // When & Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠鸿櫣顔呭┑鐐村灦閿氭慨?BusinessException
@@ -162,14 +163,14 @@ class CustomUserDetailsServiceTest {
                 .hasFieldOrPropertyWithValue("errorKey", "AUTH_INVALID_CREDENTIALS");
 
         // Then: 濠德板€楁慨鎾儗娓氣偓閹?Repository 闂佽崵鍋為崙褰掑磻婢舵劖鍎嶉柣鏂垮悑閸?
-        verify(userRepository, times(1)).findByUsername("nonexistent");
+        verify(userRepository, times(1)).findByCompanyIdAndUsername(1L, "nonexistent");
     }
 
     @Test
     @DisplayName("case-7")
     void existsByUsername_Exists() {
         // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋?Repository 闂佸搫顦弲婊堝蓟閵娿儍?true
-        when(userRepository.existsByUsername("test_user"))
+        when(userRepository.existsByCompanyIdAndUsername(1L, "test_user"))
                 .thenReturn(true);
 
         // When: 闂佽崵濮撮鍛村疮娴兼潙鏋?existsByUsername
@@ -179,14 +180,14 @@ class CustomUserDetailsServiceTest {
         assertThat(exists).isTrue();
 
         // Then: 濠德板€楁慨鎾儗娓氣偓閹?Repository 闂佽崵鍋為崙褰掑磻婢舵劖鍎嶉柣鏂垮悑閸嬨劑鏌曟繛鍨偓妤咁敂鏉堛劎绠?
-        verify(userRepository, times(1)).existsByUsername("test_user");
+        verify(userRepository, times(1)).existsByCompanyIdAndUsername(1L, "test_user");
     }
 
     @Test
     @DisplayName("case-8")
     void existsByUsername_NotExists() {
         // Given: 婵犵妲呴崹顏堝礈濠靛牃鍋?Repository 闂佸搫顦弲婊堝蓟閵娿儍?false
-        when(userRepository.existsByUsername(anyString()))
+        when(userRepository.existsByCompanyIdAndUsername(eq(1L), anyString()))
                 .thenReturn(false);
 
         // When: 闂佽崵濮撮鍛村疮娴兼潙鏋?existsByUsername
@@ -196,7 +197,7 @@ class CustomUserDetailsServiceTest {
         assertThat(exists).isFalse();
 
         // Then: 濠德板€楁慨鎾儗娓氣偓閹?Repository 闂佽崵鍋為崙褰掑磻婢舵劖鍎嶉柣鏂垮悑閸嬨劑鏌曟繛鍨偓妤咁敂鏉堛劎绠?
-        verify(userRepository, times(1)).existsByUsername("nonexistent");
+        verify(userRepository, times(1)).existsByCompanyIdAndUsername(1L, "nonexistent");
     }
 
     @Test

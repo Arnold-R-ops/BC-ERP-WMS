@@ -19,10 +19,10 @@ describe('dashboard workspace', () => {
   beforeEach(() => {
     localStorage.clear();
     writeAuthSession({
-      availableRoles: ['SUPER_ADMIN'],
-      currentRole: 'SUPER_ADMIN',
+      availableRoles: ['TENANT_ADMIN'],
+      currentRole: 'TENANT_ADMIN',
       permissionCodes: [],
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000,
       mustChangePassword: false,
       token: 'test-token',
       tokenType: 'Bearer',
@@ -84,7 +84,7 @@ describe('dashboard workspace', () => {
       availableRoles: ['WAREHOUSE_STAFF'],
       currentRole: 'WAREHOUSE_STAFF',
       permissionCodes: ['menu:warehouse-mobile'],
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000,
       mustChangePassword: false,
       token: 'warehouse-staff-token',
       tokenType: 'Bearer',

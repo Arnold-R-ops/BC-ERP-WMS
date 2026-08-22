@@ -2,6 +2,7 @@ package com.wms.system.controller;
 
 import com.wms.system.dto.LoginRequest;
 import com.wms.system.dto.LoginResponse;
+import com.wms.system.dto.RevokeOwnSessionsRequest;
 import com.wms.system.dto.SwitchRoleRequest;
 import com.wms.system.dto.SwitchRoleResponse;
 import com.wms.system.entity.SysRole;
@@ -11,8 +12,15 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.security.JwtUtil;
+import com.wms.system.security.SecurityUser;
+import com.wms.system.security.TenantJwtClaims;
+import com.wms.system.tenant.config.TenancyProperties;
+import com.wms.system.tenant.context.RequestSurface;
+import com.wms.system.tenant.context.TenantContext;
+import com.wms.system.tenant.context.TenantContextHolder;
 import com.wms.system.service.DynamicPermissionService;
 import com.wms.system.service.UserRoleService;
+import com.wms.system.service.UserManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +94,8 @@ public class AuthController {
     private final SysRoleRepository roleRepository;
     private final UserRoleService userRoleService;
     private final DynamicPermissionService dynamicPermissionService;
+    private final TenancyProperties tenancyProperties;
+    private final UserManagementService userManagementService;
 
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
@@ -121,24 +131,46 @@ public class AuthController {
      * @param request Login request (username + password)
      * @return ResponseEntity<LoginResponse> JWT token and multi-role user info
      * @throws BusinessException if authentication fails or user has no roles
-     */
+    */
     @PostMapping("/login")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("Login attempt: username={}", request.getUsername());
 
         try {
             // 1. Authenticate user credentials via Spring Security
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    request.getUsername(),
-                    request.getPassword()
-                )
-            );
+            TenantContext requestContext = TenantContextHolder.current().orElse(null);
+            Authentication authentication;
+            if (requestContext != null
+                    && requestContext.surface() == RequestSurface.TENANT) {
+                User credentialUser = userRepository.findByCompanyIdAndUsername(
+                        requestContext.tenantId(), request.getUsername())
+                    .orElseThrow(() -> new BusinessException(
+                        ErrorKeys.AUTH_INVALID_CREDENTIALS, Map.of()));
+                authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                        credentialUser.getUsername(), request.getPassword()));
+            } else {
+                authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                        request.getUsername(), request.getPassword()));
+            }
 
             log.info("Authentication successful: username={}", request.getUsername());
 
             // 2. Load user entity from database
-            User user = userRepository.findByUsername(request.getUsername())
+            if (tenancyProperties.isEnabled()
+                    && (requestContext == null
+                        || requestContext.surface() != RequestSurface.TENANT)) {
+                throw new BusinessException(ErrorKeys.AUTH_INVALID_CREDENTIALS, Map.of());
+            }
+            User user = (requestContext != null
+                    && requestContext.surface() == RequestSurface.TENANT)
+                ? userRepository.findByCompanyIdAndUsername(
+                        requestContext.tenantId(), request.getUsername())
+                    .orElseThrow(() -> new BusinessException(
+                        ErrorKeys.AUTH_INVALID_CREDENTIALS, Map.of()))
+                : userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> {
                     log.error("User not found after successful authentication: username={}",
                         request.getUsername());
@@ -149,7 +181,8 @@ public class AuthController {
                 });
 
             // 3. Load user's assigned roles from sys_user_role table
-            List<SysRole> userRoles = userRoleService.getUserRoles(user.getId());
+            List<SysRole> userRoles = userRoleService.getUserRoles(
+                user.getCompanyId(), user.getId());
 
             log.debug("User roles loaded: username={}, roleCount={}", user.getUsername(), userRoles.size());
 
@@ -175,7 +208,9 @@ public class AuthController {
                 .collect(Collectors.toList());
 
             // 7. Generate JWT token with current_role and available_roles
-            String token = jwtUtil.generateTokenWithRoles(
+            String token = jwtUtil.generateTenantToken(
+                user.getId(),
+                user.getCompanyId(),
                 user.getUsername(),
                 currentRole.getRoleCode(),
                 availableRoles,
@@ -204,8 +239,10 @@ public class AuthController {
                 .currentRole(currentRole.getRoleCode())
                 .availableRoles(availableRoles)
                 .permissionCodes(resolvePermissionCodes(
-                    user.getId(), currentRole.getRoleCode(), user.getSecurityVersion()))
+                    user.getCompanyId(), user.getId(), currentRole.getRoleCode(),
+                    user.getSecurityVersion()))
                 .expiresIn(jwtExpiration)
+                .sessionEndsAt(jwtUtil.getTenantSessionEndsAt(token))
                 .mustChangePassword(Boolean.TRUE.equals(user.getMustChangePassword()))
                 .build();
 
@@ -347,7 +384,8 @@ public class AuthController {
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<SwitchRoleResponse> switchRole(
         @Valid @RequestBody SwitchRoleRequest request,
-        Authentication authentication
+        Authentication authentication,
+        @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
         // Check if authentication is null (user not authenticated)
         if (authentication == null) {
@@ -358,14 +396,18 @@ public class AuthController {
             );
         }
 
-        String username = authentication.getName();
+        if (!(authentication.getPrincipal() instanceof SecurityUser securityUser)) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_INVALID, Map.of());
+        }
+        String username = securityUser.getUsername();
         String targetRoleCode = request.getTargetRoleCode();
 
         log.info("Role switch request: username={}, targetRole={}", username, targetRoleCode);
 
         try {
             // 1. Load user entity
-            User user = userRepository.findByUsername(username)
+            User user = userRepository.findByIdAndCompanyId(
+                    securityUser.getId(), securityUser.getUser().getCompanyId())
                 .orElseThrow(() -> {
                     log.error("User not found during role switch: username={}", username);
                     throw new BusinessException(
@@ -375,7 +417,8 @@ public class AuthController {
                 });
 
             // 2. Verify target role exists
-            SysRole targetRole = roleRepository.findByRoleCode(targetRoleCode)
+            SysRole targetRole = roleRepository.findByCompanyIdAndRoleCode(
+                    user.getCompanyId(), targetRoleCode)
                 .orElseThrow(() -> {
                     log.warn("Target role not found: username={}, roleCode={}",
                         username, targetRoleCode);
@@ -386,7 +429,8 @@ public class AuthController {
                 });
 
             // 3. Verify user has this role assigned
-            boolean hasRole = userRoleService.userHasRole(user.getId(), targetRole.getId());
+            boolean hasRole = userRoleService.userHasRole(
+                user.getCompanyId(), user.getId(), targetRole.getId());
             if (!hasRole) {
                 log.warn("User does not have target role: username={}, roleCode={}",
                     username, targetRoleCode);
@@ -416,7 +460,8 @@ public class AuthController {
             }
 
             // 5. Load all user roles for available_roles claim
-            List<SysRole> userRoles = userRoleService.getUserRoles(user.getId());
+            List<SysRole> userRoles = userRoleService.getUserRoles(
+                user.getCompanyId(), user.getId());
             List<String> availableRoles = userRoles.stream()
                 .map(SysRole::getRoleCode)
                 .collect(Collectors.toList());
@@ -433,12 +478,18 @@ public class AuthController {
                 username, targetRole.getId(), nextSecurityVersion);
 
             // 7. Generate a new token bound to the advanced security version.
-            String newToken = jwtUtil.generateTokenWithRoles(
-                username,
-                targetRole.getRoleCode(),
-                availableRoles,
-                nextSecurityVersion
-            );
+            String newToken;
+            if (authorization == null || authorization.isBlank()) {
+                newToken = jwtUtil.generateTenantToken(
+                    user.getId(), user.getCompanyId(), username,
+                    targetRole.getRoleCode(), availableRoles, nextSecurityVersion);
+            } else {
+                long sessionStartedAt = resolveSessionStartedAt(authorization, securityUser);
+                newToken = jwtUtil.generateTenantToken(
+                    user.getId(), user.getCompanyId(), username,
+                    targetRole.getRoleCode(), availableRoles, nextSecurityVersion,
+                    sessionStartedAt);
+            }
 
             log.info("JWT token generated for role switch: username={}, newRole={}, tokenLength={}",
                 username, targetRole.getRoleCode(), newToken.length());
@@ -449,10 +500,14 @@ public class AuthController {
                 .tokenType("Bearer")
                 .currentRole(targetRole.getRoleCode())
                 .permissionCodes(resolvePermissionCodes(
-                    user.getId(), targetRole.getRoleCode(), nextSecurityVersion))
+                    user.getCompanyId(), user.getId(), targetRole.getRoleCode(),
+                    nextSecurityVersion))
                 .message(String.format("Role switched successfully to %s (%s)",
                     targetRole.getRoleCode(), targetRole.getRoleName()))
-                .expiresIn(jwtExpiration)
+                .expiresIn(authorization == null || authorization.isBlank()
+                    ? jwtExpiration
+                    : jwtUtil.getTenantTokenRemainingTime(newToken))
+                .sessionEndsAt(jwtUtil.getTenantSessionEndsAt(newToken))
                 .build();
 
             log.info("Role switch successful: username={}, newRole={}, roleName={}",
@@ -478,9 +533,118 @@ public class AuthController {
         }
     }
 
-    private List<String> resolvePermissionCodes(Long userId, String roleCode, Long securityVersion) {
+    /** Compatibility overload used by controller unit tests and direct callers. */
+    ResponseEntity<SwitchRoleResponse> switchRole(
+        SwitchRoleRequest request,
+        Authentication authentication
+    ) {
+        return switchRole(request, authentication, null);
+    }
+
+    /**
+     * Refresh an active tenant token only inside the configured threshold.
+     * The original sign-in time is retained, so refresh never extends the
+     * absolute seven-day tenant ERP session window.
+     */
+    @PostMapping("/refresh-token")
+    @Transactional(readOnly = true)
+    public ResponseEntity<LoginResponse> refreshToken(
+        @RequestHeader("Authorization") String authorization,
+        Authentication authentication
+    ) {
+        if (!(authentication != null
+                && authentication.getPrincipal() instanceof SecurityUser securityUser)) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_INVALID, Map.of());
+        }
+        String token = bearerToken(authorization);
+        TenantJwtClaims claims = jwtUtil.parseTenantToken(token);
+        if (!claims.userId().equals(securityUser.getId())
+                || !claims.companyId().equals(securityUser.getUser().getCompanyId())) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_INVALID, Map.of());
+        }
+        if (!jwtUtil.tenantTokenNeedsRefresh(token)) {
+            return ResponseEntity.noContent().build();
+        }
+
+        User user = userRepository.findByIdAndCompanyId(
+                claims.userId(), claims.companyId())
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.AUTH_TOKEN_INVALID, Map.of()));
+        List<SysRole> activeRoles = userRoleService
+            .getUserRoles(user.getCompanyId(), user.getId()).stream()
+            .filter(SysRole::isActive)
+            .toList();
+        if (activeRoles.stream().noneMatch(
+                role -> role.getRoleCode().equals(claims.currentRole()))) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_INVALID, Map.of());
+        }
+        List<String> availableRoles = activeRoles.stream()
+            .map(SysRole::getRoleCode)
+            .toList();
+        String refreshedToken = jwtUtil.generateTenantToken(
+            user.getId(), user.getCompanyId(), user.getUsername(),
+            claims.currentRole(), availableRoles, user.getSecurityVersion(),
+            claims.sessionStartedAtEpochMillis());
+
+        return ResponseEntity.ok(LoginResponse.builder()
+            .token(refreshedToken)
+            .tokenType("Bearer")
+            .username(user.getUsername())
+            .currentRole(claims.currentRole())
+            .availableRoles(availableRoles)
+            .permissionCodes(resolvePermissionCodes(
+                user.getCompanyId(), user.getId(), claims.currentRole(),
+                user.getSecurityVersion()))
+            .expiresIn(jwtUtil.getTenantTokenRemainingTime(refreshedToken))
+            .sessionEndsAt(jwtUtil.getTenantSessionEndsAt(refreshedToken))
+            .mustChangePassword(Boolean.TRUE.equals(user.getMustChangePassword()))
+            .build());
+    }
+
+    /** Revoke every tenant JWT for the caller after password confirmation. */
+    @PostMapping("/revoke-all-sessions")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<Void> revokeAllSessions(
+        @Valid @RequestBody RevokeOwnSessionsRequest request,
+        Authentication authentication
+    ) {
+        if (!(authentication != null
+                && authentication.getPrincipal() instanceof SecurityUser securityUser)) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_INVALID, Map.of());
+        }
+        userManagementService.revokeOwnSessions(
+            securityUser.getId(), request.getCurrentPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    private long resolveSessionStartedAt(
+        String authorization,
+        SecurityUser securityUser
+    ) {
+        if (authorization == null || authorization.isBlank()) {
+            return System.currentTimeMillis();
+        }
+        TenantJwtClaims claims = jwtUtil.parseTenantToken(bearerToken(authorization));
+        if (!claims.userId().equals(securityUser.getId())
+                || !claims.companyId().equals(securityUser.getUser().getCompanyId())) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_INVALID, Map.of());
+        }
+        return claims.sessionStartedAtEpochMillis();
+    }
+
+    private String bearerToken(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")
+                || authorization.length() <= 7) {
+            throw new BusinessException(ErrorKeys.AUTH_TOKEN_MISSING, Map.of());
+        }
+        return authorization.substring(7);
+    }
+
+    private List<String> resolvePermissionCodes(
+            Long companyId, Long userId, String roleCode, Long securityVersion) {
         Set<String> permissionCodes = dynamicPermissionService
-            .getUserPermissionsForRole(userId, roleCode, securityVersion)
+            .getUserPermissionsForRole(
+                companyId, userId, roleCode, securityVersion)
             .getPermissionCodes();
         if (permissionCodes == null || permissionCodes.isEmpty()) {
             return List.of();

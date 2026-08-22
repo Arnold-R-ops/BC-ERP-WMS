@@ -68,6 +68,12 @@ public class CustomerResponse {
      */
     private String address;
 
+    private BigDecimal vatRate;
+
+    private BigDecimal secondaryTaxRate;
+
+    private String vatNumber;
+
     /**
      * 信用额度
      */

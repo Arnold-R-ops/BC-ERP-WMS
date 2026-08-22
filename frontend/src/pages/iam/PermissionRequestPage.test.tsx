@@ -22,7 +22,7 @@ const apiMocks = vi.hoisted(() => {
 });
 
 vi.mock('../../auth/AuthProvider', () => ({
-  useAuth: () => ({ session: { username: 'admin', currentRole: 'SUPER_ADMIN' } }),
+  useAuth: () => ({ session: { username: 'admin', currentRole: 'TENANT_ADMIN' } }),
 }));
 
 vi.mock('../../api/iam', async () => {
@@ -32,7 +32,7 @@ vi.mock('../../api/iam', async () => {
     listUsers: vi.fn().mockResolvedValue([{ id: 2, username: 'warehouse.user', enabled: true, roleCodes: ['WAREHOUSE_STAFF'] }]),
     listRoles: vi.fn().mockResolvedValue([
       { id: 4, roleCode: 'WAREHOUSE_ADMIN', roleName: 'Warehouse administrator', roleType: 'SYSTEM', status: 'ACTIVE', permissionIds: [11] },
-      { id: 1, roleCode: 'SUPER_ADMIN', roleName: 'Super administrator', roleType: 'SYSTEM', status: 'ACTIVE', privilegedRole: true },
+      { id: 1, roleCode: 'TENANT_ADMIN', roleName: 'Super administrator', roleType: 'SYSTEM', status: 'ACTIVE', privilegedRole: true },
     ]),
     listPermissions: vi.fn().mockResolvedValue([{ id: 11, permissionCode: 'inventory:view', permissionName: 'View inventory', permissionType: 'MENU', riskLevel: 'NORMAL', status: 'ACTIVE' }]),
     listAssignableWarehouses: vi.fn().mockResolvedValue([{ id: 48, code: 'WH-01', name: 'Main' }]),

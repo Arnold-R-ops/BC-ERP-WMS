@@ -532,6 +532,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.BATCH_NOT_FOUND,
                  ErrorKeys.WAREHOUSE_NOT_FOUND,  // Phase 3.4
                  ErrorKeys.SUPPLIER_NOT_FOUND,
+                 ErrorKeys.SIGNUP_REQUEST_NOT_FOUND,
                  ErrorKeys.INTEGRATION_CONFIG_NOT_FOUND,  // V3.9 Shopify Integration
                  ErrorKeys.SHOPIFY_SKU_NOT_FOUND,  // V3.9 Shopify Integration
                  "INBOUND_ORDER_NOT_FOUND",  // Phase 3.5
@@ -583,6 +584,15 @@ public class GlobalExceptionHandler {
                  ErrorKeys.HISTORICAL_ARCHIVE_CONFIRMATION_MISMATCH,
                  ErrorKeys.WAREHOUSE_SCOPE_REQUIRED,
                  ErrorKeys.WAREHOUSE_INACTIVE,
+                 ErrorKeys.SIGNUP_INVALID_REQUEST,
+                 ErrorKeys.SIGNUP_REQUEST_EXPIRED,
+                 ErrorKeys.SIGNUP_EMAIL_VERIFICATION_REQUIRED,
+                 ErrorKeys.SIGNUP_VERIFICATION_CODE_INVALID,
+                 ErrorKeys.SIGNUP_VERIFICATION_CODE_EXPIRED,
+                 ErrorKeys.SIGNUP_VERIFICATION_ATTEMPTS_EXCEEDED,
+                 ErrorKeys.SIGNUP_RESEND_TOO_SOON,
+                 ErrorKeys.SIGNUP_SEND_LIMIT_EXCEEDED,
+                 ErrorKeys.SESSION_HANDOFF_INVALID,
                  "INVALID_STATUS_FOR_APPROVAL",  // Phase 3.5
                  "INVALID_STATUS_FOR_CONFIRMATION",  // Phase 3.5
                  "INVALID_STATUS_FOR_RECEIVING",  // Phase 3.5
@@ -608,6 +618,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.AUTH_TOKEN_MISSING,
                  ErrorKeys.AUTH_TOKEN_INVALID,
                  ErrorKeys.AUTH_TOKEN_EXPIRED,
+                 ErrorKeys.AUTH_SESSION_INVALIDATED,
                  ErrorKeys.AUTH_ACCESS_DENIED,
                  ErrorKeys.WAREHOUSE_SCOPE_DENIED,
                  ErrorKeys.PO_ALREADY_COMPLETED -> HttpStatus.FORBIDDEN;
@@ -654,6 +665,10 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PERMISSION_REQUEST_SNAPSHOT_STALE,
                  ErrorKeys.HISTORICAL_ARCHIVE_NOT_ELIGIBLE,
                  ErrorKeys.HISTORICAL_ARCHIVE_SNAPSHOT_STALE,
+                 ErrorKeys.SIGNUP_EMAIL_UNAVAILABLE,
+                 ErrorKeys.SIGNUP_SLUG_UNAVAILABLE,
+                 ErrorKeys.SIGNUP_IDEMPOTENCY_CONFLICT,
+                 ErrorKeys.SIGNUP_PROVISIONING_FAILED,
                  ErrorKeys.ORDER_NUMBER_DUPLICATE -> HttpStatus.CONFLICT;  // V4.4 Idempotency Defense
 
             // 500 Internal Server Error

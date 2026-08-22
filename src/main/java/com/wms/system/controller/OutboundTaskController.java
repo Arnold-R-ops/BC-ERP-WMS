@@ -25,7 +25,7 @@ public class OutboundTaskController {
     private final WarehouseScopeService warehouseScopeService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('outbound:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('outbound:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<OutboundTaskResponse>> listOutboundTasks(
         @RequestParam(value = "salesOrderId", required = false) Long salesOrderId,
         @RequestParam(value = "status", required = false) String status,
@@ -41,7 +41,7 @@ public class OutboundTaskController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('outbound:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('outbound:view', 'TENANT_ADMIN')")
     public ResponseEntity<OutboundTaskResponse> getOutboundTask(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -53,7 +53,7 @@ public class OutboundTaskController {
     }
 
     @PostMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyAuthority('outbound:pick', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('outbound:pick', 'TENANT_ADMIN')")
     public ResponseEntity<OutboundTaskResponse> confirmPicking(
         @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmPickingRequest request,
@@ -83,7 +83,7 @@ public class OutboundTaskController {
     }
 
     @PostMapping("/batch-confirm")
-    @PreAuthorize("hasAnyAuthority('outbound:pick', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('outbound:pick', 'TENANT_ADMIN')")
     public ResponseEntity<List<OutboundTaskResponse>> batchConfirmPicking(
         @RequestBody List<Long> taskIds,
         Authentication authentication

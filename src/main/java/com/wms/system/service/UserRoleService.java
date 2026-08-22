@@ -8,6 +8,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,25 +63,28 @@ public class UserRoleService {
      */
     @Transactional
     public void assignRoleToUser(Long userId, Long roleId, Long assignedBy) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Assigning role {} to user {} by admin {}", roleId, userId, assignedBy);
 
         // Validate user exists
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndCompanyId(userId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
         // Validate role exists
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
         requireAssignable(role);
 
         // Check if already assigned
-        if (userRoleRepository.existsByUserIdAndRoleId(userId, roleId)) {
+        if (userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, userId, roleId)) {
             log.warn("Role {} already assigned to user {}", roleId, userId);
             return;
         }
 
         // Create assignment
         SysUserRole userRole = SysUserRole.builder()
+                .companyId(companyId)
                 .userId(userId)
                 .roleId(roleId)
                 .assignedBy(assignedBy)
@@ -104,9 +108,16 @@ public class UserRoleService {
      */
     @Transactional
     public void removeRoleFromUser(Long userId, Long roleId) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Removing role {} from user {}", roleId, userId);
 
-        userRoleRepository.deleteByUserIdAndRoleId(userId, roleId);
+        userRepository.findByIdAndCompanyId(userId, companyId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        roleRepository.findByCompanyIdAndId(companyId, roleId)
+            .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
+
+        userRoleRepository.deleteByCompanyIdAndUserIdAndRoleId(
+            companyId, userId, roleId);
 
         securityVersionService.bumpForUser(userId);
 
@@ -127,13 +138,14 @@ public class UserRoleService {
      */
     @Transactional
     public void assignRolesToUser(Long userId, Set<Long> roleIds, Long assignedBy) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Batch assigning {} roles to user {}", roleIds.size(), userId);
 
         // Validate user exists
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndCompanyId(userId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        List<SysRole> roles = roleRepository.findByIdIn(roleIds);
+        List<SysRole> roles = roleRepository.findByCompanyIdAndIdIn(companyId, roleIds);
         if (roles.size() != roleIds.size()) {
             Set<Long> foundRoleIds = roles.stream().map(SysRole::getId).collect(Collectors.toSet());
             Set<Long> missingRoleIds = roleIds.stream()
@@ -144,11 +156,12 @@ public class UserRoleService {
         roles.forEach(this::requireAssignable);
 
         // Remove all existing roles only after the complete replacement has been validated.
-        userRoleRepository.deleteByUserId(userId);
+        userRoleRepository.deleteByCompanyIdAndUserId(companyId, userId);
 
         // Assign new roles
         for (SysRole role : roles) {
             SysUserRole userRole = SysUserRole.builder()
+                    .companyId(companyId)
                     .userId(userId)
                     .roleId(role.getId())
                     .assignedBy(assignedBy)
@@ -183,7 +196,8 @@ public class UserRoleService {
      * @return Set of role IDs
      */
     public Set<Long> getUserRoleIds(Long userId) {
-        return userRoleRepository.findRoleIdsByUserId(userId);
+        return userRoleRepository.findRoleIdsByCompanyIdAndUserId(
+            CompanyScope.currentCompanyId(), userId);
     }
 
     /**
@@ -193,12 +207,16 @@ public class UserRoleService {
      * @return List of roles
      */
     public List<SysRole> getUserRoles(Long userId) {
-        Set<Long> roleIds = userRoleRepository.findRoleIdsByUserId(userId);
+        return getUserRoles(CompanyScope.currentCompanyId(), userId);
+    }
+
+    public List<SysRole> getUserRoles(Long companyId, Long userId) {
+        Set<Long> roleIds = userRoleRepository
+            .findRoleIdsByCompanyIdAndUserId(companyId, userId);
         if (roleIds.isEmpty()) {
             return List.of();
         }
-
-        return roleRepository.findByIdIn(roleIds);
+        return roleRepository.findByCompanyIdAndIdIn(companyId, roleIds);
     }
 
     /**
@@ -208,7 +226,8 @@ public class UserRoleService {
      * @return Set of user IDs
      */
     public Set<Long> getRoleUserIds(Long roleId) {
-        return userRoleRepository.findUserIdsByRoleId(roleId);
+        return userRoleRepository.findUserIdsByCompanyIdAndRoleId(
+            CompanyScope.currentCompanyId(), roleId);
     }
 
     /**
@@ -218,12 +237,14 @@ public class UserRoleService {
      * @return List of users
      */
     public List<User> getRoleUsers(Long roleId) {
-        Set<Long> userIds = userRoleRepository.findUserIdsByRoleId(roleId);
+        Long companyId = CompanyScope.currentCompanyId();
+        Set<Long> userIds = userRoleRepository
+            .findUserIdsByCompanyIdAndRoleId(companyId, roleId);
         if (userIds.isEmpty()) {
             return List.of();
         }
 
-        return userRepository.findAllById(userIds);
+        return userRepository.findAllByCompanyIdAndIdIn(companyId, userIds);
     }
 
     /**
@@ -234,7 +255,12 @@ public class UserRoleService {
      * @return true if user has the role
      */
     public boolean userHasRole(Long userId, Long roleId) {
-        return userRoleRepository.existsByUserIdAndRoleId(userId, roleId);
+        return userHasRole(CompanyScope.currentCompanyId(), userId, roleId);
+    }
+
+    public boolean userHasRole(Long companyId, Long userId, Long roleId) {
+        return userRoleRepository
+            .existsByCompanyIdAndUserIdAndRoleId(companyId, userId, roleId);
     }
 
     /**
@@ -245,12 +271,14 @@ public class UserRoleService {
      * @return true if user has the role
      */
     public boolean userHasRoleCode(Long userId, String roleCode) {
-        Set<Long> roleIds = userRoleRepository.findRoleIdsByUserId(userId);
+        Long companyId = CompanyScope.currentCompanyId();
+        Set<Long> roleIds = userRoleRepository
+            .findRoleIdsByCompanyIdAndUserId(companyId, userId);
         if (roleIds.isEmpty()) {
             return false;
         }
 
-        List<SysRole> roles = roleRepository.findByIdIn(roleIds);
+        List<SysRole> roles = roleRepository.findByCompanyIdAndIdIn(companyId, roleIds);
         return roles.stream().anyMatch(role -> role.getRoleCode().equals(roleCode));
     }
 
@@ -261,6 +289,7 @@ public class UserRoleService {
      * @return Number of users with this role
      */
     public long getUserCountForRole(Long roleId) {
-        return userRoleRepository.countByRoleId(roleId);
+        return userRoleRepository.countByCompanyIdAndRoleId(
+            CompanyScope.currentCompanyId(), roleId);
     }
 }

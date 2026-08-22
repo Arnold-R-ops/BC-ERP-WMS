@@ -8,6 +8,8 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
 import com.wms.system.integration.ShopifyTokenProvider;
 import com.wms.system.repository.IntegrationConfigRepository;
+import com.wms.system.tenant.model.ChannelWebhookRoute;
+import com.wms.system.tenant.repository.ChannelWebhookRouteRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,9 @@ class IntegrationConfigServiceTest {
 
     @Mock
     private IntegrationConfigRepository repository;
+
+    @Mock
+    private ChannelWebhookRouteRepository webhookRouteRepository;
 
     @Mock
     private ShopifyApiClient shopifyApiClient;
@@ -84,6 +89,14 @@ class IntegrationConfigServiceTest {
         assertThat(response.getStoreUrl()).isEqualTo("new-store.myshopify.com");
         assertThat(response.getAuthMode()).isEqualTo(IntegrationConfigResponse.AUTH_CLIENT_CREDENTIALS);
         assertThat(response.getRetailMode()).isFalse();
+
+        ArgumentCaptor<ChannelWebhookRoute> routeCaptor =
+            ArgumentCaptor.forClass(ChannelWebhookRoute.class);
+        verify(webhookRouteRepository).save(routeCaptor.capture());
+        assertThat(routeCaptor.getValue().getTenantId()).isEqualTo(1L);
+        assertThat(routeCaptor.getValue().getCanonicalStoreIdentifier())
+            .isEqualTo("new-store.myshopify.com");
+        assertThat(routeCaptor.getValue().getSigningSecret()).isEqualTo("shpss_new");
     }
 
     @Test
@@ -166,7 +179,7 @@ class IntegrationConfigServiceTest {
 
     @Test
     void superAdminCanEnableRetailMode() {
-        authenticateAs("SUPER_ADMIN");
+        authenticateAs("TENANT_ADMIN");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(any(IntegrationConfig.class))).thenAnswer(inv -> inv.getArgument(0));
 

@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.wms.system.tenant.web.TenantResolutionFilter;
 
 /**
  * Spring Security Configuration
@@ -59,6 +60,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final TenantResolutionFilter tenantResolutionFilter;
     private final CustomUserDetailsService userDetailsService;
     private final DynamicAuthorizationManager dynamicAuthorizationManager;
 
@@ -115,7 +117,8 @@ public class SecurityConfig {
 
             // Add JWT authentication filter BEFORE UsernamePasswordAuthenticationFilter
             // This ensures JWT token is validated before authorization check
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(tenantResolutionFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

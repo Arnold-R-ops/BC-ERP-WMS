@@ -17,7 +17,7 @@ Java 17 + Spring Boot 3.2.11 + PostgreSQL 核心服务，配套 React + Ant Desi
 | # | 修复 | 位置 |
 |---|------|------|
 | 1 | 数据库凭证外部化（`DB_PASSWORD`/`DB_USERNAME`/`DB_URL` 环境变量，无默认密码）+ 低权限 `wms_app` 账号脚本 | `application.yml`、`docs/security/setup-db-user.sql` |
-| 2 | JWT 密钥外部化（`JWT_SECRET`，缺失快速失败） | `application.yml` |
+| 2 | 公司/平台 JWT 使用独立外部密钥（`TENANT_JWT_SECRET` / `PLATFORM_JWT_SECRET`，缺失快速失败） | `application.yml` |
 | 3 | Hashids 盐外部化（`BATCH_SALT`，移除默认值） | `application.yml` |
 | 4 | admin 密码不再被重启强制重置；首次创建读 `ADMIN_INITIAL_PASSWORD` 或生成随机密码打印一次 | `WmsSystemApplication.java` |
 | 5 | 移除 `/api/auth/register` 幽灵免认证白名单 | `DynamicAuthorizationManager.java` |
@@ -102,7 +102,10 @@ OpenAPI 文档 + API 版本化；Redis（分布式缓存/锁/JWT 黑名单）；
 - 现在：pg_dump 每日备份（本地第二块物理盘 + 云端加密副本，3-2-1 原则）→ 正式运营前升级 WAL 归档 + PITR（pgBackRest）
 - P1/P2：Redis（易失层）、JSONB 报文留底、文件走对象存储
 - 6~12 月：只读副本跑报表/洞察 → 需要时 CDC 到 ClickHouse
-- SaaS 路线：共享库 + tenant_id + PostgreSQL RLS
+- SaaS 路线：共享库 + `company_id` + PostgreSQL RLS。权威方案与当前实施状态见
+  [SAAS_MULTI_TENANT_ARCHITECTURE.md](SAAS_MULTI_TENANT_ARCHITECTURE.md)。
+- 已确认的公司注册、子域名、身份、套餐、生命周期与平台访问边界见
+  [SAAS_MULTI_TENANT_ARCHITECTURE.md](SAAS_MULTI_TENANT_ARCHITECTURE.md)。
 - 凭证阶梯：环境变量（现在）→ Secrets Manager → 动态短效凭证 → IAM 无密码
 - **铁律**：独立备份不因上云而取消；每季度演练一次真实恢复
 

@@ -38,13 +38,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍ㄥ閸嬫捇鎮烽悧鍫熸嫳闂佸搫妫寸紞渚€骞?HTTP 闂佽崵濮村ú顓㈠绩闁秵鍎?闂備礁鎲＄换鍌滅矓鐎垫瓕濮抽柟缁樺础鐟欏嫭濯撮悶娑掑墲閻撶娀姊洪幐搴ｂ槈闁兼椿鍨抽埀顒€鐏氶敃銏ょ嵁?Spring Security 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簻閸愨偓闂佽法鍠撴慨宄扮暦閿濆鐓?
  *
  * 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仜閹瑰爼鏌ｉ幋鐐嗘垿鎮甸鐐寸叆?
- * 1. 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墮缁犮儵鏌嶈閸撶喎顕ｉ崹顐㈢窞閻忕偟鍋撳▓銏ゆ⒑鐟欏嫭缍戦柛銈嗙墱濡叉劕鈻庨幘鎼⒖闂侀€炲苯澧伴柟?SUPER_ADMIN 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簼閺?
+ * 1. 闂備礁鍚嬮崕鎶藉床閼艰翰浜归柛銉墮缁犮儵鏌嶈閸撶喎顕ｉ崹顐㈢窞閻忕偟鍋撳▓銏ゆ⒑鐟欏嫭缍戦柛銈嗙墱濡叉劕鈻庨幘鎼⒖闂侀€炲苯澧伴柟?TENANT_ADMIN 闂備礁鎼ˇ顖炲疮閺夋埈鐎舵繛宸簼閺?
  * 2. 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻銊モ槈濡厧顤€闂佹悶鍔嶅畝绋跨暦?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴欏灩鐟欙妇鈧箍鍎遍ˇ顖氣枍閵忕媭鐔?闂備礁鎼崯鐗堟叏闂堟侗鐒介柛顐犲劜閳锋棃鏌熼弶鍨暢缂佲偓?
  * 3. 闂備礁鎼ú銈夋偤閵娾晛钃熷┑鐘叉处閸嬨劑鏌曟繝蹇曠暠闁绘挻娲熼弻銊モ槈濡厧顤€闂佹悶鍔嶅畝绋跨暦?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴炵懅閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓?闂備礁鎼崯鐗堟叏闂堟侗鐒介柛顐犲劜閳锋棃鏌熼弶鍨暢缂佲偓?
  * 4. 闂備礁鎲＄敮鐐寸箾閳ь剚绻涢崨顓㈠弰闁诡喕绮欐俊鎼佹晝閳ь剟鎮￠弴銏＄叆婵炴垶顭囨晶娑㈡煕閵婏箑鍝虹€?闂備焦妞垮鍧楀礉瀹ュ鏄ユ繛鎴炵懅閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓?闂備礁鎼崯鐗堟叏闂堟侗鐒介柛顐犲劜閳锋棃鏌熼弶鍨暢缂佲偓?
  * 5. 闂備礁缍婂褏绱炴繝鍥ч棷婵炲樊浜滅粈鍡涙煕閳╁啰鈽夐悽顖涘▕閹嘲鈻庨幇顒傤儎婵犮垻鎳撻敃顏堝极瀹ュ閱囬柣鏃堫棑娴滐綁姊?闂佽崵鍠愰悷锔炬暜閻斿摜鐝跺┑鐘插暟閳绘梻鈧箍鍎遍幊鎰板箺閻樼粯鐓?闂備礁鎼崯鐗堟叏闂堟侗鐒介柛顐犲劜閳锋棃鏌熼弶鍨暢缂佲偓?
  * 6. 缂傚倷绀侀ˇ顖炩€﹀畡鎵虫瀺閹艰揪绲鹃崰鍡涙煙閻戞ɑ绀€妞ゃ儱绻橀弻銊モ槈濡厧顤€闂佹悶鍔嶅畝绋跨暦?闂備礁鎼悧鍐磻閹剧粯鐓曟慨姗嗗墰閸戝湱绱掗弬璺ㄦ憼缂佸顦甸、鏃堝炊閼搁潧浠撮梻?闂備礁鎼崯鐗堟叏闂堟侗鐒介柛顐犲劜閳锋棃鏌熼弶鍨暢缂佲偓?
- * 7. 闂備礁鎼ˇ顖炲疮閺夋埈鐎堕柛婵嗗▕閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻銊モ槈濡厧鈪靛┑?SUPER_ADMIN 闂佽崵濮崇粈浣割焽閳ユ緞娑㈠醇閺囩喎浠洪梺闈涱煭缁犳垿鎮￠弴鐘电＜闁绘瑥鎳愮壕鍧楁煙椤旂》韬鐐村浮婵＄兘濡烽妷褏鈻旈梻?
+ * 7. 闂備礁鎼ˇ顖炲疮閺夋埈鐎堕柛婵嗗▕閸︻厸鍋撻敐搴″箻婵″弶鎮傞弻銊モ槈濡厧鈪靛┑?TENANT_ADMIN 闂佽崵濮崇粈浣割焽閳ユ緞娑㈠醇閺囩喎浠洪梺闈涱煭缁犳垿鎮￠弴鐘电＜闁绘瑥鎳愮壕鍧楁煙椤旂》韬鐐村浮婵＄兘濡烽妷褏鈻旈梻?
  *
  * @author WMS Team
  * @since 2026-01-20
@@ -97,9 +97,9 @@ class UserControllerIntegrationTest {
         userRepository.deleteAll();
 
         // 缂備胶铏庨崣搴ㄥ窗閺囩姵宕叉慨妯块哺閸犲棝鏌熼悜妯荤妞ゃ儱绻橀幃妤€鈽夊▍顓т簻閿曘垽顢旈崼鐔告珫闂佸壊鍋呯换鍕偓鐟邦樀閹綊宕堕妷銉ュБ闂?Flyway 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閺?
-        superAdminRole = roleRepository.findByRoleCode("SUPER_ADMIN")
+        superAdminRole = roleRepository.findByRoleCode("TENANT_ADMIN")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
-                        .roleCode("SUPER_ADMIN")
+                        .roleCode("TENANT_ADMIN")
                         .roleName("Super Admin")
                         .sortOrder(1)
                         .status("ACTIVE")
@@ -131,7 +131,7 @@ class UserControllerIntegrationTest {
                 .build();
         superAdminUser = userRepository.save(superAdminUser);
 
-        // 闂備礁鎲＄敮鎺懳涘┑瀣偍?SUPER_ADMIN 闂佽崵鍠愰悷锔炬暜閻斿摜鐝?
+        // 闂備礁鎲＄敮鎺懳涘┑瀣偍?TENANT_ADMIN 闂佽崵鍠愰悷锔炬暜閻斿摜鐝?
         userRoleRepository.save(SysUserRole.builder()
                 .userId(superAdminUser.getId())
                 .roleId(superAdminRole.getId())
@@ -156,8 +156,14 @@ class UserControllerIntegrationTest {
                 .build());
 
         // 闂備焦鐪归崹濠氬窗閹版澘鍨?JWT Token
-        superAdminToken = jwtUtil.generateToken(superAdminUser.getUsername(), "SUPER_ADMIN");
-        warehouseToken = jwtUtil.generateToken(warehouseUser.getUsername(), "WAREHOUSE_ADMIN");
+        superAdminToken = jwtUtil.generateTenantToken(
+            superAdminUser.getId(), superAdminUser.getCompanyId(),
+            superAdminUser.getUsername(), "TENANT_ADMIN",
+            superAdminUser.getSecurityVersion());
+        warehouseToken = jwtUtil.generateTenantToken(
+            warehouseUser.getId(), warehouseUser.getCompanyId(),
+            warehouseUser.getUsername(), "WAREHOUSE_ADMIN",
+            warehouseUser.getSecurityVersion());
     }
 
     // ========== 婵犵數鍋炲娆擃敄閸儲鍎婃い鏍仦閺咁剚鎱ㄥΟ鍝勬毐缂佺媭鍨堕弻娑樷枎閹邦喖顫ф繝鈷€鍐х€殿喖鐏氬鍕沪閻愵剚顓归梻?==========
@@ -171,7 +177,7 @@ class UserControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].username", is("super_admin")))
-                .andExpect(jsonPath("$[0].roleCodes", contains("SUPER_ADMIN")))
+                .andExpect(jsonPath("$[0].roleCodes", contains("TENANT_ADMIN")))
                 .andExpect(jsonPath("$[1].username", is("warehouse_user")))
                 .andExpect(jsonPath("$[1].roleCodes", contains("WAREHOUSE_ADMIN")));
     }

@@ -24,6 +24,7 @@ import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.UserRepository;
 import com.wms.system.repository.WarehouseRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -90,10 +91,11 @@ public class PermissionRequestService {
             Sort.by(Sort.Direction.DESC, "submittedAt")
         );
         Page<SysPermissionRequest> result = requestRepository.search(
+            CompanyScope.currentCompanyId(),
             normalizedStatus,
             targetUserId,
             requestedRoleId,
-            isSuperAdmin(operatorRoleCode),
+            isTenantAdmin(operatorRoleCode),
             pageable
         );
         return PermissionRequestPageResponse.builder()
@@ -117,17 +119,19 @@ public class PermissionRequestService {
         requireNotSelfGrant(target.getId(), operatorId);
         requireTargetAllowed(target, operatorRoleCode);
 
-        SysRole role = roleRepository.findById(input.getRequestedRoleId())
+        Long companyId = CompanyScope.currentCompanyId();
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, input.getRequestedRoleId())
             .orElseThrow(() -> notFound(ErrorKeys.ROLE_NOT_FOUND, "roleId", input.getRequestedRoleId()));
         requireRequestableRole(role);
-        if (userRoleRepository.existsByUserIdAndRoleId(target.getId(), role.getId())) {
+        if (userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, target.getId(), role.getId())) {
             throw new BusinessException(ErrorKeys.PERMISSION_REQUEST_ROLE_ALREADY_ASSIGNED, Map.of(
                 "targetUserId", target.getId(),
                 "requestedRoleId", role.getId()
             ));
         }
-        if (requestRepository.existsByTargetUserIdAndRequestedRoleIdAndStatus(
-            target.getId(), role.getId(), SysPermissionRequest.STATUS_PENDING_REVIEW
+        if (requestRepository.existsByCompanyIdAndTargetUserIdAndRequestedRoleIdAndStatus(
+            companyId, target.getId(), role.getId(), SysPermissionRequest.STATUS_PENDING_REVIEW
         )) {
             throw pendingRequestExists(target.getId(), role.getId());
         }
@@ -136,6 +140,7 @@ public class PermissionRequestService {
         validateRequestWarehouses(role, warehouseIds);
         PermissionSnapshot snapshot = snapshot(role);
         SysPermissionRequest request = SysPermissionRequest.builder()
+            .companyId(companyId)
             .targetUserId(target.getId())
             .targetUsername(target.getUsername())
             .requestedRoleId(role.getId())
@@ -183,7 +188,9 @@ public class PermissionRequestService {
         requireRealOperator(operatorId);
         SysPermissionRequest request = requireForUpdate(requestId);
         requireStatus(request, SysPermissionRequest.STATUS_PENDING_REVIEW);
-        User target = userRepository.findByIdForUpdate(request.getTargetUserId())
+        Long companyId = CompanyScope.currentCompanyId();
+        User target = userRepository.findByCompanyIdAndIdForUpdate(
+                companyId, request.getTargetUserId())
             .orElseThrow(() -> notFound(ErrorKeys.USER_NOT_FOUND, "userId", request.getTargetUserId()));
         requireTargetAllowed(target, operatorRoleCode);
 
@@ -203,7 +210,8 @@ public class PermissionRequestService {
 
         requireNotSelfGrant(target.getId(), operatorId);
         requireActiveTarget(target);
-        SysRole role = roleRepository.findByIdForUpdate(request.getRequestedRoleId())
+        SysRole role = roleRepository.findByCompanyIdAndIdForUpdate(
+                companyId, request.getRequestedRoleId())
             .orElseThrow(() -> notFound(ErrorKeys.ROLE_NOT_FOUND, "roleId", request.getRequestedRoleId()));
         requireRequestableRole(role);
         PermissionSnapshot currentSnapshot = snapshot(role);
@@ -214,14 +222,15 @@ public class PermissionRequestService {
             ));
         }
         if (currentSnapshot.highRiskCount() > 0
-            && (!isSuperAdmin(operatorRoleCode) || operatorId.equals(request.getSubmittedBy()))) {
+            && (!isTenantAdmin(operatorRoleCode) || operatorId.equals(request.getSubmittedBy()))) {
             throw new BusinessException(ErrorKeys.PERMISSION_REQUEST_SECOND_REVIEWER_REQUIRED, Map.of(
                 "permissionRequestId", requestId,
                 "highRiskPermissionCount", currentSnapshot.highRiskCount(),
-                "requiredReviewerRole", SysRole.SUPER_ADMIN_ROLE_CODE
+                "requiredReviewerRole", SysRole.TENANT_ADMIN_ROLE_CODE
             ));
         }
-        if (userRoleRepository.existsByUserIdAndRoleId(target.getId(), role.getId())) {
+        if (userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, target.getId(), role.getId())) {
             throw new BusinessException(ErrorKeys.PERMISSION_REQUEST_ROLE_ALREADY_ASSIGNED, Map.of(
                 "permissionRequestId", requestId,
                 "targetUserId", target.getId(),
@@ -265,14 +274,18 @@ public class PermissionRequestService {
         requireRealOperator(operatorId);
         SysPermissionRequest request = requireForUpdate(requestId);
         requireStatus(request, SysPermissionRequest.STATUS_APPROVED);
-        User target = userRepository.findByIdForUpdate(request.getTargetUserId())
+        Long companyId = CompanyScope.currentCompanyId();
+        User target = userRepository.findByCompanyIdAndIdForUpdate(
+                companyId, request.getTargetUserId())
             .orElseThrow(() -> notFound(ErrorKeys.USER_NOT_FOUND, "userId", request.getTargetUserId()));
         requireTargetAllowed(target, operatorRoleCode);
         String comment = requireComment(input.getComment(), ErrorKeys.PERMISSION_REQUEST_REVOCATION_COMMENT_REQUIRED);
 
-        SysRole role = roleRepository.findById(request.getRequestedRoleId())
+        SysRole role = roleRepository.findByCompanyIdAndId(
+                companyId, request.getRequestedRoleId())
             .orElseThrow(() -> notFound(ErrorKeys.ROLE_NOT_FOUND, "roleId", request.getRequestedRoleId()));
-        if (userRoleRepository.existsByUserIdAndRoleId(target.getId(), role.getId())) {
+        if (userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, target.getId(), role.getId())) {
             List<SysRole> currentRoles = userRoleService.getUserRoles(target.getId());
             Set<Long> remainingRoleIds = currentRoles.stream()
                 .map(SysRole::getId)
@@ -313,14 +326,16 @@ public class PermissionRequestService {
 
     public List<PermissionRequestAuditDTO> history(Long requestId, String operatorRoleCode) {
         requireIamOperator(operatorRoleCode);
-        SysPermissionRequest request = requestRepository.findById(requestId)
+        Long companyId = CompanyScope.currentCompanyId();
+        SysPermissionRequest request = requestRepository.findByCompanyIdAndId(companyId, requestId)
             .orElseThrow(() -> notFound(ErrorKeys.PERMISSION_REQUEST_NOT_FOUND, "permissionRequestId", requestId));
         // Audit history is a durable snapshot and must remain readable after the
         // target account is logically deleted. Protected-target isolation still
         // uses the retained role assignment records and does not require an
         // active User entity.
         requireTargetAllowed(request.getTargetUserId(), operatorRoleCode);
-        return auditRepository.findByPermissionRequestIdOrderByCreatedAtDesc(requestId).stream()
+        return auditRepository
+            .findByCompanyIdAndPermissionRequestIdOrderByCreatedAtDesc(companyId, requestId).stream()
             .map(this::toAuditDTO)
             .toList();
     }
@@ -397,7 +412,8 @@ public class PermissionRequestService {
     }
 
     private User requireActiveTarget(Long userId) {
-        return requireActiveTarget(userRepository.findById(userId)
+        return requireActiveTarget(userRepository.findByIdAndCompanyId(
+                userId, CompanyScope.currentCompanyId())
             .orElseThrow(() -> notFound(ErrorKeys.USER_NOT_FOUND, "userId", userId)));
     }
 
@@ -424,8 +440,12 @@ public class PermissionRequestService {
     }
 
     private boolean hasProtectedIdentity(Long userId) {
-        Set<Long> roleIds = userRoleRepository.findRoleIdsByUserId(userId);
-        return !roleIds.isEmpty() && roleRepository.findByIdIn(roleIds).stream().anyMatch(SysRole::isPrivilegedRole);
+        Long companyId = CompanyScope.currentCompanyId();
+        Set<Long> roleIds = userRoleRepository
+            .findRoleIdsByCompanyIdAndUserId(companyId, userId);
+        return !roleIds.isEmpty()
+            && roleRepository.findByCompanyIdAndIdIn(companyId, roleIds)
+                .stream().anyMatch(SysRole::isPrivilegedRole);
     }
 
     private void requireNotSelfGrant(Long targetUserId, Long operatorId) {
@@ -437,9 +457,9 @@ public class PermissionRequestService {
     }
 
     private void requireIamOperator(String operatorRoleCode) {
-        if (!isSuperAdmin(operatorRoleCode) && !isSecurityAdmin(operatorRoleCode)) {
+        if (!isTenantAdmin(operatorRoleCode) && !isSecurityAdmin(operatorRoleCode)) {
             throw new BusinessException(ErrorKeys.AUTH_ACCESS_DENIED, Map.of(
-                "requiredRoles", List.of(SysRole.SUPER_ADMIN_ROLE_CODE, SysRole.SECURITY_ADMIN_ROLE_CODE)
+                "requiredRoles", List.of(SysRole.TENANT_ADMIN_ROLE_CODE, SysRole.SECURITY_ADMIN_ROLE_CODE)
             ));
         }
     }
@@ -450,8 +470,8 @@ public class PermissionRequestService {
         }
     }
 
-    private boolean isSuperAdmin(String roleCode) {
-        return SysRole.SUPER_ADMIN_ROLE_CODE.equals(roleCode);
+    private boolean isTenantAdmin(String roleCode) {
+        return SysRole.TENANT_ADMIN_ROLE_CODE.equals(roleCode);
     }
 
     private boolean isSecurityAdmin(String roleCode) {
@@ -459,7 +479,8 @@ public class PermissionRequestService {
     }
 
     private SysPermissionRequest requireForUpdate(Long requestId) {
-        return requestRepository.findByIdForUpdate(requestId)
+        return requestRepository.findByCompanyIdAndIdForUpdate(
+                CompanyScope.currentCompanyId(), requestId)
             .orElseThrow(() -> notFound(ErrorKeys.PERMISSION_REQUEST_NOT_FOUND, "permissionRequestId", requestId));
     }
 
@@ -490,6 +511,7 @@ public class PermissionRequestService {
         }
         requestWarehouseRepository.saveAll(warehouseIds.stream()
             .map(warehouseId -> SysPermissionRequestWarehouse.builder()
+                .companyId(CompanyScope.currentCompanyId())
                 .permissionRequestId(requestId)
                 .warehouseId(warehouseId)
                 .build())
@@ -497,7 +519,9 @@ public class PermissionRequestService {
     }
 
     private List<Long> warehouseIds(Long requestId) {
-        return requestWarehouseRepository.findByPermissionRequestIdOrderByWarehouseIdAsc(requestId).stream()
+        return requestWarehouseRepository
+            .findByCompanyIdAndPermissionRequestIdOrderByWarehouseIdAsc(
+                CompanyScope.currentCompanyId(), requestId).stream()
             .map(SysPermissionRequestWarehouse::getWarehouseId)
             .toList();
     }
@@ -549,6 +573,7 @@ public class PermissionRequestService {
         String reason
     ) {
         auditRepository.save(SysPermissionRequestAudit.builder()
+            .companyId(request.getCompanyId())
             .permissionRequestId(request.getId())
             .action(action)
             .operatorId(operatorId)

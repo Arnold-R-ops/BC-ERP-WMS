@@ -4,6 +4,7 @@ import com.wms.system.dto.MenuTreeDTO;
 import com.wms.system.dto.PermissionDTO;
 import com.wms.system.entity.SysPermission;
 import com.wms.system.repository.SysPermissionRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,10 +54,12 @@ public class PermissionService {
      */
     @Transactional
     public PermissionDTO createPermission(PermissionDTO permissionDTO) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Creating new permission: {}", permissionDTO.getPermissionCode());
 
         // Validate permission code uniqueness
-        if (permissionRepository.existsByPermissionCode(permissionDTO.getPermissionCode())) {
+        if (permissionRepository.existsByCompanyIdAndPermissionCode(
+                companyId, permissionDTO.getPermissionCode())) {
             throw new IllegalArgumentException("Permission code already exists: " + permissionDTO.getPermissionCode());
         }
 
@@ -88,6 +91,7 @@ public class PermissionService {
                 .build();
 
         // Save permission
+        permission.setCompanyId(companyId);
         permission = permissionRepository.save(permission);
 
         // Invalidate cache
@@ -112,7 +116,8 @@ public class PermissionService {
         log.info("Updating permission ID: {}", permissionId);
 
         // Find existing permission
-        SysPermission permission = permissionRepository.findById(permissionId)
+        SysPermission permission = permissionRepository.findByCompanyIdAndId(
+                CompanyScope.currentCompanyId(), permissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found: " + permissionId));
 
         // Update fields
@@ -157,14 +162,16 @@ public class PermissionService {
      */
     @Transactional
     public void deletePermission(Long permissionId) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Deleting permission ID: {}", permissionId);
 
         // Find permission
-        SysPermission permission = permissionRepository.findById(permissionId)
+        SysPermission permission = permissionRepository.findByCompanyIdAndId(companyId, permissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found: " + permissionId));
 
         // Check if has child permissions
-        List<SysPermission> children = permissionRepository.findByParentId(permissionId);
+        List<SysPermission> children = permissionRepository
+            .findByCompanyIdAndParentId(companyId, permissionId);
         if (!children.isEmpty()) {
             throw new IllegalArgumentException(
                     String.format("Cannot delete permission with %d child permissions", children.size()));
@@ -187,7 +194,8 @@ public class PermissionService {
      * @return Permission DTO
      */
     public PermissionDTO getPermissionById(Long permissionId) {
-        SysPermission permission = permissionRepository.findById(permissionId)
+        SysPermission permission = permissionRepository.findByCompanyIdAndId(
+                CompanyScope.currentCompanyId(), permissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found: " + permissionId));
 
         return convertToDTO(permission);
@@ -200,7 +208,8 @@ public class PermissionService {
      * @return Permission DTO
      */
     public PermissionDTO getPermissionByCode(String permissionCode) {
-        SysPermission permission = permissionRepository.findByPermissionCode(permissionCode)
+        SysPermission permission = permissionRepository.findByCompanyIdAndPermissionCode(
+                CompanyScope.currentCompanyId(), permissionCode)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found: " + permissionCode));
 
         return convertToDTO(permission);
@@ -212,7 +221,8 @@ public class PermissionService {
      * @return List of permission DTOs
      */
     public List<PermissionDTO> getAllPermissions() {
-        return permissionRepository.findAll().stream()
+        return permissionRepository.findByCompanyIdOrderBySortOrderAsc(
+                CompanyScope.currentCompanyId()).stream()
                 .map(this::convertToDTO)
                 .sorted(Comparator.comparing(PermissionDTO::getSortOrder))
                 .collect(Collectors.toList());
@@ -224,7 +234,8 @@ public class PermissionService {
      * @return List of active permission DTOs
      */
     public List<PermissionDTO> getAllActivePermissions() {
-        return permissionRepository.findAllActive().stream()
+        return permissionRepository.findByCompanyIdAndStatus(
+                CompanyScope.currentCompanyId(), "ACTIVE").stream()
                 .map(this::convertToDTO)
                 .sorted(Comparator.comparing(PermissionDTO::getSortOrder))
                 .collect(Collectors.toList());
@@ -237,7 +248,8 @@ public class PermissionService {
      * @return List of permission DTOs
      */
     public List<PermissionDTO> getPermissionsByType(String permissionType) {
-        return permissionRepository.findByPermissionType(permissionType).stream()
+        return permissionRepository.findByCompanyIdAndPermissionType(
+                CompanyScope.currentCompanyId(), permissionType).stream()
                 .map(this::convertToDTO)
                 .sorted(Comparator.comparing(PermissionDTO::getSortOrder))
                 .collect(Collectors.toList());
@@ -250,7 +262,8 @@ public class PermissionService {
      * @return List of child permission DTOs
      */
     public List<PermissionDTO> getChildPermissions(Long parentId) {
-        return permissionRepository.findByParentId(parentId).stream()
+        return permissionRepository.findByCompanyIdAndParentId(
+                CompanyScope.currentCompanyId(), parentId).stream()
                 .map(this::convertToDTO)
                 .sorted(Comparator.comparing(PermissionDTO::getSortOrder))
                 .collect(Collectors.toList());
@@ -263,7 +276,8 @@ public class PermissionService {
      * @return List of matching permission DTOs
      */
     public List<PermissionDTO> searchPermissions(String keyword) {
-        return permissionRepository.findByPermissionNameContaining(keyword).stream()
+        return permissionRepository.findByCompanyIdAndPermissionNameContaining(
+                CompanyScope.currentCompanyId(), keyword).stream()
                 .map(this::convertToDTO)
                 .sorted(Comparator.comparing(PermissionDTO::getSortOrder))
                 .collect(Collectors.toList());
@@ -281,7 +295,9 @@ public class PermissionService {
         log.debug("Building menu tree");
 
         // Get all active menu permissions
-        List<SysPermission> allMenus = permissionRepository.findByPermissionTypeAndStatus("MENU", "ACTIVE");
+        List<SysPermission> allMenus = permissionRepository
+            .findByCompanyIdAndPermissionTypeAndStatus(
+                CompanyScope.currentCompanyId(), "MENU", "ACTIVE");
 
         // Build map for quick lookup
         Map<Long, MenuTreeDTO> menuMap = new HashMap<>();

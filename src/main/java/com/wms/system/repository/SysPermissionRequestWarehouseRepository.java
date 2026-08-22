@@ -13,8 +13,11 @@ public interface SysPermissionRequestWarehouseRepository
         Long permissionRequestId
     );
 
+    List<SysPermissionRequestWarehouse>
+        findByCompanyIdAndPermissionRequestIdOrderByWarehouseIdAsc(
+            Long companyId, Long permissionRequestId);
+
     List<SysPermissionRequestWarehouse> findByPermissionRequestIdIn(
         Collection<Long> permissionRequestIds
     );
 }
-

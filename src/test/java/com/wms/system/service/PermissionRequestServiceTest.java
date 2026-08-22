@@ -63,6 +63,36 @@ class PermissionRequestServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(userRepository.findByIdAndCompanyId(any(Long.class), eq(1L)))
+            .thenAnswer(invocation -> userRepository.findById(invocation.getArgument(0)));
+        lenient().when(userRepository.findByCompanyIdAndIdForUpdate(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> userRepository.findByIdForUpdate(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndId(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> roleRepository.findById(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndIdForUpdate(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> roleRepository.findByIdForUpdate(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                eq(1L), any(Long.class), any(Long.class)))
+            .thenAnswer(invocation -> userRoleRepository.existsByUserIdAndRoleId(
+                invocation.getArgument(1), invocation.getArgument(2)));
+        lenient().when(userRoleRepository.findRoleIdsByCompanyIdAndUserId(
+                eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> userRoleRepository.findRoleIdsByUserId(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> roleRepository.findByIdIn(invocation.getArgument(1)));
+        lenient().when(requestRepository.findByCompanyIdAndIdForUpdate(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> requestRepository.findByIdForUpdate(invocation.getArgument(1)));
+        lenient().when(requestRepository.findByCompanyIdAndId(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> requestRepository.findById(invocation.getArgument(1)));
+        lenient().when(auditRepository.findByCompanyIdAndPermissionRequestIdOrderByCreatedAtDesc(
+                eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> auditRepository
+                .findByPermissionRequestIdOrderByCreatedAtDesc(invocation.getArgument(1)));
+        lenient().when(requestRepository.existsByCompanyIdAndTargetUserIdAndRequestedRoleIdAndStatus(
+                eq(1L), any(Long.class), any(Long.class), any(String.class)))
+            .thenAnswer(invocation -> requestRepository
+                .existsByTargetUserIdAndRequestedRoleIdAndStatus(
+                    invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3)));
         target = User.builder()
             .id(2L)
             .username("warehouse.user")
@@ -118,7 +148,7 @@ class PermissionRequestServiceTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
 
         assertThatThrownBy(() -> service.create(
-            createInput(), 2L, target.getUsername(), SysRole.SUPER_ADMIN_ROLE_CODE
+            createInput(), 2L, target.getUsername(), SysRole.TENANT_ADMIN_ROLE_CODE
         ))
             .isInstanceOf(BusinessException.class)
             .extracting(error -> ((BusinessException) error).getErrorKey())
@@ -130,7 +160,7 @@ class PermissionRequestServiceTest {
     void securityAdministratorCannotTargetProtectedIdentity() {
         SysRole protectedRole = SysRole.builder()
             .id(9L)
-            .roleCode(SysRole.SUPER_ADMIN_ROLE_CODE)
+            .roleCode(SysRole.TENANT_ADMIN_ROLE_CODE)
             .roleName("Super administrator")
             .roleType(SysRole.ROLE_TYPE_SYSTEM)
             .systemCategory(SysRole.SYSTEM_CATEGORY_PRIVILEGED)
@@ -161,7 +191,7 @@ class PermissionRequestServiceTest {
             PermissionRequestReviewRequest.builder().approved(true).comment("Approved schedule").build(),
             8L,
             "reviewer.admin",
-            SysRole.SUPER_ADMIN_ROLE_CODE
+            SysRole.TENANT_ADMIN_ROLE_CODE
         );
 
         assertThat(result.getStatus()).isEqualTo(SysPermissionRequest.STATUS_APPROVED);
@@ -190,7 +220,7 @@ class PermissionRequestServiceTest {
             PermissionRequestReviewRequest.builder().approved(true).build(),
             7L,
             "requester.admin",
-            SysRole.SUPER_ADMIN_ROLE_CODE
+            SysRole.TENANT_ADMIN_ROLE_CODE
         ))
             .isInstanceOf(BusinessException.class)
             .extracting(error -> ((BusinessException) error).getErrorKey())
@@ -265,7 +295,7 @@ class PermissionRequestServiceTest {
             .action("CREATE")
             .operatorId(7L)
             .operatorUsername("requester.admin")
-            .operatorRoleCode(SysRole.SUPER_ADMIN_ROLE_CODE)
+            .operatorRoleCode(SysRole.TENANT_ADMIN_ROLE_CODE)
             .targetUserId(2L)
             .targetUsername("deleted.user")
             .requestedRoleId(4L)
@@ -276,7 +306,7 @@ class PermissionRequestServiceTest {
         when(requestRepository.findById(100L)).thenReturn(Optional.of(request));
         when(auditRepository.findByPermissionRequestIdOrderByCreatedAtDesc(100L)).thenReturn(List.of(audit));
 
-        assertThat(service.history(100L, SysRole.SUPER_ADMIN_ROLE_CODE))
+        assertThat(service.history(100L, SysRole.TENANT_ADMIN_ROLE_CODE))
             .singleElement()
             .extracting("action")
             .isEqualTo("CREATE");
@@ -298,7 +328,7 @@ class PermissionRequestServiceTest {
             savedRequest[0].setId(100L);
             return savedRequest[0];
         });
-        service.create(createInput(), 7L, "requester.admin", SysRole.SUPER_ADMIN_ROLE_CODE);
+        service.create(createInput(), 7L, "requester.admin", SysRole.TENANT_ADMIN_ROLE_CODE);
         return savedRequest[0];
     }
 

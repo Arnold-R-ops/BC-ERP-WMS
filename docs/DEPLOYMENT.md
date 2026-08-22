@@ -31,14 +31,31 @@
 | `DB_PASSWORD` | 是 | PostgreSQL 应用账号密码，无默认值 |
 | `DB_USERNAME` | 建议 | 生产应使用低权限账号 `wms_app`，未设置时默认为 `postgres` |
 | `DB_URL` | 建议 | 例如 `jdbc:postgresql://127.0.0.1:5432/wms_db?serverTimezone=UTC` |
-| `JWT_SECRET` | 是 | Base64 编码、至少 256 位的 JWT 签名密钥 |
+| `TENANT_JWT_SECRET` | 是 | Base64 编码、至少 256 位的公司 JWT 签名密钥 |
+| `PLATFORM_JWT_SECRET` | 是 | Base64 编码、至少 256 位的平台 JWT 签名密钥；必须与公司密钥不同 |
 | `BATCH_SALT` | 是 | 批次短码盐；每个环境只设置一次，之后不得随意更换 |
 | `ADMIN_INITIAL_PASSWORD` | 否 | 仅在系统首次创建 `admin` 账号时使用 |
 | `SPRING_PROFILES_ACTIVE` | 是 | 生产固定设置为 `prod`，关闭 SQL 明文调试日志和 OpenAPI 页面 |
+| `WMS_SIGNUP_TOKEN_PEPPER` | 是 | 注册验证码和一次性交接码的服务器 Pepper，随机生成并长期保管 |
+| `SMTP_HOST` / `SMTP_USERNAME` / `SMTP_PASSWORD` | 是 | 生产邮箱验证码发送账号；生产模式缺失时启动或发送失败 |
+| `WMS_MAIL_FROM` | 建议 | 验证邮件发件地址，默认 `no-reply@bcwms.com` |
+| `WMS_PLATFORM_EXPORT_DIR` | 是 | 平台导出文件的专用绝对目录；只允许应用服务账号访问，不得置于静态网站目录 |
 
 不要把真实密钥写入 Git、批处理文件、镜像或部署文档。Windows 可使用系统环境变量；Linux 建议使用权限为 `600` 的服务环境文件或云端密钥服务。
 
+本地默认使用内存开发邮件箱，不会在日志中打印验证码。生产 profile 强制使用 SMTP，并拒绝默认
+注册 Pepper。验证码为 6 位数字、10 分钟有效、最多尝试 5 次；交接码为 60 秒一次性 opaque code，
+不得写入访问日志或查询参数。
+
+平台导出文件保存 24 小时后由后台任务删除。导出目录可能包含公司业务数据，必须使用磁盘加密、
+最小文件权限，并排除在 Git、通用静态文件服务、普通应用备份和公司用户可访问目录之外。
+
 数据库低权限账号初始化脚本位于 `docs/security/setup-db-user.sql`。部署前应先按 `docs/security/SECURITY_SETUP.md` 完成账号和密钥配置。
+
+生产配置会强制检查数据库运行账号。`wms_app` 必须同时为 `NOSUPERUSER` 和
+`NOBYPASSRLS`，否则应用拒绝启动。V4.52 会对租户业务表启用并强制执行 PostgreSQL RLS；
+不要为了绕过策略而使用 `postgres` 启动应用。平台读取和导出也必须通过应用服务显式进入目标
+公司的事务上下文，不能使用数据库特权账号直读租户数据。
 
 ## 3. 构建管理端
 
@@ -84,6 +101,8 @@ java -jar target\wms-system-0.0.1-SNAPSHOT.jar
 3. 生产环境的 `/v3/api-docs` 和 `/swagger-ui` 不可访问。
 4. 日志中没有 SQL 参数、Token、数据库密码或渠道密钥。
 5. 用只读查询确认 Flyway 迁移版本与代码一致。
+6. 确认日志显示数据库账号兼容 RLS，并抽查租户业务表的
+   `relrowsecurity=true`、`relforcerowsecurity=true`。
 
 ## 5. 反向代理
 

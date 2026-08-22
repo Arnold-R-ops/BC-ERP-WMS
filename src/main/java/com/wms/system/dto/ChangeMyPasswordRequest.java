@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Change Own Password Request (P0.5)
@@ -32,11 +33,13 @@ public class ChangeMyPasswordRequest {
      * Current password, verified before any change is applied.
      */
     @NotBlank(message = "Old password cannot be blank")
+    @ToString.Exclude
     private String oldPassword;
 
     /**
      * New password. Policy: 8-64 characters, at least one letter and one digit.
      */
     @NotBlank(message = "New password cannot be blank")
+    @ToString.Exclude
     private String newPassword;
 }

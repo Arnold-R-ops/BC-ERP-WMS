@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface SysRoleGovernanceAuditRepository extends JpaRepository<SysRoleGovernanceAudit, Long> {
     List<SysRoleGovernanceAudit> findByRoleIdOrderByCreatedAtDesc(Long roleId);
+    List<SysRoleGovernanceAudit> findByCompanyIdAndRoleIdOrderByCreatedAtDesc(
+        Long companyId, Long roleId);
 }

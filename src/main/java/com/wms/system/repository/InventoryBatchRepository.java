@@ -81,11 +81,15 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             CROSS JOIN (SELECT LOWER(CAST(:search AS TEXT)) AS term) filter
             LEFT JOIN inventory_batch b
                 ON b.product_sku_id = p.id
+                AND b.company_id = :companyId
                 AND b.active = true
                 AND b.quantity > 0
-            LEFT JOIN locations l ON l.id = b.location_id
-            LEFT JOIN warehouses w ON w.id = l.warehouse_id
-            WHERE p.is_deleted = false
+            LEFT JOIN locations l
+                ON l.id = b.location_id AND l.company_id = :companyId
+            LEFT JOIN warehouses w
+                ON w.id = l.warehouse_id AND w.company_id = :companyId
+            WHERE p.company_id = :companyId
+              AND p.is_deleted = false
               AND (
                 filter.term = ''
                 OR LOWER(p.name) LIKE CONCAT('%', filter.term, '%')
@@ -99,7 +103,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             SELECT COUNT(*)
             FROM product_skus p
             CROSS JOIN (SELECT LOWER(CAST(:search AS TEXT)) AS term) filter
-            WHERE p.is_deleted = false
+            WHERE p.company_id = :companyId
+              AND p.is_deleted = false
               AND (
                 filter.term = ''
                 OR LOWER(p.name) LIKE CONCAT('%', filter.term, '%')
@@ -110,6 +115,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         nativeQuery = true
     )
     Page<InventorySummaryRow> findInventorySummaryRows(
+        @Param("companyId") Long companyId,
         @Param("search") String search,
         Pageable pageable
     );

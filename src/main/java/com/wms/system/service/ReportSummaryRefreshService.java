@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import com.wms.system.tenant.context.CompanyScope;
 
 import java.time.LocalDate;
 
@@ -14,18 +15,17 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class ReportSummaryRefreshService {
 
-    private static final Long DEFAULT_COMPANY_ID = 1L;
-
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public RefreshResult refreshAll() {
-        int customerRows = refreshCustomerFacts();
-        int staleCustomerRows = deleteStaleCustomerFacts();
-        int customerProductRows = refreshCustomerProductFacts();
-        int staleCustomerProductRows = deleteStaleCustomerProductFacts();
-        int salesDailyRows = refreshSalesDailySummary();
-        int staleSalesRows = deleteStaleSalesDailySummary();
+        Long companyId = CompanyScope.currentCompanyId();
+        int customerRows = refreshCustomerFacts(companyId);
+        int staleCustomerRows = deleteStaleCustomerFacts(companyId);
+        int customerProductRows = refreshCustomerProductFacts(companyId);
+        int staleCustomerProductRows = deleteStaleCustomerProductFacts(companyId);
+        int salesDailyRows = refreshSalesDailySummary(companyId);
+        int staleSalesRows = deleteStaleSalesDailySummary(companyId);
 
         log.info(
             "Report fact buffer refreshed: customerRows={}, staleCustomerRows={}, customerProductRows={}, "
@@ -51,6 +51,10 @@ public class ReportSummaryRefreshService {
     /** Rebuilds one sales day in a new transaction after the source write commits. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int refreshSalesDailySummary(Long companyId, LocalDate summaryDate) {
+        if (!CompanyScope.currentCompanyId().equals(companyId)) {
+            throw new IllegalStateException(
+                "Report refresh company does not match the current company context");
+        }
         String sql = """
             INSERT INTO sales_daily_summary (
                 company_id,
@@ -113,7 +117,7 @@ public class ReportSummaryRefreshService {
         return jdbcTemplate.update(sql, companyId, summaryDate);
     }
 
-    private int refreshCustomerFacts() {
+    private int refreshCustomerFacts(Long companyId) {
         String sql = """
             INSERT INTO customer_fact_summary (
                 company_id,
@@ -169,10 +173,10 @@ public class ReportSummaryRefreshService {
                 updated_at = EXCLUDED.updated_at
             """;
 
-        return jdbcTemplate.update(sql, DEFAULT_COMPANY_ID);
+        return jdbcTemplate.update(sql, companyId);
     }
 
-    private int deleteStaleCustomerFacts() {
+    private int deleteStaleCustomerFacts(Long companyId) {
         String sql = """
             DELETE FROM customer_fact_summary cfs
             WHERE cfs.company_id = ?
@@ -185,10 +189,10 @@ public class ReportSummaryRefreshService {
               )
             """;
 
-        return jdbcTemplate.update(sql, DEFAULT_COMPANY_ID);
+        return jdbcTemplate.update(sql, companyId);
     }
 
-    private int refreshCustomerProductFacts() {
+    private int refreshCustomerProductFacts(Long companyId) {
         String sql = """
             INSERT INTO customer_product_summary (
                 company_id,
@@ -268,10 +272,10 @@ public class ReportSummaryRefreshService {
                 updated_at = EXCLUDED.updated_at
             """;
 
-        return jdbcTemplate.update(sql, DEFAULT_COMPANY_ID);
+        return jdbcTemplate.update(sql, companyId);
     }
 
-    private int deleteStaleCustomerProductFacts() {
+    private int deleteStaleCustomerProductFacts(Long companyId) {
         String sql = """
             DELETE FROM customer_product_summary customer_product
             WHERE customer_product.company_id = ?
@@ -288,10 +292,10 @@ public class ReportSummaryRefreshService {
               )
             """;
 
-        return jdbcTemplate.update(sql, DEFAULT_COMPANY_ID);
+        return jdbcTemplate.update(sql, companyId);
     }
 
-    private int refreshSalesDailySummary() {
+    private int refreshSalesDailySummary(Long companyId) {
         String sql = """
             INSERT INTO sales_daily_summary (
                 company_id,
@@ -350,10 +354,10 @@ public class ReportSummaryRefreshService {
                 updated_at = EXCLUDED.updated_at
             """;
 
-        return jdbcTemplate.update(sql, DEFAULT_COMPANY_ID);
+        return jdbcTemplate.update(sql, companyId);
     }
 
-    private int deleteStaleSalesDailySummary() {
+    private int deleteStaleSalesDailySummary(Long companyId) {
         String sql = """
             DELETE FROM sales_daily_summary sds
             WHERE sds.company_id = ?
@@ -365,7 +369,7 @@ public class ReportSummaryRefreshService {
               )
             """;
 
-        return jdbcTemplate.update(sql, DEFAULT_COMPANY_ID);
+        return jdbcTemplate.update(sql, companyId);
     }
 
     public record RefreshResult(

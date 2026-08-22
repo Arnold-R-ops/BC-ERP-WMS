@@ -17,7 +17,7 @@ public class AtpController {
     private final AtpService atpService;
 
     @GetMapping("/product/{productSkuId}")
-    @PreAuthorize("hasAnyAuthority('inventory:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<AtpSupplyResponse>> listSupply(@PathVariable("productSkuId") Long productSkuId) {
         return ResponseEntity.ok(atpService.listSupply(productSkuId));
     }

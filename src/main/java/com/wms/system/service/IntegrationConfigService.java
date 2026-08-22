@@ -8,6 +8,9 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
 import com.wms.system.integration.ShopifyTokenProvider;
 import com.wms.system.repository.IntegrationConfigRepository;
+import com.wms.system.tenant.context.CompanyScope;
+import com.wms.system.tenant.model.ChannelWebhookRoute;
+import com.wms.system.tenant.repository.ChannelWebhookRouteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,7 @@ import java.util.Map;
 public class IntegrationConfigService {
 
     private final IntegrationConfigRepository repository;
+    private final ChannelWebhookRouteRepository webhookRouteRepository;
     private final ShopifyApiClient shopifyApiClient;
     private final ShopifyTokenProvider tokenProvider;
 
@@ -66,6 +70,7 @@ public class IntegrationConfigService {
             .build();
 
         config = repository.save(config);
+        synchronizeWebhookRoute(config);
         log.info("Integration config created: id={}, platform={}, store={}",
             config.getId(), config.getPlatform(), config.getStoreUrl());
         return IntegrationConfigResponse.from(config);
@@ -96,11 +101,12 @@ public class IntegrationConfigService {
         }
         if (request.getRetailMode() != null
                 && !request.getRetailMode().equals(Boolean.TRUE.equals(config.getRetailMode()))) {
-            requireSuperAdminForRetailMode();
+            requireTenantAdminForRetailMode();
             config.setRetailMode(request.getRetailMode());
         }
 
         config = repository.save(config);
+        synchronizeWebhookRoute(config);
         // 凭据可能变更：失效令牌缓存，下次调用换新
         tokenProvider.invalidate(config.getId());
         log.info("Integration config updated: id={}, store={}", config.getId(), config.getStoreUrl());
@@ -112,6 +118,7 @@ public class IntegrationConfigService {
         IntegrationConfig config = load(id);
         config.setIsActive(active);
         config = repository.save(config);
+        synchronizeWebhookRoute(config);
         log.info("Integration config {}: id={}, store={}",
             active ? "activated" : "deactivated", config.getId(), config.getStoreUrl());
         return IntegrationConfigResponse.from(config);
@@ -126,6 +133,7 @@ public class IntegrationConfigService {
                        "reason", "Deactivate the config before deleting it"));
         }
         repository.delete(config);
+        webhookRouteRepository.deleteById(id);
         tokenProvider.invalidate(id);
         log.info("Integration config deleted: id={}, store={}", id, config.getStoreUrl());
     }
@@ -161,9 +169,7 @@ public class IntegrationConfigService {
      * 归一化店铺域名：剥掉协议前缀和尾部斜杠（用户常整段粘贴 URL）
      */
     private String normalizeStoreUrl(String storeUrl) {
-        return storeUrl.trim()
-            .replaceFirst("^https?://", "")
-            .replaceAll("/+$", "");
+        return IntegrationConfig.canonicalizeStoreIdentifier(storeUrl);
     }
 
     private String trimToNull(String s) {
@@ -173,18 +179,37 @@ public class IntegrationConfigService {
     private boolean resolveRetailModeForCreate(Boolean requested) {
         boolean retailMode = Boolean.TRUE.equals(requested);
         if (retailMode) {
-            requireSuperAdminForRetailMode();
+            requireTenantAdminForRetailMode();
         }
         return retailMode;
     }
 
-    private void requireSuperAdminForRetailMode() {
+    private void synchronizeWebhookRoute(IntegrationConfig config) {
+        if (!StringUtils.hasText(config.getClientSecret())) {
+            webhookRouteRepository.deleteById(config.getId());
+            return;
+        }
+        String canonicalStoreIdentifier = IntegrationConfig.canonicalizeStoreIdentifier(
+            config.getStoreUrl());
+        config.setStoreUrl(canonicalStoreIdentifier);
+        config.setCanonicalStoreIdentifier(canonicalStoreIdentifier);
+        webhookRouteRepository.save(ChannelWebhookRoute.builder()
+            .integrationConfigId(config.getId())
+            .tenantId(CompanyScope.currentCompanyId())
+            .platform(config.getPlatform())
+            .canonicalStoreIdentifier(canonicalStoreIdentifier)
+            .signingSecret(config.getClientSecret())
+            .active(Boolean.TRUE.equals(config.getIsActive()))
+            .build());
+    }
+
+    private void requireTenantAdminForRetailMode() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean superAdmin = authentication != null
+        boolean tenantAdmin = authentication != null
             && authentication.getAuthorities().stream()
-                .anyMatch(authority -> "SUPER_ADMIN".equals(authority.getAuthority()));
-        if (!superAdmin) {
-            throw new AccessDeniedException("Only SUPER_ADMIN may change retail mode");
+                .anyMatch(authority -> "TENANT_ADMIN".equals(authority.getAuthority()));
+        if (!tenantAdmin) {
+            throw new AccessDeniedException("Only TENANT_ADMIN may change retail mode");
         }
     }
 }

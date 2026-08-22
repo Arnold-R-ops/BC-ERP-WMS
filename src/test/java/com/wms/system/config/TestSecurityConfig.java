@@ -1,6 +1,7 @@
 package com.wms.system.config;
 
 import com.wms.system.security.JwtAuthenticationFilter;
+import com.wms.system.tenant.web.TenantResolutionFilter;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
@@ -27,13 +28,15 @@ public class TestSecurityConfig {
     @Bean
     @Order(0)
     public SecurityFilterChain testSecurityFilterChain(HttpSecurity http,
-                                                      JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+                                                      JwtAuthenticationFilter jwtAuthenticationFilter,
+                                                      TenantResolutionFilter tenantResolutionFilter) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll()
             );
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(tenantResolutionFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

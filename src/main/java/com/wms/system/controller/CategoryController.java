@@ -30,7 +30,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('category:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<CategoryResponse>> list(
         @RequestParam(value = "enabledOnly", defaultValue = "false") boolean enabledOnly
     ) {
@@ -38,7 +38,7 @@ public class CategoryController {
     }
 
     @GetMapping("/tree")
-    @PreAuthorize("hasAnyAuthority('category:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<CategoryResponse>> tree(
         @RequestParam(value = "enabledOnly", defaultValue = "false") boolean enabledOnly
     ) {
@@ -46,19 +46,19 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('category:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:view', 'TENANT_ADMIN')")
     public ResponseEntity<CategoryResponse> get(@PathVariable("id") Long id) {
         return ResponseEntity.ok(categoryService.get(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('category:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:create', 'TENANT_ADMIN')")
     public ResponseEntity<CategoryResponse> create(@Valid @RequestBody CreateCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('category:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:update', 'TENANT_ADMIN')")
     public ResponseEntity<CategoryResponse> update(
         @PathVariable("id") Long id,
         @Valid @RequestBody UpdateCategoryRequest request
@@ -67,7 +67,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}/move")
-    @PreAuthorize("hasAnyAuthority('category:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:update', 'TENANT_ADMIN')")
     public ResponseEntity<CategoryResponse> move(
         @PathVariable("id") Long id,
         @RequestBody MoveCategoryRequest request
@@ -76,19 +76,19 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}/activate")
-    @PreAuthorize("hasAnyAuthority('category:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:update', 'TENANT_ADMIN')")
     public ResponseEntity<CategoryResponse> activate(@PathVariable("id") Long id) {
         return ResponseEntity.ok(categoryService.activate(id));
     }
 
     @PutMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyAuthority('category:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:update', 'TENANT_ADMIN')")
     public ResponseEntity<CategoryResponse> deactivate(@PathVariable("id") Long id) {
         return ResponseEntity.ok(categoryService.deactivate(id));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('category:delete', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('category:delete', 'TENANT_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         categoryService.delete(id);
         return ResponseEntity.noContent().build();

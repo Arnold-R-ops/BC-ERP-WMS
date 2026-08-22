@@ -42,6 +42,14 @@ class RoleServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(roleRepository.existsByCompanyIdAndRoleCode(eq(1L), anyString()))
+            .thenAnswer(invocation -> roleRepository.existsByRoleCode(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> roleRepository.findById(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.countByCompanyIdAndRoleId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.countByRoleId(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndStatus(1L, "ACTIVE"))
+            .thenAnswer(invocation -> roleRepository.findAllActive());
         customRole = SysRole.builder()
                 .id(1L)
                 .roleCode("CUSTOM_ROLE")
@@ -56,7 +64,7 @@ class RoleServiceTest {
 
         systemRole = SysRole.builder()
                 .id(2L)
-                .roleCode("SUPER_ADMIN")
+                .roleCode("TENANT_ADMIN")
                 .roleName("Super Admin")
                 .roleType("SYSTEM")
                 .systemCategory(SysRole.SYSTEM_CATEGORY_PRIVILEGED)
@@ -187,14 +195,13 @@ class RoleServiceTest {
     void testDeleteRole_Success() {
         when(roleRepository.findById(1L)).thenReturn(Optional.of(customRole));
         when(userRoleRepository.countByRoleId(1L)).thenReturn(0L);
-        doNothing().when(cacheService).evictAllUserPermissions();
 
         roleService.deleteRole(1L);
 
         InOrder deletionOrder = inOrder(securityVersionService, roleRepository);
         deletionOrder.verify(securityVersionService).bumpForRoleAndDescendants(1L);
         deletionOrder.verify(roleRepository).delete(customRole);
-        verify(cacheService).evictAllUserPermissions();
+        verify(cacheService).evictCompanyUserPermissions(1L);
         verify(cacheService).evictRoleInheritCache();
     }
 

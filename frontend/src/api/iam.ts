@@ -98,6 +98,13 @@ export function resetUserPassword(id: number): Promise<ResetPasswordResult> {
   return apiRequest<ResetPasswordResult>(`/api/users/${id}/reset-password`, { method: 'POST' });
 }
 
+export function revokeUserSessions(id: number, reason: string): Promise<void> {
+  return apiRequest<void>(`/api/users/${id}/revoke-sessions`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
 export function deleteUser(id: number): Promise<void> {
   return apiRequest<void>(`/api/users/${id}`, { method: 'DELETE' });
 }

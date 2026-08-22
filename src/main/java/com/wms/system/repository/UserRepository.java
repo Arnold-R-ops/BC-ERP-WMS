@@ -38,6 +38,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT user FROM User user WHERE user.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT user FROM User user WHERE user.companyId = :companyId AND user.id = :id")
+    Optional<User> findByCompanyIdAndIdForUpdate(
+        @Param("companyId") Long companyId,
+        @Param("id") Long id
+    );
+
     /**
      * 根据用户名查询用户（用于登录验证）
      * 方法命名规范：findBy + 字段名（Username）
@@ -46,6 +53,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Optional<User> 用户对象（可能为空）
      */
     Optional<User> findByUsername(String username);
+
+    Optional<User> findByCompanyIdAndUsername(Long companyId, String username);
+
+    /**
+     * Tenant-bound identity lookup used after JWT/Host company matching.
+     */
+    Optional<User> findByIdAndCompanyId(Long id, Long companyId);
+
+    List<User> findAllByCompanyId(Long companyId);
+
+    List<User> findAllByCompanyIdAndIdIn(Long companyId, Iterable<Long> ids);
 
     /**
      * 检查用户名是否存在（用于注册时校验）
@@ -56,6 +74,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     boolean existsByUsername(String username);
 
+    boolean existsByCompanyIdAndUsername(Long companyId, String username);
+
     /**
      * 查询所有启用的用户
      * 方法命名规范：findBy + 字段名（Enabled） + 条件（True）
@@ -63,6 +83,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return 所有启用状态的用户
      */
     List<User> findByEnabledTrue();
+
+    List<User> findByCompanyIdAndEnabledTrue(Long companyId);
 
     /**
      * 根据用户名模糊查询（用于用户搜索功能）
@@ -72,4 +94,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return 用户名包含关键词的所有用户
      */
     List<User> findByUsernameContaining(String keyword);
+
+    List<User> findByCompanyIdAndUsernameContaining(Long companyId, String keyword);
 }

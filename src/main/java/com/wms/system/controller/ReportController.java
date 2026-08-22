@@ -27,13 +27,13 @@ public class ReportController {
     private final ReportSummaryRefreshService reportSummaryRefreshService;
 
     @PostMapping("/refresh")
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
     public ResponseEntity<ReportSummaryRefreshService.RefreshResult> refreshReportFacts() {
         return ResponseEntity.ok(reportSummaryRefreshService.refreshAll());
     }
 
     @GetMapping("/customer/{customerId}")
-    @PreAuthorize("hasAnyAuthority('global:view', 'customer:view', 'sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('global:view', 'customer:view', 'sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<CustomerFactSummaryResponse> getCustomerFactSummary(
         @PathVariable("customerId") Long customerId,
         @RequestParam(name = "topProducts", defaultValue = "5") int topProducts
@@ -42,7 +42,7 @@ public class ReportController {
     }
 
     @GetMapping("/customers")
-    @PreAuthorize("hasAnyAuthority('global:view', 'customer:view', 'sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('global:view', 'customer:view', 'sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<Page<CustomerFactListItemResponse>> listCustomerFacts(
         @RequestParam(name = "keyword", required = false) String keyword,
         @RequestParam(name = "customerType", required = false) CustomerType customerType,
@@ -64,7 +64,7 @@ public class ReportController {
     }
 
     @GetMapping("/sales/overview")
-    @PreAuthorize("hasAnyAuthority('global:view', 'sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('global:view', 'sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOverviewResponse> getSalesOverview(
         @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
         @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
@@ -73,7 +73,7 @@ public class ReportController {
     }
 
     @GetMapping("/sales/daily")
-    @PreAuthorize("hasAnyAuthority('global:view', 'sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('global:view', 'sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<SalesDailySummaryResponse>> listSalesDailySummary(
         @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
         @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate

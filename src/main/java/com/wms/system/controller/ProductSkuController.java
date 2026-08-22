@@ -22,7 +22,7 @@ public class ProductSkuController {
     private final ProductSkuService productSkuService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('product-sku:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product-sku:create', 'TENANT_ADMIN')")
     public ResponseEntity<ProductSkuResponse> createProductSku(@Valid @RequestBody CreateProductSkuRequest request) {
         log.info("API调用: createProductSku - barcode: {}", request.getBarcode());
         ProductSkuResponse response = productSkuService.createProductSku(request);
@@ -31,7 +31,7 @@ public class ProductSkuController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('product-sku:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product-sku:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<ProductSkuResponse>> listProductSkus(
             @RequestParam(required = false) Boolean enabledOnly,
             @RequestParam(required = false) Long productId) {
@@ -42,7 +42,7 @@ public class ProductSkuController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('product-sku:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product-sku:view', 'TENANT_ADMIN')")
     public ResponseEntity<ProductSkuResponse> getProductSku(@PathVariable Long id) {
         log.info("API调用: getProduct - id: {}", id);
         ProductSkuResponse response = productSkuService.getProductSku(id);
@@ -51,7 +51,7 @@ public class ProductSkuController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('product-sku:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product-sku:edit', 'TENANT_ADMIN')")
     public ResponseEntity<ProductSkuResponse> updateProductSku(
             @PathVariable Long id,
             @Valid @RequestBody CreateProductSkuRequest request) {
@@ -62,13 +62,13 @@ public class ProductSkuController {
     }
 
     @PutMapping("/{id}/activate")
-    @PreAuthorize("hasAnyAuthority('product-sku:status', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product-sku:status', 'TENANT_ADMIN')")
     public ResponseEntity<ProductSkuResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(productSkuService.activate(id));
     }
 
     @PutMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyAuthority('product-sku:status', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product-sku:status', 'TENANT_ADMIN')")
     public ResponseEntity<ProductSkuResponse> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(productSkuService.deactivate(id));
     }

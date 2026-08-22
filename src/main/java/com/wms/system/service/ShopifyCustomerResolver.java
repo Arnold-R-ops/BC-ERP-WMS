@@ -10,6 +10,7 @@ import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.CustomerRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ShopifyCustomerResolver {
 
-    private static final long DEFAULT_COMPANY_ID = 1L;
     private static final String CHANNEL = "SHOPIFY";
 
     private final CustomerRepository customerRepository;
@@ -84,7 +84,7 @@ public class ShopifyCustomerResolver {
         if (StringUtils.hasText(externalCustomerId)) {
             Customer externalMatch = customerRepository
                 .findByCompanyIdAndCustomerTypeAndExternalCustomerId(
-                    DEFAULT_COMPANY_ID,
+                    companyId(),
                     CustomerType.CONSUMER,
                     externalCustomerId
                 )
@@ -101,7 +101,7 @@ public class ShopifyCustomerResolver {
         }
 
         List<Customer> allMatches = customerRepository
-            .findByCompanyIdAndNormalizedEmailOrderByIdAsc(DEFAULT_COMPANY_ID, normalizedEmail);
+            .findByCompanyIdAndNormalizedEmailOrderByIdAsc(companyId(), normalizedEmail);
         List<Customer> activeMatches = allMatches.stream()
             .filter(customer -> Boolean.TRUE.equals(customer.getIsActive()))
             .toList();
@@ -153,6 +153,10 @@ public class ShopifyCustomerResolver {
         if (changed) {
             customerRepository.save(customer);
         }
+    }
+
+    private Long companyId() {
+        return CompanyScope.currentCompanyId();
     }
 
     private void requireActive(Customer customer) {

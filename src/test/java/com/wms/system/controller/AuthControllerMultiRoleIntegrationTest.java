@@ -92,9 +92,9 @@ class AuthControllerMultiRoleIntegrationTest {
         userRepository.deleteAll();
 
         // 缂佺虎鍙庨崰鏇犳崲濮樿鲸鍠嗛柟鐑樻礀椤ュ繘鎮楀☉娅亜锕?
-        superAdminRole = roleRepository.findByRoleCode("SUPER_ADMIN")
+        superAdminRole = roleRepository.findByRoleCode("TENANT_ADMIN")
                 .orElseGet(() -> roleRepository.save(SysRole.builder()
-                        .roleCode("SUPER_ADMIN")
+                        .roleCode("TENANT_ADMIN")
                         .roleName("闁烩剝甯掗幊鎰殽閸モ晝涓嶉柨娑樺閸婄偤鏌?")
                         .sortOrder(1)
                         .status("ACTIVE")
@@ -242,9 +242,9 @@ class AuthControllerMultiRoleIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("single_role_user")))
-                .andExpect(jsonPath("$.currentRole", is("SUPER_ADMIN")))
+                .andExpect(jsonPath("$.currentRole", is("TENANT_ADMIN")))
                 .andExpect(jsonPath("$.availableRoles", hasSize(1)))
-                .andExpect(jsonPath("$.availableRoles", contains("SUPER_ADMIN")));
+                .andExpect(jsonPath("$.availableRoles", contains("TENANT_ADMIN")));
     }
 
     @Test
@@ -441,8 +441,8 @@ class AuthControllerMultiRoleIntegrationTest {
         LoginResponse loginResponse = objectMapper.readValue(loginResponseBody, LoginResponse.class);
         String token = loginResponse.getToken();
 
-        // 闂佸憡甯掑ú锕€鐣烽弻銉ョ闁绘鐗婂鎾绘煕閹烘垶顥㈤柛妯稿€濋幆?SUPER_ADMIN 闁荤喐鐟︾敮鐔哥珶?
-        SwitchRoleRequest switchRequest = new SwitchRoleRequest("SUPER_ADMIN");
+        // 闂佸憡甯掑ú锕€鐣烽弻銉ョ闁绘鐗婂鎾绘煕閹烘垶顥㈤柛妯稿€濋幆?TENANT_ADMIN 闁荤喐鐟︾敮鐔哥珶?
+        SwitchRoleRequest switchRequest = new SwitchRoleRequest("TENANT_ADMIN");
 
         mockMvc.perform(post("/api/auth/switch-role")
                         .header("Authorization", "Bearer " + token)
@@ -508,6 +508,6 @@ class AuthControllerMultiRoleIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(switchRequest)))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

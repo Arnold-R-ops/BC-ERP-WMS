@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Login Request DTO
@@ -43,5 +44,6 @@ public class LoginRequest {
      */
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 3, message = "Password must be at least 3 characters")
+    @ToString.Exclude
     private String password;
 }

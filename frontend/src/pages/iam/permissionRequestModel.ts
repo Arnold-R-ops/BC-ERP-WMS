@@ -14,13 +14,13 @@ export function isRequestableRole(role: Role): boolean {
   return role.status === 'ACTIVE'
     && role.assignableToUsers !== false
     && role.privilegedRole !== true
-    && role.roleCode !== 'SUPER_ADMIN'
+    && role.roleCode !== 'TENANT_ADMIN'
     && role.roleCode !== 'SECURITY_ADMIN'
     && (role.roleType !== 'CUSTOM' || role.reviewStatus === 'APPROVED');
 }
 
 export function isProtectedIdentity(user: UserAccount): boolean {
-  return user.roleCodes?.some((code) => code === 'SUPER_ADMIN' || code === 'SECURITY_ADMIN') ?? false;
+  return user.roleCodes?.some((code) => code === 'TENANT_ADMIN' || code === 'SECURITY_ADMIN') ?? false;
 }
 
 export function roleHighRiskPermissionCount(role: Role, permissions: Permission[]): number {

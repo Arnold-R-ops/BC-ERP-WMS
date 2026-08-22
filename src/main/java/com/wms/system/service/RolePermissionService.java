@@ -9,6 +9,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysPermissionRepository;
 import com.wms.system.repository.SysRolePermissionRepository;
 import com.wms.system.repository.SysRoleRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,27 +65,30 @@ public class RolePermissionService {
      */
     @Transactional
     public void assignPermissionToRole(Long roleId, Long permissionId, Long grantedBy) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Assigning permission {} to role {} by admin {}", permissionId, roleId, grantedBy);
 
         // Validate role exists
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
         validateRoleEditable(role);
 
         // Validate permission exists
-        SysPermission permission = permissionRepository.findById(permissionId)
+        SysPermission permission = permissionRepository.findByCompanyIdAndId(companyId, permissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found: " + permissionId));
 
         validateCustomRoleAssignment(role, permission);
 
         // Check if already assigned
-        if (rolePermissionRepository.existsByRoleIdAndPermissionId(roleId, permissionId)) {
+        if (rolePermissionRepository.existsByCompanyIdAndRoleIdAndPermissionId(
+                companyId, roleId, permissionId)) {
             log.warn("Permission {} already assigned to role {}", permissionId, roleId);
             return;
         }
 
         // Create assignment
         SysRolePermission rolePermission = SysRolePermission.builder()
+                .companyId(companyId)
                 .roleId(roleId)
                 .permissionId(permissionId)
                 .grantedBy(grantedBy)
@@ -107,13 +111,18 @@ public class RolePermissionService {
      */
     @Transactional
     public void removePermissionFromRole(Long roleId, Long permissionId) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Removing permission {} from role {}", permissionId, roleId);
 
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
         validateRoleEditable(role);
 
-        rolePermissionRepository.deleteByRoleIdAndPermissionId(roleId, permissionId);
+        permissionRepository.findByCompanyIdAndId(companyId, permissionId)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Permission not found: " + permissionId));
+        rolePermissionRepository.deleteByCompanyIdAndRoleIdAndPermissionId(
+            companyId, roleId, permissionId);
 
         // Evict cache for all users with this role
         cacheService.onRolePermissionChanged(roleId);
@@ -133,14 +142,16 @@ public class RolePermissionService {
      */
     @Transactional
     public void assignPermissionsToRole(Long roleId, Set<Long> permissionIds, Long grantedBy) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Batch assigning {} permissions to role {}", permissionIds.size(), roleId);
 
         // Validate role exists
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
         validateRoleEditable(role);
 
-        List<SysPermission> permissions = new ArrayList<>(permissionRepository.findByIdIn(permissionIds));
+        List<SysPermission> permissions = new ArrayList<>(
+            permissionRepository.findByCompanyIdAndIdIn(companyId, permissionIds));
         if (permissions.size() != permissionIds.size()) {
             Set<Long> foundIds = permissions.stream().map(SysPermission::getId).collect(Collectors.toSet());
             Set<Long> missingIds = permissionIds.stream()
@@ -154,12 +165,13 @@ public class RolePermissionService {
         permissions.forEach(permission -> validateCustomRoleAssignment(role, permission));
 
         // Validate the complete replacement before deleting existing rows.
-        rolePermissionRepository.deleteByRoleId(roleId);
+        rolePermissionRepository.deleteByCompanyIdAndRoleId(companyId, roleId);
 
         // Assign new permissions
         for (SysPermission permission : permissions) {
 
             SysRolePermission rolePermission = SysRolePermission.builder()
+                    .companyId(companyId)
                     .roleId(roleId)
                     .permissionId(permission.getId())
                     .grantedBy(grantedBy)
@@ -183,7 +195,8 @@ public class RolePermissionService {
      * @return Set of permission IDs
      */
     public Set<Long> getRolePermissionIds(Long roleId) {
-        return rolePermissionRepository.findPermissionIdsByRoleId(roleId);
+        return rolePermissionRepository.findPermissionIdsByCompanyIdAndRoleId(
+            CompanyScope.currentCompanyId(), roleId);
     }
 
     /**
@@ -193,12 +206,14 @@ public class RolePermissionService {
      * @return List of permissions
      */
     public List<PermissionDTO> getRolePermissions(Long roleId) {
-        Set<Long> permissionIds = rolePermissionRepository.findPermissionIdsByRoleId(roleId);
+        Long companyId = CompanyScope.currentCompanyId();
+        Set<Long> permissionIds = rolePermissionRepository
+            .findPermissionIdsByCompanyIdAndRoleId(companyId, roleId);
         if (permissionIds.isEmpty()) {
             return List.of();
         }
 
-        return permissionRepository.findByIdIn(permissionIds).stream()
+        return permissionRepository.findByCompanyIdAndIdIn(companyId, permissionIds).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -210,7 +225,8 @@ public class RolePermissionService {
      * @return Set of role IDs
      */
     public Set<Long> getPermissionRoleIds(Long permissionId) {
-        return rolePermissionRepository.findRoleIdsByPermissionId(permissionId);
+        return rolePermissionRepository.findRoleIdsByCompanyIdAndPermissionId(
+            CompanyScope.currentCompanyId(), permissionId);
     }
 
     /**
@@ -221,7 +237,8 @@ public class RolePermissionService {
      * @return true if role has the permission
      */
     public boolean roleHasPermission(Long roleId, Long permissionId) {
-        return rolePermissionRepository.existsByRoleIdAndPermissionId(roleId, permissionId);
+        return rolePermissionRepository.existsByCompanyIdAndRoleIdAndPermissionId(
+            CompanyScope.currentCompanyId(), roleId, permissionId);
     }
 
     /**
@@ -231,7 +248,8 @@ public class RolePermissionService {
      * @return Number of permissions for this role
      */
     public long getPermissionCountForRole(Long roleId) {
-        return rolePermissionRepository.countByRoleId(roleId);
+        return rolePermissionRepository.countByCompanyIdAndRoleId(
+            CompanyScope.currentCompanyId(), roleId);
     }
 
     // ========== Helper Methods ==========

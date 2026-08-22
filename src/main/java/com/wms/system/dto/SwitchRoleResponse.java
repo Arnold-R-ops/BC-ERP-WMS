@@ -81,4 +81,7 @@ public class SwitchRoleResponse {
      * Example: 86400000 ms = 24 hours
      */
     private Long expiresIn;
+
+    /** Absolute tenant ERP sign-in deadline in Unix epoch milliseconds. */
+    private Long sessionEndsAt;
 }

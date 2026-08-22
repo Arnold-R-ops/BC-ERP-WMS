@@ -48,7 +48,7 @@ export function IntegrationConfigPage(): JSX.Element {
   const { message } = AntdApp.useApp();
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const canManageRetailMode = session?.currentRole === 'SUPER_ADMIN';
+  const canManageRetailMode = session?.currentRole === 'TENANT_ADMIN';
 
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: IntegrationConfigPayload }) =>

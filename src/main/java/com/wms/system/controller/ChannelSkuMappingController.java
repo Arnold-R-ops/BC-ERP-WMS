@@ -34,7 +34,7 @@ import java.util.Map;
  *
  * 处理闭环：resolve 写入映射表 → 被卡订单（FAILED 报文）下一轮同步自动重试放行。
  *
- * Security: system:admin / SUPER_ADMIN
+ * Security: system:admin / TENANT_ADMIN
  *
  * @author WMS Team
  * @since 2026-07-11
@@ -44,7 +44,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/integration/sku-mappings")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyAuthority('system:admin', 'SUPER_ADMIN')")
+@PreAuthorize("hasAnyAuthority('system:admin', 'TENANT_ADMIN')")
 public class ChannelSkuMappingController {
 
     private final ChannelSkuMappingService mappingService;
@@ -87,7 +87,9 @@ public class ChannelSkuMappingController {
     ) {
         Long operatorId = AuthUserResolver.resolveUserId(authentication);
         if (operatorId == null || operatorId == 0L) {
-            operatorId = userRepository.findByUsername(AuthUserResolver.resolveUsername(authentication))
+            operatorId = userRepository.findByCompanyIdAndUsername(
+                    com.wms.system.tenant.context.CompanyScope.currentCompanyId(),
+                    AuthUserResolver.resolveUsername(authentication))
                 .map(u -> u.getId()).orElse(0L);
         }
         return ResponseEntity.ok(pendingService.resolve(

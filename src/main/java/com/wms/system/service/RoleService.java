@@ -7,6 +7,7 @@ import com.wms.system.repository.SysRoleInheritRepository;
 import com.wms.system.repository.SysRolePermissionRepository;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
  * - Cache invalidation after role changes
  *
  * Business Rules:
- * - SYSTEM roles cannot be deleted (e.g., SUPER_ADMIN, CHAIRMAN)
+ * - SYSTEM roles cannot be deleted (e.g., TENANT_ADMIN, CHAIRMAN)
  * - Role codes must be unique
  * - Cannot create circular inheritance
  *
@@ -63,10 +64,11 @@ public class RoleService {
      */
     @Transactional
     public RoleDTO createRole(RoleDTO roleDTO) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Creating new role: {}", roleDTO.getRoleCode());
 
         // Validate role code uniqueness
-        if (roleRepository.existsByRoleCode(roleDTO.getRoleCode())) {
+        if (roleRepository.existsByCompanyIdAndRoleCode(companyId, roleDTO.getRoleCode())) {
             throw new IllegalArgumentException("Role code already exists: " + roleDTO.getRoleCode());
         }
 
@@ -87,6 +89,7 @@ public class RoleService {
                 .build();
 
         // Save role
+        role.setCompanyId(companyId);
         role = roleRepository.save(role);
 
         log.info("Role created successfully: {} (ID: {})", role.getRoleCode(), role.getId());
@@ -104,10 +107,11 @@ public class RoleService {
      */
     @Transactional
     public RoleDTO updateRole(Long roleId, RoleDTO roleDTO) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Updating role ID: {}", roleId);
 
         // Find existing role
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
 
         if (role.isSystemRole() || role.isPrivilegedRole()) {
@@ -143,10 +147,11 @@ public class RoleService {
      */
     @Transactional
     public void deleteRole(Long roleId) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Deleting role ID: {}", roleId);
 
         // Find role
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(companyId, roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
 
         // Prevent deleting system roles
@@ -155,7 +160,7 @@ public class RoleService {
         }
 
         // Check if role has users assigned
-        long userCount = userRoleRepository.countByRoleId(roleId);
+        long userCount = userRoleRepository.countByCompanyIdAndRoleId(companyId, roleId);
         if (userCount > 0) {
             throw new IllegalArgumentException(
                     String.format("Cannot delete role with %d users assigned", userCount));
@@ -170,7 +175,7 @@ public class RoleService {
         roleRepository.delete(role);
 
         // Invalidate cache
-        cacheService.evictAllUserPermissions();
+        cacheService.evictCompanyUserPermissions(companyId);
         cacheService.evictRoleInheritCache();
 
         log.info("Role deleted successfully: {} (ID: {})", role.getRoleCode(), role.getId());
@@ -183,7 +188,8 @@ public class RoleService {
      * @return Role DTO
      */
     public RoleDTO getRoleById(Long roleId) {
-        SysRole role = roleRepository.findById(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndId(
+                CompanyScope.currentCompanyId(), roleId)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleId));
 
         return convertToDTO(role);
@@ -196,7 +202,8 @@ public class RoleService {
      * @return Role DTO
      */
     public RoleDTO getRoleByCode(String roleCode) {
-        SysRole role = roleRepository.findByRoleCode(roleCode)
+        SysRole role = roleRepository.findByCompanyIdAndRoleCode(
+                CompanyScope.currentCompanyId(), roleCode)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleCode));
 
         return convertToDTO(role);
@@ -208,7 +215,8 @@ public class RoleService {
      * @return List of role DTOs
      */
     public List<RoleDTO> getAllRoles() {
-        return roleRepository.findAll().stream()
+        return roleRepository.findByCompanyIdOrderBySortOrderAsc(
+                CompanyScope.currentCompanyId()).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -219,7 +227,8 @@ public class RoleService {
      * @return List of active role DTOs
      */
     public List<RoleDTO> getAllActiveRoles() {
-        return roleRepository.findAllActive().stream()
+        return roleRepository.findByCompanyIdAndStatus(
+                CompanyScope.currentCompanyId(), "ACTIVE").stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -230,7 +239,8 @@ public class RoleService {
      * @return List of system role DTOs
      */
     public List<RoleDTO> getSystemRoles() {
-        return roleRepository.findAllSystemRoles().stream()
+        return roleRepository.findByCompanyIdAndRoleType(
+                CompanyScope.currentCompanyId(), "SYSTEM").stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -242,7 +252,8 @@ public class RoleService {
      * @return List of matching role DTOs
      */
     public List<RoleDTO> searchRoles(String keyword) {
-        return roleRepository.findByRoleNameContaining(keyword).stream()
+        return roleRepository.findByCompanyIdAndRoleNameContaining(
+                CompanyScope.currentCompanyId(), keyword).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -256,12 +267,13 @@ public class RoleService {
      */
     @Transactional
     public void addRoleInheritance(Long childRoleId, Long parentRoleId) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Adding role inheritance: child={}, parent={}", childRoleId, parentRoleId);
 
         // Validate roles exist
-        SysRole childRole = roleRepository.findById(childRoleId)
+        SysRole childRole = roleRepository.findByCompanyIdAndId(companyId, childRoleId)
                 .orElseThrow(() -> new IllegalArgumentException("Child role not found: " + childRoleId));
-        SysRole parentRole = roleRepository.findById(parentRoleId)
+        SysRole parentRole = roleRepository.findByCompanyIdAndId(companyId, parentRoleId)
                 .orElseThrow(() -> new IllegalArgumentException("Parent role not found: " + parentRoleId));
 
         if (!childRole.isPrivilegedRole() && parentRole.isPrivilegedRole()) {
@@ -270,7 +282,8 @@ public class RoleService {
         }
 
         // Check if already exists
-        if (roleInheritRepository.existsByChildRoleIdAndParentRoleId(childRoleId, parentRoleId)) {
+        if (roleInheritRepository.existsByCompanyIdAndChildRoleIdAndParentRoleId(
+                companyId, childRoleId, parentRoleId)) {
             log.warn("Role inheritance already exists: child={}, parent={}", childRoleId, parentRoleId);
             return;
         }
@@ -284,6 +297,7 @@ public class RoleService {
 
         // Create inheritance relationship
         SysRoleInherit inherit = SysRoleInherit.builder()
+                .companyId(companyId)
                 .childRoleId(childRoleId)
                 .parentRoleId(parentRoleId)
                 .build();
@@ -307,7 +321,8 @@ public class RoleService {
     public void removeRoleInheritance(Long childRoleId, Long parentRoleId) {
         log.info("Removing role inheritance: child={}, parent={}", childRoleId, parentRoleId);
 
-        roleInheritRepository.deleteByChildRoleIdAndParentRoleId(childRoleId, parentRoleId);
+        roleInheritRepository.deleteByCompanyIdAndChildRoleIdAndParentRoleId(
+            CompanyScope.currentCompanyId(), childRoleId, parentRoleId);
 
         // Invalidate cache
         cacheService.onRoleInheritanceChanged(childRoleId, parentRoleId);
@@ -323,7 +338,8 @@ public class RoleService {
      * @return Set of parent role IDs
      */
     public Set<Long> getParentRoleIds(Long roleId) {
-        return roleInheritRepository.findParentRoleIdsByChildRoleId(roleId);
+        return roleInheritRepository.findParentRoleIdsByCompanyIdAndChildRoleId(
+            CompanyScope.currentCompanyId(), roleId);
     }
 
     // ========== Helper Methods ==========
@@ -346,7 +362,8 @@ public class RoleService {
                 return true;
             }
 
-            Set<Long> parents = roleInheritRepository.findParentRoleIdsByChildRoleId(current);
+            Set<Long> parents = roleInheritRepository.findParentRoleIdsByCompanyIdAndChildRoleId(
+                CompanyScope.currentCompanyId(), current);
             if (parents != null && !parents.isEmpty()) {
                 parents.forEach(stack::push);
             }
@@ -363,10 +380,12 @@ public class RoleService {
      */
     private RoleDTO convertToDTO(SysRole role) {
         // Get parent role IDs
-        Set<Long> parentRoleIds = roleInheritRepository.findParentRoleIdsByChildRoleId(role.getId());
+        Set<Long> parentRoleIds = roleInheritRepository
+            .findParentRoleIdsByCompanyIdAndChildRoleId(role.getCompanyId(), role.getId());
 
         // Get permission IDs
-        Set<Long> permissionIds = rolePermissionRepository.findPermissionIdsByRoleId(role.getId());
+        Set<Long> permissionIds = rolePermissionRepository
+            .findPermissionIdsByCompanyIdAndRoleId(role.getCompanyId(), role.getId());
 
         return RoleDTO.builder()
                 .id(role.getId())

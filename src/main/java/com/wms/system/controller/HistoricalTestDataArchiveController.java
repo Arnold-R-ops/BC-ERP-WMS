@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/admin/historical-test-data/sales-orders")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('SUPER_ADMIN')")
+@PreAuthorize("hasAuthority('TENANT_ADMIN')")
 public class HistoricalTestDataArchiveController {
 
     private final HistoricalTestDataArchiveService archiveService;

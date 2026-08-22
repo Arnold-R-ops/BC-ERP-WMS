@@ -2,7 +2,11 @@ package com.wms.system.repository;
 
 import com.wms.system.entity.SystemConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.Optional;
 
@@ -33,6 +37,10 @@ public interface SystemConfigRepository extends JpaRepository<SystemConfig, Long
      * @return Optional<SystemConfig> 配置对象（可能为空）
      */
     Optional<SystemConfig> findByConfigKey(String configKey);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select config from SystemConfig config where config.configKey = :configKey")
+    Optional<SystemConfig> findByConfigKeyForUpdate(String configKey);
 
     /**
      * 检查配置键是否已存在

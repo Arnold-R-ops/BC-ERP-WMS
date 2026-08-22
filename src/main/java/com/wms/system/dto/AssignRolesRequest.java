@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Assign Roles Request DTO
  *
- * Used by SUPER_ADMIN to batch assign roles to a user.
+ * Used by TENANT_ADMIN to batch assign roles to a user.
  *
  * Request Format:
  * <pre>
@@ -52,7 +52,7 @@ import java.util.List;
  * - Result: User now has [PURCHASER] only
  *
  * Security:
- * - Only accessible by SUPER_ADMIN role
+ * - Only accessible by TENANT_ADMIN role
  * - Cannot leave user with zero roles (validation enforced)
  *
  * @author WMS Team

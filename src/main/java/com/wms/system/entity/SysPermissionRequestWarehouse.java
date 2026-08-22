@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.TenantId;
 
 @Data
 @Builder
@@ -22,9 +23,9 @@ public class SysPermissionRequestWarehouse {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @TenantId
     @Column(name = "company_id", nullable = false)
-    @Builder.Default
-    private Long companyId = 1L;
+    private Long companyId;
 
     @Column(name = "permission_request_id", nullable = false)
     private Long permissionRequestId;
@@ -32,4 +33,3 @@ public class SysPermissionRequestWarehouse {
     @Column(name = "warehouse_id", nullable = false)
     private Long warehouseId;
 }
-

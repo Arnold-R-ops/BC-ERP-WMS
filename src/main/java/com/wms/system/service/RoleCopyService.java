@@ -14,6 +14,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleCopyAuditRepository;
 import com.wms.system.repository.SysRolePermissionRepository;
 import com.wms.system.repository.SysRoleRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -79,7 +80,8 @@ public class RoleCopyService {
         String targetCode = normalizeRoleCode(request.getRoleCode());
         validateHighRiskConfirmation(request, targetCode, currentPreview.getHighRiskCount());
 
-        if (roleRepository.existsByRoleCode(targetCode)) {
+        if (roleRepository.existsByCompanyIdAndRoleCode(
+                source.getCompanyId(), targetCode)) {
             throw new BusinessException(ErrorKeys.ROLE_COPY_TARGET_EXISTS, Map.of(
                     "roleCode", targetCode
             ));
@@ -153,7 +155,8 @@ public class RoleCopyService {
     }
 
     private SysRole requireEligibleSource(Long sourceRoleId) {
-        SysRole source = roleRepository.findById(sourceRoleId)
+        SysRole source = roleRepository.findByCompanyIdAndId(
+                CompanyScope.currentCompanyId(), sourceRoleId)
                 .orElseThrow(() -> new BusinessException(ErrorKeys.ROLE_NOT_FOUND, Map.of(
                         "roleId", sourceRoleId
                 )));

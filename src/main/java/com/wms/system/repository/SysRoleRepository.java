@@ -40,13 +40,24 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
     @Query("SELECT r FROM SysRole r WHERE r.id = :id")
     Optional<SysRole> findByIdForUpdate(@Param("id") Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM SysRole r WHERE r.companyId = :companyId AND r.id = :id")
+    Optional<SysRole> findByCompanyIdAndIdForUpdate(
+        @Param("companyId") Long companyId,
+        @Param("id") Long id
+    );
+
+    Optional<SysRole> findByCompanyIdAndId(Long companyId, Long id);
+
     /**
      * Find role by role code
      *
-     * @param roleCode Role code (e.g., SUPER_ADMIN, CHAIRMAN)
+     * @param roleCode Role code (e.g., TENANT_ADMIN, CHAIRMAN)
      * @return Optional<SysRole>
      */
     Optional<SysRole> findByRoleCode(String roleCode);
+
+    Optional<SysRole> findByCompanyIdAndRoleCode(Long companyId, String roleCode);
 
     /**
      * Check if role code exists
@@ -56,6 +67,8 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
      */
     boolean existsByRoleCode(String roleCode);
 
+    boolean existsByCompanyIdAndRoleCode(Long companyId, String roleCode);
+
     /**
      * Find roles by role type
      *
@@ -63,6 +76,8 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
      * @return List of roles
      */
     List<SysRole> findByRoleType(String roleType);
+
+    List<SysRole> findByCompanyIdAndRoleType(Long companyId, String roleType);
 
     /**
      * Find roles by status
@@ -72,6 +87,8 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
      */
     List<SysRole> findByStatus(String status);
 
+    List<SysRole> findByCompanyIdAndStatus(Long companyId, String status);
+
     /**
      * Find roles by type and status
      *
@@ -80,6 +97,9 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
      * @return List of roles
      */
     List<SysRole> findByRoleTypeAndStatus(String roleType, String status);
+
+    List<SysRole> findByCompanyIdAndRoleTypeAndStatus(
+        Long companyId, String roleType, String status);
 
     /**
      * Find all active roles
@@ -107,12 +127,16 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
      */
     List<SysRole> findByIdIn(Set<Long> roleIds);
 
+    List<SysRole> findByCompanyIdAndIdIn(Long companyId, Set<Long> roleIds);
+
     /**
      * Find roles ordered by sort order
      *
      * @return List of roles ordered by sort_order ASC
      */
     List<SysRole> findAllByOrderBySortOrderAsc();
+
+    List<SysRole> findByCompanyIdOrderBySortOrderAsc(Long companyId);
 
     /**
      * Search roles by name (fuzzy match)
@@ -121,4 +145,6 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long> {
      * @return List of matching roles
      */
     List<SysRole> findByRoleNameContaining(String keyword);
+
+    List<SysRole> findByCompanyIdAndRoleNameContaining(Long companyId, String keyword);
 }

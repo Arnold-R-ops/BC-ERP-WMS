@@ -60,7 +60,7 @@ public class StocktakeController {
      * Returns: StocktakeTaskResponse
      */
     @PostMapping("/tasks")
-    @PreAuthorize("hasAnyAuthority('stocktake:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:create', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> createStocktakeTask(
         @Valid @RequestBody CreateStocktakeTaskRequest request,
         Authentication authentication
@@ -96,7 +96,7 @@ public class StocktakeController {
      * Returns: List<StocktakeTaskResponse>
      */
     @GetMapping("/tasks")
-    @PreAuthorize("hasAnyAuthority('stocktake:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<StocktakeTaskResponse>> listStocktakeTasks(
         @RequestParam(value = "warehouseId", required = false) Long warehouseId,
         @RequestParam(value = "status", required = false) String status,
@@ -126,7 +126,7 @@ public class StocktakeController {
      * Returns: StocktakeTaskResponse
      */
     @GetMapping("/tasks/{id}")
-    @PreAuthorize("hasAnyAuthority('stocktake:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:view', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> getStocktakeTask(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -153,7 +153,7 @@ public class StocktakeController {
      * Returns: StocktakeTaskResponse
      */
     @PostMapping("/tasks/{id}/start")
-    @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:count', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> startCounting(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -182,7 +182,7 @@ public class StocktakeController {
      * Returns: List<StocktakeItemResponse>
      */
     @GetMapping("/tasks/{id}/items")
-    @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:count', 'TENANT_ADMIN')")
     public ResponseEntity<List<StocktakeItemResponse>> getStocktakeItems(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -214,7 +214,7 @@ public class StocktakeController {
      * Returns: StocktakeItemResponse
      */
     @PostMapping("/tasks/{taskId}/items/{itemId}/count")
-    @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:count', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeItemResponse> submitCount(
         @PathVariable("taskId") Long taskId,
         @PathVariable("itemId") Long itemId,
@@ -254,7 +254,7 @@ public class StocktakeController {
      * Returns: StocktakeTaskResponse
      */
     @PostMapping("/tasks/{id}/finish")
-    @PreAuthorize("hasAnyAuthority('stocktake:count', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:count', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> finishCounting(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -283,7 +283,7 @@ public class StocktakeController {
      * Returns: List<StocktakeItemDetailResponse>
      */
     @GetMapping("/tasks/{id}/review-items")
-    @PreAuthorize("hasAnyAuthority('stocktake:review', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:review', 'TENANT_ADMIN')")
     public ResponseEntity<List<StocktakeItemDetailResponse>> getStocktakeItemsForReview(@PathVariable("id") Long id) {
         log.info("API调用: getStocktakeItemsForReview - taskId: {}", id);
 
@@ -306,7 +306,7 @@ public class StocktakeController {
      * Returns: StocktakeTaskResponse
      */
     @PostMapping("/tasks/{id}/review")
-    @PreAuthorize("hasAnyAuthority('stocktake:review', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('stocktake:review', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> reviewStocktake(
         @PathVariable("id") Long id,
         @Valid @RequestBody ReviewStocktakeRequest request,

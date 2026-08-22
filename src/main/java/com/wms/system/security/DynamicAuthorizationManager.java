@@ -3,6 +3,7 @@ package com.wms.system.security;
 import com.wms.system.dto.PermissionDTO;
 import com.wms.system.dto.UserPermissionDTO;
 import com.wms.system.service.DynamicPermissionService;
+import com.wms.system.tenant.context.CompanyScope;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,7 @@ import java.util.function.Supplier;
  * Security Features:
  * - Default deny (if no permission matches, access denied)
  * - Unauthenticated requests are denied
- * - SUPER_ADMIN bypass (optional, see code)
+ * - TENANT_ADMIN bypass (optional, see code)
  *
  * @author WMS Team
  * @since 2026-01-18
@@ -68,6 +69,12 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      */
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/login",      // Login endpoint
+        "/api/platform/auth/login", // Platform login (Host surface gate still applies)
+        "/api/platform/auth/mfa/enroll/confirm", // Pre-JWT platform MFA enrollment challenge
+        "/api/platform/auth/mfa/verify", // Pre-JWT platform MFA verification challenge
+        "/api/platform/auth/invitations/status", // One-time platform administrator invitation lookup
+        "/api/platform/auth/invitations/activate", // Password setup before mandatory MFA enrollment
+        "/public/v1/**",       // Public company signup and email verification
         "/api/auth/health",     // Authentication service health check
         "/api/webhooks/**",     // Channel webhooks (P1-B3): no JWT, secured by HMAC signature inside
         "/health/**",           // Health check
@@ -89,6 +96,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         "/api/auth/switch-role",  // Any authenticated user can switch their own role
         "/api/auth/logout",       // Any authenticated user can logout
         "/api/auth/refresh-token", // Any authenticated user can refresh token
+        "/api/auth/revoke-all-sessions", // Password-confirmed self-service revocation
         "/api/users/me/password"  // Any authenticated user can change their own password (P0.5)
     };
 
@@ -137,7 +145,16 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
             return new AuthorizationDecision(false);
         }
 
-        // 3. Extract user ID from authentication
+        if (auth.getPrincipal() instanceof PlatformSecurityUser) {
+            boolean platformPath = requestUri.equals("/api/platform")
+                || requestUri.startsWith("/api/platform/");
+            boolean hasPlatformRole = auth.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .anyMatch(authority -> authority.startsWith("ROLE_PLATFORM_"));
+            return new AuthorizationDecision(platformPath && hasPlatformRole);
+        }
+
+        // 3. Extract company user ID after handling the separate platform principal.
         Long userId = extractUserId(auth);
         if (userId == null) {
             log.warn("Failed to extract user ID from authentication: {}", auth.getName());
@@ -155,7 +172,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         // 3.5 Enforce pending password change (P0.5).
         // JwtAuthenticationFilter loads the User entity fresh on every request,
         // so this flag reflects the database state, not a stale JWT claim.
-        // Applies to ALL roles including SUPER_ADMIN - a temporary password
+        // Applies to ALL roles including TENANT_ADMIN - a temporary password
         // must be changed before the account can do anything else.
         if (mustChangePassword(auth) && !isPasswordChangeWhitelisted(requestUri)) {
             log.warn("Access denied for user {} to {} {} (password change required)",
@@ -167,6 +184,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         UserPermissionDTO userPermissions;
         try {
             userPermissions = permissionService.getUserPermissionsForRole(
+                    CompanyScope.companyIdFrom(auth),
                     userId,
                     currentRole,
                     securityVersion
@@ -177,9 +195,9 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
             return new AuthorizationDecision(false);
         }
 
-        // 5. SUPER_ADMIN bypass applies only when it is the currently active role.
-        if ("SUPER_ADMIN".equals(currentRole)) {
-            log.debug("SUPER_ADMIN bypass for user {}: {} {}", userId, httpMethod, requestUri);
+        // 5. TENANT_ADMIN bypass applies only when it is the currently active role.
+        if ("TENANT_ADMIN".equals(currentRole)) {
+            log.debug("Company administrator bypass for user {}: {} {}", userId, httpMethod, requestUri);
             return new AuthorizationDecision(true);
         }
 

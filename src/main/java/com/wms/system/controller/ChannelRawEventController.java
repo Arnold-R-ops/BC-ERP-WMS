@@ -32,7 +32,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/integration/raw-events")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyAuthority('system:admin', 'SUPER_ADMIN')")
+@PreAuthorize("hasAnyAuthority('system:admin', 'TENANT_ADMIN')")
 public class ChannelRawEventController {
 
     private final ChannelRawEventRepository repository;

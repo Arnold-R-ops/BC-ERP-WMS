@@ -21,7 +21,7 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('product:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<ProductResponse>> list(
         @RequestParam(value = "enabledOnly", defaultValue = "false") boolean enabledOnly
     ) {
@@ -29,19 +29,19 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('product:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product:view', 'TENANT_ADMIN')")
     public ResponseEntity<ProductResponse> get(@PathVariable("id") Long id) {
         return ResponseEntity.ok(productService.get(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('product:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product:create', 'TENANT_ADMIN')")
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody CreateProductRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('product:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product:edit', 'TENANT_ADMIN')")
     public ResponseEntity<ProductResponse> update(
         @PathVariable("id") Long id,
         @Valid @RequestBody UpdateProductRequest request
@@ -50,13 +50,13 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/activate")
-    @PreAuthorize("hasAnyAuthority('product:status', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product:status', 'TENANT_ADMIN')")
     public ResponseEntity<ProductResponse> activate(@PathVariable("id") Long id) {
         return ResponseEntity.ok(productService.activate(id));
     }
 
     @PutMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyAuthority('product:status', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('product:status', 'TENANT_ADMIN')")
     public ResponseEntity<ProductResponse> deactivate(@PathVariable("id") Long id) {
         return ResponseEntity.ok(productService.deactivate(id));
     }

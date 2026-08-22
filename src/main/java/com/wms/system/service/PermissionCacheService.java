@@ -2,10 +2,10 @@ package com.wms.system.service;
 
 import com.wms.system.config.CacheConfig;
 import com.wms.system.repository.SysUserRoleRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -54,9 +54,17 @@ public class PermissionCacheService {
      *
      * @param userId User ID
      */
-    @CacheEvict(value = CacheConfig.USER_PERMISSIONS_CACHE, key = "#userId")
     public void evictUserPermissions(Long userId) {
-        log.info("Evicting permission cache for user ID: {}", userId);
+        evictUserPermissions(CompanyScope.currentCompanyId(), userId);
+    }
+
+    public void evictUserPermissions(Long companyId, Long userId) {
+        var cache = cacheManager.getCache(CacheConfig.USER_PERMISSIONS_CACHE);
+        if (cache != null) {
+            evictKeysWithPrefix(cache, "all:" + companyId + ":" + userId);
+            evictKeysWithPrefix(cache, "active:" + companyId + ":" + userId + ":");
+        }
+        log.info("Evicting permission cache for company {}, user {}", companyId, userId);
     }
 
     /**
@@ -73,13 +81,15 @@ public class PermissionCacheService {
      * @param roleId Role ID
      */
     public void evictPermissionsForRole(Long roleId) {
+        Long companyId = CompanyScope.currentCompanyId();
         log.info("Evicting permission cache for all users with role ID: {}", roleId);
 
         // Get all user IDs with this role
-        Set<Long> userIds = userRoleRepository.findUserIdsByRoleId(roleId);
+        Set<Long> userIds = userRoleRepository
+            .findUserIdsByCompanyIdAndRoleId(companyId, roleId);
 
         // Evict cache for each user
-        userIds.forEach(this::evictUserPermissions);
+        userIds.forEach(userId -> evictUserPermissions(companyId, userId));
 
         log.info("Evicted permission cache for {} users with role ID: {}", userIds.size(), roleId);
     }
@@ -111,9 +121,18 @@ public class PermissionCacheService {
      * Only use when necessary (e.g., admin changed permission structure).
      *
      */
-    @CacheEvict(value = CacheConfig.USER_PERMISSIONS_CACHE, allEntries = true)
     public void evictAllUserPermissions() {
+        clearCache(CacheConfig.USER_PERMISSIONS_CACHE);
         log.warn("Evicting ALL user permission caches (global eviction)");
+    }
+
+    public void evictCompanyUserPermissions(Long companyId) {
+        var cache = cacheManager.getCache(CacheConfig.USER_PERMISSIONS_CACHE);
+        if (cache != null) {
+            evictKeysWithPrefix(cache, "all:" + companyId + ":");
+            evictKeysWithPrefix(cache, "active:" + companyId + ":");
+        }
+        log.info("Evicting permission caches for company {}", companyId);
     }
 
     /**
@@ -126,8 +145,12 @@ public class PermissionCacheService {
      * This cache stores the resolved inheritance tree.
      * Evict it when inheritance structure changes.
      */
-    @CacheEvict(value = CacheConfig.ROLE_INHERIT_CACHE, allEntries = true)
     public void evictRoleInheritCache() {
+        Long companyId = CompanyScope.currentCompanyId();
+        var cache = cacheManager.getCache(CacheConfig.ROLE_INHERIT_CACHE);
+        if (cache != null) {
+            evictKeysWithPrefix(cache, companyId + ":");
+        }
         log.info("Evicting role inheritance cache");
     }
 
@@ -138,8 +161,8 @@ public class PermissionCacheService {
      * - Menu permissions added/removed/modified
      * - Menu structure changed
      */
-    @CacheEvict(value = CacheConfig.MENU_TREE_CACHE, allEntries = true)
     public void evictMenuTreeCache() {
+        clearCache(CacheConfig.MENU_TREE_CACHE);
         log.info("Evicting menu tree cache");
     }
 
@@ -224,6 +247,19 @@ public class PermissionCacheService {
         return "N/A (statistics not available)";
     }
 
+    private void evictKeysWithPrefix(
+            org.springframework.cache.Cache cache, String prefix) {
+        Object nativeCache = cache.getNativeCache();
+        if (nativeCache instanceof com.github.benmanes.caffeine.cache.Cache<?, ?> caffeine) {
+            caffeine.asMap().keySet().stream()
+                .filter(key -> String.valueOf(key).startsWith(prefix))
+                .toList()
+                .forEach(key -> caffeine.asMap().remove(key));
+        } else {
+            cache.clear();
+        }
+    }
+
     // ========== Convenience Methods ==========
 
     /**
@@ -302,8 +338,15 @@ public class PermissionCacheService {
      * @param permissionId Permission ID
      */
     public void onPermissionChanged(Long permissionId) {
-        evictAllUserPermissions(); // Permission structure changed, clear all
+        evictCompanyUserPermissions(CompanyScope.currentCompanyId());
         evictMenuTreeCache();
-        log.warn("Permission {} changed, all user caches evicted", permissionId);
+        log.warn("Permission {} changed, current company caches evicted", permissionId);
+    }
+
+    private void clearCache(String cacheName) {
+        var cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+        }
     }
 }

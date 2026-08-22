@@ -11,6 +11,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
 import com.wms.system.util.PackageStatusFormatter;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,7 +38,8 @@ public class InventoryQueryService {
 
     public Page<InventorySummaryDto> getSummary(Pageable pageable, String searchKeyword) {
         String search = searchKeyword == null ? "" : searchKeyword.trim();
-        return inventoryBatchRepository.findInventorySummaryRows(search, pageable)
+        return inventoryBatchRepository.findInventorySummaryRows(
+                CompanyScope.currentCompanyId(), search, pageable)
             .map(this::buildInventorySummary);
     }
 

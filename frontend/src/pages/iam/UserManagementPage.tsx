@@ -4,10 +4,11 @@ import {
   KeyOutlined,
   PlusOutlined,
   SafetyCertificateOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, App as AntdApp, Button, Popconfirm, Space, Tag, Tooltip } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Modal, Popconfirm, Space, Tag, Tooltip } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
@@ -19,6 +20,7 @@ import {
   listUsers,
   replaceUserRoles,
   resetUserPassword,
+  revokeUserSessions,
   ROLES_QUERY_KEY,
   ASSIGNABLE_WAREHOUSES_QUERY_KEY,
   updateUser,
@@ -54,6 +56,8 @@ export function UserManagementPage(): JSX.Element {
   const [rolesOpen, setRolesOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserAccount>();
   const [resetResult, setResetResult] = useState<ResetPasswordResult>();
+  const [revokeTarget, setRevokeTarget] = useState<UserAccount>();
+  const [revokeReason, setRevokeReason] = useState('');
   const { session } = useAuth();
   const { i18n, t } = useTranslation();
   const { message } = AntdApp.useApp();
@@ -102,6 +106,9 @@ export function UserManagementPage(): JSX.Element {
   });
   const resetMutation = useMutation({ mutationFn: resetUserPassword });
   const deleteMutation = useMutation({ mutationFn: deleteUser });
+  const revokeSessionsMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => revokeUserSessions(id, reason),
+  });
 
   const refresh = async (): Promise<void> => {
     await queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY });
@@ -167,6 +174,21 @@ export function UserManagementPage(): JSX.Element {
     }
   };
 
+  const confirmRevokeSessions = async (): Promise<void> => {
+    if (revokeTarget?.id === undefined || revokeReason.trim().length < 5) return;
+    try {
+      await revokeSessionsMutation.mutateAsync({
+        id: revokeTarget.id,
+        reason: revokeReason.trim(),
+      });
+      message.success(t('iam.users.messages.sessionsRevoked'));
+      setRevokeTarget(undefined);
+      setRevokeReason('');
+    } catch (error) {
+      message.error(getErrorMessage(error, t));
+    }
+  };
+
   const columns = useMemo<ProColumns<UserAccount>[]>(() => [
     {
       title: t('common.search'), dataIndex: 'search', hideInTable: true,
@@ -220,7 +242,7 @@ export function UserManagementPage(): JSX.Element {
       render: (_, user) => {
         const self = isCurrentUser(user, session?.username);
         const protectedTarget = (user.roleCodes ?? [])
-          .some((code) => code === 'SUPER_ADMIN' || code === 'SECURITY_ADMIN');
+          .some((code) => code === 'TENANT_ADMIN' || code === 'SECURITY_ADMIN');
         const protectedForOperator = protectedTarget && !capabilities.canManageProtectedIdentities;
         const sensitiveActionDisabled = self || protectedForOperator;
         const protectedTitle = protectedForOperator
@@ -251,6 +273,20 @@ export function UserManagementPage(): JSX.Element {
                 <Button aria-label={t('iam.users.actions.resetPassword')} disabled={sensitiveActionDisabled} icon={<KeyOutlined />} loading={resetMutation.isPending} size="small" type="text" />
               </Tooltip>
             </Popconfirm>
+            <Tooltip title={protectedTitle ?? (self ? t('iam.users.actions.selfRevoke') : t('iam.users.actions.revokeSessions'))}>
+              <Button
+                aria-label={t('iam.users.actions.revokeSessions')}
+                danger
+                disabled={sensitiveActionDisabled}
+                icon={<StopOutlined />}
+                onClick={() => {
+                  setRevokeTarget(user);
+                  setRevokeReason('');
+                }}
+                size="small"
+                type="text"
+              />
+            </Tooltip>
             <Popconfirm
               description={t('iam.users.delete.confirmDescription')}
               disabled={sensitiveActionDisabled}
@@ -334,6 +370,31 @@ export function UserManagementPage(): JSX.Element {
         open={resetResult !== undefined}
         result={resetResult}
       />
+      <Modal
+        confirmLoading={revokeSessionsMutation.isPending}
+        okButtonProps={{ danger: true, disabled: revokeReason.trim().length < 5 }}
+        okText={t('iam.users.revoke.confirm')}
+        onCancel={() => {
+          setRevokeTarget(undefined);
+          setRevokeReason('');
+        }}
+        onOk={() => void confirmRevokeSessions()}
+        open={revokeTarget !== undefined}
+        title={t('iam.users.revoke.title', { username: revokeTarget?.username ?? '' })}
+      >
+        <p>{t('iam.users.revoke.description')}</p>
+        <Input.TextArea
+          maxLength={500}
+          onChange={(event) => setRevokeReason(event.target.value)}
+          placeholder={t('iam.users.revoke.reasonPlaceholder')}
+          rows={4}
+          showCount
+          value={revokeReason}
+        />
+        {revokeReason.length > 0 && revokeReason.trim().length < 5
+          ? <div className="form-validation-hint">{t('iam.users.revoke.reasonRequired')}</div>
+          : null}
+      </Modal>
     </section>
   );
 }

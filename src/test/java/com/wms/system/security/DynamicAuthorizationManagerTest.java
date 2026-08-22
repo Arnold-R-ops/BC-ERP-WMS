@@ -64,6 +64,7 @@ class DynamicAuthorizationManagerTest {
                 .enabled(true)
                 .securityVersion(7L)
                 .build();
+        user.setCompanyId(1L);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 new SecurityUser(user),
                 null,
@@ -84,7 +85,7 @@ class DynamicAuthorizationManagerTest {
                 .permissionCodes(Set.of("inventory:view"))
                 .build();
         when(permissionService.getUserPermissionsForRole(
-                42L, "WAREHOUSE_STAFF", 7L))
+                1L, 42L, "WAREHOUSE_STAFF", 7L))
                 .thenReturn(activeRolePermissions);
 
         MockHttpServletRequest request = new MockHttpServletRequest(
@@ -96,7 +97,7 @@ class DynamicAuthorizationManagerTest {
 
         assertThat(decision.isGranted()).isTrue();
         verify(permissionService).getUserPermissionsForRole(
-                42L, "WAREHOUSE_STAFF", 7L);
+                1L, 42L, "WAREHOUSE_STAFF", 7L);
         verify(permissionService, never()).getUserPermissions(42L);
     }
 
@@ -109,13 +110,14 @@ class DynamicAuthorizationManagerTest {
                 .enabled(true)
                 .securityVersion(2L)
                 .build();
+        user.setCompanyId(1L);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 new SecurityUser(user),
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_WAREHOUSE_STAFF"))
         );
         when(permissionService.getUserPermissionsForRole(
-                43L, "WAREHOUSE_STAFF", 2L))
+                1L, 43L, "WAREHOUSE_STAFF", 2L))
                 .thenReturn(UserPermissionDTO.builder()
                         .userId(43L)
                         .roleCodes(Set.of("WAREHOUSE_STAFF"))

@@ -17,7 +17,8 @@ export type AppModule =
   | 'integrations'
   | 'integrationAdmin'
   | 'reconciliation'
-  | 'iam';
+  | 'iam'
+  | 'security';
 
 const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string[]> = {
   products: ['menu:product-catalog'],
@@ -38,6 +39,7 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
   integrationAdmin: ['menu:system'],
   reconciliation: ['menu:integration-reconciliation'],
   iam: ['menu:system'],
+  security: [],
 };
 
 export function hasPermission(
@@ -45,7 +47,7 @@ export function hasPermission(
   permissionCodes: readonly string[] | undefined,
   permissionCode: string,
 ): boolean {
-  if (role === 'SUPER_ADMIN') {
+  if (role === 'TENANT_ADMIN') {
     return true;
   }
   return permissionCodes?.includes(permissionCode) ?? false;
@@ -56,7 +58,7 @@ export function hasAnyPermission(
   permissionCodes: readonly string[] | undefined,
   required: readonly string[],
 ): boolean {
-  return role === 'SUPER_ADMIN'
+  return role === 'TENANT_ADMIN'
     || required.some((permission) => permissionCodes?.includes(permission));
 }
 
@@ -65,6 +67,6 @@ export function canAccessModule(
   module: AppModule,
   permissionCodes: readonly string[] | undefined,
 ): boolean {
-  if (module === 'dashboard') return Boolean(role);
+  if (module === 'dashboard' || module === 'security') return Boolean(role);
   return hasAnyPermission(role, permissionCodes, modulePermissions[module]);
 }

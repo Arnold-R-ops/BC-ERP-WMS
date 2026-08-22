@@ -11,6 +11,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InboundOrderRepository;
 import com.wms.system.repository.PurchaseOrderRepository;
 import com.wms.system.repository.SupplierRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +23,6 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class SupplierService {
-
-    private static final long DEFAULT_COMPANY_ID = 1L;
 
     private static final List<PurchaseOrderStatus> OPEN_PURCHASE_STATUSES = List.of(
         PurchaseOrderStatus.ORDERING,
@@ -44,8 +43,8 @@ public class SupplierService {
     @Transactional(readOnly = true)
     public List<SupplierResponse> list(boolean activeOnly) {
         List<Supplier> suppliers = activeOnly
-            ? supplierRepository.findAllByCompanyIdAndIsDeletedFalseAndIsActiveTrueOrderByNameAsc(DEFAULT_COMPANY_ID)
-            : supplierRepository.findAllByCompanyIdAndIsDeletedFalseOrderByNameAsc(DEFAULT_COMPANY_ID);
+            ? supplierRepository.findAllByCompanyIdAndIsDeletedFalseAndIsActiveTrueOrderByNameAsc(companyId())
+            : supplierRepository.findAllByCompanyIdAndIsDeletedFalseOrderByNameAsc(companyId());
         return suppliers.stream().map(this::toResponse).toList();
     }
 
@@ -57,7 +56,7 @@ public class SupplierService {
     @Transactional
     public SupplierResponse create(CreateSupplierRequest request) {
         String code = normalizeCode(request.code());
-        if (supplierRepository.existsByCompanyIdAndCode(DEFAULT_COMPANY_ID, code)) {
+        if (supplierRepository.existsByCompanyIdAndCode(companyId(), code)) {
             throw new BusinessException(
                 ErrorKeys.SUPPLIER_ALREADY_EXISTS,
                 Map.of("code", code)
@@ -75,7 +74,7 @@ public class SupplierService {
             .isActive(true)
             .isDeleted(false)
             .build();
-        supplier.setCompanyId(DEFAULT_COMPANY_ID);
+        supplier.setCompanyId(companyId());
 
         return toResponse(supplierRepository.save(supplier));
     }
@@ -148,7 +147,7 @@ public class SupplierService {
     }
 
     private Supplier requireSupplier(Long id) {
-        return supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(id, DEFAULT_COMPANY_ID)
+        return supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(id, companyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.SUPPLIER_NOT_FOUND,
                 Map.of("supplierId", id)
@@ -181,5 +180,9 @@ public class SupplierService {
             return null;
         }
         return value.trim();
+    }
+
+    private Long companyId() {
+        return CompanyScope.currentCompanyId();
     }
 }

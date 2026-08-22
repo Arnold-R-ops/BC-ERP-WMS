@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,7 +61,7 @@ public class PurchaseOrderController {
     private final ExcelImportService excelImportService;
 
     @GetMapping("/template")
-    @PreAuthorize("hasAnyAuthority('purchase:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:create', 'TENANT_ADMIN')")
     public ResponseEntity<byte[]> downloadImportTemplate() {
         byte[] excelBytes = excelImportService.downloadPurchaseOrderTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -107,7 +108,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Created purchase order
      */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('purchase:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:create', 'TENANT_ADMIN')")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
         @Valid @RequestBody CreatePurchaseOrderRequest request,
         Authentication authentication
@@ -150,7 +152,8 @@ public class PurchaseOrderController {
 
     /** Edit an existing purchase order without leaving ORDERING. */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('purchase:update', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:update', 'TENANT_ADMIN')")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<PurchaseOrderResponse> updateOrderingPurchaseOrder(
         @PathVariable("id") Long id,
         @Valid @RequestBody UpdatePurchaseOrderRequest request,
@@ -210,7 +213,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Created purchase order
      */
     @PostMapping("/upload")
-    @PreAuthorize("hasAnyAuthority('purchase:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:create', 'TENANT_ADMIN')")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<PurchaseOrderResponse> uploadExcel(
         @RequestParam("file") MultipartFile file,
         @RequestParam("supplierId") Long supplierId,
@@ -276,7 +280,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
      */
     @PutMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyAuthority('purchase:confirm', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:confirm', 'TENANT_ADMIN')")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<PurchaseOrderResponse> confirmAndGenerateBatchCodes(
         @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmOrderRequest request,
@@ -346,7 +351,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
      */
     @PutMapping("/{id}/receive")
-    @PreAuthorize("hasAnyAuthority('purchase:receive', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:receive', 'TENANT_ADMIN')")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<PurchaseOrderResponse> receiveGoods(
         @PathVariable("id") Long id,
         @Valid @RequestBody ConfirmReceiptRequest request,
@@ -409,7 +415,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
      */
     @PutMapping("/{id}/rollback")
-    @PreAuthorize("hasAnyAuthority('purchase:rollback', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:rollback', 'TENANT_ADMIN')")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<PurchaseOrderResponse> rollbackToOrdering(
         @PathVariable("id") Long id,
         @RequestParam("reason") String reason,
@@ -444,7 +451,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<PurchaseOrderResponse> Purchase order
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('purchase:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:view', 'TENANT_ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<PurchaseOrderResponse> getPurchaseOrderById(
         @PathVariable("id") Long id,
         Authentication authentication
@@ -474,7 +482,8 @@ public class PurchaseOrderController {
      * @return ResponseEntity<List<PurchaseOrderResponse>> Purchase orders
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('purchase:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('purchase:view', 'TENANT_ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<PurchaseOrderResponse>> getPurchaseOrders(
         @RequestParam(value = "status", required = false) PurchaseOrderStatus status,
         @PageableDefault(size = 20, page = 0) Pageable pageable,
@@ -509,12 +518,12 @@ public class PurchaseOrderController {
      * - This method extracts the role code from authorities
      *
      * @param authentication Authentication object
-     * @return String Role code (e.g., "SUPER_ADMIN", "WAREHOUSE_ADMIN", "STAFF")
+     * @return String Role code (e.g., "TENANT_ADMIN", "WAREHOUSE_ADMIN", "STAFF")
      *         Returns "STAFF" as default (most restrictive)
      */
     private String getUserRoleCode(Authentication authentication) {
         if (authentication != null && authentication.getAuthorities() != null) {
-            // Extract role from authorities (format: "ROLE_SUPER_ADMIN" → "SUPER_ADMIN")
+            // Extract role from authorities (format: "ROLE_TENANT_ADMIN" → "TENANT_ADMIN")
             return authentication.getAuthorities().stream()
                 .findFirst()
                 .map(auth -> auth.getAuthority())
@@ -530,10 +539,10 @@ public class PurchaseOrderController {
      *
      * Privacy Rules (v3.3 Multi-Role System):
      * - STAFF/SALESPERSON roles: supplier = "***", totalCost = null, unitCost = null
-     * - SUPER_ADMIN/WAREHOUSE_ADMIN/PURCHASER roles: all fields visible
+     * - TENANT_ADMIN/WAREHOUSE_ADMIN/PURCHASER roles: all fields visible
      *
      * @param purchaseOrder Purchase order entity
-     * @param userRoleCode Current user's role code (e.g., "STAFF", "SUPER_ADMIN")
+     * @param userRoleCode Current user's role code (e.g., "STAFF", "TENANT_ADMIN")
      * @return PurchaseOrderResponse Response DTO
      */
     private PurchaseOrderResponse mapToResponse(PurchaseOrder purchaseOrder, String userRoleCode) {

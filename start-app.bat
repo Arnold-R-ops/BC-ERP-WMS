@@ -10,7 +10,8 @@ echo.
 rem Validate the secrets required by application.yml.
 set "MISSING_ENV="
 if not defined DB_PASSWORD set "MISSING_ENV=%MISSING_ENV% DB_PASSWORD"
-if not defined JWT_SECRET set "MISSING_ENV=%MISSING_ENV% JWT_SECRET"
+if not defined TENANT_JWT_SECRET set "MISSING_ENV=%MISSING_ENV% TENANT_JWT_SECRET"
+if not defined PLATFORM_JWT_SECRET set "MISSING_ENV=%MISSING_ENV% PLATFORM_JWT_SECRET"
 if not defined BATCH_SALT set "MISSING_ENV=%MISSING_ENV% BATCH_SALT"
 
 if defined MISSING_ENV (

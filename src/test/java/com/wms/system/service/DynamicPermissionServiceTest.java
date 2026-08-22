@@ -72,6 +72,24 @@ class DynamicPermissionServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(userRoleRepository.findRoleIdsByCompanyIdAndUserId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.findRoleIdsByUserId(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> roleRepository.findByIdIn(invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndRoleCode(eq(1L), anyString()))
+            .thenAnswer(invocation -> roleRepository.findByRoleCode(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                eq(1L), anyLong(), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.existsByUserIdAndRoleId(
+                invocation.getArgument(1), invocation.getArgument(2)));
+        lenient().when(roleInheritRepository.findParentRoleIdsByCompanyIdAndChildRoleId(
+                eq(1L), anyLong()))
+            .thenAnswer(invocation -> roleInheritRepository
+                .findParentRoleIdsByChildRoleId(invocation.getArgument(1)));
+        lenient().when(rolePermissionRepository.findByCompanyIdAndRoleIdInWithPermission(
+                eq(1L), any()))
+            .thenAnswer(invocation -> rolePermissionRepository
+                .findByRoleIdInWithPermission(invocation.getArgument(1)));
         // 闂備礁鎲＄敮妤冩崲閸岀儑缍栭柟鐗堟緲缁€宀勬煛瀹ュ啫濡块柕鍫熸尦閹綊宕堕妸锔绢槷濡炪値鍋呴〃濠囧箠?
         chairmanRole = SysRole.builder()
                 .id(1L)
@@ -629,5 +647,59 @@ class DynamicPermissionServiceTest {
                 .hasMessageContaining("not assigned");
 
         verify(rolePermissionRepository, never()).findByRoleIdInWithPermission(any());
+    }
+
+    @Test
+    @DisplayName("same role code resolves only inside the requested company")
+    void getUserPermissionsForRole_IsolatedByCompany() {
+        Long companyId = 20L;
+        Long userId = 77L;
+        SysRole companyRole = SysRole.builder()
+            .id(202L)
+            .roleCode("WAREHOUSE_ADMIN")
+            .roleName("Company B Warehouse Admin")
+            .roleType(SysRole.ROLE_TYPE_CUSTOM)
+            .status("ACTIVE")
+            .build();
+        companyRole.setCompanyId(companyId);
+        SysPermission companyPermission = SysPermission.builder()
+            .id(909L)
+            .permissionCode("company-b:inventory:view")
+            .permissionName("Company B Inventory")
+            .permissionType("API")
+            .resourcePath("/api/inventory/**")
+            .httpMethod("GET")
+            .customAssignable(true)
+            .status("ACTIVE")
+            .sortOrder(1)
+            .build();
+        companyPermission.setCompanyId(companyId);
+        SysRolePermission grant = SysRolePermission.builder()
+            .companyId(companyId)
+            .roleId(companyRole.getId())
+            .permissionId(companyPermission.getId())
+            .role(companyRole)
+            .permission(companyPermission)
+            .build();
+
+        when(roleRepository.findByCompanyIdAndRoleCode(companyId, "WAREHOUSE_ADMIN"))
+            .thenReturn(java.util.Optional.of(companyRole));
+        when(userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+            companyId, userId, companyRole.getId())).thenReturn(true);
+        when(roleInheritRepository.findParentRoleIdsByCompanyIdAndChildRoleId(
+            companyId, companyRole.getId())).thenReturn(Set.of());
+        when(rolePermissionRepository.findByCompanyIdAndRoleIdInWithPermission(
+            companyId, Set.of(companyRole.getId()))).thenReturn(List.of(grant));
+        when(roleRepository.findByCompanyIdAndIdIn(
+            companyId, Set.of(companyRole.getId()))).thenReturn(List.of(companyRole));
+
+        UserPermissionDTO result = permissionService.getUserPermissionsForRole(
+            companyId, userId, "WAREHOUSE_ADMIN", 1L);
+
+        assertThat(result.getPermissionCodes())
+            .containsExactly("company-b:inventory:view");
+        verify(roleRepository, never()).findByRoleCode("WAREHOUSE_ADMIN");
+        verify(rolePermissionRepository, never())
+            .findByRoleIdInWithPermission(any());
     }
 }

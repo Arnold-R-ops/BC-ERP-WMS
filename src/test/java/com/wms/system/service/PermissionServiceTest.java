@@ -36,6 +36,18 @@ class PermissionServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(permissionRepository.existsByCompanyIdAndPermissionCode(eq(1L), anyString()))
+            .thenAnswer(invocation -> permissionRepository.existsByPermissionCode(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> permissionRepository.findById(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndParentId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> permissionRepository.findByParentId(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndPermissionType(eq(1L), anyString()))
+            .thenAnswer(invocation -> permissionRepository.findByPermissionType(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndPermissionTypeAndStatus(
+                eq(1L), anyString(), anyString()))
+            .thenAnswer(invocation -> permissionRepository.findByPermissionTypeAndStatus(
+                invocation.getArgument(1), invocation.getArgument(2)));
         menuPermission = SysPermission.builder()
                 .id(1L)
                 .permissionCode("menu:inventory")

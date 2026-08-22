@@ -3,7 +3,7 @@ import { getWarehouseSetupCapabilities } from './capabilities';
 
 describe('warehouse setup capabilities', () => {
   it('lets the super administrator bypass permission checks', () => {
-    expect(getWarehouseSetupCapabilities('SUPER_ADMIN').canManage).toBe(true);
+    expect(getWarehouseSetupCapabilities('TENANT_ADMIN').canManage).toBe(true);
   });
 
   it('allows a role with both setup permissions to maintain setup data', () => {

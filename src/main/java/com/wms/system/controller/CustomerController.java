@@ -55,7 +55,7 @@ public class CustomerController {
      * Returns: CustomerResponse
      */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('customer:create', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('customer:create', 'TENANT_ADMIN')")
     public ResponseEntity<CustomerResponse> createCustomer(
         @Valid @RequestBody CreateCustomerRequest request
     ) {
@@ -83,7 +83,7 @@ public class CustomerController {
      * Returns: List<CustomerResponse>
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('customer:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('customer:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<CustomerResponse>> listCustomers(
         @RequestParam(required = false) Boolean activeOnly,
         @RequestParam(required = false) CustomerType customerType
@@ -118,7 +118,7 @@ public class CustomerController {
      * Returns: CustomerResponse
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('customer:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('customer:view', 'TENANT_ADMIN')")
     public ResponseEntity<CustomerResponse> getCustomer(@PathVariable Long id) {
         log.info("API调用: getCustomer - id: {}", id);
 
@@ -142,7 +142,7 @@ public class CustomerController {
      * Returns: CustomerResponse
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('customer:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('customer:edit', 'TENANT_ADMIN')")
     public ResponseEntity<CustomerResponse> updateCustomer(
         @PathVariable Long id,
         @Valid @RequestBody CreateCustomerRequest request
@@ -168,7 +168,7 @@ public class CustomerController {
      * Returns: 204 No Content
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('customer:delete', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('customer:delete', 'TENANT_ADMIN')")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
         log.info("API调用: deleteCustomer - id: {}", id);
 

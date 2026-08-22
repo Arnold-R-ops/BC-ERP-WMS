@@ -29,7 +29,7 @@ import java.util.Map;
  * - DELETE /api/integration/configs/{id}             删除（须先停用）
  * - POST   /api/integration/configs/{id}/test-connection  只读连通性测试
  *
- * Security: system:admin / SUPER_ADMIN（与 Outbox 管理端点同级）
+ * Security: system:admin / TENANT_ADMIN（与 Outbox 管理端点同级）
  *
  * @author WMS Team
  * @since 2026-07-10
@@ -39,7 +39,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/integration/configs")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyAuthority('system:admin', 'SUPER_ADMIN')")
+@PreAuthorize("hasAnyAuthority('system:admin', 'TENANT_ADMIN')")
 public class IntegrationConfigController {
 
     private final IntegrationConfigService service;

@@ -1,6 +1,6 @@
 :root {
   color: #172525;
-  background: #f3f6f6;
+  background: #ffffff;
   font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,6 +20,241 @@ body,
 
 body {
   min-height: 100vh;
+  background: #ffffff;
+}
+
+/* Enterprise customer form follows the tenant application's title-bar palette
+   while keeping the form body and actions usable on smaller viewports. */
+.client-form-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: min(1040px, calc(100vh - 96px));
+  padding: 0 !important;
+  overflow: hidden;
+  border: 2px solid #115095 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 28px rgb(15 37 66 / 42%) !important;
+}
+
+.client-form-modal .ant-modal-header {
+  height: 69px;
+  min-height: 69px;
+  margin: 0 !important;
+  padding: 10px 46px !important;
+  background: #115095 !important;
+  border-bottom: 4px solid #4d9bca !important;
+}
+
+.client-form-modal .ant-modal-title,
+.client-form-modal .ant-modal-close {
+  color: #ffffff !important;
+}
+
+.client-form-modal .ant-modal-title {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.client-form-modal .ant-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 36px 82px 0 !important;
+  background: #f7fbff !important;
+}
+
+.client-form-modal .ant-modal-body > form,
+.client-form-modal .ant-modal-body .ant-pro-form {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.client-form-modal .ant-modal-body .ant-form-item:last-child,
+.client-form-modal .ant-modal-body .client-form-hint:last-child {
+  margin-bottom: 0 !important;
+}
+
+.client-form-modal .ant-modal-footer {
+  flex: 0 0 69px;
+  height: 69px;
+  margin-top: 0 !important;
+  padding: 18px 82px !important;
+  background: #e8f0f6 !important;
+  border-top: 1px solid #7f98a5 !important;
+}
+
+.client-form-tabs { margin: -16px 0 28px; }
+.client-form-tabs .ant-tabs-tab { min-width: 170px; justify-content: center; font-size: 18px; font-weight: 700; }
+.client-form-section { display: flex; align-items: center; gap: 20px; margin: 28px 0 24px; font-size: 30px; }
+.client-form-section::after { flex: 1; border-top: 3px dotted #d8dee7; content: ''; }
+.client-form-hint { margin: -8px 0 28px; font-size: 17px; line-height: 1.65; }
+.client-form-two-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; }
+
+.client-form-modal .client-input-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 30px;
+  margin: -5px 8px -5px -7px;
+  border-right: 1px solid #c7d1da;
+  color: #111111;
+  font-size: 18px;
+}
+
+/* Keep application surfaces light even when a browser requests a dark color scheme. */
+.ant-pro-layout,
+.ant-pro-layout-container,
+.ant-pro-layout-content,
+.ant-pro-page-container,
+.ant-pro-page-container-children-container,
+.ant-card,
+.ant-table-wrapper,
+.ant-table,
+.ant-table-container,
+.ant-table-content,
+.ant-table-body,
+.ant-form,
+.ant-modal-content,
+.ant-drawer-content,
+.ant-dropdown-menu,
+.ant-popover-inner {
+  background: #ffffff !important;
+}
+
+.ant-table-thead > tr > th,
+.ant-table-thead > tr > td {
+  background: #f5f7fa !important;
+  color: #172525 !important;
+}
+
+.ant-table-tbody > tr > td,
+.ant-card,
+.ant-form,
+.ant-modal-content,
+.ant-drawer-content,
+.ant-dropdown-menu,
+.ant-popover-inner {
+  color: #172525;
+}
+
+.ant-drawer-title,
+.ant-drawer-close {
+  color: #172525;
+}
+
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  background: #f3f7fb !important;
+}
+
+/* Define clear, consistent boundaries around light functional regions. */
+.ant-pro-query-filter,
+.ant-pro-table-list-toolbar-container,
+.ant-card,
+.ant-table-container,
+.ant-modal-content,
+.ant-drawer-content,
+.ant-dropdown-menu,
+.ant-popover-inner {
+  border: 1px solid #d9d9d9 !important;
+}
+
+.ant-pro-query-filter,
+.ant-card,
+.ant-table-container,
+.ant-modal-content,
+.ant-drawer-content,
+.ant-dropdown-menu,
+.ant-popover-inner {
+  border-radius: 6px;
+}
+
+.ant-pro-table-list-toolbar-container {
+  border-bottom: 0 !important;
+  border-radius: 6px 6px 0 0;
+}
+
+.ant-pro-table-list-toolbar-container + .ant-table-wrapper .ant-table-container {
+  border-radius: 0 0 6px 6px;
+}
+
+/* Stabilize the desktop sider states; ProLayout's realDark theme otherwise
+   blends its own hover transition with the custom Steel Blue palette. */
+.ant-pro-sider,
+.ant-pro-sider .ant-layout-sider-children,
+.ant-pro-sider .ant-menu,
+.ant-pro-sider .ant-menu-sub {
+  background: #4682b4 !important;
+}
+
+.ant-pro-sider .ant-menu-item,
+.ant-pro-sider .ant-menu-submenu-title {
+  color: #f4f8fc !important;
+  transition: none !important;
+}
+
+.ant-pro-sider .ant-menu-item::after,
+.ant-pro-sider .ant-menu-submenu-title::after {
+  transition: none !important;
+}
+
+.ant-pro-sider .ant-menu-item:not(.ant-menu-item-selected):hover,
+.ant-pro-sider .ant-menu-submenu-title:hover {
+  background: #5b91bd !important;
+  color: #ffffff !important;
+}
+
+.ant-pro-sider .ant-menu-item-selected,
+.ant-pro-sider .ant-menu-item-selected:hover {
+  background: #115095 !important;
+  color: #ffffff !important;
+}
+
+.ant-pro-sider .ant-menu-submenu-arrow,
+.ant-pro-sider .anticon {
+  color: inherit !important;
+  transition: none !important;
+}
+
+/* The sider edge and collapse control use a crisp border instead of a blur. */
+.ant-pro-sider {
+  border-right: 1px solid #d9d9d9;
+  box-shadow: none !important;
+}
+
+.ant-pro-sider-collapsed-button {
+  border: 1px solid #d9d9d9 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  color: #115095 !important;
+}
+
+/* Collapsed submenus are rendered in a portal outside the sider. Give them
+   explicit light colors so their labels cannot inherit white sider text. */
+.ant-menu-submenu-popup .ant-menu,
+.ant-menu-submenu-popup .ant-menu-sub {
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.ant-menu-submenu-popup .ant-menu-item,
+.ant-menu-submenu-popup .ant-menu-submenu-title,
+.ant-menu-submenu-popup .ant-menu-title-content,
+.ant-menu-submenu-popup .anticon {
+  color: #172525 !important;
+}
+
+.ant-menu-submenu-popup .ant-menu-item:hover,
+.ant-menu-submenu-popup .ant-menu-submenu-title:hover {
+  background: #f3f7fb !important;
+  color: #115095 !important;
+}
+
+.ant-menu-submenu-popup .ant-menu-item-selected,
+.ant-menu-submenu-popup .ant-menu-item-selected:hover {
+  background: #e8f0f8 !important;
+  color: #115095 !important;
 }
 
 button,
@@ -30,42 +265,121 @@ input {
 .header-action-button.ant-btn,
 .header-action-button.ant-btn:active,
 .header-action-button.ant-btn:focus {
-  color: #183b3a !important;
+  color: #ffffff !important;
 }
 
 .header-action-button.ant-btn:hover,
 .header-action-button.ant-btn:focus-visible {
-  background: #dcece9 !important;
-  color: #0f5f59 !important;
+  background: #2866a8 !important;
+  color: #ffffff !important;
 }
 
 .header-role-tag.ant-tag,
 .header-role-tag.ant-tag:hover {
-  background: #102a2b !important;
-  color: #67e8f9 !important;
-}
-
-.header-user-tag.ant-tag,
-.header-user-tag.ant-tag:hover {
-  background: #202626 !important;
+  background: #0b3e76 !important;
   color: #ffffff !important;
 }
 
-.header-logout-button.ant-btn,
-.header-logout-button.ant-btn:active,
-.header-logout-button.ant-btn:focus {
+/* ProLayout wraps each action in its own hover surface. Keep that wrapper
+   neutral and let the actual buttons provide the small, consistent hover. */
+.ant-pro-global-header-header-actions-item,
+.ant-pro-global-header-header-actions-item:hover {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.header-account-trigger.ant-btn,
+.header-account-trigger.ant-btn:active,
+.header-account-trigger.ant-btn:focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px !important;
+  margin-left: 0;
+  padding-block: 0 !important;
+  padding-inline: 8px !important;
+  border-radius: 6px;
+  color: #ffffff !important;
+}
+
+.header-account-trigger.ant-btn:hover,
+.header-account-trigger.ant-btn:focus-visible {
+  background: #2866a8 !important;
+  color: #ffffff !important;
+}
+
+.header-account-avatar.ant-avatar {
+  background: #e8f0f8;
+  color: #115095;
+}
+
+.header-account-name {
+  max-width: 160px;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-account-chevron {
+  font-size: 11px;
+}
+
+.system-announcement-panel {
+  width: 240px;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #172525;
+}
+
+.system-announcement-panel .ant-empty-description {
+  color: #526866;
+}
+
+/* Header actions are white, but their dropdowns are rendered on a white
+   surface. Reset popup text explicitly so it never inherits header white. */
+.ant-dropdown-menu .ant-dropdown-menu-item,
+.ant-dropdown-menu .ant-dropdown-menu-submenu-title,
+.ant-dropdown-menu .ant-dropdown-menu-item .anticon,
+.ant-dropdown-menu .ant-dropdown-menu-submenu-title .anticon {
+  color: #172525 !important;
+}
+
+.ant-dropdown-menu .ant-dropdown-menu-item:hover,
+.ant-dropdown-menu .ant-dropdown-menu-submenu-title:hover {
+  background: #f3f7fb !important;
+  color: #115095 !important;
+}
+
+.ant-dropdown-menu .ant-dropdown-menu-item-selected,
+.ant-dropdown-menu .ant-dropdown-menu-item-selected:hover {
+  background: #e8f0f8 !important;
+  color: #115095 !important;
+}
+
+.ant-dropdown-menu .ant-dropdown-menu-item-danger,
+.ant-dropdown-menu .ant-dropdown-menu-item-danger .anticon {
   color: #c23b3d !important;
 }
 
-.header-logout-button.ant-btn:hover,
-.header-logout-button.ant-btn:focus-visible {
-  background: #fdebec !important;
-  color: #a7282a !important;
+/* Tooltips are rendered in a portal and must not inherit the header's white
+   text color or the application's white popup surface. */
+.ant-tooltip .ant-tooltip-inner {
+  background: #172525 !important;
+  color: #ffffff !important;
+}
+
+.ant-tooltip .ant-tooltip-arrow::before {
+  background: #172525 !important;
 }
 
 .mobile-admin-shell {
   min-height: 100vh;
-  background: #f3f6f6;
+  background: #ffffff;
 }
 
 .mobile-app-header {
@@ -76,8 +390,8 @@ input {
   height: 56px;
   align-items: center;
   padding: 0 12px;
-  background: #102a2b;
-  box-shadow: 0 2px 10px rgb(15 42 43 / 18%);
+  background: #115095;
+  box-shadow: 0 2px 10px rgb(17 80 149 / 18%);
   color: #ffffff;
   grid-template-columns: 44px minmax(0, 1fr) minmax(44px, auto);
 }
@@ -101,7 +415,7 @@ input {
 
 .mobile-navigation-trigger.ant-btn:hover,
 .mobile-navigation-trigger.ant-btn:focus-visible {
-  background: #174445;
+  background: #2866a8;
 }
 
 .mobile-app-role {
@@ -123,6 +437,7 @@ input {
 
 .mobile-admin-content {
   padding: 16px 12px 28px;
+  background: #ffffff;
 }
 
 .mobile-navigation-drawer .ant-drawer-header {
@@ -213,6 +528,335 @@ input {
   box-shadow: 0 14px 42px rgb(15 53 53 / 8%);
 }
 
+.platform-login-page {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  padding: 32px 20px;
+  background: linear-gradient(135deg, #102a43, #173c6b 55%, #24528a);
+  place-items: center;
+}
+
+.platform-login-language {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+}
+
+.platform-login-panel {
+  width: min(100%, 420px);
+  padding: 36px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 20px 52px rgb(0 0 0 / 24%);
+}
+
+.platform-mfa-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.platform-mfa-panel .ant-typography,
+.platform-mfa-panel .ant-form-item {
+  margin-bottom: 0;
+}
+
+.platform-mfa-secret {
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid #dbe5ef;
+  border-radius: 8px;
+  background: #f6f9fc;
+}
+
+.platform-mfa-secret .ant-typography {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+.platform-mfa-qr {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 16px;
+  border: 1px solid #dbe5ef;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.platform-mfa-qr .ant-qr-code {
+  padding: 0;
+}
+
+.platform-recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #dbe5ef;
+  border-radius: 8px;
+  background: #f6f9fc;
+}
+
+.platform-recovery-codes code {
+  padding: 7px;
+  border-radius: 4px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.platform-brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  background: #173c6b;
+  color: #ffffff;
+  font-size: 24px;
+  place-items: center;
+}
+
+.platform-shell {
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.platform-header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: #173c6b;
+  color: #ffffff;
+}
+
+.platform-header .ant-btn {
+  border-color: rgb(255 255 255 / 45%);
+  background: transparent;
+  color: #ffffff;
+}
+
+.platform-home-content {
+  width: min(100% - 40px, 1500px);
+  margin: 0 auto;
+  padding: 56px 0;
+}
+
+.platform-capability-card {
+  margin-top: 20px;
+}
+
+.platform-tenant-browser {
+  min-width: 0;
+  margin-top: 36px;
+}
+
+.platform-tenant-management-page {
+  width: min(100% - 40px, 1680px);
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.platform-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.platform-section-heading .ant-typography {
+  margin: 0;
+}
+
+.platform-readonly-alert {
+  margin-bottom: 16px;
+}
+
+.platform-browser-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  min-width: 0;
+}
+
+.platform-browser-grid > *,
+.platform-tenant-list,
+.platform-tenant-list .ant-card-body,
+.platform-data-region > *,
+.platform-data-region .ant-tabs,
+.platform-data-region .ant-tabs-content-holder,
+.platform-data-region .ant-tabs-content,
+.platform-data-region .ant-tabs-tabpane {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.platform-tenant-list .ant-list-item {
+  padding: 0;
+}
+
+.platform-tenant-filters {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.platform-tenant-filters .ant-select {
+  width: 100%;
+}
+
+.platform-directory-summary {
+  display: block;
+  margin: 12px 0;
+}
+
+.platform-tenant-button {
+  display: grid;
+  width: 100%;
+  padding: 13px 12px;
+  border: 0;
+  border-bottom: 1px solid #edf0f5;
+  background: #ffffff;
+  color: #172525;
+  cursor: pointer;
+  gap: 4px;
+  text-align: left;
+}
+
+.platform-tenant-button:hover,
+.platform-tenant-button:focus-visible,
+.platform-tenant-button.is-selected {
+  background: #eef4fb;
+  outline: none;
+}
+
+.platform-tenant-button.is-selected {
+  box-shadow: inset 3px 0 #173c6b;
+}
+
+.platform-tenant-button > span:not(.ant-tag) {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.platform-tenant-button .ant-tag {
+  width: fit-content;
+  margin-top: 2px;
+}
+
+.platform-data-region {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 20px;
+}
+
+.platform-dataset-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.platform-dataset-card .ant-card-head-wrapper {
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.platform-dataset-card .ant-card-extra {
+  max-width: 100%;
+  min-width: 0;
+  margin-inline-start: 0;
+}
+
+.platform-dataset-card .ant-card-extra .ant-select {
+  width: 220px;
+  max-width: 100%;
+}
+
+.platform-dataset-card .ant-card-body,
+.platform-dataset-card .ant-spin-nested-loading,
+.platform-dataset-card .ant-spin-container,
+.platform-dataset-card .ant-table-wrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.platform-dataset-card .ant-table-content {
+  overflow-x: auto !important;
+  overscroll-behavior-inline: contain;
+}
+
+.platform-export-status {
+  margin-bottom: 16px;
+}
+
+.platform-data-pagination {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.platform-audit-page {
+  display: grid;
+  gap: 16px;
+}
+
+.platform-audit-filter {
+  margin-top: 4px;
+}
+
+.platform-audit-field {
+  display: grid;
+  min-width: 190px;
+  gap: 7px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.platform-audit-field .ant-select,
+.platform-audit-field .ant-input-number {
+  width: 210px;
+}
+
+.platform-audit-results .ant-pagination {
+  margin-top: 16px;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .platform-browser-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .platform-header {
+    align-items: flex-start;
+    padding: 12px 18px;
+  }
+
+  .platform-header > .ant-space {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .platform-tenant-management-page {
+    width: min(100% - 24px, 1680px);
+    padding: 32px 0;
+  }
+
+  .platform-dataset-card .ant-card-extra,
+  .platform-dataset-card .ant-card-extra .ant-space,
+  .platform-dataset-card .ant-card-extra .ant-select {
+    width: 100%;
+  }
+}
+
 .brand-mark {
   display: grid;
   width: 46px;
@@ -288,6 +932,10 @@ input {
 
 .inventory-descriptions {
   margin-bottom: 20px;
+}
+
+.inventory-empty-alert {
+  margin-bottom: 16px;
 }
 
 .workflow-subsection {
@@ -1695,7 +2343,7 @@ input {
     margin-inline-end: 12px;
   }
 
-  .header-user-tag.ant-tag {
+  .header-account-name {
     display: none;
   }
 

@@ -18,7 +18,24 @@ public interface SysUserWarehouseRepository extends JpaRepository<SysUserWarehou
     @Query("SELECT suw.warehouseId FROM SysUserWarehouse suw WHERE suw.userId = :userId")
     Set<Long> findWarehouseIdsByUserId(@Param("userId") Long userId);
 
+    @Query("""
+        SELECT suw.warehouseId
+        FROM SysUserWarehouse suw
+        WHERE suw.companyId = :companyId AND suw.userId = :userId
+        """)
+    Set<Long> findWarehouseIdsByCompanyIdAndUserId(
+        @Param("companyId") Long companyId,
+        @Param("userId") Long userId
+    );
+
     @Modifying
     @Query("DELETE FROM SysUserWarehouse suw WHERE suw.userId = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM SysUserWarehouse suw WHERE suw.companyId = :companyId AND suw.userId = :userId")
+    void deleteByCompanyIdAndUserId(
+        @Param("companyId") Long companyId,
+        @Param("userId") Long userId
+    );
 }

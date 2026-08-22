@@ -1,11 +1,17 @@
 import { SafetyCertificateOutlined, SwapOutlined } from '@ant-design/icons';
 import { App as AntdApp, Button, Dropdown, Tag, type MenuProps, Tooltip } from 'antd';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../api/errors';
 import { useAuth } from '../auth/AuthProvider';
 
-export function RoleSwitcher(): JSX.Element | null {
+interface RoleSwitcherProps {
+  label?: ReactNode;
+  iconOnly?: boolean;
+  tooltip?: ReactNode;
+}
+
+export function RoleSwitcher({ iconOnly = false, label, tooltip }: RoleSwitcherProps = {}): JSX.Element | null {
   const { session, switchRole } = useAuth();
   const [loading, setLoading] = useState(false);
   const { message } = AntdApp.useApp();
@@ -16,6 +22,11 @@ export function RoleSwitcher(): JSX.Element | null {
   }
 
   const roleLabel = (role: string) => t(`roles.${role}`, { defaultValue: role });
+  const accessibleLabel = typeof tooltip === 'string'
+    ? tooltip
+    : typeof label === 'string'
+      ? label
+      : undefined;
   const items: MenuProps['items'] = session.availableRoles.map((role) => ({
     key: role,
     label: roleLabel(role),
@@ -36,6 +47,27 @@ export function RoleSwitcher(): JSX.Element | null {
   };
 
   if (session.availableRoles.length <= 1) {
+    if (label) {
+      return (
+        <Tooltip title={t('auth.roleSwitchUnavailable')}>
+          <Button aria-label={typeof label === 'string' ? label : undefined} className="header-action-button" icon={<SwapOutlined />} type="text">
+            {label}
+          </Button>
+        </Tooltip>
+      );
+    }
+    if (iconOnly) {
+      return (
+        <Tooltip title={tooltip ?? t('auth.roleSwitchUnavailable')}>
+          <Button
+            aria-label={accessibleLabel}
+            className="header-action-button"
+            icon={<SwapOutlined />}
+            type="text"
+          />
+        </Tooltip>
+      );
+    }
     return (
       <Tooltip title={t('auth.roleSwitchUnavailable')}>
         <Tag
@@ -50,11 +82,21 @@ export function RoleSwitcher(): JSX.Element | null {
     );
   }
 
+  const trigger = (
+    <Button
+      aria-label={accessibleLabel}
+      className="header-action-button"
+      icon={<SwapOutlined />}
+      loading={loading}
+      type="text"
+    >
+      {iconOnly ? null : label ?? roleLabel(session.currentRole)}
+    </Button>
+  );
+
   return (
     <Dropdown menu={{ items, onClick }} trigger={['click']}>
-      <Button className="header-action-button" icon={<SwapOutlined />} loading={loading} type="text">
-        {roleLabel(session.currentRole)}
-      </Button>
+      {tooltip ? <Tooltip title={tooltip}>{trigger}</Tooltip> : trigger}
     </Dropdown>
   );
 }

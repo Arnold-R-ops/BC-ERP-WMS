@@ -17,7 +17,7 @@ export function LanguageSwitcher(): JSX.Element {
 
   return (
     <Dropdown menu={{ items, onClick, selectedKeys: [i18n.language] }} trigger={['click']}>
-      <Tooltip title={t('common.language')}>
+      <Tooltip placement="left" title={t('common.language')}>
         <Button
           aria-label={t('common.language')}
           className="header-action-button"

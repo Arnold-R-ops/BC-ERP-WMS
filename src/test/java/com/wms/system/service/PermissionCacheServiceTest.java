@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 
 import java.util.Set;
 
@@ -25,6 +26,12 @@ class PermissionCacheServiceTest {
 
     @InjectMocks
     private PermissionCacheService permissionCacheService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        lenient().when(userRoleRepository.findUserIdsByCompanyIdAndRoleId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> userRoleRepository.findUserIdsByRoleId(invocation.getArgument(1)));
+    }
 
     // ========== evictPermissionsForRole ==========
 
@@ -69,7 +76,10 @@ class PermissionCacheServiceTest {
     @DisplayName("evictAllCaches - clears role permissions cache via cacheManager")
     void testEvictAllCaches() {
         Cache mockRolePermCache = mock(Cache.class);
-        when(cacheManager.getCache(CacheConfig.ROLE_PERMISSIONS_CACHE)).thenReturn(mockRolePermCache);
+        when(cacheManager.getCache(anyString())).thenAnswer(invocation ->
+            CacheConfig.ROLE_PERMISSIONS_CACHE.equals(invocation.getArgument(0))
+                ? mockRolePermCache
+                : null);
 
         permissionCacheService.evictAllCaches();
 
@@ -85,6 +95,29 @@ class PermissionCacheServiceTest {
         permissionCacheService.evictAllCaches();
 
         verify(cacheManager, atLeastOnce()).getCache(CacheConfig.ROLE_PERMISSIONS_CACHE);
+    }
+
+    @Test
+    @DisplayName("evictUserPermissions - removes only the selected company's keys")
+    void evictUserPermissions_DoesNotEvictAnotherCompany() {
+        CaffeineCacheManager realManager = new CaffeineCacheManager(
+            CacheConfig.USER_PERMISSIONS_CACHE);
+        PermissionCacheService service = new PermissionCacheService(
+            realManager, userRoleRepository);
+        Cache cache = realManager.getCache(CacheConfig.USER_PERMISSIONS_CACHE);
+
+        cache.put("all:10:7", "company-a-all");
+        cache.put("active:10:7:ADMIN:1", "company-a-active");
+        cache.put("all:20:7", "company-b-all");
+        cache.put("active:20:7:ADMIN:1", "company-b-active");
+
+        service.evictUserPermissions(10L, 7L);
+
+        assertThat(cache.get("all:10:7")).isNull();
+        assertThat(cache.get("active:10:7:ADMIN:1")).isNull();
+        assertThat(cache.get("all:20:7", String.class)).isEqualTo("company-b-all");
+        assertThat(cache.get("active:20:7:ADMIN:1", String.class))
+            .isEqualTo("company-b-active");
     }
 
     // ========== getCacheStats ==========

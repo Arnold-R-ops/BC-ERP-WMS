@@ -481,7 +481,7 @@ class CustomerControllerUnitTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("case-16")
     void testPermission_AdminHasAllPermissions() throws Exception {
         // Given

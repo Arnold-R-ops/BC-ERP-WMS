@@ -44,6 +44,8 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
      */
     List<SysRoleInherit> findByChildRoleId(Long childRoleId);
 
+    List<SysRoleInherit> findByCompanyIdAndChildRoleId(Long companyId, Long childRoleId);
+
     /**
      * Find all child roles for a parent role
      *
@@ -51,6 +53,8 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
      * @return List of inheritance relationships
      */
     List<SysRoleInherit> findByParentRoleId(Long parentRoleId);
+
+    List<SysRoleInherit> findByCompanyIdAndParentRoleId(Long companyId, Long parentRoleId);
 
     /**
      * Check if inheritance relationship exists
@@ -61,6 +65,9 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
      */
     boolean existsByChildRoleIdAndParentRoleId(Long childRoleId, Long parentRoleId);
 
+    boolean existsByCompanyIdAndChildRoleIdAndParentRoleId(
+        Long companyId, Long childRoleId, Long parentRoleId);
+
     /**
      * Delete inheritance relationship
      *
@@ -70,6 +77,14 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
     @Modifying
     @Query("DELETE FROM SysRoleInherit sri WHERE sri.childRoleId = :childRoleId AND sri.parentRoleId = :parentRoleId")
     void deleteByChildRoleIdAndParentRoleId(@Param("childRoleId") Long childRoleId, @Param("parentRoleId") Long parentRoleId);
+
+    @Modifying
+    @Query("DELETE FROM SysRoleInherit sri WHERE sri.companyId = :companyId AND sri.childRoleId = :childRoleId AND sri.parentRoleId = :parentRoleId")
+    void deleteByCompanyIdAndChildRoleIdAndParentRoleId(
+        @Param("companyId") Long companyId,
+        @Param("childRoleId") Long childRoleId,
+        @Param("parentRoleId") Long parentRoleId
+    );
 
     /**
      * Delete all parent roles for a child role
@@ -97,6 +112,12 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
     @Query("SELECT sri.parentRoleId FROM SysRoleInherit sri WHERE sri.childRoleId = :childRoleId")
     Set<Long> findParentRoleIdsByChildRoleId(@Param("childRoleId") Long childRoleId);
 
+    @Query("SELECT sri.parentRoleId FROM SysRoleInherit sri WHERE sri.companyId = :companyId AND sri.childRoleId = :childRoleId")
+    Set<Long> findParentRoleIdsByCompanyIdAndChildRoleId(
+        @Param("companyId") Long companyId,
+        @Param("childRoleId") Long childRoleId
+    );
+
     /**
      * Get all child role IDs for a parent role
      *
@@ -105,6 +126,12 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
      */
     @Query("SELECT sri.childRoleId FROM SysRoleInherit sri WHERE sri.parentRoleId = :parentRoleId")
     Set<Long> findChildRoleIdsByParentRoleId(@Param("parentRoleId") Long parentRoleId);
+
+    @Query("SELECT sri.childRoleId FROM SysRoleInherit sri WHERE sri.companyId = :companyId AND sri.parentRoleId = :parentRoleId")
+    Set<Long> findChildRoleIdsByCompanyIdAndParentRoleId(
+        @Param("companyId") Long companyId,
+        @Param("parentRoleId") Long parentRoleId
+    );
 
     /**
      * Get all parent role IDs for multiple child roles (batch query)
@@ -150,11 +177,15 @@ public interface SysRoleInheritRepository extends JpaRepository<SysRoleInherit, 
      * @return Set of all inherited role IDs (direct and indirect)
      */
     @Query(value = "WITH RECURSIVE role_tree AS (" +
-            "SELECT parent_role_id AS role_id FROM sys_role_inherit WHERE child_role_id = :childRoleId " +
+            "SELECT parent_role_id AS role_id FROM sys_role_inherit " +
+            "WHERE company_id = :companyId AND child_role_id = :childRoleId " +
             "UNION " +
             "SELECT sri.parent_role_id FROM sys_role_inherit sri " +
-            "INNER JOIN role_tree rt ON sri.child_role_id = rt.role_id" +
+            "INNER JOIN role_tree rt ON sri.child_role_id = rt.role_id " +
+            "WHERE sri.company_id = :companyId" +
             ") SELECT DISTINCT role_id FROM role_tree",
             nativeQuery = true)
-    Set<Long> findAllInheritedRoleIds(@Param("childRoleId") Long childRoleId);
+    Set<Long> findAllInheritedRoleIds(
+            @Param("companyId") Long companyId,
+            @Param("childRoleId") Long childRoleId);
 }

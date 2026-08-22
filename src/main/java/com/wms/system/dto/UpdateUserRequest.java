@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 /**
  * Update User Request DTO
  *
- * Used by SUPER_ADMIN to update existing user account information.
+ * Used by TENANT_ADMIN to update existing user account information.
  *
  * Request Format:
  * <pre>
@@ -44,7 +44,7 @@ import lombok.NoArgsConstructor;
  * 4. Clear permission cache for the user
  *
  * Security:
- * - Only accessible by SUPER_ADMIN role
+ * - Only accessible by TENANT_ADMIN role
  * - Cannot update username (identity is immutable)
  * - Cannot update password (requires separate endpoint)
  *

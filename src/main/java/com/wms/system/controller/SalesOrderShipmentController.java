@@ -22,13 +22,13 @@ public class SalesOrderShipmentController {
     private final SalesOrderShipmentService shipmentService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('sales:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<SalesOrderShipmentResponse>> list(@PathVariable Long salesOrderId) {
         return ResponseEntity.ok(shipmentService.list(salesOrderId));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('sales:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:edit', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderShipmentResponse> create(
         @PathVariable Long salesOrderId,
         @Valid @RequestBody SalesOrderShipmentRequest request,
@@ -44,7 +44,7 @@ public class SalesOrderShipmentController {
     }
 
     @PutMapping("/{shipmentId}")
-    @PreAuthorize("hasAnyAuthority('sales:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:edit', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderShipmentResponse> update(
         @PathVariable Long salesOrderId,
         @PathVariable Long shipmentId,
@@ -54,7 +54,7 @@ public class SalesOrderShipmentController {
     }
 
     @PostMapping("/{shipmentId}/void")
-    @PreAuthorize("hasAnyAuthority('sales:edit', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('sales:edit', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderShipmentResponse> voidShipment(
         @PathVariable Long salesOrderId,
         @PathVariable Long shipmentId,

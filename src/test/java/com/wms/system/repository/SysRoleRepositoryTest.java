@@ -34,7 +34,7 @@ class SysRoleRepositoryTest {
     @BeforeEach
     void setUp() {
         superAdmin = SysRole.builder()
-                .roleCode("SUPER_ADMIN")
+                .roleCode("TENANT_ADMIN")
                 .roleName("Super Administrator")
                 .roleType("SYSTEM")
                 .status("ACTIVE")
@@ -81,7 +81,7 @@ class SysRoleRepositoryTest {
     @Test
     @DisplayName("findByRoleCode - returns role when code exists")
     void testFindByRoleCode_Found() {
-        Optional<SysRole> found = sysRoleRepository.findByRoleCode("SUPER_ADMIN");
+        Optional<SysRole> found = sysRoleRepository.findByRoleCode("TENANT_ADMIN");
 
         assertThat(found).isPresent();
         assertThat(found.get().getRoleName()).isEqualTo("Super Administrator");
@@ -102,7 +102,7 @@ class SysRoleRepositoryTest {
     @Test
     @DisplayName("existsByRoleCode - returns true when code exists")
     void testExistsByRoleCode_Exists() {
-        boolean exists = sysRoleRepository.existsByRoleCode("SUPER_ADMIN");
+        boolean exists = sysRoleRepository.existsByRoleCode("TENANT_ADMIN");
 
         assertThat(exists).isTrue();
     }
@@ -125,7 +125,7 @@ class SysRoleRepositoryTest {
         assertThat(systemRoles).hasSize(2);
         assertThat(systemRoles)
                 .extracting(SysRole::getRoleCode)
-                .containsExactlyInAnyOrder("SUPER_ADMIN", "CHAIRMAN");
+                .containsExactlyInAnyOrder("TENANT_ADMIN", "CHAIRMAN");
         assertThat(systemRoles).allMatch(SysRole::isSystemRole);
     }
 
@@ -150,7 +150,7 @@ class SysRoleRepositoryTest {
         assertThat(active).hasSize(3);
         assertThat(active)
                 .extracting(SysRole::getRoleCode)
-                .containsExactlyInAnyOrder("SUPER_ADMIN", "CHAIRMAN", "WAREHOUSE_STAFF");
+                .containsExactlyInAnyOrder("TENANT_ADMIN", "CHAIRMAN", "WAREHOUSE_STAFF");
     }
 
     @Test
@@ -192,7 +192,7 @@ class SysRoleRepositoryTest {
         List<SysRole> results = sysRoleRepository.findByRoleNameContaining("Admin");
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).getRoleCode()).isEqualTo("SUPER_ADMIN");
+        assertThat(results.get(0).getRoleCode()).isEqualTo("TENANT_ADMIN");
     }
 
     @Test

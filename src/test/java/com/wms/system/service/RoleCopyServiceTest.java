@@ -27,9 +27,11 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class RoleCopyServiceTest {
@@ -48,6 +50,10 @@ class RoleCopyServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(roleRepository.findByCompanyIdAndId(eq(1L), any(Long.class)))
+            .thenAnswer(invocation -> roleRepository.findById(invocation.getArgument(1)));
+        lenient().when(roleRepository.existsByCompanyIdAndRoleCode(eq(1L), any(String.class)))
+            .thenAnswer(invocation -> roleRepository.existsByRoleCode(invocation.getArgument(1)));
         source = SysRole.builder()
                 .id(7L)
                 .roleCode("WAREHOUSE_STAFF")
@@ -83,7 +89,7 @@ class RoleCopyServiceTest {
 
     @Test
     void previewRejectsProtectedSource() {
-        source.setRoleCode(SysRole.SUPER_ADMIN_ROLE_CODE);
+        source.setRoleCode(SysRole.TENANT_ADMIN_ROLE_CODE);
         source.setSystemCategory(SysRole.SYSTEM_CATEGORY_PRIVILEGED);
         source.setImportAllowed(false);
         when(roleRepository.findById(7L)).thenReturn(Optional.of(source));

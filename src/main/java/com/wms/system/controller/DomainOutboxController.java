@@ -17,13 +17,13 @@ public class DomainOutboxController {
     private final DomainOutboxService outboxService;
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAnyAuthority('system:admin', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('system:admin', 'TENANT_ADMIN')")
     public ResponseEntity<List<DomainOutbox>> listPending() {
         return ResponseEntity.ok(outboxService.listPending());
     }
 
     @PostMapping("/{id}/published")
-    @PreAuthorize("hasAnyAuthority('system:admin', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('system:admin', 'TENANT_ADMIN')")
     public ResponseEntity<DomainOutbox> markPublished(@PathVariable("id") Long id) {
         return ResponseEntity.ok(outboxService.markPublished(id));
     }

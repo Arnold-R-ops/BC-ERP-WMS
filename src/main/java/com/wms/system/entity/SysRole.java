@@ -16,13 +16,13 @@ import java.time.LocalDateTime;
  * Supports role inheritance for complex permission scenarios (e.g., CHAIRMAN inherits multiple roles).
  *
  * Business Rules:
- * - role_code is unique identifier (e.g., SUPER_ADMIN, CHAIRMAN)
+ * - role_code is unique identifier (e.g., TENANT_ADMIN, CHAIRMAN)
  * - role_type: SYSTEM (preset) or CUSTOM (user-defined)
  * - status: ACTIVE (enabled) or DISABLED (disabled)
  * - Supports multi-level role inheritance via SysRoleInherit table
  *
  * Use Cases:
- * - Predefined roles: SUPER_ADMIN, CHAIRMAN, WAREHOUSE_ADMIN, BUYER, SELLER
+ * - Predefined roles: TENANT_ADMIN, CHAIRMAN, WAREHOUSE_ADMIN, BUYER, SELLER
  * - Custom roles: Can be created by administrators
  * - Role inheritance: CHAIRMAN automatically inherits permissions from WAREHOUSE_ADMIN, BUYER, SELLER
  *
@@ -52,7 +52,7 @@ public class SysRole extends BaseEntity {
     public static final String ROLE_TYPE_CUSTOM = "CUSTOM";
     public static final String SYSTEM_CATEGORY_BUSINESS_TEMPLATE = "BUSINESS_TEMPLATE";
     public static final String SYSTEM_CATEGORY_PRIVILEGED = "PRIVILEGED";
-    public static final String SUPER_ADMIN_ROLE_CODE = "SUPER_ADMIN";
+    public static final String TENANT_ADMIN_ROLE_CODE = "TENANT_ADMIN";
     public static final String SECURITY_ADMIN_ROLE_CODE = "SECURITY_ADMIN";
     public static final String SIMPLE_APPROVAL_TEMPLATE_CODE = "ROLE_PACKAGE_SIMPLE_APPROVAL";
     public static final String REVIEW_STATUS_DRAFT = "DRAFT";
@@ -68,7 +68,7 @@ public class SysRole extends BaseEntity {
 
     /**
      * Role Code (unique identifier)
-     * Examples: SUPER_ADMIN, CHAIRMAN, WAREHOUSE_ADMIN
+     * Examples: TENANT_ADMIN, CHAIRMAN, WAREHOUSE_ADMIN
      */
     @NotBlank(message = "Role code cannot be blank")
     @Size(max = 50, message = "Role code must not exceed 50 characters")
@@ -217,10 +217,10 @@ public class SysRole extends BaseEntity {
 
     /**
      * Check if this role is a protected privileged identity.
-     * SUPER_ADMIN is an immutable safety invariant independent of database metadata.
+     * TENANT_ADMIN is an immutable safety invariant independent of database metadata.
      */
     public boolean isPrivilegedRole() {
-        return SUPER_ADMIN_ROLE_CODE.equals(this.roleCode)
+        return TENANT_ADMIN_ROLE_CODE.equals(this.roleCode)
                 || SYSTEM_CATEGORY_PRIVILEGED.equals(this.systemCategory);
     }
 

@@ -43,6 +43,16 @@ class RolePermissionServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(roleRepository.findByCompanyIdAndId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> roleRepository.findById(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndId(eq(1L), anyLong()))
+            .thenAnswer(invocation -> permissionRepository.findById(invocation.getArgument(1)));
+        lenient().when(permissionRepository.findByCompanyIdAndIdIn(eq(1L), any()))
+            .thenAnswer(invocation -> permissionRepository.findByIdIn(invocation.getArgument(1)));
+        lenient().when(rolePermissionRepository.existsByCompanyIdAndRoleIdAndPermissionId(
+                eq(1L), anyLong(), anyLong()))
+            .thenAnswer(invocation -> rolePermissionRepository.existsByRoleIdAndPermissionId(
+                invocation.getArgument(1), invocation.getArgument(2)));
         testRole = SysRole.builder()
                 .id(1L)
                 .roleCode("TEST_ROLE")
@@ -134,12 +144,15 @@ class RolePermissionServiceTest {
     @DisplayName("removePermissionFromRole - calls delete and evicts cache")
     void testRemovePermissionFromRole() {
         when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
-        doNothing().when(rolePermissionRepository).deleteByRoleIdAndPermissionId(1L, 10L);
+        when(permissionRepository.findById(10L)).thenReturn(Optional.of(testPermission));
+        doNothing().when(rolePermissionRepository)
+                .deleteByCompanyIdAndRoleIdAndPermissionId(1L, 1L, 10L);
         doNothing().when(cacheService).onRolePermissionChanged(1L);
 
         rolePermissionService.removePermissionFromRole(1L, 10L);
 
-        verify(rolePermissionRepository).deleteByRoleIdAndPermissionId(1L, 10L);
+        verify(rolePermissionRepository)
+                .deleteByCompanyIdAndRoleIdAndPermissionId(1L, 1L, 10L);
         verify(cacheService).onRolePermissionChanged(1L);
     }
 
@@ -151,7 +164,7 @@ class RolePermissionServiceTest {
         Set<Long> permissionIds = Set.of(10L, 20L, 30L);
 
         when(roleRepository.findById(1L)).thenReturn(Optional.of(testRole));
-        doNothing().when(rolePermissionRepository).deleteByRoleId(1L);
+        doNothing().when(rolePermissionRepository).deleteByCompanyIdAndRoleId(1L, 1L);
         when(permissionRepository.findByIdIn(permissionIds)).thenReturn(permissionIds.stream()
                 .map(permissionId -> SysPermission.builder()
                         .id(permissionId)
@@ -167,7 +180,7 @@ class RolePermissionServiceTest {
 
         rolePermissionService.assignPermissionsToRole(1L, permissionIds, 999L);
 
-        verify(rolePermissionRepository).deleteByRoleId(1L);
+        verify(rolePermissionRepository).deleteByCompanyIdAndRoleId(1L, 1L);
         verify(rolePermissionRepository, times(3)).save(any(SysRolePermission.class));
         verify(cacheService).onRolePermissionChanged(1L);
     }

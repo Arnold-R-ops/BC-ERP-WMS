@@ -48,7 +48,7 @@ class RoleControllerTest {
 
     @Test
     void listsAllRolesByDefault() {
-        RoleDTO role = RoleDTO.builder().id(1L).roleCode("SUPER_ADMIN").build();
+        RoleDTO role = RoleDTO.builder().id(1L).roleCode("TENANT_ADMIN").build();
         when(roleService.getAllRoles()).thenReturn(List.of(role));
 
         var response = controller.getRoles(false);

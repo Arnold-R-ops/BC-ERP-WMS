@@ -10,7 +10,7 @@ package com.wms.system.entity.enums;
  *             {@link com.wms.system.entity.SysUserRole}
  *
  * 迁移说明:
- * - ADMIN 已迁移至 SUPER_ADMIN 角色
+ * - ADMIN 已迁移至 TENANT_ADMIN 角色
  * - STAFF 已迁移至 WAREHOUSE_ADMIN 角色
  * - 新系统支持一个用户拥有多个角色
  * - 角色权限通过 sys_role 和 sys_user_role 表动态管理
@@ -24,7 +24,7 @@ package com.wms.system.entity.enums;
 public enum Role {
     /**
      * 管理员：拥有系统全部权限（用户管理、配置管理、数据导出等）
-     * @deprecated 使用 SysRole.SUPER_ADMIN 替代
+     * @deprecated 使用 SysRole.TENANT_ADMIN 替代
      */
     @Deprecated
     ADMIN("管理员"),

@@ -2,12 +2,14 @@ package com.wms.system.service;
 
 import com.wms.system.entity.SysRole;
 import com.wms.system.entity.User;
+import com.wms.system.entity.TenantSessionSecurityAudit;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.SysUserWarehouseRepository;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.repository.TenantSessionSecurityAuditRepository;
 import com.wms.system.security.SecurityUser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class UserManagementServiceTest {
@@ -49,6 +52,8 @@ class UserManagementServiceTest {
     private PermissionCacheService cacheService;
     @Mock
     private SecurityVersionService securityVersionService;
+    @Mock
+    private TenantSessionSecurityAuditRepository sessionSecurityAuditRepository;
 
     private UserManagementService service;
     private User operator;
@@ -56,6 +61,24 @@ class UserManagementServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(userRepository.findByIdAndCompanyId(any(Long.class), any(Long.class)))
+            .thenAnswer(invocation -> userRepository.findById(invocation.getArgument(0)));
+        lenient().when(roleRepository.findByCompanyIdAndRoleCode(any(Long.class), any(String.class)))
+            .thenAnswer(invocation -> roleRepository.findByRoleCode(invocation.getArgument(1)));
+        lenient().when(userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                any(Long.class), any(Long.class), any(Long.class)))
+            .thenAnswer(invocation -> userRoleRepository.existsByUserIdAndRoleId(
+                invocation.getArgument(1), invocation.getArgument(2)));
+        lenient().when(userRoleRepository.countActiveUsersByCompanyIdAndRoleCode(
+                any(Long.class), any(String.class)))
+            .thenAnswer(invocation -> userRoleRepository.countActiveUsersByRoleCode(
+                invocation.getArgument(1)));
+        lenient().when(userRoleRepository.findRoleIdsByCompanyIdAndUserId(
+                any(Long.class), any(Long.class)))
+            .thenAnswer(invocation -> userRoleRepository.findRoleIdsByUserId(
+                invocation.getArgument(1)));
+        lenient().when(roleRepository.findByCompanyIdAndIdIn(any(Long.class), any()))
+            .thenAnswer(invocation -> roleRepository.findByIdIn(invocation.getArgument(1)));
         service = new UserManagementService(
             userRepository,
             roleRepository,
@@ -63,7 +86,8 @@ class UserManagementServiceTest {
             userWarehouseRepository,
             passwordEncoder,
             cacheService,
-            securityVersionService
+            securityVersionService,
+            sessionSecurityAuditRepository
         );
 
         operator = User.builder()
@@ -72,6 +96,7 @@ class UserManagementServiceTest {
             .password("encoded")
             .enabled(true)
             .build();
+        operator.setCompanyId(1L);
         target = User.builder()
             .id(2L)
             .username("employee")
@@ -80,6 +105,7 @@ class UserManagementServiceTest {
             .enabled(true)
             .defaultRoleId(5L)
             .build();
+        target.setCompanyId(1L);
 
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken(
@@ -98,14 +124,14 @@ class UserManagementServiceTest {
     @Test
     void logicallyDeletesAndRevokesRoles() {
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
-        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByRoleCode("TENANT_ADMIN")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("revoked-password");
 
         service.deleteUser(2L, 1L);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRoleRepository).deleteByUserId(2L);
-        verify(userWarehouseRepository).deleteByUserId(2L);
+        verify(userRoleRepository).deleteByCompanyIdAndUserId(1L, 2L);
+        verify(userWarehouseRepository).deleteByCompanyIdAndUserId(1L, 2L);
         verify(userRepository).save(captor.capture());
         verify(cacheService).onUserDeleted(2L);
 
@@ -158,6 +184,54 @@ class UserManagementServiceTest {
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PASSWORD_INCORRECT);
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void ownerRevokesAllSessionsOnlyAfterPasswordVerification() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.matches("current-pass", "encoded")).thenReturn(true);
+
+        service.revokeOwnSessions(2L, "current-pass");
+
+        verify(securityVersionService).bump(target);
+        verify(userRepository).save(target);
+        ArgumentCaptor<TenantSessionSecurityAudit> audit =
+            ArgumentCaptor.forClass(TenantSessionSecurityAudit.class);
+        verify(sessionSecurityAuditRepository).save(audit.capture());
+        assertThat(audit.getValue().getAction()).isEqualTo("SELF_REVOKE_ALL_SESSIONS");
+        assertThat(audit.getValue().getTargetUserId()).isEqualTo(2L);
+        assertThat(audit.getValue().getReason()).isEqualTo("SELF_SERVICE");
+        assertThat(audit.getValue().getResult()).isEqualTo("SUCCESS");
+    }
+
+    @Test
+    void ownerCannotRevokeSessionsWithWrongPassword() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(passwordEncoder.matches("wrong-pass", "encoded")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.revokeOwnSessions(2L, "wrong-pass"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.PASSWORD_INCORRECT);
+
+        verify(securityVersionService, never()).bump(any());
+        verify(sessionSecurityAuditRepository, never()).save(any());
+    }
+
+    @Test
+    void tenantAdministratorRevokesTargetSessionsWithAuditReason() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        service.revokeUserSessions(
+            2L, 1L, "admin", "TENANT_ADMIN", "Employee reported account compromise");
+
+        verify(securityVersionService).bump(target);
+        ArgumentCaptor<TenantSessionSecurityAudit> audit =
+            ArgumentCaptor.forClass(TenantSessionSecurityAudit.class);
+        verify(sessionSecurityAuditRepository).save(audit.capture());
+        assertThat(audit.getValue().getOperatorId()).isEqualTo(1L);
+        assertThat(audit.getValue().getTargetUserId()).isEqualTo(2L);
+        assertThat(audit.getValue().getReason())
+            .isEqualTo("Employee reported account compromise");
     }
 
     @Test
@@ -220,14 +294,14 @@ class UserManagementServiceTest {
     void rejectsDeletingLastSuperAdmin() {
         SysRole superAdmin = SysRole.builder()
             .id(3L)
-            .roleCode("SUPER_ADMIN")
+            .roleCode("TENANT_ADMIN")
             .roleName("Super Admin")
             .build();
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
-        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(roleRepository.findByRoleCode("TENANT_ADMIN")).thenReturn(Optional.of(superAdmin));
         when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
-        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(1L);
+        when(userRoleRepository.countActiveUsersByRoleCode("TENANT_ADMIN")).thenReturn(1L);
 
         assertThatThrownBy(() -> service.deleteUser(2L, 1L))
             .isInstanceOf(BusinessException.class)
@@ -250,9 +324,9 @@ class UserManagementServiceTest {
     void rejectsDisablingLastActiveSuperAdmin() {
         SysRole superAdmin = superAdminRole();
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
-        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(roleRepository.findByRoleCode("TENANT_ADMIN")).thenReturn(Optional.of(superAdmin));
         when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
-        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(1L);
+        when(userRoleRepository.countActiveUsersByRoleCode("TENANT_ADMIN")).thenReturn(1L);
 
         assertThatThrownBy(() -> service.validateProfileChange(2L, 1L, false))
             .isInstanceOf(BusinessException.class)
@@ -263,9 +337,9 @@ class UserManagementServiceTest {
     void allowsDisablingSuperAdminWhenAnotherActiveAdminExists() {
         SysRole superAdmin = superAdminRole();
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
-        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(roleRepository.findByRoleCode("TENANT_ADMIN")).thenReturn(Optional.of(superAdmin));
         when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
-        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(2L);
+        when(userRoleRepository.countActiveUsersByRoleCode("TENANT_ADMIN")).thenReturn(2L);
 
         service.validateProfileChange(2L, 1L, false);
     }
@@ -283,9 +357,9 @@ class UserManagementServiceTest {
     void rejectsRemovingFinalActiveSuperAdminRole() {
         SysRole superAdmin = superAdminRole();
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
-        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(roleRepository.findByRoleCode("TENANT_ADMIN")).thenReturn(Optional.of(superAdmin));
         when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
-        when(userRoleRepository.countActiveUsersByRoleCode("SUPER_ADMIN")).thenReturn(1L);
+        when(userRoleRepository.countActiveUsersByRoleCode("TENANT_ADMIN")).thenReturn(1L);
 
         assertThatThrownBy(() -> service.validateRoleReplacement(2L, 1L, Set.of(5L)))
             .isInstanceOf(BusinessException.class)
@@ -296,7 +370,7 @@ class UserManagementServiceTest {
     void allowsRoleReplacementWhenSuperAdminRoleIsRetained() {
         SysRole superAdmin = superAdminRole();
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
-        when(roleRepository.findByRoleCode("SUPER_ADMIN")).thenReturn(Optional.of(superAdmin));
+        when(roleRepository.findByRoleCode("TENANT_ADMIN")).thenReturn(Optional.of(superAdmin));
         when(userRoleRepository.existsByUserIdAndRoleId(2L, 3L)).thenReturn(true);
 
         service.validateRoleReplacement(2L, 1L, Set.of(3L, 5L));
@@ -343,7 +417,7 @@ class UserManagementServiceTest {
 
     @Test
     void securityAdministratorCannotResetAProtectedAccountPassword() {
-        SysRole superAdmin = privilegedRole(3L, "SUPER_ADMIN");
+        SysRole superAdmin = privilegedRole(3L, "TENANT_ADMIN");
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
         when(userRoleRepository.findRoleIdsByUserId(2L)).thenReturn(Set.of(3L));
         when(roleRepository.findByIdIn(Set.of(3L))).thenReturn(List.of(superAdmin));
@@ -362,7 +436,7 @@ class UserManagementServiceTest {
     private SysRole superAdminRole() {
         return SysRole.builder()
             .id(3L)
-            .roleCode("SUPER_ADMIN")
+            .roleCode("TENANT_ADMIN")
             .roleName("Super Admin")
             .status("ACTIVE")
             .build();

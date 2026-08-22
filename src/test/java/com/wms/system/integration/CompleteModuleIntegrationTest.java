@@ -111,7 +111,7 @@ class CompleteModuleIntegrationTest {
         cleanupData();
 
         // 闂傚倸鍊搁崐椋庣矆娓氣偓楠炲鏁嶉崟顒佹濠德板€曢崯浼存儗濞嗘挻鐓欓悗鐢殿焾鍟哥紒鎯у綖缁瑩寮婚悢鐓庣闁归偊鍟╁鍫熺厱闁挎棁顕ч獮鎰版煕鐎ｎ偅宕岄柡浣瑰姈閹棃鍨惧畷鍥跺晪濠电姷顣介埀顒€鍟跨痪褔鏌熼鐓庘偓鍨嚕婵犳碍鏅插鑸电〒缁嬪繐顪冮妶鍡楀潑闁稿鎸搁埞鎴﹀灳閼碱剛鐓撻梺?
-        adminUser = createUser("admin", "SUPER_ADMIN");
+        adminUser = createUser("admin", "TENANT_ADMIN");
         salesUser = createUser("sales", "SALESPERSON");
         buyerUser = createUser("buyer", "BUYER");
 
@@ -238,7 +238,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(2)
-    @WithMockUser(username = "admin", authorities = {"warehouse:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"warehouse:view", "TENANT_ADMIN"})
     @DisplayName("case-3")
     void testModule2_Warehouse_ListAll() throws Exception {
         mockMvc.perform(get("/api/warehouses"))
@@ -251,7 +251,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(3)
-    @WithMockUser(username = "admin", authorities = {"location:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"location:view", "TENANT_ADMIN"})
     @DisplayName("case-4")
     void testModule2_Location_ListByWarehouse() throws Exception {
         mockMvc.perform(get("/api/locations/warehouse/" + warehouse.getId()))
@@ -300,7 +300,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(5)
-    @WithMockUser(username = "admin", authorities = {"inventory:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"inventory:view", "TENANT_ADMIN"})
     @DisplayName("case-6")
     void testModule4_Inventory_QuerySummary() throws Exception {
         // 闂傚倸鍊搁崐鐑芥嚄閸洍鈧箓宕奸姀鈥冲簥闂佽澹嗘晶妤呭磻鐎ｎ喗鐓曢柍鈺佸暟閳藉鏌涢妸銉モ偓鍧楀蓟濞戞鏃堝礃閵娿儱顥庨梻浣规偠閸婃洟鎮ч幘鎰佸殨闁割偅娲橀崐鐑芥煛婢跺鐒炬俊顐㈡椤啴濡堕崨顖滎唶閻庤娲﹂崜鐔凤耿娴ｇ硶鏀介柣妯款嚋瀹搞儵鎮楀鐓庢珝闁糕斂鍎插鍕暆閳ь剛澹曟總鍛婄厪濠电偛鐏濇俊娲煕濮樼厧浜伴柡灞界Х椤т線鏌涢幘瀛樼殤缂侇喗鐟╅獮鎺楀即閻旂娅″┑鐘垫暩婵即宕规總闈╃稏濠㈣泛鏈弳婊堟煙閻戞﹩娈旈柣?
@@ -327,7 +327,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(6)
-    @WithMockUser(username = "admin", authorities = {"inventory:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"inventory:view", "TENANT_ADMIN"})
     @DisplayName("case-7")
     void testModule4_Inventory_QueryBatchDetails() throws Exception {
         // 闂傚倸鍊搁崐鐑芥嚄閸洍鈧箓宕奸姀鈥冲簥闂佽澹嗘晶妤呭磻鐎ｎ喗鐓曢柍鈺佸暟閳藉鏌涢妸銉モ偓鍧楀蓟濞戞鏃堝礃閵娿儱顥庨梻浣规偠閸婃洟鎮ч幘璇茶摕婵炴垶菤閺€浠嬫煕閳╁喚娈㈠ù灏栧亾濠电姵顔栭崰妤勫綘闂佸憡姊归崹鍧楃嵁閸愩剮鏃堝焵椤掑嫬鐓″璺号堥弸宥夋煣韫囷絽浜滈柣蹇ュ缁辨帡寮崒姘亪濡ょ姷鍋炵敮锟犵嵁鐎ｎ喖绫嶉柍褜鍓熼幃?
@@ -365,7 +365,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(8)
-    @WithMockUser(username = "admin", authorities = {"customer:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"customer:view", "TENANT_ADMIN"})
     @DisplayName("case-9")
     void testModule5_Customer_AdminViewWithoutMasking() throws Exception {
         mockMvc.perform(get("/api/customers"))
@@ -382,7 +382,6 @@ class CompleteModuleIntegrationTest {
     @DisplayName("case-10")
     void testModule5_Customer_CreateWithAutoOwner() throws Exception {
         CreateCustomerRequest request = CreateCustomerRequest.builder()
-            .code("CUST002")
             .name("New Customer")
             .contact("Wang Wu")
             .phone("13700137000")
@@ -397,7 +396,7 @@ class CompleteModuleIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.code").value("CUST002"))
+            .andExpect(jsonPath("$.code", matchesPattern("\\d+")))
             .andExpect(jsonPath("$.name").value("New Customer"));
     }
 
@@ -418,7 +417,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(11)
-    @WithMockUser(username = "admin", authorities = {"stocktake:view", "SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"stocktake:view", "TENANT_ADMIN"})
     @DisplayName("case-12")
     void testModule7_Stocktake_ListTasks() throws Exception {
         mockMvc.perform(get("/api/stocktake/tasks"))
@@ -443,7 +442,7 @@ class CompleteModuleIntegrationTest {
 
     @Test
     @Order(13)
-    @WithMockUser(username = "admin", authorities = {"SUPER_ADMIN"})
+    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
     @DisplayName("case-14")
     void testE2E_CompleteBusinessFlow() throws Exception {
         // Keep a basic smoke assertion to ensure the suite class is complete.

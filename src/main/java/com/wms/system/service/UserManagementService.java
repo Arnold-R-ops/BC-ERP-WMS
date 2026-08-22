@@ -3,12 +3,15 @@ package com.wms.system.service;
 import com.wms.system.dto.ResetPasswordResponse;
 import com.wms.system.entity.SysRole;
 import com.wms.system.entity.User;
+import com.wms.system.entity.TenantSessionSecurityAudit;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SysRoleRepository;
 import com.wms.system.repository.SysUserRoleRepository;
 import com.wms.system.repository.SysUserWarehouseRepository;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.repository.TenantSessionSecurityAuditRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,7 +35,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserManagementService {
 
-    private static final String SUPER_ADMIN = "SUPER_ADMIN";
+    private static final String TENANT_ADMIN = "TENANT_ADMIN";
     private static final String SECURITY_ADMIN = "SECURITY_ADMIN";
 
     /**
@@ -60,18 +63,93 @@ public class UserManagementService {
     private final PasswordEncoder passwordEncoder;
     private final PermissionCacheService cacheService;
     private final SecurityVersionService securityVersionService;
+    private final TenantSessionSecurityAuditRepository sessionSecurityAuditRepository;
+
+    /** Revoke every tenant JWT issued to the caller after verifying the password. */
+    @Transactional(rollbackFor = Exception.class)
+    public void revokeOwnSessions(Long userId, String currentPassword) {
+        Long companyId = CompanyScope.currentCompanyId();
+        User user = userRepository.findByIdAndCompanyId(userId, companyId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.USER_NOT_FOUND, Map.of("userId", userId)));
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BusinessException(
+                ErrorKeys.PASSWORD_INCORRECT, Map.of("userId", userId));
+        }
+
+        securityVersionService.bump(user);
+        userRepository.save(user);
+        sessionSecurityAuditRepository.save(TenantSessionSecurityAudit.builder()
+            .companyId(companyId)
+            .action("SELF_REVOKE_ALL_SESSIONS")
+            .operatorId(user.getId())
+            .operatorUsername(user.getUsername())
+            .targetUserId(user.getId())
+            .targetUsername(user.getUsername())
+            .reason("SELF_SERVICE")
+            .result("SUCCESS")
+            .build());
+        cacheService.onUserUpdated(userId);
+        log.info("All tenant sessions revoked by account owner: userId={}", userId);
+    }
+
+    /** Revoke every tenant JWT issued to a user in the current tenant. */
+    @Transactional(rollbackFor = Exception.class)
+    public void revokeUserSessions(
+        Long targetUserId,
+        Long operatorId,
+        String operatorUsername,
+        String operatorRoleCode,
+        String reason
+    ) {
+        Long companyId = CompanyScope.currentCompanyId();
+        User target = userRepository.findByIdAndCompanyId(targetUserId, companyId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.USER_NOT_FOUND, Map.of("userId", targetUserId)));
+        if (operatorId != null && operatorId.equals(targetUserId)) {
+            throw new BusinessException(ErrorKeys.OPERATION_NOT_ALLOWED, Map.of(
+                "operation", "Revoke all sessions",
+                "reason", "Use the self-service operation and verify the current password"
+            ));
+        }
+        protectPrivilegedTargetForSecurityAdmin(
+            target, operatorRoleCode, "Revoke all sessions");
+
+        String normalizedReason = reason == null ? "" : reason.trim();
+        if (normalizedReason.length() < 5 || normalizedReason.length() > 500) {
+            throw new BusinessException(ErrorKeys.VALIDATION_FAILED,
+                Map.of("field", "reason"));
+        }
+
+        securityVersionService.bump(target);
+        userRepository.save(target);
+        sessionSecurityAuditRepository.save(TenantSessionSecurityAudit.builder()
+            .companyId(companyId)
+            .action("ADMIN_REVOKE_ALL_SESSIONS")
+            .operatorId(operatorId)
+            .operatorUsername(operatorUsername)
+            .targetUserId(target.getId())
+            .targetUsername(target.getUsername())
+            .reason(normalizedReason)
+            .result("SUCCESS")
+            .build());
+        cacheService.onUserUpdated(targetUserId);
+        log.warn("All tenant sessions revoked by administrator: targetUserId={}, operatorId={}",
+            targetUserId, operatorId);
+    }
 
     /**
      * Logically delete a user while preserving historical references.
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long userId, Long operatorId) {
-        deleteUser(userId, operatorId, SUPER_ADMIN);
+        deleteUser(userId, operatorId, TENANT_ADMIN);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long userId, Long operatorId, String operatorRoleCode) {
-        User target = userRepository.findById(userId)
+        Long companyId = CompanyScope.currentCompanyId();
+        User target = userRepository.findByIdAndCompanyId(userId, companyId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", userId)
@@ -88,7 +166,7 @@ public class UserManagementService {
         }
 
         protectPrivilegedTargetForSecurityAdmin(target, operatorRoleCode, "Delete user");
-        protectLastSuperAdmin(target, "Delete user");
+        protectLastTenantAdmin(target, "Delete user");
 
         String originalUsername = target.getUsername();
         String deletionKey = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
@@ -104,8 +182,8 @@ public class UserManagementService {
         target.setDeletedBy(operatorId);
         securityVersionService.bump(target);
 
-        userRoleRepository.deleteByUserId(userId);
-        userWarehouseRepository.deleteByUserId(userId);
+        userRoleRepository.deleteByCompanyIdAndUserId(companyId, userId);
+        userWarehouseRepository.deleteByCompanyIdAndUserId(companyId, userId);
         userRepository.save(target);
 
         evictSecurityStateAfterCommit(userId);
@@ -116,7 +194,7 @@ public class UserManagementService {
     /** Prevent profile changes that could lock the active administrator out. */
     @Transactional(readOnly = true)
     public void validateProfileChange(Long userId, Long operatorId, Boolean requestedEnabled) {
-        validateProfileChange(userId, operatorId, requestedEnabled, SUPER_ADMIN);
+        validateProfileChange(userId, operatorId, requestedEnabled, TENANT_ADMIN);
     }
 
     @Transactional(readOnly = true)
@@ -126,7 +204,8 @@ public class UserManagementService {
             Boolean requestedEnabled,
             String operatorRoleCode
     ) {
-        User target = userRepository.findById(userId)
+        User target = userRepository.findByIdAndCompanyId(
+                userId, CompanyScope.currentCompanyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", userId)
@@ -148,13 +227,13 @@ public class UserManagementService {
             );
         }
 
-        protectLastSuperAdmin(target, "Disable user");
+        protectLastTenantAdmin(target, "Disable user");
     }
 
-    /** Prevent self role replacement and removal of the final SUPER_ADMIN role. */
+    /** Prevent self role replacement and removal of the final TENANT_ADMIN role. */
     @Transactional(readOnly = true)
     public void validateRoleReplacement(Long userId, Long operatorId, Set<Long> requestedRoleIds) {
-        validateRoleReplacement(userId, operatorId, requestedRoleIds, SUPER_ADMIN);
+        validateRoleReplacement(userId, operatorId, requestedRoleIds, TENANT_ADMIN);
     }
 
     @Transactional(readOnly = true)
@@ -164,7 +243,8 @@ public class UserManagementService {
             Set<Long> requestedRoleIds,
             String operatorRoleCode
     ) {
-        User target = userRepository.findById(userId)
+        Long companyId = CompanyScope.currentCompanyId();
+        User target = userRepository.findByIdAndCompanyId(userId, companyId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", userId)
@@ -172,7 +252,8 @@ public class UserManagementService {
 
         protectPrivilegedTargetForSecurityAdmin(target, operatorRoleCode, "Replace user roles");
         if (isSecurityAdmin(operatorRoleCode)) {
-            List<SysRole> requestedRoles = roleRepository.findByIdIn(requestedRoleIds);
+            List<SysRole> requestedRoles = roleRepository
+                .findByCompanyIdAndIdIn(companyId, requestedRoleIds);
             if (requestedRoles.stream().anyMatch(SysRole::isPrivilegedRole)) {
                 throw protectedIdentityOperation("Assign protected role");
             }
@@ -183,19 +264,21 @@ public class UserManagementService {
                 ErrorKeys.OPERATION_NOT_ALLOWED,
                 Map.of(
                     "operation", "Replace user roles",
-                    "reason", "Use another SUPER_ADMIN account to change your role assignment"
+                    "reason", "Use another TENANT_ADMIN account to change your role assignment"
                 )
             );
         }
 
-        SysRole superAdminRole = roleRepository.findByRoleCode(SUPER_ADMIN).orElse(null);
-        if (superAdminRole == null
-            || !userRoleRepository.existsByUserIdAndRoleId(target.getId(), superAdminRole.getId())
-            || requestedRoleIds.contains(superAdminRole.getId())) {
+        SysRole tenantAdminRole = roleRepository
+            .findByCompanyIdAndRoleCode(companyId, TENANT_ADMIN).orElse(null);
+        if (tenantAdminRole == null
+            || !userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, target.getId(), tenantAdminRole.getId())
+            || requestedRoleIds.contains(tenantAdminRole.getId())) {
             return;
         }
 
-        protectLastSuperAdmin(target, "Remove SUPER_ADMIN role");
+        protectLastTenantAdmin(target, "Remove TENANT_ADMIN role");
     }
 
     /** SECURITY_ADMIN may create ordinary accounts but cannot grant protected roles. */
@@ -216,7 +299,8 @@ public class UserManagementService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void changeOwnPassword(Long userId, String oldPassword, String newPassword) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndCompanyId(
+                userId, CompanyScope.currentCompanyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", userId)
@@ -256,7 +340,7 @@ public class UserManagementService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ResetPasswordResponse resetPassword(Long targetUserId, Long operatorId) {
-        return resetPassword(targetUserId, operatorId, SUPER_ADMIN);
+        return resetPassword(targetUserId, operatorId, TENANT_ADMIN);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -265,7 +349,8 @@ public class UserManagementService {
             Long operatorId,
             String operatorRoleCode
     ) {
-        User target = userRepository.findById(targetUserId)
+        User target = userRepository.findByIdAndCompanyId(
+                targetUserId, CompanyScope.currentCompanyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.USER_NOT_FOUND,
                 Map.of("userId", targetUserId)
@@ -308,9 +393,12 @@ public class UserManagementService {
         if (!isSecurityAdmin(operatorRoleCode)) {
             return;
         }
-        Set<Long> targetRoleIds = userRoleRepository.findRoleIdsByUserId(target.getId());
+        Long companyId = target.getCompanyId();
+        Set<Long> targetRoleIds = userRoleRepository
+            .findRoleIdsByCompanyIdAndUserId(companyId, target.getId());
         if (!targetRoleIds.isEmpty()
-                && roleRepository.findByIdIn(targetRoleIds).stream().anyMatch(SysRole::isPrivilegedRole)) {
+                && roleRepository.findByCompanyIdAndIdIn(companyId, targetRoleIds)
+                    .stream().anyMatch(SysRole::isPrivilegedRole)) {
             throw protectedIdentityOperation(operation);
         }
     }
@@ -352,24 +440,28 @@ public class UserManagementService {
         return sb.toString();
     }
 
-    private void protectLastSuperAdmin(User target, String operation) {
+    private void protectLastTenantAdmin(User target, String operation) {
         if (!Boolean.TRUE.equals(target.getEnabled())) {
             return;
         }
 
-        SysRole superAdminRole = roleRepository.findByRoleCode(SUPER_ADMIN).orElse(null);
-        if (superAdminRole == null
-            || !userRoleRepository.existsByUserIdAndRoleId(target.getId(), superAdminRole.getId())) {
+        Long companyId = target.getCompanyId();
+        SysRole tenantAdminRole = roleRepository
+            .findByCompanyIdAndRoleCode(companyId, TENANT_ADMIN).orElse(null);
+        if (tenantAdminRole == null
+            || !userRoleRepository.existsByCompanyIdAndUserIdAndRoleId(
+                companyId, target.getId(), tenantAdminRole.getId())) {
             return;
         }
 
-        long activeSuperAdmins = userRoleRepository.countActiveUsersByRoleCode(SUPER_ADMIN);
-        if (activeSuperAdmins <= 1) {
+        long activeTenantAdmins = userRoleRepository
+            .countActiveUsersByCompanyIdAndRoleCode(companyId, TENANT_ADMIN);
+        if (activeTenantAdmins <= 1) {
             throw new BusinessException(
                 ErrorKeys.OPERATION_NOT_ALLOWED,
                 Map.of(
                     "operation", operation,
-                    "reason", "The last active SUPER_ADMIN account must remain enabled with its role"
+                    "reason", "The last active TENANT_ADMIN account must remain enabled with its role"
                 )
             );
         }

@@ -16,16 +16,29 @@ public interface SysPermissionRequestRepository extends JpaRepository<SysPermiss
     @Query("SELECT request FROM SysPermissionRequest request WHERE request.id = :id")
     Optional<SysPermissionRequest> findByIdForUpdate(@Param("id") Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT request FROM SysPermissionRequest request WHERE request.companyId = :companyId AND request.id = :id")
+    Optional<SysPermissionRequest> findByCompanyIdAndIdForUpdate(
+        @Param("companyId") Long companyId,
+        @Param("id") Long id
+    );
+
+    Optional<SysPermissionRequest> findByCompanyIdAndId(Long companyId, Long id);
+
     boolean existsByTargetUserIdAndRequestedRoleIdAndStatus(
         Long targetUserId,
         Long requestedRoleId,
         String status
     );
 
+    boolean existsByCompanyIdAndTargetUserIdAndRequestedRoleIdAndStatus(
+        Long companyId, Long targetUserId, Long requestedRoleId, String status);
+
     @Query("""
         SELECT request
         FROM SysPermissionRequest request
-        WHERE (:status IS NULL OR request.status = :status)
+        WHERE request.companyId = :companyId
+          AND (:status IS NULL OR request.status = :status)
           AND (:targetUserId IS NULL OR request.targetUserId = :targetUserId)
           AND (:requestedRoleId IS NULL OR request.requestedRoleId = :requestedRoleId)
           AND (
@@ -34,15 +47,18 @@ public interface SysPermissionRequestRepository extends JpaRepository<SysPermiss
                   SELECT userRole.id
                   FROM SysUserRole userRole, SysRole role
                   WHERE userRole.userId = request.targetUserId
+                    AND userRole.companyId = :companyId
+                    AND role.companyId = :companyId
                     AND role.id = userRole.roleId
                     AND (
-                        role.roleCode IN ('SUPER_ADMIN', 'SECURITY_ADMIN')
+                        role.roleCode IN ('TENANT_ADMIN', 'SECURITY_ADMIN')
                         OR role.systemCategory = 'PRIVILEGED'
                     )
               )
           )
         """)
     Page<SysPermissionRequest> search(
+        @Param("companyId") Long companyId,
         @Param("status") String status,
         @Param("targetUserId") Long targetUserId,
         @Param("requestedRoleId") Long requestedRoleId,
@@ -50,4 +66,3 @@ public interface SysPermissionRequestRepository extends JpaRepository<SysPermiss
         Pageable pageable
     );
 }
-

@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.TenantId;
 
 import java.time.LocalDateTime;
 
@@ -43,9 +44,9 @@ public class SysUserWarehouse {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @TenantId
     @Column(name = "company_id", nullable = false)
-    @Builder.Default
-    private Long companyId = 1L;
+    private Long companyId;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

@@ -49,7 +49,7 @@ public class SwitchRoleRequest {
      *
      * Must be one of the user's assigned roles from availableRoles list.
      *
-     * Examples: "SUPER_ADMIN", "WAREHOUSE_ADMIN", "SALESPERSON", "PURCHASER"
+     * Examples: "TENANT_ADMIN", "WAREHOUSE_ADMIN", "SALESPERSON", "PURCHASER"
      */
     @NotBlank(message = "Target role code cannot be blank")
     private String targetRoleCode;

@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,7 +47,8 @@ class UserWarehouseServiceTest {
     @Test
     void warehouseStaffRejectsInactiveWarehouse() {
         Warehouse inactive = warehouse(7L, "WH07", false);
-        when(warehouseRepository.findAllById(Set.of(7L))).thenReturn(List.of(inactive));
+        when(warehouseRepository.findAllByCompanyIdAndIdIn(1L, Set.of(7L)))
+            .thenReturn(List.of(inactive));
 
         assertThatThrownBy(() -> service.validateSelection(List.of(staffRole()), List.of(7L)))
             .isInstanceOfSatisfying(BusinessException.class, error ->
@@ -56,17 +59,19 @@ class UserWarehouseServiceTest {
     void replacingStaffAssignmentsStoresUniqueActiveWarehouses() {
         Warehouse first = warehouse(1L, "WH01", true);
         Warehouse second = warehouse(2L, "WH02", true);
-        when(warehouseRepository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(first, second));
+        when(warehouseRepository.findAllByCompanyIdAndIdIn(1L, Set.of(1L, 2L)))
+            .thenReturn(List.of(first, second));
 
         service.replaceAssignments(9L, List.of(staffRole()), List.of(1L, 2L, 1L), 3L);
 
-        verify(userWarehouseRepository).deleteByUserId(9L);
+        verify(userWarehouseRepository).deleteByCompanyIdAndUserId(1L, 9L);
         ArgumentCaptor<List<SysUserWarehouse>> captor = ArgumentCaptor.forClass(List.class);
         verify(userWarehouseRepository).saveAll(captor.capture());
         assertThat(captor.getValue())
             .extracting(SysUserWarehouse::getWarehouseId)
             .containsExactlyInAnyOrder(1L, 2L);
         assertThat(captor.getValue()).allMatch(assignment -> assignment.getAssignedBy().equals(3L));
+        assertThat(captor.getValue()).allMatch(assignment -> assignment.getCompanyId().equals(1L));
     }
 
     @Test
@@ -76,9 +81,10 @@ class UserWarehouseServiceTest {
         assertThatCode(() -> service.replaceAssignments(9L, List.of(nonStaff), List.of(1L), 3L))
             .doesNotThrowAnyException();
 
-        verify(userWarehouseRepository).deleteByUserId(9L);
+        verify(userWarehouseRepository).deleteByCompanyIdAndUserId(1L, 9L);
         verify(userWarehouseRepository, never()).saveAll(anyList());
-        verify(warehouseRepository, never()).findAllById(anyList());
+        verify(warehouseRepository, never())
+            .findAllByCompanyIdAndIdIn(anyLong(), anySet());
     }
 
     private SysRole staffRole() {

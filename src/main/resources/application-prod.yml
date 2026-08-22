@@ -8,7 +8,8 @@
 #
 # Credentials are NOT defined here - they come from environment
 # variables declared in the base application.yml (DB_PASSWORD,
-# JWT_SECRET, BATCH_SALT). See docs/security/SECURITY_SETUP.md.
+# TENANT_JWT_SECRET, PLATFORM_JWT_SECRET, BATCH_SALT). See
+# docs/security/SECURITY_SETUP.md.
 # ====================================================================
 
 spring:
@@ -18,6 +19,38 @@ spring:
       hibernate:
         format_sql: false
         use_sql_comments: false
+  mail:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+server:
+  # Host-based tenancy trusts the Host delivered by the controlled reverse proxy.
+  # Arbitrary public X-Forwarded-Host values must not select a company.
+  forward-headers-strategy: none
+
+wms:
+  legacy-admin-bootstrap-enabled: false
+  platform-access:
+    export-directory: ${WMS_PLATFORM_EXPORT_DIR}
+    export-retention-hours: 24
+    max-page-size: 100
+  platform-mfa:
+    encryption-key: ${PLATFORM_MFA_ENCRYPTION_KEY}
+    challenge-minutes: 5
+    max-attempts: 5
+    lock-minutes: 15
+    challenge-cleanup-cron: ${WMS_PLATFORM_MFA_CLEANUP_CRON:0 10 * * * *}
+  tenancy:
+    require-safe-database-role: true
+    purge-cron: ${WMS_TENANT_PURGE_CRON:0 20 * * * *}
+    allow-local-development-host: false
+  signup:
+    delivery-mode: SMTP
 
 # OpenAPI docs are a development/handover tool - never expose contract in prod
 springdoc:
@@ -30,6 +63,6 @@ logging:
   level:
     root: INFO
     com.wms: INFO
-    org.springframework.web: INFO
+    org.springframework.web: WARN
     org.hibernate.SQL: INFO
     org.hibernate.type.descriptor.sql.BasicBinder: INFO

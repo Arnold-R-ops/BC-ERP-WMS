@@ -1,4 +1,4 @@
-import { Alert, Descriptions, Drawer, Table, Tag, type TableColumnsType } from 'antd';
+import { Alert, Descriptions, Drawer, Empty, Table, Tag, type TableColumnsType } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
@@ -25,6 +25,10 @@ export function InventoryDetailsDrawer({
     queryFn: () => getInventoryDetails(productSkuId as number),
     enabled: open && productSkuId !== undefined,
   });
+  const details = detailsQuery.data ?? [];
+  const emptyMessage = i18n.language === 'zh-CN'
+    ? '当前商品库存为 0，暂无批次库存记录'
+    : 'This item has zero inventory and no batch records';
 
   const formatDate = (value?: string): string =>
     value
@@ -147,10 +151,22 @@ export function InventoryDetailsDrawer({
         />
       )}
 
+      {!detailsQuery.isLoading && !detailsQuery.error && details.length === 0 && (
+        <Alert
+          className="inventory-empty-alert"
+          message={emptyMessage}
+          showIcon
+          type="info"
+        />
+      )}
+
       <Table<InventoryDetail>
         columns={columns}
-        dataSource={detailsQuery.data ?? []}
+        dataSource={details}
         loading={detailsQuery.isLoading}
+        locale={{
+          emptyText: <Empty description={emptyMessage} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
+        }}
         pagination={false}
         rowClassName={(record) => {
           const status = getFreshnessStatus(record.expiryDate, nearExpiryDays);

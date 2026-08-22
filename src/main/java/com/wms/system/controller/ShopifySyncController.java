@@ -33,7 +33,7 @@ public class ShopifySyncController {
     private final ShopifyIntegrationService shopifyIntegrationService;
 
     @PostMapping("/sync")
-    @PreAuthorize("hasAnyAuthority('system:admin', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('system:admin', 'TENANT_ADMIN')")
     public ResponseEntity<Map<String, Integer>> syncNow() {
         log.info("手动触发 Shopify 订单同步");
         ShopifyIntegrationService.SyncResult result = shopifyIntegrationService.syncOrders();

@@ -6,8 +6,8 @@ export interface IamCapabilities {
 
 export function getIamCapabilities(role: string): IamCapabilities {
   return {
-    canManage: role === 'SUPER_ADMIN' || role === 'SECURITY_ADMIN',
-    canManageProtectedIdentities: role === 'SUPER_ADMIN',
-    canApproveHighRiskPackages: role === 'SUPER_ADMIN',
+    canManage: role === 'TENANT_ADMIN' || role === 'SECURITY_ADMIN',
+    canManageProtectedIdentities: role === 'TENANT_ADMIN',
+    canApproveHighRiskPackages: role === 'TENANT_ADMIN',
   };
 }

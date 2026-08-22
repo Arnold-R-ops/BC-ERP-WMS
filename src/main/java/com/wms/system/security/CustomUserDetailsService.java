@@ -4,6 +4,10 @@ import com.wms.system.entity.User;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.UserRepository;
+import com.wms.system.tenant.context.RequestSurface;
+import com.wms.system.tenant.context.TenantContext;
+import com.wms.system.tenant.context.TenantContextHolder;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -88,7 +92,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         log.debug("Loading user by username: {}", username);
 
         // Query user from database
-        User user = userRepository.findByUsername(username)
+        TenantContext context = TenantContextHolder.current().orElse(null);
+        User user = (context != null && context.surface() == RequestSurface.TENANT)
+            ? userRepository.findByCompanyIdAndUsername(context.tenantId(), username)
+                .orElseThrow(() -> invalidCredentials(username))
+            : userRepository.findByUsername(username)
             .orElseThrow(() -> {
                 log.warn("Authentication failed: User not found - username={}", username);
 
@@ -102,6 +110,23 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         // Wrap User in SecurityUser for consistent security context
         // DynamicAuthorizationManager expects SecurityUser to extract user ID
+        return new SecurityUser(user);
+    }
+
+    private UsernameNotFoundException invalidCredentials(String username) {
+        log.warn("Authentication failed: company user not found - username={}", username);
+        return new UsernameNotFoundException("Invalid username or password");
+    }
+
+    /**
+     * Loads a company user only after the JWT company has been matched to the
+     * request Host. Both immutable user id and company id are required so that
+     * duplicate usernames in different companies are never ambiguous.
+     */
+    @Transactional(readOnly = true)
+    public SecurityUser loadTenantUser(Long userId, Long companyId) {
+        User user = userRepository.findByIdAndCompanyId(userId, companyId)
+            .orElseThrow(() -> new UsernameNotFoundException("Invalid authentication token"));
         return new SecurityUser(user);
     }
 
@@ -119,7 +144,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     public User loadUserByUsernameWithException(String username) {
         log.debug("Loading user with exception: username={}", username);
 
-        return userRepository.findByUsername(username)
+        return userRepository.findByCompanyIdAndUsername(
+                CompanyScope.currentCompanyId(), username)
             .orElseThrow(() -> {
                 log.warn("User not found: username={}", username);
 
@@ -140,7 +166,8 @@ public class CustomUserDetailsService implements UserDetailsService {
      */
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
-        boolean exists = userRepository.existsByUsername(username);
+        boolean exists = userRepository.existsByCompanyIdAndUsername(
+            CompanyScope.currentCompanyId(), username);
 
         log.debug("Username existence check: username={}, exists={}", username, exists);
 

@@ -24,7 +24,7 @@ public class EmergencyStockCorrectionController {
     private final EmergencyStockCorrectionService correctionService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> create(
         @Valid @RequestBody EmergencyStockCorrectionRequest request,
         Authentication authentication
@@ -34,7 +34,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('inventory:correction:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<EmergencyStockCorrectionResponse>> list(
         @RequestParam(value = "status", required = false) EmergencyCorrectionStatus status
     ) {
@@ -42,13 +42,13 @@ public class EmergencyStockCorrectionController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('inventory:correction:view', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:view', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> get(@PathVariable("id") Long id) {
         return ResponseEntity.ok(correctionService.get(id));
     }
 
     @PostMapping("/{id}/submit")
-    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> submit(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,
@@ -58,7 +58,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/review")
-    @PreAuthorize("hasAnyAuthority('inventory:correction:review', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:review', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> review(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,
@@ -68,7 +68,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyAuthority('inventory:correction:approve', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:approve', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> approve(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,
@@ -78,7 +78,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('inventory:correction:reject', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:correction:reject', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> reject(
         @PathVariable("id") Long id,
         @RequestBody(required = false) EmergencyStockCorrectionActionRequest request,
@@ -88,7 +88,7 @@ public class EmergencyStockCorrectionController {
     }
 
     @PostMapping("/{id}/apply")
-    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'TENANT_ADMIN')")
     public ResponseEntity<EmergencyStockCorrectionResponse> apply(
         @PathVariable("id") Long id,
         Authentication authentication

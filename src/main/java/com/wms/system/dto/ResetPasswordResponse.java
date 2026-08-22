@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Admin Password Reset Response (P0.5)
@@ -38,6 +39,7 @@ public class ResetPasswordResponse {
     /**
      * The generated temporary password (shown once, never logged).
      */
+    @ToString.Exclude
     private String temporaryPassword;
 
     /**

@@ -26,7 +26,6 @@ public class CreateCustomerRequest {
     /**
      * 客户编码（唯一标识）
      */
-    @NotBlank(message = "客户编码不能为空")
     @Size(max = 50, message = "客户编码长度不能超过 50 个字符")
     private String code;
 
@@ -61,6 +60,17 @@ public class CreateCustomerRequest {
      */
     @Size(max = 255, message = "客户地址长度不能超过 255 个字符")
     private String address;
+
+    @DecimalMin(value = "0.00", message = "增值税率不能为负数")
+    @DecimalMax(value = "100.00", message = "增值税率不能超过 100")
+    private BigDecimal vatRate;
+
+    @DecimalMin(value = "0.00", message = "税率不能为负数")
+    @DecimalMax(value = "100.00", message = "税率不能超过 100")
+    private BigDecimal secondaryTaxRate;
+
+    @Size(max = 100, message = "增值税号长度不能超过 100 个字符")
+    private String vatNumber;
 
     /**
      * 信用额度

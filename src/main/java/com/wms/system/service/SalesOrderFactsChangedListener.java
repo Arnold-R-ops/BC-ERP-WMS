@@ -1,6 +1,10 @@
 package com.wms.system.service;
 
 import com.wms.system.event.SalesOrderFactsChangedEvent;
+import com.wms.system.tenant.context.RequestSurface;
+import com.wms.system.tenant.context.TenantContext;
+import com.wms.system.tenant.context.TenantContextHolder;
+import com.wms.system.tenant.model.TenantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,10 +21,15 @@ public class SalesOrderFactsChangedListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void refreshSalesDailySummary(SalesOrderFactsChangedEvent event) {
         try {
-            int rows = reportSummaryRefreshService.refreshSalesDailySummary(
-                event.companyId(),
-                event.summaryDate()
-            );
+            TenantContext context = new TenantContext(
+                event.companyId(), null, "event.background",
+                RequestSurface.TENANT, TenantStatus.ACTIVE);
+            int rows = TenantContextHolder.current().isPresent()
+                ? reportSummaryRefreshService.refreshSalesDailySummary(
+                    event.companyId(), event.summaryDate())
+                : TenantContextHolder.runWithTenant(context, () ->
+                    reportSummaryRefreshService.refreshSalesDailySummary(
+                        event.companyId(), event.summaryDate()));
             log.info(
                 "Sales daily summary refreshed after commit: companyId={}, salesOrderId={}, "
                     + "summaryDate={}, reason={}, rows={}",

@@ -2,6 +2,7 @@ package com.wms.system.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TenantId;
 
 import java.time.LocalDateTime;
 
@@ -57,9 +58,9 @@ public class SysRolePermission {
     /**
      * SaaS tenant placeholder. Current single-company deployment always uses 1.
      */
+    @TenantId
     @Column(name = "company_id", nullable = false)
-    @Builder.Default
-    private Long companyId = 1L;
+    private Long companyId;
 
     /**
      * Role ID (foreign key to sys_role table)

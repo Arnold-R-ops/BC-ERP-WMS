@@ -20,6 +20,7 @@ import com.wms.system.repository.SysRoleGovernanceAuditRepository;
 import com.wms.system.repository.SysRoleInheritRepository;
 import com.wms.system.repository.SysRolePermissionRepository;
 import com.wms.system.repository.SysRoleRepository;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -73,7 +74,8 @@ public class RoleGovernanceService {
             String operatorUsername
     ) {
         String roleCode = request.getRoleCode().trim().toUpperCase(Locale.ROOT);
-        if (roleRepository.existsByRoleCode(roleCode)) {
+        Long companyId = CompanyScope.currentCompanyId();
+        if (roleRepository.existsByCompanyIdAndRoleCode(companyId, roleCode)) {
             throw new BusinessException(ErrorKeys.ROLE_COPY_TARGET_EXISTS, Map.of(
                     "roleCode", roleCode
             ));
@@ -91,6 +93,7 @@ public class RoleGovernanceService {
                 .status("DISABLED")
                 .sortOrder(1000)
                 .build();
+        draft.setCompanyId(companyId);
 
         final SysRole savedDraft;
         try {
@@ -146,14 +149,16 @@ public class RoleGovernanceService {
         if (!role.isDraft()) {
             throw stateError(ErrorKeys.ROLE_PACKAGE_NOT_DRAFT, role);
         }
-        if (!roleInheritRepository.findParentRoleIdsByChildRoleId(roleId).isEmpty()) {
+        if (!roleInheritRepository.findParentRoleIdsByCompanyIdAndChildRoleId(
+                role.getCompanyId(), roleId).isEmpty()) {
             throw new BusinessException(ErrorKeys.ROLE_PACKAGE_INHERITANCE_EDIT_UNSUPPORTED, Map.of(
                     "roleId", roleId,
                     "roleCode", role.getRoleCode()
             ));
         }
 
-        Set<Long> oldIds = rolePermissionRepository.findPermissionIdsByRoleId(roleId);
+        Set<Long> oldIds = rolePermissionRepository
+            .findPermissionIdsByCompanyIdAndRoleId(role.getCompanyId(), roleId);
         Snapshot snapshot = requireAssignablePermissions(role, request.getPermissionIds());
         Set<Long> newIds = snapshot.permissions().stream()
                 .map(SysPermission::getId)
@@ -172,7 +177,8 @@ public class RoleGovernanceService {
         role.setReviewComment(null);
         roleRepository.save(role);
 
-        rolePermissionRepository.deleteByRoleId(roleId);
+        rolePermissionRepository.deleteByCompanyIdAndRoleId(
+            role.getCompanyId(), roleId);
         rolePermissionRepository.flush();
         List<SysRolePermission> assignments = snapshot.permissions().stream()
                 .map(permission -> SysRolePermission.builder()
@@ -184,7 +190,8 @@ public class RoleGovernanceService {
                 .toList();
         rolePermissionRepository.saveAll(assignments);
 
-        List<SysPermission> changedPermissions = permissionRepository.findByIdIn(union(addedIds, removedIds));
+        List<SysPermission> changedPermissions = permissionRepository
+            .findByCompanyIdAndIdIn(role.getCompanyId(), union(addedIds, removedIds));
         String addedCodes = codesForIds(changedPermissions, addedIds);
         String removedCodes = codesForIds(changedPermissions, removedIds);
         SysRoleGovernanceAudit audit = saveAudit(
@@ -222,7 +229,8 @@ public class RoleGovernanceService {
         requireSimpleTemplate(role);
         Snapshot snapshot = requireAssignablePermissions(
                 role,
-                rolePermissionRepository.findPermissionIdsByRoleId(roleId)
+                rolePermissionRepository.findPermissionIdsByCompanyIdAndRoleId(
+                    role.getCompanyId(), roleId)
         );
         String reason = normalizeOptional(request.getReason());
         if (snapshot.highRiskCount() > 0 && reason == null) {
@@ -276,17 +284,18 @@ public class RoleGovernanceService {
         requireSimpleTemplate(role);
         Snapshot snapshot = requireAssignablePermissions(
                 role,
-                rolePermissionRepository.findPermissionIdsByRoleId(roleId)
+                rolePermissionRepository.findPermissionIdsByCompanyIdAndRoleId(
+                    role.getCompanyId(), roleId)
         );
         String reviewer = normalizeOperator(operatorUsername);
         if (Boolean.TRUE.equals(request.getApproved())
                 && snapshot.highRiskCount() > 0
-                && !SysRole.SUPER_ADMIN_ROLE_CODE.equals(operatorRoleCode)) {
+                && !SysRole.TENANT_ADMIN_ROLE_CODE.equals(operatorRoleCode)) {
             throw new BusinessException(ErrorKeys.ROLE_PACKAGE_SECOND_REVIEWER_REQUIRED, Map.of(
                     "roleId", roleId,
                     "roleCode", role.getRoleCode(),
                     "highRiskCount", snapshot.highRiskCount(),
-                    "requiredReviewerRole", SysRole.SUPER_ADMIN_ROLE_CODE
+                    "requiredReviewerRole", SysRole.TENANT_ADMIN_ROLE_CODE
             ));
         }
         if (Boolean.TRUE.equals(request.getApproved())
@@ -351,7 +360,7 @@ public class RoleGovernanceService {
                 request,
                 operatorId,
                 operatorUsername,
-                SysRole.SUPER_ADMIN_ROLE_CODE
+                SysRole.TENANT_ADMIN_ROLE_CODE
         );
     }
 
@@ -373,7 +382,8 @@ public class RoleGovernanceService {
         requireSimpleTemplate(role);
         Snapshot snapshot = requireAssignablePermissions(
                 role,
-                rolePermissionRepository.findPermissionIdsByRoleId(roleId)
+                rolePermissionRepository.findPermissionIdsByCompanyIdAndRoleId(
+                    role.getCompanyId(), roleId)
         );
 
         String fromStatus = role.getStatus();
@@ -433,14 +443,18 @@ public class RoleGovernanceService {
     }
 
     public List<RoleGovernanceAuditDTO> history(Long roleId) {
-        roleRepository.findById(roleId).orElseThrow(() -> roleNotFound(roleId));
-        return auditRepository.findByRoleIdOrderByCreatedAtDesc(roleId).stream()
+        Long companyId = CompanyScope.currentCompanyId();
+        roleRepository.findByCompanyIdAndId(companyId, roleId)
+            .orElseThrow(() -> roleNotFound(roleId));
+        return auditRepository
+            .findByCompanyIdAndRoleIdOrderByCreatedAtDesc(companyId, roleId).stream()
                 .map(this::toAuditDTO)
                 .toList();
     }
 
     private SysRole requireCustomForUpdate(Long roleId) {
-        SysRole role = roleRepository.findByIdForUpdate(roleId)
+        SysRole role = roleRepository.findByCompanyIdAndIdForUpdate(
+                CompanyScope.currentCompanyId(), roleId)
                 .orElseThrow(() -> roleNotFound(roleId));
         if (role.isSystemRole() || role.isPrivilegedRole()) {
             throw new BusinessException(ErrorKeys.ROLE_PACKAGE_NOT_CUSTOM, Map.of(
@@ -453,7 +467,8 @@ public class RoleGovernanceService {
 
     private Snapshot requireAssignablePermissions(SysRole role, Set<Long> permissionIds) {
         Set<Long> requested = permissionIds == null ? Set.of() : new LinkedHashSet<>(permissionIds);
-        List<SysPermission> permissions = new ArrayList<>(permissionRepository.findByIdIn(requested));
+        List<SysPermission> permissions = new ArrayList<>(
+            permissionRepository.findByCompanyIdAndIdIn(role.getCompanyId(), requested));
         if (permissions.size() != requested.size()) {
             Set<Long> found = permissions.stream().map(SysPermission::getId).collect(Collectors.toSet());
             Set<Long> missing = new LinkedHashSet<>(requested);
@@ -488,8 +503,10 @@ public class RoleGovernanceService {
      * retired or marked as no longer assignable.
      */
     private Snapshot currentSnapshot(SysRole role) {
-        Set<Long> currentIds = rolePermissionRepository.findPermissionIdsByRoleId(role.getId());
-        List<SysPermission> permissions = new ArrayList<>(permissionRepository.findByIdIn(currentIds));
+        Set<Long> currentIds = rolePermissionRepository
+            .findPermissionIdsByCompanyIdAndRoleId(role.getCompanyId(), role.getId());
+        List<SysPermission> permissions = new ArrayList<>(
+            permissionRepository.findByCompanyIdAndIdIn(role.getCompanyId(), currentIds));
         permissions.sort(Comparator.comparing(SysPermission::getPermissionCode));
         return snapshot(role, permissions);
     }
