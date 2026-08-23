@@ -828,6 +828,58 @@ input {
   text-align: right;
 }
 
+.platform-admin-tabs > .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+
+.platform-admin-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(160px, 0.8fr) minmax(240px, 1.2fr) minmax(180px, 0.9fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.platform-admin-filters .ant-select,
+.platform-admin-filters .ant-input {
+  width: 100%;
+}
+
+.platform-admin-directory-card .ant-table-wrapper {
+  min-width: 0;
+}
+
+.platform-admin-directory-card > .ant-card-body > .ant-pagination {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.platform-admin-identity {
+  display: grid;
+  gap: 4px;
+}
+
+.platform-admin-detail-heading {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 20px;
+}
+
+.platform-admin-detail-heading .ant-typography {
+  margin: 0;
+}
+
+.platform-super-invitation-panel {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .platform-admin-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .platform-browser-grid {
     grid-template-columns: 1fr;
@@ -845,6 +897,15 @@ input {
 }
 
 @media (max-width: 600px) {
+  .platform-admin-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .platform-admin-detail-drawer .ant-drawer-content-wrapper {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
   .platform-tenant-management-page {
     width: min(100% - 24px, 1680px);
     padding: 32px 0;

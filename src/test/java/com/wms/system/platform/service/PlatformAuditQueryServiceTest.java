@@ -91,4 +91,41 @@ class PlatformAuditQueryServiceTest {
 
         assertThat(result.getContent().get(0).targetTenantName()).isEqualTo("默认租户");
     }
+
+    @Test void exposesOnlySafeAdministratorStatusSummaryFields() {
+        PlatformUser actor = PlatformUser.builder().id(7L).normalizedEmail("super@bcwms.com")
+            .passwordHash("hidden").displayName("Super").enabled(true).build();
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+            new PlatformSecurityUser(actor), null,
+            List.of(new SimpleGrantedAuthority("ROLE_PLATFORM_SUPER_ADMIN"))));
+        OffsetDateTime now = OffsetDateTime.now();
+        PlatformAuditLog log = PlatformAuditLog.builder().id(13L).platformUserId(7L)
+            .targetPlatformUserId(8L).action("ADMIN_DISABLED").resourceType("platform_admin_status")
+            .result("SUCCESS").createdAt(now)
+            .detailJson("{\"targetPlatformUserId\":8,\"beforeEnabled\":true,\"afterEnabled\":false,"
+                + "\"changed\":true,\"activeGrantCount\":2,\"securityVersion\":6,"
+                + "\"reason\":\"Security incident\",\"idempotencyKeyHash\":\"safe-hash\","
+                + "\"password\":\"hidden\",\"code\":\"123456\",\"challengeToken\":\"hidden\"}")
+            .build();
+        when(auditRepository.search(any(), any(), isNull(), eq("ADMIN_DISABLED"), any()))
+            .thenReturn(new PageImpl<>(List.of(log)));
+        when(userRepository.findAllById(any())).thenReturn(List.of(actor));
+        when(tenantRepository.findAllById(any())).thenReturn(List.of());
+        PlatformAuditQueryService service = new PlatformAuditQueryService(auditRepository,
+            userRepository, tenantRepository, new PlatformAccessGuard(grantRepository), auditService, new ObjectMapper());
+
+        var result = service.search(now.minusDays(1), now, null, "admin_disabled", 0, 20, null);
+
+        assertThat(result.getContent().get(0).summary())
+            .containsEntry("targetPlatformUserId", 8)
+            .containsEntry("beforeEnabled", true)
+            .containsEntry("afterEnabled", false)
+            .containsEntry("changed", true)
+            .containsEntry("activeGrantCount", 2)
+            .containsEntry("securityVersion", 6)
+            .containsEntry("reason", "Security incident")
+            .containsEntry("idempotencyKeyHash", "safe-hash")
+            .doesNotContainKeys("password", "code", "challengeToken");
+        assertThat(result.getContent().get(0).targetTenantName()).isEqualTo("PLATFORM_SCOPE");
+    }
 }

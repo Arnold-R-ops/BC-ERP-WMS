@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { activatePlatformInvitation, confirmPlatformLogoutAll, confirmPlatformMfaEnrollment, createPlatformAdminInvitation, createPlatformExport, getMyPlatformEffectiveAccess, getPlatformCurrentSession, getPlatformInvitationStatus, getPlatformRecoveryCodeStatus, getPlatformTenant, listPlatformTenants, platformLogin, PlatformInvitationError, PlatformLoginError, PlatformMfaError, PLATFORM_AUTH_UNAUTHORIZED_EVENT, regeneratePlatformRecoveryCodes, resetPlatformAdminMfa, searchPlatformAuditLogs, startPlatformAdminInvitation, startPlatformAdminMfaReset, startPlatformLogoutAll, startPlatformRecoveryCodeRegeneration, verifyPlatformMfa } from './api';
+import { activatePlatformInvitation, changePlatformAdminRole, confirmPlatformInvitationActivation, confirmPlatformLogoutAll, confirmPlatformMfaEnrollment, createPlatformAdminInvitation, createPlatformExport, getMyPlatformEffectiveAccess, getPlatformAdmin, getPlatformCurrentSession, getPlatformInvitationStatus, getPlatformRecoveryCodeStatus, getPlatformTenant, listPlatformAdmins, listPlatformTenants, platformLogin, PlatformInvitationError, PlatformLoginError, PlatformMfaError, PLATFORM_AUTH_UNAUTHORIZED_EVENT, regeneratePlatformRecoveryCodes, resetPlatformAdminMfa, revokePlatformAdminInvitation, revokePlatformAdminSessions, searchPlatformAuditLogs, startPlatformAdminInvitation, startPlatformAdminMfaReset, startPlatformAdminRoleChange, startPlatformAdminSessionRevoke, startPlatformLogoutAll, startPlatformRecoveryCodeRegeneration, verifyPlatformMfa } from './api';
 import { writePlatformSession } from './storage';
 
 describe('platform read API', () => {
@@ -41,6 +41,37 @@ describe('platform read API', () => {
       '/api/platform/companies?page=2&size=20&keyword=%E5%8D%8E%E4%B8%9C+A%2F1&status=ACTIVE',
       expect.objectContaining({ headers: { Authorization: 'Bearer platform-token' } }),
     );
+  });
+
+  it('queries the administrator directory and detail with explicit safe filters', async () => {
+    writePlatformSession({
+      token: 'platform-token', tokenType: 'Bearer', email: 'admin@bcwms.com',
+      roles: ['PLATFORM_SUPER_ADMIN'], expiresAt: Date.now() + 60_000,
+    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        content: [], number: 1, size: 20, totalElements: 0, totalPages: 0,
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: 9, displayName: 'Administrator', email: 'admin@example.com', enabled: true,
+        roles: [], mfaStatus: 'ENROLLED', mfaEnrolledAt: null, mfaLockedUntil: null,
+        createdAt: '2026-08-20T00:00:00Z', updatedAt: '2026-08-20T00:00:00Z',
+        activeGrantCount: 0, activeGrantCounts: { READ: 0, EXPORT: 0 },
+        currentUser: false, lastEnabledSuperAdmin: false,
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await listPlatformAdmins(1, 20, {
+      keyword: '  安全 A/1  ', enabled: false, role: 'PLATFORM_SUPER_ADMIN',
+      mfaStatus: 'TEMPORARILY_LOCKED',
+    });
+    await getPlatformAdmin(9);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1,
+      '/api/platform/admins?page=1&size=20&keyword=%E5%AE%89%E5%85%A8+A%2F1&enabled=false&role=PLATFORM_SUPER_ADMIN&mfaStatus=TEMPORARILY_LOCKED',
+      expect.objectContaining({ headers: { Authorization: 'Bearer platform-token' } }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/platform/admins/9', expect.objectContaining({
+      headers: { Authorization: 'Bearer platform-token' },
+    }));
   });
 
   it('loads one tenant overview through the platform-scoped endpoint', async () => {
@@ -158,22 +189,61 @@ describe('platform read API', () => {
       roles: ['PLATFORM_SUPER_ADMIN'], expiresAt: Date.now() + 60_000,
     });
     const fetchMock = vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response(JSON.stringify({ challengeToken: 'admin-reset-challenge', expiresIn: 300_000 }), {
+      .mockResolvedValueOnce(new Response(JSON.stringify({ challengeToken: 'admin-reset-challenge', expiresIn: 300_000, targetSecurityVersion: 8 }), {
         status: 200, headers: { 'Content-Type': 'application/json' },
       }))
-      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        targetUserId: 9, action: 'MFA_RESET', changed: true, enabled: true, mfaStatus: 'NOT_ENROLLED',
+        roles: ['PLATFORM_SUPER_ADMIN'], activeGrantCount: 0, securityVersion: 9, completedAt: '2026-08-22T14:00:00Z',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     const challenge = await startPlatformAdminMfaReset(9);
-    await resetPlatformAdminMfa(9, challenge.challengeToken, 'current-password', '123456', 'Lost authenticator');
+    const result = await resetPlatformAdminMfa(
+      9, challenge.challengeToken, 'current-password', '123456', 'Lost authenticator', 'mfa-reset-command-1',
+    );
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/platform/admins/9/mfa-reset/challenge', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/platform/admins/9/mfa-reset', expect.objectContaining({
       method: 'POST',
+      headers: expect.objectContaining({ 'Idempotency-Key': 'mfa-reset-command-1' }),
       body: JSON.stringify({
         challengeToken: 'admin-reset-challenge', password: 'current-password', code: '123456', reason: 'Lost authenticator',
       }),
     }));
+    expect(challenge.targetSecurityVersion).toBe(8);
+    expect(result.mfaStatus).toBe('NOT_ENROLLED');
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/exports'))).toBe(false);
+  });
+
+  it('sends target session revocation as a separate idempotent administrator command', async () => {
+    writePlatformSession({
+      token: 'platform-token', tokenType: 'Bearer', email: 'admin@bcwms.com',
+      roles: ['PLATFORM_SUPER_ADMIN'], expiresAt: Date.now() + 60_000,
+    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        challengeToken: 'session-revoke-challenge', expiresIn: 300_000, targetSecurityVersion: 12,
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        targetUserId: 9, action: 'ADMIN_SESSIONS_REVOKED', changed: true, enabled: true, mfaStatus: 'ENROLLED',
+        roles: ['HISTORICAL_UNKNOWN'], activeGrantCount: 2, securityVersion: 13, completedAt: '2026-08-22T14:00:00Z',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const challenge = await startPlatformAdminSessionRevoke(9);
+    const result = await revokePlatformAdminSessions(
+      9, challenge.challengeToken, 'current-password', '654321', 'Compromised laptop', 'session-command-1',
+    );
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/platform/admins/9/sessions/revoke/challenge', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/platform/admins/9/sessions/revoke', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({ 'Idempotency-Key': 'session-command-1' }),
+      body: JSON.stringify({
+        challengeToken: 'session-revoke-challenge', password: 'current-password', code: '654321', reason: 'Compromised laptop',
+      }),
+    }));
+    expect(result.action).toBe('ADMIN_SESSIONS_REVOKED');
+    expect(result.enabled).toBe(true);
   });
 
   it('creates a super-administrator invitation only after password and MFA reauthentication', async () => {
@@ -187,10 +257,10 @@ describe('platform read API', () => {
       }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     const challenge = await startPlatformAdminInvitation();
-    await createPlatformAdminInvitation({ challengeToken: challenge.challengeToken, password: 'current-password', code: '123456', email: 'second@example.com', displayName: 'Second Owner', reason: 'Continuity' });
+    await createPlatformAdminInvitation({ challengeToken: challenge.challengeToken, password: 'current-password', code: '123456', email: 'second@example.com', displayName: 'Second Owner', reason: 'Continuity', invitationType: 'SUPER_ADMIN', roleCode: 'PLATFORM_SUPER_ADMIN' });
 
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/platform/admins/invitations', expect.objectContaining({
-      method: 'POST', body: JSON.stringify({ challengeToken: 'invite-challenge', password: 'current-password', code: '123456', email: 'second@example.com', displayName: 'Second Owner', reason: 'Continuity' }),
+      method: 'POST', body: JSON.stringify({ challengeToken: 'invite-challenge', password: 'current-password', code: '123456', email: 'second@example.com', displayName: 'Second Owner', reason: 'Continuity', invitationType: 'SUPER_ADMIN', roleCode: 'PLATFORM_SUPER_ADMIN' }),
     }));
     expect(sessionStorage.getItem('one-time-token')).toBeNull();
   });
@@ -203,7 +273,7 @@ describe('platform read API', () => {
       errorKey: 'AUTH_FAILED', params: { reason: 'MFA_VERIFICATION_FAILED' }, status: 401,
     }), { status: 401, headers: { 'Content-Type': 'application/json' } }));
 
-    await expect(createPlatformAdminInvitation({ challengeToken: 'challenge', password: 'wrong', code: '000000', email: 'second@example.com', displayName: 'Second Owner', reason: 'Continuity' }))
+    await expect(createPlatformAdminInvitation({ challengeToken: 'challenge', password: 'wrong', code: '000000', email: 'second@example.com', displayName: 'Second Owner', reason: 'Continuity', invitationType: 'SUPER_ADMIN', roleCode: 'PLATFORM_SUPER_ADMIN' }))
       .rejects.toMatchObject({ reason: 'reauthentication' });
 
     expect(unauthorized).not.toHaveBeenCalled();
@@ -331,6 +401,52 @@ describe('platform login API', () => {
     expect(fetchMock.mock.calls[0][1]?.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('tenant-token');
     expect(sessionStorage.getItem('2g-wms.platform-auth-session')).toBeNull();
+  });
+
+  it('confirms invitation MFA through the atomic activation endpoint', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      status: 'AUTHENTICATED', token: 'platform-jwt', tokenType: 'Bearer',
+      email: 'operator@example.com', roles: ['PLATFORM_OPERATIONS_ADMIN'],
+      expiresIn: 900_000, recoveryCodes: ['RECOVERY-1'],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const result = await confirmPlatformInvitationActivation('activation-challenge', '123456');
+
+    expect(result.status).toBe('AUTHENTICATED');
+    expect(fetchMock).toHaveBeenCalledWith('/api/platform/auth/invitations/activate/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challengeToken: 'activation-challenge', code: '123456' }),
+    });
+  });
+
+  it('sends role-change intent in both the MFA challenge and idempotent mutation', async () => {
+    writePlatformSession({ token: 'platform-token', tokenType: 'Bearer', email: 'owner@bcwms.com', roles: ['PLATFORM_SUPER_ADMIN'], expiresAt: Date.now() + 60_000 });
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ challengeToken: 'role-challenge', expiresIn: 300_000, targetSecurityVersion: 4 }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ targetUserId: 9, changed: true, enabled: false, beforeRoles: ['PLATFORM_OPERATIONS_ADMIN'], afterRoles: ['PLATFORM_SECURITY_AUDITOR'], activeGrantCount: 0, securityVersion: 5, completedAt: '2026-08-23T00:00:00Z' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const challenge = await startPlatformAdminRoleChange(9, 'PLATFORM_SECURITY_AUDITOR');
+    await changePlatformAdminRole(9, 'PLATFORM_SECURITY_AUDITOR', challenge.challengeToken, 'owner-password', '123456', 'separate duties', 'role-key');
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/platform/admins/9/roles/change/challenge', expect.objectContaining({
+      method: 'POST', body: JSON.stringify({ jobRoleCode: 'PLATFORM_SECURITY_AUDITOR' }),
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/platform/admins/9/roles', expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'role-key', Authorization: 'Bearer platform-token' },
+    }));
+  });
+
+  it('requires an explicit reason when revoking an invitation', async () => {
+    writePlatformSession({ token: 'platform-token', tokenType: 'Bearer', email: 'owner@bcwms.com', roles: ['PLATFORM_SUPER_ADMIN'], expiresAt: Date.now() + 60_000 });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+
+    await revokePlatformAdminInvitation(11, 'recipient changed');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/platform/admins/invitations/11/revoke', expect.objectContaining({
+      method: 'POST', body: JSON.stringify({ reason: 'recipient changed' }),
+    }));
   });
 
   it('distinguishes an invalid invitation from a temporary activation failure', async () => {

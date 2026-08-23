@@ -40,7 +40,7 @@ describe('platform tenant management page', () => {
   });
 
   it('loads the tenant directory on entry without selecting or reading a tenant', async () => {
-    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, scopes: [] }} /></AntdApp>);
+    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, tenantDirectoryScope: 'ALL', scopes: [] }} /></AntdApp>);
 
     expect(screen.getByRole('heading', { name: '租户管理' })).toBeInTheDocument();
     await waitFor(() => expect(apiMocks.listPlatformTenants).toHaveBeenCalledWith(0, 20, {
@@ -53,7 +53,7 @@ describe('platform tenant management page', () => {
   });
 
   it('does not search while the administrator is typing', async () => {
-    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, scopes: [] }} /></AntdApp>);
+    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, tenantDirectoryScope: 'ALL', scopes: [] }} /></AntdApp>);
 
     await waitFor(() => expect(apiMocks.listPlatformTenants).toHaveBeenCalledTimes(1));
 
@@ -78,7 +78,7 @@ describe('platform tenant management page', () => {
     });
     apiMocks.getPlatformTenant.mockResolvedValue({ ...directoryTenant, displayName: '租户甲（详情）' });
 
-    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, scopes: [] }} /></AntdApp>);
+    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, tenantDirectoryScope: 'ALL', scopes: [] }} /></AntdApp>);
     fireEvent.click(await screen.findByRole('button', { name: /租户甲/ }));
 
     await waitFor(() => expect(apiMocks.getPlatformTenant).toHaveBeenCalledWith(7));
@@ -100,7 +100,7 @@ describe('platform tenant management page', () => {
     apiMocks.listPlatformTenants.mockResolvedValue({ content: tenants, number: 0, size: 20, totalElements: 2, totalPages: 1 });
     apiMocks.getPlatformTenant.mockImplementation((tenantId: number) => tenantId === 1 ? first : second);
 
-    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, scopes: [] }} /></AntdApp>);
+    render(<AntdApp><PlatformTenantManagementPage access={{ superAdmin: true, tenantDirectoryScope: 'ALL', scopes: [] }} /></AntdApp>);
     fireEvent.click(await screen.findByRole('button', { name: /租户一/ }));
     fireEvent.click(screen.getByRole('button', { name: /租户二/ }));
 

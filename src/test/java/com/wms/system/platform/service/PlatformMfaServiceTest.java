@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.platform.config.PlatformMfaProperties;
 import com.wms.system.platform.dto.PlatformLoginRequest;
-import com.wms.system.platform.dto.PlatformAdminMfaResetRequest;
 import com.wms.system.platform.dto.PlatformMfaVerifyRequest;
 import com.wms.system.platform.dto.PlatformRecoveryCodeRegenerationRequest;
 import com.wms.system.platform.model.PlatformMfaChallenge;
@@ -209,86 +208,29 @@ class PlatformMfaServiceTest {
             eq("platform_identity"), eq("SUCCESS"), eq(java.util.Map.of("remaining", 10)), isNull());
     }
 
-    @Test void superAdministratorCanResetAnotherSuperAdministratorWithoutDeletingBusinessTasks() {
-        PlatformUser actor = user(true);
-        actor.setMfaSecretEncrypted("actor-secret");
-        PlatformUser target = PlatformUser.builder().id(9L).normalizedEmail("target@bcwms.com")
-            .passwordHash("target-password").displayName("Target").enabled(true).securityVersion(8L)
-            .mfaEnabled(true).mfaSecretEncrypted("target-secret")
-            .recoveryCodeHashesJson("[\"target-recovery-hash\"]").mfaFailedAttempts(2)
-            .mfaLockedUntil(OffsetDateTime.now().plusMinutes(10)).mfaEnrolledAt(OffsetDateTime.now().minusDays(1)).build();
-        PlatformMfaChallenge challenge = PlatformMfaChallenge.builder().id(12L).platformUserId(7L)
-            .targetPlatformUserId(9L).tokenHash("admin-reset-hash").purpose("ADMIN_MFA_RESET").attemptCount(0)
+    @Test void adminInvitationCredentialFailureIsDeferredToRollbackSafeRecorder() {
+        PlatformUser user = user(true);
+        user.setMfaSecretEncrypted("encrypted-secret");
+        PlatformMfaChallenge challenge = PlatformMfaChallenge.builder()
+            .id(12L).platformUserId(7L).tokenHash("admin-invite-hash")
+            .purpose("ADMIN_INVITE").attemptCount(0)
             .expiresAt(OffsetDateTime.now().plusMinutes(5)).build();
-        when(accessGuard.requireSuperAdmin()).thenReturn(new PlatformSecurityUser(actor));
-        when(crypto.hashToken("admin-reset-challenge")).thenReturn("admin-reset-hash");
-        when(challengeRepository.findByTokenHashForUpdate("admin-reset-hash")).thenReturn(Optional.of(challenge));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(actor));
-        when(userRepository.findById(9L)).thenReturn(Optional.of(target));
-        when(passwordEncoder.matches("actor-password", "encoded")).thenReturn(true);
-        when(crypto.decrypt("actor-secret")).thenReturn("ACTOR_TOTP_SECRET");
-        when(crypto.verifyTotp(eq("ACTOR_TOTP_SECRET"), eq("246810"), any())).thenReturn(true);
-        when(userDetailsService.loadRoleCodes(9L)).thenReturn(List.of("PLATFORM_SUPER_ADMIN"));
-
-        service.adminResetMfa(9L, adminResetRequest("actor-password", "246810", "Lost authenticator"), null);
-
-        assertThat(target.getMfaEnabled()).isFalse();
-        assertThat(target.getMfaSecretEncrypted()).isNull();
-        assertThat(target.getRecoveryCodeHashesJson()).isNull();
-        assertThat(target.getMfaEnrolledAt()).isNull();
-        assertThat(target.getMfaFailedAttempts()).isZero();
-        assertThat(target.getMfaLockedUntil()).isNull();
-        assertThat(target.getSecurityVersion()).isEqualTo(9L);
-        assertThat(challenge.getConsumedAt()).isNotNull();
-        verify(challengeRepository).deleteByPlatformUserId(9L);
-        verify(auditService).record(eq(7L), isNull(), eq("MFA_RESET"), eq("platform_identity"), eq("SUCCESS"),
-            argThat(detail -> Long.valueOf(9L).equals(detail.get("targetPlatformUserId"))
-                && Boolean.TRUE.equals(detail.get("targetSuperAdmin"))
-                && Boolean.TRUE.equals(detail.get("sessionsRevoked"))
-                && Boolean.TRUE.equals(detail.get("backgroundTasksPreserved"))
-                && "Lost authenticator".equals(detail.get("reason"))), isNull());
-    }
-
-    @Test void superAdministratorCannotResetOwnMfa() {
-        PlatformUser actor = user(true);
-        when(accessGuard.requireSuperAdmin()).thenReturn(new PlatformSecurityUser(actor));
-
-        assertThatThrownBy(() -> service.startAdminMfaReset(7L))
-            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
-
-        verifyNoInteractions(challengeRepository);
-        verify(userRepository, never()).save(any());
-    }
-
-    @Test void failedAdministratorResetReauthenticationIsAuditedAndLeavesTargetMfaIntact() {
-        PlatformUser actor = user(true);
-        actor.setMfaSecretEncrypted("actor-secret");
-        PlatformUser target = PlatformUser.builder().id(9L).normalizedEmail("target@bcwms.com")
-            .passwordHash("target-password").displayName("Target").enabled(true).securityVersion(8L)
-            .mfaEnabled(true).mfaSecretEncrypted("target-secret").mfaFailedAttempts(0).build();
-        PlatformMfaChallenge challenge = PlatformMfaChallenge.builder().id(13L).platformUserId(7L)
-            .targetPlatformUserId(9L).tokenHash("admin-reset-hash").purpose("ADMIN_MFA_RESET").attemptCount(0)
-            .expiresAt(OffsetDateTime.now().plusMinutes(5)).build();
-        when(accessGuard.requireSuperAdmin()).thenReturn(new PlatformSecurityUser(actor));
-        when(crypto.hashToken("admin-reset-challenge")).thenReturn("admin-reset-hash");
-        when(challengeRepository.findByTokenHashForUpdate("admin-reset-hash")).thenReturn(Optional.of(challenge));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(actor));
-        when(userRepository.findById(9L)).thenReturn(Optional.of(target));
+        when(accessGuard.requireSuperAdmin()).thenReturn(new PlatformSecurityUser(user));
+        when(crypto.hashToken("admin-invite-token")).thenReturn("admin-invite-hash");
+        when(challengeRepository.findByTokenHashForUpdate("admin-invite-hash"))
+            .thenReturn(Optional.of(challenge));
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong-password", "encoded")).thenReturn(false);
-        when(crypto.decrypt("actor-secret")).thenReturn("ACTOR_TOTP_SECRET");
-        when(crypto.verifyTotp(eq("ACTOR_TOTP_SECRET"), eq("246810"), any())).thenReturn(true);
-        when(userDetailsService.loadRoleCodes(9L)).thenReturn(List.of("PLATFORM_SUPER_ADMIN"));
 
-        assertThatThrownBy(() -> service.adminResetMfa(9L,
-            adminResetRequest("wrong-password", "246810", "Lost authenticator"), null))
-            .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> service.verifyAdminInvitation(
+            "admin-invite-token", "wrong-password", "000000", null))
+            .isInstanceOf(PlatformAdminInvitationMfaCredentialException.class);
 
-        assertThat(target.getMfaEnabled()).isTrue();
-        assertThat(target.getSecurityVersion()).isEqualTo(8L);
-        verify(challengeRepository, never()).deleteByPlatformUserId(anyLong());
-        verify(auditService).record(eq(7L), isNull(), eq("MFA_RESET"), eq("platform_identity"), eq("FAILED"),
-            argThat(detail -> Long.valueOf(9L).equals(detail.get("targetPlatformUserId"))
-                && Boolean.FALSE.equals(detail.get("sessionsRevoked"))), isNull());
+        assertThat(user.getMfaFailedAttempts()).isZero();
+        assertThat(challenge.getAttemptCount()).isZero();
+        verify(userRepository, never()).save(user);
+        verify(challengeRepository, never()).save(challenge);
+        verifyNoInteractions(auditService);
     }
 
     private PlatformUser user(boolean mfaEnabled) {
@@ -302,12 +244,4 @@ class PlatformMfaServiceTest {
         request.setChallengeToken(token); request.setCode(code); return request;
     }
 
-    private PlatformAdminMfaResetRequest adminResetRequest(String password, String code, String reason) {
-        PlatformAdminMfaResetRequest request = new PlatformAdminMfaResetRequest();
-        request.setChallengeToken("admin-reset-challenge");
-        request.setPassword(password);
-        request.setCode(code);
-        request.setReason(reason);
-        return request;
-    }
 }

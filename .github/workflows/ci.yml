@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:18
+        image: postgres:16
         env:
           POSTGRES_DB: wms_db_test
           POSTGRES_USER: postgres
@@ -44,12 +44,155 @@ jobs:
       - name: Verify backend
         shell: pwsh
         run: ./src/test/scripts/invoke-ci-verification.ps1 -Mode Run -Component Backend
+      - name: Verify empty-database Flyway baseline
+        shell: bash
+        env:
+          DB_USERNAME: wms_ci_app
+          DB_PASSWORD: wms-ci-app-only
+          SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/wms_db_migration
+          SPRING_DATASOURCE_USERNAME: wms_ci_app
+          SPRING_DATASOURCE_PASSWORD: wms-ci-app-only
+          TENANT_JWT_SECRET: dGVzdC10ZW5hbnQtand0LXNlY3JldC1rZXktZm9yLWNpLWJhc2VsaW5lLW9ubHk=
+          PLATFORM_JWT_SECRET: dGVzdC1wbGF0Zm9ybS1qd3Qtc2VjcmV0LWtleS1mb3ItY2ktYmFzZWxpbmUtb25seQ==
+          BATCH_SALT: CI_BASELINE_TEST_ONLY_BATCH_SALT
+          WMS_REQUIRE_SAFE_DB_ROLE: "true"
+          WMS_PLATFORM_BOOTSTRAP_ENABLED: "false"
+          WMS_LEGACY_ADMIN_BOOTSTRAP_ENABLED: "false"
+          WMS_PLATFORM_EXPORT_DIR: target/ci-verification/platform-exports
+          SPRING_JPA_SHOW_SQL: "false"
+        run: |
+          set -euo pipefail
+
+          export PGPASSWORD=123465
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE wms_ci_app LOGIN PASSWORD 'wms-ci-app-only' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+          createdb -h 127.0.0.1 -U postgres -O wms_ci_app wms_db_migration
+
+          role_flags="$(psql -h 127.0.0.1 -U postgres -d postgres -At -v ON_ERROR_STOP=1 \
+            -c "SELECT rolsuper || '|' || rolcreatedb || '|' || rolcreaterole || '|' || rolbypassrls FROM pg_roles WHERE rolname='wms_ci_app'")"
+          test "$role_flags" = "false|false|false|false"
+
+          mkdir -p target/ci-verification
+          app_pid=""
+          stop_app() {
+            if [[ -n "$app_pid" ]] && kill -0 "$app_pid" 2>/dev/null; then
+              kill "$app_pid"
+              wait "$app_pid" || true
+            fi
+            app_pid=""
+          }
+          trap stop_app EXIT
+
+          start_and_wait() {
+            local log_file="$1"
+            local health_file="$2"
+            java -jar target/wms-system-0.0.1-SNAPSHOT.jar --server.port=18080 >"$log_file" 2>&1 &
+            app_pid=$!
+            for _ in $(seq 1 90); do
+              if ! kill -0 "$app_pid" 2>/dev/null; then
+                cat "$log_file"
+                return 1
+              fi
+              if curl --fail --silent --show-error http://127.0.0.1:18080/health/check \
+                  >"$health_file" \
+                  && grep -Eq '"status"[[:space:]]*:[[:space:]]*"UP"' "$health_file"; then
+                return 0
+              fi
+              sleep 1
+            done
+            cat "$log_file"
+            return 1
+          }
+
+          assert_no_unexpected_rows() {
+            PGPASSWORD=123465 psql -h 127.0.0.1 -U postgres -d wms_db_migration \
+              -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE
+            item record;
+            row_count bigint;
+          BEGIN
+            FOR item IN
+              SELECT schemaname, tablename
+              FROM pg_tables
+              WHERE schemaname = 'public'
+                AND tablename NOT IN (
+                  'flyway_schema_history',
+                  'platform_roles',
+                  'subscription_plans',
+                  'plan_limits'
+                )
+            LOOP
+              EXECUTE format(
+                'SELECT count(*) FROM %I.%I',
+                item.schemaname,
+                item.tablename
+              ) INTO row_count;
+
+              IF row_count <> 0 THEN
+                RAISE EXCEPTION 'Unexpected rows in %.%: %',
+                  item.schemaname, item.tablename, row_count;
+              END IF;
+            END LOOP;
+          END
+          $$;
+          SQL
+          }
+
+          export PGPASSWORD=wms-ci-app-only
+          start_and_wait \
+            target/ci-verification/flyway-first-start.log \
+            target/ci-verification/flyway-first-health.json
+
+          history="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -At -v ON_ERROR_STOP=1 \
+            -c "SELECT string_agg(type || ':' || version, ',' ORDER BY installed_rank) FROM flyway_schema_history")"
+          test "$history" = "SQL_BASELINE:4.71,SQL:4.72"
+          history_before="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -F '|' -At -v ON_ERROR_STOP=1 \
+            -c "SELECT installed_rank, version, type, script, COALESCE(checksum::text, ''), success FROM flyway_schema_history ORDER BY installed_rank")"
+          printf '%s\n' "$history_before" > target/ci-verification/flyway-history-before-restart.txt
+
+          catalogue="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -At -v ON_ERROR_STOP=1 \
+            -c "SELECT (SELECT count(*) FROM platform_roles) || '|' || (SELECT count(*) FROM subscription_plans) || '|' || (SELECT count(*) FROM plan_limits) || '|' || (SELECT count(*) FROM tenants) || '|' || (SELECT count(*) FROM platform_users)")"
+          test "$catalogue" = "7|2|1|0|0"
+
+          assert_no_unexpected_rows
+
+          pg_dump -h 127.0.0.1 -U wms_ci_app -d wms_db_migration --schema=public \
+            --schema-only --no-owner --no-privileges --exclude-table=public.flyway_schema_history \
+            > target/ci-verification/flyway-schema-before-restart.sql
+          grep -Ev '^\\(un)?restrict ' target/ci-verification/flyway-schema-before-restart.sql \
+            > target/ci-verification/flyway-schema-before-restart.normalized.sql
+
+          stop_app
+          start_and_wait \
+            target/ci-verification/flyway-second-start.log \
+            target/ci-verification/flyway-second-health.json
+
+          history_after="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -F '|' -At -v ON_ERROR_STOP=1 \
+            -c "SELECT installed_rank, version, type, script, COALESCE(checksum::text, ''), success FROM flyway_schema_history ORDER BY installed_rank")"
+          test "$history_after" = "$history_before"
+          printf '%s\n' "$history_after" > target/ci-verification/flyway-history-after-restart.txt
+          assert_no_unexpected_rows
+
+          pg_dump -h 127.0.0.1 -U wms_ci_app -d wms_db_migration --schema=public \
+            --schema-only --no-owner --no-privileges --exclude-table=public.flyway_schema_history \
+            > target/ci-verification/flyway-schema-after-restart.sql
+          grep -Ev '^\\(un)?restrict ' target/ci-verification/flyway-schema-after-restart.sql \
+            > target/ci-verification/flyway-schema-after-restart.normalized.sql
+          cmp target/ci-verification/flyway-schema-before-restart.normalized.sql \
+            target/ci-verification/flyway-schema-after-restart.normalized.sql
+
+          grep -F 'Schema "public" is up to date. No migration necessary.' \
+            target/ci-verification/flyway-second-start.log
+          stop_app
       - name: Upload backend test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-reports
-          path: target/surefire-reports/
+          path: |
+            target/surefire-reports/
+            target/ci-verification/
           if-no-files-found: warn
 
   frontend:

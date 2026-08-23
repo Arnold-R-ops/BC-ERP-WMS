@@ -7,4 +7,6 @@ public class PlatformInvitationActivationController {
     private final PlatformAdminInvitationService service;
     @PostMapping("/status") public PlatformInvitationStatusResponse status(@Valid @RequestBody PlatformInvitationTokenRequest r){return service.status(r);}
     @PostMapping("/activate") public PlatformAuthResponse activate(@Valid @RequestBody PlatformInvitationActivateRequest r,HttpServletRequest h){return service.activate(r,h);}
+    @PostMapping("/activate/confirm") public PlatformAuthResponse confirm(
+        @Valid @RequestBody PlatformMfaVerifyRequest r,HttpServletRequest h){return service.confirmActivation(r,h);}
 }

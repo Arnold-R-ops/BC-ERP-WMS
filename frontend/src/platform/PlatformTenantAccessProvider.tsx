@@ -10,10 +10,16 @@ interface PlatformTenantAccessContextValue {
 }
 
 const PlatformTenantAccessContext = createContext<PlatformTenantAccessContextValue | null>(null);
-const SUPER_ADMIN_ACCESS: PlatformEffectiveAccess = { superAdmin: true, scopes: [] };
+const SUPER_ADMIN_ACCESS: PlatformEffectiveAccess = {
+  superAdmin: true,
+  tenantDirectoryScope: 'ALL',
+  scopes: [],
+};
 
 export function canAccessTenantManagement(access: PlatformEffectiveAccess | null): boolean {
-  return Boolean(access?.superAdmin || access?.scopes.length);
+  return Boolean(access?.superAdmin
+    || access?.tenantDirectoryScope === 'ALL'
+    || access?.scopes.length);
 }
 
 export function PlatformTenantAccessProvider({ children }: PropsWithChildren): JSX.Element {

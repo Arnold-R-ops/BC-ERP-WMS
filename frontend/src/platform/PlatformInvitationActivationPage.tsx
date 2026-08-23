@@ -2,7 +2,7 @@ import { Alert, App as AntdApp, Button, Checkbox, Form, Input, QRCode, Space, Sp
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { activatePlatformInvitation, confirmPlatformMfaEnrollment, getPlatformInvitationStatus, PlatformInvitationError, type PlatformAuthResponse, type PlatformInvitationStatus } from './api';
+import { activatePlatformInvitation, confirmPlatformInvitationActivation, getPlatformInvitationStatus, PlatformInvitationError, type PlatformAuthResponse, type PlatformInvitationStatus } from './api';
 import { usePlatformAuth } from './PlatformAuthProvider';
 
 export function PlatformInvitationActivationPage(): JSX.Element {
@@ -59,7 +59,7 @@ export function PlatformInvitationActivationPage(): JSX.Element {
     if (!authStep?.challengeToken) return;
     setLoading(true);
     try {
-      setAuthStep(await confirmPlatformMfaEnrollment(authStep.challengeToken, values.code));
+      setAuthStep(await confirmPlatformInvitationActivation(authStep.challengeToken, values.code));
     } catch {
       message.error(english ? 'The verification code is invalid or expired.' : '验证码无效或已过期，请重试。');
     } finally {
@@ -115,7 +115,7 @@ export function PlatformInvitationActivationPage(): JSX.Element {
     <Typography.Title level={2}>{english ? 'Activate platform administrator' : '激活平台管理员账号'}</Typography.Title>
     <Space direction="vertical" size="small">
       <Typography.Text>{status.displayName} · {status.email}</Typography.Text>
-      <Tag color="red">{status.roleCode}</Tag>
+      <Tag color={status.invitationType === 'SUPER_ADMIN' ? 'red' : 'blue'}>{status.roleCode}</Tag>
       <Typography.Text type="secondary">{english ? 'Expires: ' : '到期时间：'}{new Date(status.expiresAt).toLocaleString()}</Typography.Text>
     </Space>
     <Alert showIcon type="info" message={english ? 'Create an independent password. MFA binding is required immediately afterward.' : '请设置独立密码；下一步必须立即绑定 MFA。'} />

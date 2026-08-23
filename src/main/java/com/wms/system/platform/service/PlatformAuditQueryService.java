@@ -35,7 +35,11 @@ public class PlatformAuditQueryService {
         "page", "size", "returned", "total", "jobId", "recordCount",
         "authorizationId", "operation", "resourceId", "attempts", "locked",
         "targetPlatformUserId", "targetSuperAdmin", "sessionsRevoked",
-        "backgroundTasksPreserved", "reason", "invitationId", "roleCode", "expiresAt"
+        "backgroundTasksPreserved", "reason", "invitationId", "roleCode", "expiresAt",
+        "keywordApplied", "keywordLength", "enabled", "roleApplied", "mfaStatus", "errorKey",
+        "desiredEnabled", "targetSecurityVersion", "beforeEnabled", "afterEnabled", "changed",
+        "activeGrantCount", "securityVersion", "idempotencyKeyHash", "invitationType",
+        "desiredRole", "targetEnabled", "enabledPreserved", "accessGrantsPreserved"
     );
 
     private final PlatformAuditLogRepository auditRepository;

@@ -1,6 +1,7 @@
 package com.wms.system.platform.service;
 
 import com.wms.system.platform.dto.PlatformEffectiveAccessResponse;
+import com.wms.system.platform.dto.PlatformAccessGrantRequest;
 import com.wms.system.platform.model.PlatformAccessGrant;
 import com.wms.system.platform.model.PlatformUser;
 import com.wms.system.platform.repository.*;
@@ -35,6 +36,7 @@ class PlatformAccessGrantServiceTest {
         PlatformEffectiveAccessResponse result = service.effectiveAccess();
 
         assertThat(result.superAdmin()).isTrue();
+        assertThat(result.tenantDirectoryScope()).isEqualTo("ALL");
         assertThat(result.scopes()).isEmpty();
         verifyNoInteractions(grants);
     }
@@ -54,11 +56,36 @@ class PlatformAccessGrantServiceTest {
         PlatformEffectiveAccessResponse result = service.effectiveAccess();
 
         assertThat(result.superAdmin()).isFalse();
+        assertThat(result.tenantDirectoryScope()).isEqualTo("GRANTED");
         assertThat(result.scopes()).hasSize(1);
         assertThat(result.scopes().get(0).tenantId()).isEqualTo(6L);
         assertThat(result.scopes().get(0).datasetCode()).isEqualTo("users");
         assertThat(result.scopes().get(0).read()).isTrue();
         assertThat(result.scopes().get(0).export()).isFalse();
+    }
+
+    @Test
+    void operationsAdministratorSeesAllTenantDirectoryButOnlyGrantedDatasets() {
+        when(guard.requirePlatformUser()).thenReturn(user(9L));
+        when(guard.isOperationsAdmin()).thenReturn(true);
+        when(grants.activeGrants(eq(9L), any(OffsetDateTime.class))).thenReturn(List.of());
+
+        PlatformEffectiveAccessResponse result = service.effectiveAccess();
+
+        assertThat(result.superAdmin()).isFalse();
+        assertThat(result.tenantDirectoryScope()).isEqualTo("ALL");
+        assertThat(result.scopes()).isEmpty();
+    }
+
+    @Test
+    void securityAuditorGetsNoTenantDirectoryOrDatasetAccess() {
+        when(guard.requirePlatformUser()).thenReturn(user(9L));
+
+        PlatformEffectiveAccessResponse result = service.effectiveAccess();
+
+        assertThat(result.superAdmin()).isFalse();
+        assertThat(result.tenantDirectoryScope()).isEqualTo("NONE");
+        assertThat(result.scopes()).isEmpty();
     }
 
     @Test
@@ -74,7 +101,37 @@ class PlatformAccessGrantServiceTest {
         var result = service.list(9L);
 
         assertThat(result).singleElement().extracting("tenantName").isEqualTo("默认租户");
-        verify(guard).requireSuperAdmin();
+        verify(guard).requireGrantInventoryRead();
+    }
+
+    @Test
+    void createLocksGranteeBeforeRecheckingEligibilityAndSavingGrant() {
+        PlatformUser grantee = user(9L).getUser();
+        Tenant tenant = Tenant.builder().id(6L).tenantCode("T-6")
+            .displayName("Tenant 6").slug("tenant-6").build();
+        when(guard.requireSuperAdmin()).thenReturn(user(7L));
+        when(users.findByIdForUpdate(9L)).thenReturn(java.util.Optional.of(grantee));
+        when(userRoles.findRoleCodesByPlatformUserId(9L))
+            .thenReturn(List.of(PlatformAdminInvitationService.OPERATIONS_ADMIN));
+        when(tenants.findAllById(new java.util.LinkedHashSet<>(List.of(6L))))
+            .thenReturn(List.of(tenant));
+        when(grants.save(any(PlatformAccessGrant.class))).thenAnswer(invocation -> {
+            PlatformAccessGrant saved = invocation.getArgument(0);
+            saved.setId(21L);
+            return saved;
+        });
+        when(users.findById(9L)).thenReturn(java.util.Optional.of(grantee));
+        when(tenants.findById(6L)).thenReturn(java.util.Optional.of(tenant));
+        PlatformAccessGrantRequest request = new PlatformAccessGrantRequest(
+            9L, List.of("READ"), List.of(6L), List.of("users"), null, null);
+
+        var result = service.create(request, null);
+
+        assertThat(result).singleElement().extracting("id").isEqualTo(21L);
+        var lockOrder = inOrder(users, userRoles, grants);
+        lockOrder.verify(users).findByIdForUpdate(9L);
+        lockOrder.verify(userRoles).findRoleCodesByPlatformUserId(9L);
+        lockOrder.verify(grants).save(any(PlatformAccessGrant.class));
     }
 
     private PlatformSecurityUser user(Long id) {

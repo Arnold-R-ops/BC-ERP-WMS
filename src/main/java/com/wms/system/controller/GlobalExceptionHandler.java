@@ -533,6 +533,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.WAREHOUSE_NOT_FOUND,  // Phase 3.4
                  ErrorKeys.SUPPLIER_NOT_FOUND,
                  ErrorKeys.SIGNUP_REQUEST_NOT_FOUND,
+                 ErrorKeys.PLATFORM_ADMIN_NOT_FOUND,
+                 ErrorKeys.PLATFORM_ADMIN_INVITATION_NOT_FOUND,
                  ErrorKeys.INTEGRATION_CONFIG_NOT_FOUND,  // V3.9 Shopify Integration
                  ErrorKeys.SHOPIFY_SKU_NOT_FOUND,  // V3.9 Shopify Integration
                  "INBOUND_ORDER_NOT_FOUND",  // Phase 3.5
@@ -669,6 +671,19 @@ public class GlobalExceptionHandler {
                  ErrorKeys.SIGNUP_SLUG_UNAVAILABLE,
                  ErrorKeys.SIGNUP_IDEMPOTENCY_CONFLICT,
                  ErrorKeys.SIGNUP_PROVISIONING_FAILED,
+                 ErrorKeys.PLATFORM_ADMIN_LAST_SUPER_ADMIN,
+                 ErrorKeys.PLATFORM_ADMIN_SUPER_ADMIN_LIMIT,
+                 ErrorKeys.PLATFORM_ADMIN_STATUS_CONFLICT,
+                 ErrorKeys.PLATFORM_ADMIN_CONCURRENT_MODIFICATION,
+                 ErrorKeys.PLATFORM_ADMIN_IDEMPOTENCY_CONFLICT,
+                 ErrorKeys.PLATFORM_ADMIN_ENABLE_REVIEW_REQUIRED,
+                 ErrorKeys.PLATFORM_ADMIN_DISABLED,
+                 ErrorKeys.PLATFORM_ADMIN_MFA_NOT_ENROLLED,
+                 ErrorKeys.PLATFORM_ADMIN_EMAIL_EXISTS,
+                 ErrorKeys.PLATFORM_ADMIN_INVITATION_ACTIVE,
+                 ErrorKeys.PLATFORM_ADMIN_INVITATION_TERMINAL,
+                 ErrorKeys.PLATFORM_ADMIN_ROLE_CHANGE_FORBIDDEN,
+                 ErrorKeys.PLATFORM_ADMIN_ACTIVE_GRANTS_EXIST,
                  ErrorKeys.ORDER_NUMBER_DUPLICATE -> HttpStatus.CONFLICT;  // V4.4 Idempotency Defense
 
             // 500 Internal Server Error

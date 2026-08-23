@@ -27,8 +27,14 @@ public class PlatformMfaChallenge {
     @Column(name = "target_platform_user_id")
     private Long targetPlatformUserId;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 40)
     private String purpose;
+
+    @Column(name = "action_context_hash", length = 64)
+    private String actionContextHash;
+
+    @Column(name = "target_security_version")
+    private Long targetSecurityVersion;
 
     @Column(name = "pending_secret_encrypted", columnDefinition = "TEXT")
     private String pendingSecretEncrypted;

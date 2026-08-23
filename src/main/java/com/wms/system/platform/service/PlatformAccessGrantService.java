@@ -1,5 +1,7 @@
 package com.wms.system.platform.service;
 
+import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.platform.dto.*;
 import com.wms.system.platform.model.*;
 import com.wms.system.platform.repository.*;
@@ -21,24 +23,25 @@ public class PlatformAccessGrantService {
 
     @Transactional(readOnly = true)
     public List<PlatformManagedUserResponse> users() {
-        guard.requireSuperAdmin();
+        guard.requireGrantInventoryRead();
         return users.findAll().stream().sorted(Comparator.comparing(PlatformUser::getNormalizedEmail))
             .map(u -> new PlatformManagedUserResponse(u.getId(), u.getNormalizedEmail(), u.getDisplayName(),
                 Boolean.TRUE.equals(u.getEnabled()), isSuper(u.getId()), Boolean.TRUE.equals(u.getMfaEnabled()))).toList();
     }
     @Transactional(readOnly = true)
     public List<PlatformAccessGrantResponse> list(Long userId) {
-        guard.requireSuperAdmin();
+        guard.requireGrantInventoryRead();
         return grants.findByGranteePlatformUserIdOrderByCreatedAtDesc(userId).stream().map(this::response).toList();
     }
 
     @Transactional(readOnly = true)
     public PlatformEffectiveAccessResponse effectiveAccess() {
         PlatformSecurityUser actor = guard.requirePlatformUser();
-        if (guard.isSuperAdmin()) return new PlatformEffectiveAccessResponse(true, List.of());
+        if (guard.isSuperAdmin()) return new PlatformEffectiveAccessResponse(true, "ALL", List.of());
 
-        boolean readRole = guard.hasAuthority("ROLE_PLATFORM_TENANT_READ");
-        boolean exportRole = guard.hasAuthority("ROLE_PLATFORM_TENANT_EXPORT");
+        boolean operations = guard.isOperationsAdmin();
+        boolean readRole = operations || guard.hasAuthority(PlatformAccessGuard.LEGACY_READ);
+        boolean exportRole = operations || guard.hasAuthority(PlatformAccessGuard.LEGACY_EXPORT);
         Map<ScopeKey, boolean[]> effective = new LinkedHashMap<>();
         for (PlatformAccessGrant grant : grants.activeGrants(actor.getId(), OffsetDateTime.now())) {
             ScopeKey key = new ScopeKey(grant.getTenantId(), grant.getDatasetCode());
@@ -52,14 +55,24 @@ public class PlatformAccessGrantService {
                 entry.getKey().tenantId(), entry.getKey().datasetCode(),
                 entry.getValue()[0], entry.getValue()[1]))
             .toList();
-        return new PlatformEffectiveAccessResponse(false, scopes);
+        String directoryScope = operations ? "ALL"
+            : (readRole || exportRole) ? "GRANTED" : "NONE";
+        return new PlatformEffectiveAccessResponse(false, directoryScope, scopes);
     }
     @Transactional
     public List<PlatformAccessGrantResponse> create(PlatformAccessGrantRequest request, HttpServletRequest http) {
         PlatformSecurityUser actor = guard.requireSuperAdmin();
         if (actor.getId().equals(request.platformUserId())) throw new IllegalArgumentException("Platform administrators cannot grant themselves access");
-        PlatformUser grantee = users.findById(request.platformUserId()).filter(u -> Boolean.TRUE.equals(u.getEnabled())).orElseThrow(() -> new NoSuchElementException("Platform administrator not found"));
-        if (isSuper(grantee.getId())) throw new IllegalArgumentException("Super administrator access is permanent and cannot be delegated");
+        // Shared serialization point with job-role mutation. Eligibility must be
+        // re-read while this target row is locked so an auditor role and a grant
+        // can never both commit for the same platform administrator.
+        PlatformUser grantee = users.findByIdForUpdate(request.platformUserId())
+            .filter(u -> Boolean.TRUE.equals(u.getEnabled()))
+            .orElseThrow(() -> new NoSuchElementException("Platform administrator not found"));
+        if (!isGrantEligible(grantee.getId())) {
+            throw new BusinessException(ErrorKeys.PLATFORM_ADMIN_ROLE_CHANGE_FORBIDDEN,
+                Map.of("targetUserId", grantee.getId()));
+        }
         OffsetDateTime from = request.effectiveFrom() == null ? OffsetDateTime.now() : request.effectiveFrom();
         OffsetDateTime until = request.expiresAt() == null ? from.plus(DEFAULT_DURATION) : request.expiresAt();
         if (!until.isAfter(from) || Duration.between(from, until).compareTo(MAX_DURATION) > 0) throw new IllegalArgumentException("Grant duration must be positive and no longer than 90 days");
@@ -80,7 +93,26 @@ public class PlatformAccessGrantService {
         if (grant.getRevokedAt() == null) { grant.setRevokedAt(OffsetDateTime.now()); grant.setRevokedByPlatformUserId(actor.getId());
             audit.record(actor.getId(), grant.getTenantId(), "ACCESS_REVOKED", grant.getDatasetCode(), "SUCCESS", Map.of("authorizationId", grant.getId(), "operation", grant.getCapability()), http); }
     }
-    private boolean isSuper(Long id) { return userRoles.findByPlatformUserId(id).stream().map(r -> roles.findById(r.getPlatformRoleId()).map(PlatformRole::getRoleCode).orElse("")).anyMatch("PLATFORM_SUPER_ADMIN"::equals); }
+    private boolean isSuper(Long id) {
+        return roleCodes(id).contains(PlatformAdminInvitationService.SUPER_ADMIN);
+    }
+
+    private boolean isGrantEligible(Long id) {
+        List<String> codes = roleCodes(id);
+        if (codes.contains(PlatformAdminInvitationService.SUPER_ADMIN)
+            || codes.contains(PlatformAdminInvitationService.SECURITY_AUDITOR)
+            || codes.contains("PLATFORM_TENANT_WRITE")
+            || codes.contains("PLATFORM_TENANT_DELETE")) {
+            return false;
+        }
+        return codes.contains(PlatformAdminInvitationService.OPERATIONS_ADMIN)
+            || codes.contains("PLATFORM_TENANT_READ")
+            || codes.contains("PLATFORM_TENANT_EXPORT");
+    }
+
+    private List<String> roleCodes(Long id) {
+        return userRoles.findRoleCodesByPlatformUserId(id);
+    }
     private PlatformAccessGrantResponse response(PlatformAccessGrant g) { String email=users.findById(g.getGranteePlatformUserId()).map(PlatformUser::getNormalizedEmail).orElse("DEACTIVATED"); String tenant=tenants.findById(g.getTenantId()).map(PlatformCompanyResponse::displayNameForPlatform).orElse("REMOVED_TENANT"); return new PlatformAccessGrantResponse(g.getId(),g.getGranteePlatformUserId(),email,g.getCapability(),g.getTenantId(),tenant,g.getDatasetCode(),g.getEffectiveFrom(),g.getExpiresAt(),g.getRevokedAt()); }
     private record ScopeKey(Long tenantId, String datasetCode) { }
 }

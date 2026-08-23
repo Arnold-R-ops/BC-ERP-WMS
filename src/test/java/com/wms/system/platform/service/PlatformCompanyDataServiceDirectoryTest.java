@@ -48,8 +48,8 @@ class PlatformCompanyDataServiceDirectoryTest {
     }
 
     @Test
-    void superAdministratorUsesFilteredDatabasePageAndSafeAuditSummary() {
-        when(guard.isSuperAdmin()).thenReturn(true);
+    void administratorWithAllTenantDirectoryScopeUsesFilteredDatabasePageAndSafeAuditSummary() {
+        when(guard.hasAllTenantDirectoryAccess()).thenReturn(true);
         Tenant tenant = Tenant.builder().id(11L).tenantCode("EAST-01").displayName("华东")
             .slug("east-01").status(TenantStatus.ACTIVE).build();
         when(tenants.searchPlatformDirectory(eq("华东"), eq(true), eq(TenantStatus.ACTIVE),
@@ -77,7 +77,7 @@ class PlatformCompanyDataServiceDirectoryTest {
 
     @Test
     void delegatedAdministratorUsesActiveGrantJoinInsteadOfAnInMemoryTenantList() {
-        when(guard.isSuperAdmin()).thenReturn(false);
+        when(guard.hasAllTenantDirectoryAccess()).thenReturn(false);
         when(guard.hasAuthority("ROLE_PLATFORM_TENANT_READ")).thenReturn(true);
         when(delegatedDirectory.searchAuthorized(eq(7L), eq(List.of("READ")), any(),
             eq(""), eq(false), isNull(), eq(TenantStatus.PURGED), any(Pageable.class)))

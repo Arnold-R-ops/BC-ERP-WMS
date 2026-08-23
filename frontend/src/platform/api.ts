@@ -143,19 +143,94 @@ export interface PlatformExportJob {
   completedAt: string | null;
 }
 export interface PlatformManagedUser { id: number; email: string; displayName: string; enabled: boolean; superAdmin: boolean; mfaEnabled: boolean; }
+export type PlatformAdminRoleType = 'JOB_ROLE' | 'TECHNICAL_CAPABILITY' | 'UNCLASSIFIED';
+export type PlatformAdminMfaStatus = 'NOT_ENROLLED' | 'ENROLLED' | 'TEMPORARILY_LOCKED';
+export interface PlatformAdminRole {
+  code: string;
+  name: string;
+  type: PlatformAdminRoleType;
+}
+export interface PlatformAdminSummary {
+  id: number;
+  displayName: string;
+  email: string;
+  enabled: boolean;
+  roles: PlatformAdminRole[];
+  mfaStatus: PlatformAdminMfaStatus;
+  mfaEnrolledAt: string | null;
+  mfaLockedUntil: string | null;
+  createdAt: string;
+  updatedAt: string;
+  activeGrantCount: number;
+  currentUser: boolean;
+  lastEnabledSuperAdmin: boolean;
+}
+export interface PlatformAdminDetail extends PlatformAdminSummary {
+  activeGrantCounts: { READ: number; EXPORT: number };
+}
+export interface PlatformAdminPage {
+  content: PlatformAdminSummary[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+export interface PlatformAdminFilters {
+  keyword?: string;
+  enabled?: boolean;
+  role?: string;
+  mfaStatus?: PlatformAdminMfaStatus;
+}
 export interface PlatformAccessGrant { id: number; platformUserId: number; platformUserEmail: string; capability: 'READ' | 'EXPORT'; tenantId: number; tenantName: string; datasetCode: string; effectiveFrom: string; expiresAt: string; revokedAt: string | null; }
 export interface PlatformAccessGrantRequest { platformUserId: number; capabilities: ('READ' | 'EXPORT')[]; tenantIds: number[]; datasets: string[]; effectiveFrom?: string; expiresAt?: string; }
 export interface PlatformEffectiveAccessScope { tenantId: number; datasetCode: string; read: boolean; export: boolean; }
-export interface PlatformEffectiveAccess { superAdmin: boolean; scopes: PlatformEffectiveAccessScope[]; }
+export interface PlatformEffectiveAccess {
+  superAdmin: boolean;
+  tenantDirectoryScope: 'ALL' | 'GRANTED' | 'NONE';
+  scopes: PlatformEffectiveAccessScope[];
+}
 export interface PlatformCurrentSession { email: string; roles: string[]; mfaEnabled: boolean; expiresAt: string; }
 export interface PlatformReauthenticationChallenge { challengeToken: string; expiresIn: number; }
+export interface PlatformAdminSecurityChallenge extends PlatformReauthenticationChallenge { targetSecurityVersion: number; }
+export interface PlatformAdminSecurityMutation {
+  targetUserId: number;
+  action: 'ADMIN_SESSIONS_REVOKED' | 'MFA_RESET';
+  changed: boolean;
+  enabled: boolean;
+  mfaStatus: PlatformAdminMfaStatus;
+  roles: string[];
+  activeGrantCount: number;
+  securityVersion: number;
+  completedAt: string;
+}
+export interface PlatformAdminStatusMutation {
+  targetUserId: number;
+  action: 'ADMIN_ENABLED' | 'ADMIN_DISABLED';
+  changed: boolean;
+  enabled: boolean;
+  roles: string[];
+  activeGrantCount: number;
+  securityVersion: number;
+  completedAt: string;
+}
+export interface PlatformAdminRoleChangeMutation {
+  targetUserId: number;
+  changed: boolean;
+  enabled: boolean;
+  beforeRoles: string[];
+  afterRoles: string[];
+  activeGrantCount: number;
+  securityVersion: number;
+  completedAt: string;
+}
 export interface PlatformRecoveryCodeStatus { remaining: number; }
 export interface PlatformRecoveryCodes { recoveryCodes: string[]; remaining: number; }
 export interface PlatformAdminInvitation {
   id: number;
   email: string;
   displayName: string;
-  roleCode: 'PLATFORM_SUPER_ADMIN';
+  invitationType: 'SUPER_ADMIN' | 'ORDINARY_ADMIN';
+  roleCode: 'PLATFORM_SUPER_ADMIN' | 'PLATFORM_OPERATIONS_ADMIN' | 'PLATFORM_SECURITY_AUDITOR';
   status: 'ACTIVE' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
   createdAt: string;
   expiresAt: string;
@@ -166,7 +241,8 @@ export interface PlatformAdminInvitation {
 export interface PlatformInvitationStatus {
   email: string;
   displayName: string;
-  roleCode: 'PLATFORM_SUPER_ADMIN';
+  invitationType: 'SUPER_ADMIN' | 'ORDINARY_ADMIN';
+  roleCode: 'PLATFORM_SUPER_ADMIN' | 'PLATFORM_OPERATIONS_ADMIN' | 'PLATFORM_SECURITY_AUDITOR';
   expiresAt: string;
 }
 
@@ -281,12 +357,47 @@ export function regeneratePlatformRecoveryCodes(
 }
 
 export function listPlatformManagedUsers(): Promise<PlatformManagedUser[]> { return platformRequest('/api/platform/access-grants/users'); }
+export function listPlatformAdmins(
+  page = 0,
+  size = 20,
+  filters: PlatformAdminFilters = {},
+): Promise<PlatformAdminPage> {
+  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const keyword = filters.keyword?.trim();
+  if (keyword) query.set('keyword', keyword);
+  if (filters.enabled !== undefined) query.set('enabled', String(filters.enabled));
+  if (filters.role) query.set('role', filters.role);
+  if (filters.mfaStatus) query.set('mfaStatus', filters.mfaStatus);
+  return platformRequest<PlatformAdminPage>(`/api/platform/admins?${query.toString()}`);
+}
+export function getPlatformAdmin(targetUserId: number): Promise<PlatformAdminDetail> {
+  return platformRequest<PlatformAdminDetail>(`/api/platform/admins/${targetUserId}`);
+}
 export function getMyPlatformEffectiveAccess(): Promise<PlatformEffectiveAccess> { return platformRequest('/api/platform/access-grants/me'); }
 export function listPlatformAccessGrants(platformUserId: number): Promise<PlatformAccessGrant[]> { return platformRequest(`/api/platform/access-grants?platformUserId=${platformUserId}`); }
 export function createPlatformAccessGrants(body: PlatformAccessGrantRequest): Promise<PlatformAccessGrant[]> { return platformRequest('/api/platform/access-grants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
 export function revokePlatformAccessGrant(id: number): Promise<void> { return platformResponse(`/api/platform/access-grants/${id}`, { method: 'DELETE' }).then(() => undefined); }
 
-export function startPlatformAdminMfaReset(targetUserId: number): Promise<PlatformReauthenticationChallenge> {
+export function startPlatformAdminSessionRevoke(targetUserId: number): Promise<PlatformAdminSecurityChallenge> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/sessions/revoke/challenge`, { method: 'POST' });
+}
+
+export function revokePlatformAdminSessions(
+  targetUserId: number,
+  challengeToken: string,
+  password: string,
+  code: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<PlatformAdminSecurityMutation> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/sessions/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({ challengeToken, password, code, reason }),
+  });
+}
+
+export function startPlatformAdminMfaReset(targetUserId: number): Promise<PlatformAdminSecurityChallenge> {
   return platformRequest(`/api/platform/admins/${targetUserId}/mfa-reset/challenge`, { method: 'POST' });
 }
 
@@ -296,12 +407,67 @@ export function resetPlatformAdminMfa(
   password: string,
   code: string,
   reason: string,
-): Promise<void> {
-  return platformResponse(`/api/platform/admins/${targetUserId}/mfa-reset`, {
+  idempotencyKey: string,
+): Promise<PlatformAdminSecurityMutation> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/mfa-reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({ challengeToken, password, code, reason }),
+  });
+}
+
+export function startPlatformAdminStatusChange(
+  targetUserId: number,
+  desiredEnabled: boolean,
+): Promise<PlatformAdminSecurityChallenge> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/status-change/challenge`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ desiredEnabled }),
+  });
+}
+
+export function changePlatformAdminStatus(
+  targetUserId: number,
+  desiredEnabled: boolean,
+  challengeToken: string,
+  password: string,
+  code: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<PlatformAdminStatusMutation> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/${desiredEnabled ? 'enable' : 'disable'}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
     body: JSON.stringify({ challengeToken, password, code, reason }),
-  }).then(() => undefined);
+  });
+}
+
+export function startPlatformAdminRoleChange(
+  targetUserId: number,
+  jobRoleCode: 'PLATFORM_OPERATIONS_ADMIN' | 'PLATFORM_SECURITY_AUDITOR',
+): Promise<PlatformAdminSecurityChallenge> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/roles/change/challenge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobRoleCode }),
+  });
+}
+
+export function changePlatformAdminRole(
+  targetUserId: number,
+  jobRoleCode: 'PLATFORM_OPERATIONS_ADMIN' | 'PLATFORM_SECURITY_AUDITOR',
+  challengeToken: string,
+  password: string,
+  code: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<PlatformAdminRoleChangeMutation> {
+  return platformRequest(`/api/platform/admins/${targetUserId}/roles`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({ jobRoleCode, challengeToken, password, code, reason }),
+  });
 }
 
 export function startPlatformAdminInvitation(): Promise<PlatformReauthenticationChallenge> {
@@ -315,6 +481,8 @@ export function createPlatformAdminInvitation(body: {
   email: string;
   displayName: string;
   reason: string;
+  invitationType: 'SUPER_ADMIN' | 'ORDINARY_ADMIN';
+  roleCode: 'PLATFORM_SUPER_ADMIN' | 'PLATFORM_OPERATIONS_ADMIN' | 'PLATFORM_SECURITY_AUDITOR';
 }): Promise<PlatformAdminInvitation> {
   return platformRequest('/api/platform/admins/invitations', {
     method: 'POST',
@@ -327,8 +495,12 @@ export function listPlatformAdminInvitations(): Promise<PlatformAdminInvitation[
   return platformRequest('/api/platform/admins/invitations');
 }
 
-export function revokePlatformAdminInvitation(id: number): Promise<void> {
-  return platformResponse(`/api/platform/admins/invitations/${id}/revoke`, { method: 'POST' }).then(() => undefined);
+export function revokePlatformAdminInvitation(id: number, reason: string): Promise<void> {
+  return platformResponse(`/api/platform/admins/invitations/${id}/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  }).then(() => undefined);
 }
 
 async function publicInvitationRequest<T>(path: string, body: object): Promise<T> {
@@ -367,6 +539,17 @@ export function getPlatformInvitationStatus(token: string): Promise<PlatformInvi
 
 export function activatePlatformInvitation(token: string, password: string): Promise<PlatformAuthResponse> {
   return publicInvitationRequest('/api/platform/auth/invitations/activate', { token, password });
+}
+
+export function confirmPlatformInvitationActivation(
+  challengeToken: string,
+  code: string,
+): Promise<PlatformAuthResponse> {
+  return platformAuthRequest(
+    '/api/platform/auth/invitations/activate/confirm',
+    { challengeToken, code },
+    true,
+  );
 }
 
 export function listPlatformTenants(

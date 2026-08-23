@@ -5,6 +5,7 @@ import { effectiveDatasetAccess, effectiveDatasets } from './TenantBrowser';
 describe('delegated tenant browser visibility', () => {
   const delegated: PlatformEffectiveAccess = {
     superAdmin: false,
+    tenantDirectoryScope: 'GRANTED',
     scopes: [
       { tenantId: 6, datasetCode: 'users', read: true, export: false },
       { tenantId: 6, datasetCode: 'inventory', read: false, export: true },
@@ -25,7 +26,7 @@ describe('delegated tenant browser visibility', () => {
   });
 
   it('keeps the super administrator unrestricted', () => {
-    const superAdmin: PlatformEffectiveAccess = { superAdmin: true, scopes: [] };
+    const superAdmin: PlatformEffectiveAccess = { superAdmin: true, tenantDirectoryScope: 'ALL', scopes: [] };
     expect(effectiveDatasets(superAdmin, 999)).toHaveLength(6);
     expect(effectiveDatasetAccess(superAdmin, 999, 'products')).toEqual({ read: true, export: true });
   });

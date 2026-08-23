@@ -21,6 +21,7 @@ public interface PlatformMfaChallengeRepository extends JpaRepository<PlatformMf
     int deleteConsumedOrExpired(@Param("cutoff") OffsetDateTime cutoff);
 
     @Modifying
-    @Query("delete from PlatformMfaChallenge c where c.platformUserId = :platformUserId")
-    int deleteByPlatformUserId(@Param("platformUserId") Long platformUserId);
+    @Query("delete from PlatformMfaChallenge c where c.consumedAt is null " +
+        "and c.platformUserId = :platformUserId")
+    int deletePendingOwnedByPlatformUserId(@Param("platformUserId") Long platformUserId);
 }

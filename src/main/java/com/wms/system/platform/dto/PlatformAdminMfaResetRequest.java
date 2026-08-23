@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PlatformAdminMfaResetRequest {
-    @NotBlank private String challengeToken;
-    @NotBlank private String password;
+    @NotBlank @Size(max = 500) private String challengeToken;
+    @NotBlank @Size(max = 200) private String password;
     @NotBlank @Pattern(regexp = "\\d{6}") private String code;
     @NotBlank @Size(max = 500) private String reason;
 

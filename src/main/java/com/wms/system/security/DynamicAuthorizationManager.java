@@ -74,6 +74,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         "/api/platform/auth/mfa/verify", // Pre-JWT platform MFA verification challenge
         "/api/platform/auth/invitations/status", // One-time platform administrator invitation lookup
         "/api/platform/auth/invitations/activate", // Password setup before mandatory MFA enrollment
+        "/api/platform/auth/invitations/activate/confirm", // Pre-JWT MFA confirmation completes invitation activation
         "/public/v1/**",       // Public company signup and email verification
         "/api/auth/health",     // Authentication service health check
         "/api/webhooks/**",     // Channel webhooks (P1-B3): no JWT, secured by HMAC signature inside

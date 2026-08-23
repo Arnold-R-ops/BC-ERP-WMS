@@ -51,6 +51,7 @@ export function PlatformMfaManagementPage(): JSX.Element {
         values.password,
         values.code,
         values.reason.trim(),
+        crypto.randomUUID(),
       );
       message.success(english
         ? 'MFA was reset. The target administrator must enroll an authenticator at the next sign-in.'

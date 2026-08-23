@@ -12,6 +12,9 @@ public interface PlatformAdminInvitationRepository extends JpaRepository<Platfor
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from PlatformAdminInvitation i where i.tokenHash=:tokenHash")
     Optional<PlatformAdminInvitation> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from PlatformAdminInvitation i where i.id=:id")
+    Optional<PlatformAdminInvitation> findByIdForUpdate(@Param("id") Long id);
     @Query("select count(i)>0 from PlatformAdminInvitation i where i.normalizedEmail=:email and i.acceptedAt is null and i.revokedAt is null and i.expiresAt>:now")
     boolean hasActiveInvitation(@Param("email") String email,@Param("now") OffsetDateTime now);
     @Query("select count(i) from PlatformAdminInvitation i where i.roleCode=:roleCode and i.acceptedAt is null and i.revokedAt is null and i.expiresAt>:now")

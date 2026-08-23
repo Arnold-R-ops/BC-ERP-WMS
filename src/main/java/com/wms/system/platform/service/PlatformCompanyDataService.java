@@ -42,14 +42,14 @@ public class PlatformCompanyDataService {
         boolean keywordApplied = safeKeyword != null;
         String queryKeyword = keywordApplied ? safeKeyword : "";
         Page<PlatformCompanyResponse> result;
-        if (guard.isSuperAdmin()) {
+        if (guard.hasAllTenantDirectoryAccess()) {
             result = tenantRepository.searchPlatformDirectory(queryKeyword, keywordApplied, status,
                 TenantStatus.PURGED, pageable)
                 .map(PlatformCompanyResponse::from);
         } else {
             List<String> capabilities = new ArrayList<>();
-            if (guard.hasAuthority("ROLE_PLATFORM_TENANT_READ")) capabilities.add("READ");
-            if (guard.hasAuthority("ROLE_PLATFORM_TENANT_EXPORT")) capabilities.add("EXPORT");
+            if (guard.hasAuthority(PlatformAccessGuard.LEGACY_READ)) capabilities.add("READ");
+            if (guard.hasAuthority(PlatformAccessGuard.LEGACY_EXPORT)) capabilities.add("EXPORT");
             result = platformTenantDirectoryRepository.searchAuthorized(actor.getId(), capabilities,
                 java.time.OffsetDateTime.now(), queryKeyword, keywordApplied, status, TenantStatus.PURGED, pageable)
                 .map(PlatformCompanyResponse::from);

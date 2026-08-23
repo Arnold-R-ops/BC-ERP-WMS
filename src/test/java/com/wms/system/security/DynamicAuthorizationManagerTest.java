@@ -56,6 +56,20 @@ class DynamicAuthorizationManagerTest {
     }
 
     @Test
+    void invitationMfaConfirmationIsPublicBeforeJwtIssuance() {
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "POST", "/api/platform/auth/invitations/activate/confirm");
+        Supplier<Authentication> unauthenticated = () -> null;
+
+        AuthorizationDecision decision = authorizationManager.check(
+                unauthenticated,
+                new RequestAuthorizationContext(request)
+        );
+
+        assertThat(decision.isGranted()).isTrue();
+    }
+
+    @Test
     void requestAuthorizationUsesOnlyCurrentRoleAndLiveSecurityVersion() {
         User user = User.builder()
                 .id(42L)

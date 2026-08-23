@@ -8,5 +8,6 @@ public class PlatformAdminInvitationController {
     @PostMapping("/challenge") public PlatformReauthenticationChallengeResponse challenge(){return service.startChallenge();}
     @PostMapping public PlatformAdminInvitationResponse create(@Valid @RequestBody PlatformAdminInvitationCreateRequest r,HttpServletRequest h){return service.create(r,h);}
     @GetMapping public List<PlatformAdminInvitationResponse> list(){return service.list();}
-    @PostMapping("/{id}/revoke") public void revoke(@PathVariable Long id,HttpServletRequest h){service.revoke(id,h);}
+    @PostMapping("/{id}/revoke") public void revoke(@PathVariable Long id,
+        @Valid @RequestBody PlatformAdminInvitationRevokeRequest r,HttpServletRequest h){service.revoke(id,r,h);}
 }

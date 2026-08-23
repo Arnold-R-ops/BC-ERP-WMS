@@ -12,6 +12,7 @@ public class PlatformAdminInvitation {
     @Column(name="token_hash",nullable=false,length=64) private String tokenHash;
     @Column(name="normalized_email",nullable=false,length=254) private String normalizedEmail;
     @Column(name="display_name",nullable=false,length=100) private String displayName;
+    @Column(name="invitation_type",nullable=false,length=20) private String invitationType;
     @Column(name="role_code",nullable=false,length=50) private String roleCode;
     @Column(name="invited_by_platform_user_id",nullable=false) private Long invitedByPlatformUserId;
     @Column(nullable=false,length=500) private String reason;

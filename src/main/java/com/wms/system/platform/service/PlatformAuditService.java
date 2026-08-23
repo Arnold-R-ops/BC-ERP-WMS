@@ -20,7 +20,13 @@ public class PlatformAuditService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(Long actorId, Long companyId, String action, String resource,
                        String result, Map<String, ?> detail, HttpServletRequest request) {
-        persist(actorId, companyId, action, resource, result, detail, request, false);
+        persist(actorId, companyId, null, action, resource, result, detail, request, false);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordAdmin(Long actorId, Long targetPlatformUserId, String action, String resource,
+                            String result, Map<String, ?> detail, HttpServletRequest request) {
+        persist(actorId, null, targetPlatformUserId, action, resource, result, detail, request, false);
     }
 
     /**
@@ -31,14 +37,27 @@ public class PlatformAuditService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordInCurrentTransaction(Long actorId, Long companyId, String action, String resource,
                                            String result, Map<String, ?> detail, HttpServletRequest request) {
-        persist(actorId, companyId, action, resource, result, detail, request, true);
+        persist(actorId, companyId, null, action, resource, result, detail, request, true);
     }
 
-    private void persist(Long actorId, Long companyId, String action, String resource,
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordAdminInCurrentTransaction(
+        Long actorId,
+        Long targetPlatformUserId,
+        String action,
+        String resource,
+        String result,
+        Map<String, ?> detail,
+        HttpServletRequest request
+    ) {
+        persist(actorId, null, targetPlatformUserId, action, resource, result, detail, request, true);
+    }
+
+    private void persist(Long actorId, Long companyId, Long targetPlatformUserId, String action, String resource,
                          String result, Map<String, ?> detail, HttpServletRequest request,
                          boolean flush) {
         PlatformAuditLog log = PlatformAuditLog.builder()
-            .platformUserId(actorId).targetTenantId(companyId).action(action)
+            .platformUserId(actorId).targetTenantId(companyId).targetPlatformUserId(targetPlatformUserId).action(action)
             .resourceType(resource).requestId(request == null ? null : request.getHeader("X-Request-ID"))
             .requestIp(request == null ? null : request.getRemoteAddr())
             .userAgent(request == null ? null : truncate(request.getHeader("User-Agent"), 500))

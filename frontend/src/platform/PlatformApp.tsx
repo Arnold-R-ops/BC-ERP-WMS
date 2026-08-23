@@ -1,4 +1,4 @@
-import { AuditOutlined, HomeOutlined, LockOutlined, LogoutOutlined, SafetyCertificateOutlined, ShopOutlined, TeamOutlined, UserOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import { AuditOutlined, HomeOutlined, LockOutlined, LogoutOutlined, SafetyCertificateOutlined, ShopOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons';
 import { Alert, App as AntdApp, Button, Card, Checkbox, ConfigProvider, Descriptions, Form, Input, Layout, Modal, QRCode, Space, Spin, Tag, Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -8,7 +8,6 @@ import { PlatformAuthProvider, usePlatformAuth } from './PlatformAuthProvider';
 import { confirmPlatformLogoutAll, confirmPlatformMfaEnrollment, getPlatformCurrentSession, getPlatformRecoveryCodeStatus, PlatformLoginError, regeneratePlatformRecoveryCodes, startPlatformLogoutAll, startPlatformRecoveryCodeRegeneration, verifyPlatformMfa, type PlatformAuthResponse, type PlatformCurrentSession, type PlatformLoginRequest } from './api';
 import { PlatformAuditLogPage } from './PlatformAuditLogPage';
 import { PlatformAccessGrantPage } from './PlatformAccessGrantPage';
-import { PlatformMfaManagementPage } from './PlatformMfaManagementPage';
 import { PlatformAdminManagementPage } from './PlatformAdminManagementPage';
 import { PlatformInvitationActivationPage } from './PlatformInvitationActivationPage';
 import { PlatformTenantManagementPage } from './PlatformTenantManagementPage';
@@ -17,7 +16,7 @@ import { platformMfaFailureMessage, shouldRestartPlatformMfa } from './mfaFeedba
 
 const PLATFORM_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
-function PlatformProtectedRoute({ view }: { view: 'home' | 'tenants' | 'audit' | 'grants' | 'security' | 'admins' }): JSX.Element {
+function PlatformProtectedRoute({ view }: { view: 'home' | 'tenants' | 'audit' | 'grants' | 'admins' }): JSX.Element {
   const { session, logout } = usePlatformAuth();
   const { access, loading: tenantAccessLoading, error: tenantAccessError, hasTenantAccess } = usePlatformTenantAccess();
   const navigate = useNavigate();
@@ -49,16 +48,16 @@ function PlatformProtectedRoute({ view }: { view: 'home' | 'tenants' | 'audit' |
   }, [endSession, session]);
 
   if (!session) return <Navigate replace to="/login" />;
-  if ((view === 'audit' || view === 'grants' || view === 'security' || view === 'admins') && !session.roles.includes('PLATFORM_SUPER_ADMIN')) return <Navigate replace to="/" />;
+  const securityReader = session.roles.includes('PLATFORM_SUPER_ADMIN')
+    || session.roles.includes('PLATFORM_SECURITY_AUDITOR');
+  if ((view === 'audit' || view === 'grants' || view === 'admins') && !securityReader) return <Navigate replace to="/" />;
   if (view === 'tenants' && tenantAccessLoading) return <PlatformShell><Spin fullscreen /></PlatformShell>;
   if (view === 'tenants' && (tenantAccessError || !hasTenantAccess || !access)) return <Navigate replace to="/" />;
   return <PlatformShell>{view === 'audit'
     ? <PlatformAuditLogPage />
     : view === 'grants'
       ? <PlatformAccessGrantPage />
-      : view === 'security'
-        ? <PlatformMfaManagementPage />
-        : view === 'admins'
+      : view === 'admins'
           ? <PlatformAdminManagementPage />
           : view === 'tenants' && access
             ? <PlatformTenantManagementPage access={access} />
@@ -336,9 +335,13 @@ function PlatformHome(): JSX.Element {
         <Card className="platform-capability-card" title={english ? 'Authorized capability' : '已授权能力'}>
           <Typography.Paragraph>
             {hasTenantAccess
-              ? (english
-                ? `Effective tenant capabilities: ${[hasRead ? 'read' : '', hasExport ? 'export' : ''].filter(Boolean).join(' and ')}. Direct tenant data changes and deletions are not permitted.`
-                : `当前有效租户能力：${[hasRead ? '读取' : '', hasExport ? '导出' : ''].filter(Boolean).join('、')}；不允许直接修改或删除租户数据。`)
+              ? hasRead || hasExport
+                ? (english
+                  ? `Effective tenant capabilities: ${[hasRead ? 'read' : '', hasExport ? 'export' : ''].filter(Boolean).join(' and ')}. Direct tenant data changes and deletions are not permitted.`
+                  : `当前有效租户能力：${[hasRead ? '读取' : '', hasExport ? '导出' : ''].filter(Boolean).join('、')}；不允许直接修改或删除租户数据。`)
+                : (english
+                  ? 'The tenant directory is visible, but no tenant business-data read or export access is currently delegated. Direct tenant data changes and deletions are not permitted.'
+                  : '可以查看租户目录，但当前没有租户业务数据的读取或导出委派；不允许直接修改或删除租户数据。')
               : (english ? 'No effective tenant data access is currently delegated.' : '当前没有有效的租户数据访问授权。')}
           </Typography.Paragraph>
           <Typography.Paragraph type="secondary">
@@ -452,6 +455,8 @@ function PlatformShell({ children }: { children: React.ReactNode }): JSX.Element
   const location = useLocation();
   const navigate = useNavigate();
   const english = i18n.language === 'en-US';
+  const securityReader = Boolean(session?.roles.some((role) =>
+    role === 'PLATFORM_SUPER_ADMIN' || role === 'PLATFORM_SECURITY_AUDITOR'));
   const signOut = () => { logout(); navigate('/login', { replace: true }); };
 
   return <Layout className="platform-shell">
@@ -460,10 +465,9 @@ function PlatformShell({ children }: { children: React.ReactNode }): JSX.Element
       <Space>
         <Button icon={<HomeOutlined />} onClick={() => navigate('/')} type={location.pathname === '/' ? 'primary' : 'default'}>{english ? 'Home' : '平台首页'}</Button>
         {hasTenantAccess ? <Button icon={<ShopOutlined />} onClick={() => navigate('/tenants')} type={location.pathname === '/tenants' ? 'primary' : 'default'}>{english ? 'Tenant management' : '租户管理'}</Button> : null}
-        {session?.roles.includes('PLATFORM_SUPER_ADMIN') ? <Button icon={<AuditOutlined />} onClick={() => navigate('/audit')} type={location.pathname === '/audit' ? 'primary' : 'default'}>{english ? 'Audit log' : '审计日志'}</Button> : null}
-        {session?.roles.includes('PLATFORM_SUPER_ADMIN') ? <Button icon={<SafetyCertificateOutlined />} onClick={() => navigate('/grants')} type={location.pathname === '/grants' ? 'primary' : 'default'}>{english ? 'Delegated access' : '委派授权'}</Button> : null}
-        {session?.roles.includes('PLATFORM_SUPER_ADMIN') ? <Button icon={<UserSwitchOutlined />} onClick={() => navigate('/security')} type={location.pathname === '/security' ? 'primary' : 'default'}>{english ? 'MFA management' : 'MFA 管理'}</Button> : null}
-        {session?.roles.includes('PLATFORM_SUPER_ADMIN') ? <Button icon={<TeamOutlined />} onClick={() => navigate('/admins')} type={location.pathname === '/admins' ? 'primary' : 'default'}>{english ? 'Administrators' : '管理员管理'}</Button> : null}
+        {securityReader ? <Button icon={<AuditOutlined />} onClick={() => navigate('/audit')} type={location.pathname === '/audit' ? 'primary' : 'default'}>{english ? 'Audit log' : '审计日志'}</Button> : null}
+        {securityReader ? <Button icon={<SafetyCertificateOutlined />} onClick={() => navigate('/grants')} type={location.pathname === '/grants' ? 'primary' : 'default'}>{english ? 'Delegated access' : '委派授权'}</Button> : null}
+        {securityReader ? <Button icon={<TeamOutlined />} onClick={() => navigate('/admins')} type={location.pathname === '/admins' ? 'primary' : 'default'}>{english ? 'Administrators' : '管理员管理'}</Button> : null}
         <Button icon={<LogoutOutlined />} onClick={signOut}>{english ? 'Sign out' : '退出登录'}</Button>
       </Space>
     </header>
@@ -480,7 +484,7 @@ function PlatformRoutes(): JSX.Element {
     <Route path="/tenants" element={<PlatformProtectedRoute view="tenants" />} />
     <Route path="/audit" element={<PlatformProtectedRoute view="audit" />} />
     <Route path="/grants" element={<PlatformProtectedRoute view="grants" />} />
-    <Route path="/security" element={<PlatformProtectedRoute view="security" />} />
+    <Route path="/security" element={<Navigate replace to="/admins" />} />
     <Route path="/admins" element={<PlatformProtectedRoute view="admins" />} />
     <Route path="*" element={<Navigate replace to="/" />} />
   </Routes>;

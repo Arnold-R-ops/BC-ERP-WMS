@@ -15,7 +15,8 @@ import java.time.OffsetDateTime;
     name = "platform_audit_logs",
     indexes = {
         @Index(name = "idx_platform_audit_tenant_created", columnList = "target_tenant_id,created_at"),
-        @Index(name = "idx_platform_audit_actor_created", columnList = "platform_user_id,created_at")
+        @Index(name = "idx_platform_audit_actor_created", columnList = "platform_user_id,created_at"),
+        @Index(name = "idx_platform_audit_target_user_created", columnList = "target_platform_user_id,created_at")
     }
 )
 public class PlatformAuditLog {
@@ -31,6 +32,9 @@ public class PlatformAuditLog {
     // no single target tenant. Tenant-specific data reads remain non-null.
     @Column(name = "target_tenant_id")
     private Long targetTenantId;
+
+    @Column(name = "target_platform_user_id")
+    private Long targetPlatformUserId;
 
     @Column(nullable = false, length = 30)
     private String action;

@@ -6,7 +6,6 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.platform.config.PlatformMfaProperties;
 import com.wms.system.platform.dto.PlatformAuthResponse;
-import com.wms.system.platform.dto.PlatformAdminMfaResetRequest;
 import com.wms.system.platform.dto.PlatformLoginRequest;
 import com.wms.system.platform.dto.PlatformMfaVerifyRequest;
 import com.wms.system.platform.dto.PlatformReauthenticationChallengeResponse;
@@ -24,7 +23,6 @@ import com.wms.system.security.PlatformUserDetailsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -228,23 +226,6 @@ public class PlatformMfaService {
     }
 
     @Transactional
-    public PlatformReauthenticationChallengeResponse startAdminMfaReset(Long targetUserId) {
-        var actorPrincipal = accessGuard.requireSuperAdmin();
-        requireDifferentAdministrator(actorPrincipal.getId(), targetUserId);
-        PlatformUser actor = userRepository.findById(actorPrincipal.getId()).orElseThrow(this::invalidMfa);
-        PlatformUser target = userRepository.findById(targetUserId)
-            .filter(candidate -> Boolean.TRUE.equals(candidate.getEnabled()))
-            .orElseThrow(() -> new IllegalArgumentException("Target platform administrator is unavailable"));
-        ensureNotLocked(actor);
-        if (!Boolean.TRUE.equals(actor.getMfaEnabled()) || actor.getMfaSecretEncrypted() == null) throw invalidMfa();
-        if (!Boolean.TRUE.equals(target.getMfaEnabled())) {
-            throw new IllegalArgumentException("Target platform administrator has no active MFA binding");
-        }
-
-        return createChallenge(actor, "ADMIN_MFA_RESET", target.getId());
-    }
-
-    @Transactional
     public PlatformReauthenticationChallengeResponse startAdminInvitation() {
         var principal=accessGuard.requireSuperAdmin();
         PlatformUser actor=userRepository.findById(principal.getId()).orElseThrow(this::invalidMfa);
@@ -262,7 +243,10 @@ public class PlatformMfaService {
         ensureNotLocked(actor);
         boolean valid=passwordEncoder.matches(password,actor.getPasswordHash())&&actor.getMfaSecretEncrypted()!=null
             &&crypto.verifyTotp(crypto.decrypt(actor.getMfaSecretEncrypted()),code,java.time.Instant.now());
-        if(!valid){fail(actor,challenge,http,"ADMIN_INVITE");throw invalidMfa();}
+        if(!valid){
+            throw new PlatformAdminInvitationMfaCredentialException(
+                actor.getId(), challenge.getTokenHash());
+        }
         resetFailures(actor); challenge.setConsumedAt(OffsetDateTime.now()); userRepository.save(actor); challengeRepository.save(challenge);
         return actor;
     }
@@ -275,52 +259,53 @@ public class PlatformMfaService {
         return authenticationChallenge(user,roles,true);
     }
 
-    @Transactional(noRollbackFor = BusinessException.class)
-    public void adminResetMfa(
-        Long targetUserId,
-        PlatformAdminMfaResetRequest request,
+    public PlatformAuthResponse pendingInvitationEnrollment(
+        String normalizedEmail,
+        List<String> roles,
+        String challengeToken,
+        String secret
+    ) {
+        if (normalizedEmail == null || roles == null || roles.isEmpty()
+            || challengeToken == null || secret == null) {
+            throw invalidMfa();
+        }
+        return new PlatformAuthResponse(
+            "MFA_ENROLLMENT_REQUIRED",
+            challengeToken,
+            secret,
+            otpauth(normalizedEmail, secret),
+            null,
+            null,
+            normalizedEmail,
+            List.copyOf(roles),
+            0,
+            null
+        );
+    }
+
+    @Transactional
+    public PlatformAuthResponse completeInvitedEnrollment(
+        PlatformUser user,
+        String pendingSecretEncrypted,
         HttpServletRequest http
     ) {
-        var actorPrincipal = accessGuard.requireSuperAdmin();
-        requireDifferentAdministrator(actorPrincipal.getId(), targetUserId);
-        PlatformMfaChallenge challenge = challenge(request.getChallengeToken(), "ADMIN_MFA_RESET");
-        if (!actorPrincipal.getId().equals(challenge.getPlatformUserId())
-            || !targetUserId.equals(challenge.getTargetPlatformUserId())) {
+        if (user == null || Boolean.TRUE.equals(user.getMfaEnabled())
+            || pendingSecretEncrypted == null || pendingSecretEncrypted.isBlank()) {
             throw invalidMfa();
         }
-
-        PlatformUser actor = userRepository.findById(actorPrincipal.getId()).orElseThrow(this::invalidMfa);
-        PlatformUser target = userRepository.findById(targetUserId)
-            .orElseThrow(() -> new IllegalArgumentException("Target platform administrator is unavailable"));
-        ensureNotLocked(actor);
-        String reason = request.getReason().trim();
-        auditService.record(actor.getId(), null, "MFA_RESET", "platform_identity", "REQUESTED",
-            resetAuditDetail(target, reason, false), http);
-        boolean passwordVerified = passwordEncoder.matches(request.getPassword(), actor.getPasswordHash());
-        boolean totpVerified = actor.getMfaSecretEncrypted() != null
-            && crypto.verifyTotp(crypto.decrypt(actor.getMfaSecretEncrypted()), request.getCode(), java.time.Instant.now());
-        if (!passwordVerified || !totpVerified) {
-            fail(actor, challenge, http, "ADMIN_MFA_RESET");
-            auditService.record(actor.getId(), null, "MFA_RESET", "platform_identity", "FAILED",
-                resetAuditDetail(target, reason, false), http);
-            throw invalidMfa();
-        }
-
-        target.setMfaEnabled(false);
-        target.setMfaSecretEncrypted(null);
-        target.setRecoveryCodeHashesJson(null);
-        target.setMfaEnrolledAt(null);
-        target.setMfaFailedAttempts(0);
-        target.setMfaLockedUntil(null);
-        target.setSecurityVersion(target.getSecurityVersion() + 1);
-        challengeRepository.deleteByPlatformUserId(target.getId());
-        challenge.setConsumedAt(OffsetDateTime.now());
-        resetFailures(actor);
-        userRepository.save(target);
-        userRepository.save(actor);
-        challengeRepository.save(challenge);
-        auditService.record(actor.getId(), null, "MFA_RESET", "platform_identity", "SUCCESS",
-            resetAuditDetail(target, reason, true), http);
+        List<String> roles = userDetailsService.loadRoleCodes(user.getId());
+        if (roles.isEmpty()) throw invalidCredentials();
+        RecoveryCodeSet recoveryCodeSet = newRecoveryCodes();
+        user.setMfaSecretEncrypted(pendingSecretEncrypted);
+        user.setRecoveryCodeHashesJson(json(recoveryCodeSet.hashes()));
+        user.setMfaEnabled(true);
+        user.setMfaEnrolledAt(OffsetDateTime.now());
+        resetFailures(user);
+        user.setSecurityVersion(user.getSecurityVersion() + 1);
+        userRepository.save(user);
+        auditService.recordInCurrentTransaction(
+            user.getId(), null, "MFA_ENROLLED", "platform_identity", "SUCCESS", Map.of(), http);
+        return authenticated(user, recoveryCodeSet.codes());
     }
 
     private PlatformAuthResponse authenticated(PlatformUser user, List<String> recoveryCodes) {
@@ -351,19 +336,10 @@ public class PlatformMfaService {
     }
 
     private PlatformReauthenticationChallengeResponse createChallenge(PlatformUser user, String purpose) {
-        return createChallenge(user, purpose, null);
-    }
-
-    private PlatformReauthenticationChallengeResponse createChallenge(
-        PlatformUser user,
-        String purpose,
-        Long targetPlatformUserId
-    ) {
         String challengeToken = crypto.newChallengeToken();
         challengeRepository.save(PlatformMfaChallenge.builder()
             .tokenHash(crypto.hashToken(challengeToken))
             .platformUserId(user.getId())
-            .targetPlatformUserId(targetPlatformUserId)
             .purpose(purpose)
             .expiresAt(OffsetDateTime.now().plusMinutes(properties.getChallengeMinutes()))
             .build());
@@ -449,28 +425,15 @@ public class PlatformMfaService {
     }
 
     private String otpauth(PlatformUser user, String secret) {
+        return otpauth(user.getNormalizedEmail(), secret);
+    }
+
+    private String otpauth(String normalizedEmail, String secret) {
         String issuer = "BCWMS Platform";
-        String label = issuer + ":" + user.getNormalizedEmail();
+        String label = issuer + ":" + normalizedEmail;
         return "otpauth://totp/" + URLEncoder.encode(label, StandardCharsets.UTF_8).replace("+", "%20")
             + "?secret=" + secret + "&issuer=" + URLEncoder.encode(issuer, StandardCharsets.UTF_8).replace("+", "%20")
             + "&algorithm=SHA1&digits=6&period=30";
-    }
-
-    private void requireDifferentAdministrator(Long actorUserId, Long targetUserId) {
-        if (targetUserId == null) throw new IllegalArgumentException("Target platform administrator is required");
-        if (actorUserId.equals(targetUserId)) {
-            throw new AccessDeniedException("Platform administrators cannot reset their own MFA");
-        }
-    }
-
-    private Map<String, Object> resetAuditDetail(PlatformUser target, String reason, boolean sessionsRevoked) {
-        Map<String, Object> detail = new java.util.LinkedHashMap<>();
-        detail.put("targetPlatformUserId", target.getId());
-        detail.put("targetSuperAdmin", userDetailsService.loadRoleCodes(target.getId()).contains("PLATFORM_SUPER_ADMIN"));
-        detail.put("sessionsRevoked", sessionsRevoked);
-        detail.put("backgroundTasksPreserved", true);
-        if (reason != null && !reason.isBlank()) detail.put("reason", reason);
-        return detail;
     }
 
     private BusinessException invalidCredentials() { return new BusinessException(ErrorKeys.AUTH_INVALID_CREDENTIALS, Map.of()); }

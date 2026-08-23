@@ -12,22 +12,27 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class PlatformAccessGuard {
+    public static final String SUPER_ADMIN = "ROLE_PLATFORM_SUPER_ADMIN";
+    public static final String OPERATIONS_ADMIN = "ROLE_PLATFORM_OPERATIONS_ADMIN";
+    public static final String SECURITY_AUDITOR = "ROLE_PLATFORM_SECURITY_AUDITOR";
+    public static final String LEGACY_READ = "ROLE_PLATFORM_TENANT_READ";
+    public static final String LEGACY_EXPORT = "ROLE_PLATFORM_TENANT_EXPORT";
     private final PlatformAccessGrantRepository grants;
 
     public PlatformSecurityUser requireRead(Long tenantId, String dataset) {
-        PlatformSecurityUser user = requireAny(Set.of("ROLE_PLATFORM_SUPER_ADMIN", "ROLE_PLATFORM_TENANT_READ"));
+        PlatformSecurityUser user = requireAny(Set.of(SUPER_ADMIN, OPERATIONS_ADMIN, LEGACY_READ));
         requireGrantUnlessSuper(user, "READ", tenantId, dataset);
         return user;
     }
 
     public PlatformSecurityUser requireExport(Long tenantId, String dataset) {
-        PlatformSecurityUser user = requireAny(Set.of("ROLE_PLATFORM_SUPER_ADMIN", "ROLE_PLATFORM_TENANT_EXPORT"));
+        PlatformSecurityUser user = requireAny(Set.of(SUPER_ADMIN, OPERATIONS_ADMIN, LEGACY_EXPORT));
         requireGrantUnlessSuper(user, "EXPORT", tenantId, dataset);
         return user;
     }
 
     public PlatformSecurityUser requireSuperAdmin() {
-        return requireAny(Set.of("ROLE_PLATFORM_SUPER_ADMIN"));
+        return requireAny(Set.of(SUPER_ADMIN));
     }
 
     public PlatformSecurityUser requirePlatformUser() {
@@ -45,29 +50,45 @@ public class PlatformAccessGuard {
     }
 
     public PlatformSecurityUser requireTenantDirectory() {
-        PlatformSecurityUser user = requireAny(Set.of("ROLE_PLATFORM_SUPER_ADMIN", "ROLE_PLATFORM_TENANT_READ", "ROLE_PLATFORM_TENANT_EXPORT"));
-        if (!isSuperAdmin() && activeTenantIds(user).isEmpty()) throw new AccessDeniedException("Platform access grant is required");
+        PlatformSecurityUser user = requireAny(Set.of(SUPER_ADMIN, OPERATIONS_ADMIN, LEGACY_READ, LEGACY_EXPORT));
+        if (!hasAllTenantDirectoryAccess() && activeTenantIds(user).isEmpty()) {
+            throw new AccessDeniedException("Platform access grant is required");
+        }
         return user;
     }
 
     public PlatformSecurityUser requireTenantListed(Long tenantId) {
         PlatformSecurityUser user = requireTenantDirectory();
-        if (!isSuperAdmin() && !activeTenantIds(user).contains(tenantId)) throw new AccessDeniedException("Tenant is outside platform access grant");
+        if (!hasAllTenantDirectoryAccess() && !activeTenantIds(user).contains(tenantId)) {
+            throw new AccessDeniedException("Tenant is outside platform access grant");
+        }
         return user;
     }
 
     public boolean isSuperAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null && authentication.getPrincipal() instanceof PlatformSecurityUser
-            && authentication.getAuthorities().stream().anyMatch(a -> "ROLE_PLATFORM_SUPER_ADMIN".equals(a.getAuthority()));
+            && authentication.getAuthorities().stream().anyMatch(a -> SUPER_ADMIN.equals(a.getAuthority()));
+    }
+
+    public boolean isOperationsAdmin() {
+        return hasAuthority(OPERATIONS_ADMIN);
+    }
+
+    public boolean isSecurityAuditor() {
+        return hasAuthority(SECURITY_AUDITOR);
+    }
+
+    public boolean hasAllTenantDirectoryAccess() {
+        return isSuperAdmin() || isOperationsAdmin();
     }
 
     public java.util.List<Long> activeTenantIds(PlatformSecurityUser user) {
-        if (isSuperAdmin()) return java.util.List.of();
+        if (hasAllTenantDirectoryAccess()) return java.util.List.of();
         java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
         java.util.Set<Long> tenantIds = new java.util.LinkedHashSet<>();
-        if (hasAuthority("ROLE_PLATFORM_TENANT_READ")) tenantIds.addAll(grants.activeTenantIds(user.getId(), "READ", now));
-        if (hasAuthority("ROLE_PLATFORM_TENANT_EXPORT")) tenantIds.addAll(grants.activeTenantIds(user.getId(), "EXPORT", now));
+        if (hasAuthority(LEGACY_READ)) tenantIds.addAll(grants.activeTenantIds(user.getId(), "READ", now));
+        if (hasAuthority(LEGACY_EXPORT)) tenantIds.addAll(grants.activeTenantIds(user.getId(), "EXPORT", now));
         return java.util.List.copyOf(tenantIds);
     }
 
@@ -78,9 +99,15 @@ public class PlatformAccessGuard {
     }
 
     public PlatformSecurityUser requireAuditRead() {
-        // 2026-08-16: audit visibility is intentionally limited to the
-        // permanent super administrator until delegated platform grants exist.
-        return requireSuperAdmin();
+        return requireAny(Set.of(SUPER_ADMIN, SECURITY_AUDITOR));
+    }
+
+    public PlatformSecurityUser requireAdminDirectoryRead() {
+        return requireAny(Set.of(SUPER_ADMIN, SECURITY_AUDITOR));
+    }
+
+    public PlatformSecurityUser requireGrantInventoryRead() {
+        return requireAny(Set.of(SUPER_ADMIN, SECURITY_AUDITOR));
     }
 
     public PlatformSecurityUser requireWrite() {
