@@ -1,6 +1,6 @@
 # Codex 项目交接
 
-更新日期：2026-08-11
+更新日期：2026-08-25
 
 ## 当前阶段
 
@@ -16,6 +16,7 @@
 - 2026-08-10 已按批准方案形成三项发布提交并推送：`121e8e9`（应用功能）、`29fae47`（验收与交接）、`57db5ad`（CI 门禁）。首次远程 CI 运行 `31393616581` 全部通过，Backend verify、Frontend verify 和 Release gate 均为 `success`。
 - 2026-08-10 历史凭证脱敏扫描覆盖当时全部 38 个可达提交；未发现需人工复核的高置信私钥/平台令牌，但当时 `DB_PASSWORD` 仍匹配 Git 历史旧值，`DB_USERNAME` 未设置并会回退到 `postgres`，因此门禁曾为 `BLOCKED`。该阻塞已在 2026-08-11 关闭；`BATCH_SALT` 始终不参与轮换。详情见 `docs/P2_CREDENTIAL_HISTORY_AUDIT_2026-08-10.md`。
 - 2026-08-11 已完成本机数据库凭证轮换和低权限账号切换：旧 `postgres` 密码失效，`wms_app` 接管 `wms_db`、`wms_db_test` 及 public 对象，四项高权限标志均为 `false`；应用以新凭证重启，健康、V4.49、OpenAPI、可回滚 DDL 探针和脱敏凭证门禁均通过。详情见 `docs/P2_DATABASE_CREDENTIAL_ROTATION_2026-08-11.md`。
+- 2026-08-25 已独立修复本机 DPAPI 包中的失效 `postgres` 恢复凭据：仅轮换数据库超级用户密码，`wms_app`、两库所有权、V4.72/69 条迁移、配置和应用环境均未改变；新旧认证、冷备、受限 ACL、服务恢复及临时资源清理全部通过。该任务不属于平台管理员管理第二阶段。详情见 `docs/LOCAL_POSTGRES_RECOVERY_CREDENTIAL_REPAIR_2026-08-25.md`。
 - 安全审计提交 `d9410b6` 和轮换提交 `ce0794e` 已推送；GitHub Actions `31412241192` 的后端、前端与 Release gate 全部通过。当前只剩用户单独批准的 P2 标签或部署决策。
 
 ## 已完成功能
