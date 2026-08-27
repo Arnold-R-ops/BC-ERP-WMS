@@ -148,4 +148,49 @@ class DynamicAuthorizationManagerTest {
 
         assertThat(decision.isGranted()).isFalse();
     }
+
+    @Test
+    void correctionExecuteWildcardReachesPolicyImpactAndApplyAtPathLayer() {
+        User user = User.builder()
+                .id(44L)
+                .username("correction-maker")
+                .password("encoded")
+                .enabled(true)
+                .securityVersion(3L)
+                .build();
+        user.setCompanyId(1L);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                new SecurityUser(user),
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_INVENTORY_CORRECTION_MAKER"))
+        );
+
+        PermissionDTO correctionExecute = PermissionDTO.builder()
+                .permissionCode("inventory:correction:execute")
+                .permissionType("API")
+                .resourcePath("/api/emergency-stock-corrections/**")
+                .httpMethod("*")
+                .status("ACTIVE")
+                .build();
+        when(permissionService.getUserPermissionsForRole(
+                1L, 44L, "INVENTORY_CORRECTION_MAKER", 3L))
+                .thenReturn(UserPermissionDTO.builder()
+                        .userId(44L)
+                        .roleCodes(Set.of("INVENTORY_CORRECTION_MAKER"))
+                        .apiPermissions(List.of(correctionExecute))
+                        .permissionCodes(Set.of("inventory:correction:execute"))
+                        .build());
+
+        for (MockHttpServletRequest request : List.of(
+                new MockHttpServletRequest("GET", "/api/emergency-stock-corrections/policy"),
+                new MockHttpServletRequest("GET", "/api/emergency-stock-corrections/99/impact"),
+                new MockHttpServletRequest("POST", "/api/emergency-stock-corrections/99/apply")
+        )) {
+            AuthorizationDecision decision = authorizationManager.check(
+                    () -> authentication,
+                    new RequestAuthorizationContext(request)
+            );
+            assertThat(decision.isGranted()).isTrue();
+        }
+    }
 }

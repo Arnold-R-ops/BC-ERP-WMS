@@ -12,12 +12,12 @@ import {
 
 const BASE_TIME = new Date('2026-08-18T08:00:00Z').getTime();
 
-function renderProvider(): void {
+function renderProvider(onSessionScopeChange?: () => void): void {
   render(
     <MemoryRouter initialEntries={['/']}>
       <ConfigProvider>
         <AntdApp>
-          <AuthProvider>
+          <AuthProvider onSessionScopeChange={onSessionScopeChange}>
             <Routes>
               <Route element={<div>tenant-session-active</div>} path="/" />
               <Route element={<div>tenant-login</div>} path="/login" />
@@ -129,6 +129,33 @@ describe('tenant ERP session lifecycle', () => {
     });
 
     expect(screen.getByText('tenant-login')).toBeVisible();
+  });
+
+  it('invalidates tenant query data when the session principal changes', () => {
+    seedSession();
+    const clearTenantQueries = vi.fn();
+    renderProvider(clearTenantQueries);
+
+    writeAuthSession({
+      token: 'tenant-token-2',
+      tokenType: 'Bearer',
+      username: 'approver',
+      currentRole: 'GENERAL_MANAGER',
+      availableRoles: ['GENERAL_MANAGER'],
+      permissionCodes: ['inventory:correction:view'],
+      expiresAt: BASE_TIME + 24 * 60 * 60 * 1000,
+      sessionEndsAt: BASE_TIME + 7 * 24 * 60 * 60 * 1000,
+      mustChangePassword: false,
+    });
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: AUTH_STORAGE_KEY,
+        newValue: localStorage.getItem(AUTH_STORAGE_KEY),
+        storageArea: localStorage,
+      }));
+    });
+
+    expect(clearTenantQueries).toHaveBeenCalledOnce();
   });
 
   it('does not sign in a tab that is already showing the login page', () => {

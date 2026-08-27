@@ -467,18 +467,12 @@ $missingProduct = Invoke-Api POST "/api/sales-orders" @{
     })
 } $Auth
 Assert-Check $scenario "non-existent product is rejected" ($missingProduct.status -in @(400,404)) @{ status = $missingProduct.status; body = $missingProduct.body }
-$badAdjust = Invoke-Api POST "/api/inventory/adjust" @{
-    productSkuId = $productSku.id
-    locationId = $location.id
-    transactionType = "ADJUST"
-    sourceType = "MANUAL_ADJUST"
-    quantity = 0
-    sourceOrderId = "HARDEN-BAD-ADJ-$RunId"
-    operatorId = 2
-    operatorName = "admin"
-    remark = "bad boundary"
-} $Auth
-Assert-Check $scenario "zero stock adjustment quantity is rejected" ($badAdjust.status -eq 400) @{ status = $badAdjust.status; body = $badAdjust.body }
+$removedInventoryAdjust = Invoke-Api POST "/api/inventory/adjust" @{} $Auth
+Assert-Check $scenario "direct inventory adjustment route is removed" ($removedInventoryAdjust.status -eq 404) @{ status = $removedInventoryAdjust.status; body = $removedInventoryAdjust.body }
+$removedBatchAdjust = Invoke-Api PUT "/api/inventory/batches/HARD-BATCH-$RunId/adjust" @{} $Auth
+Assert-Check $scenario "direct batch adjustment route is removed" ($removedBatchAdjust.status -eq 404) @{ status = $removedBatchAdjust.status; body = $removedBatchAdjust.body }
+$removedFifoOutbound = Invoke-Api POST "/api/inventory/batches/outbound" @{} $Auth
+Assert-Check $scenario "direct FIFO outbound route is removed" ($removedFifoOutbound.status -eq 404) @{ status = $removedFifoOutbound.status; body = $removedFifoOutbound.body }
 
 $passed = -not ($checks | Where-Object { -not $_.passed })
 $summary = [ordered]@{

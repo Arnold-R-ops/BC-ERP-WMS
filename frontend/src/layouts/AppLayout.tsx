@@ -169,16 +169,21 @@ export function AppLayout(): JSX.Element {
     if (!session) {
       return [];
     }
-    return menuDefinitions
-      .filter((item) => item.delivered && canAccessModule(session.currentRole, item.module, session.permissionCodes))
-      .map((item) => ({
+    return menuDefinitions.flatMap((item) => {
+      if (!item.delivered) return [];
+      const visibleChildren = item.children
+        ?.filter((child) => child.delivered && canAccessModule(session.currentRole, child.module, session.permissionCodes));
+      if (!canAccessModule(session.currentRole, item.module, session.permissionCodes) && !visibleChildren?.length) {
+        return [];
+      }
+      return [{
         path: item.path,
         name: t(item.nameKey),
         icon: item.icon,
-        children: item.children
-          ?.filter((child) => child.delivered && canAccessModule(session.currentRole, child.module, session.permissionCodes))
-          .map((child) => ({ path: child.path, name: t(child.nameKey), icon: child.icon })),
-      }));
+        children: visibleChildren
+          ?.map((child) => ({ path: child.path, name: t(child.nameKey), icon: child.icon })),
+      }];
+    });
   }, [session, t]);
   const mobileMenuItems = useMemo(() => buildMobileMenuItems(routes), [routes]);
 
@@ -275,7 +280,7 @@ export function AppLayout(): JSX.Element {
         <ProLayout
           actionsRender={() => [
             <LanguageSwitcher key="language" />,
-            <RoleSwitcher iconOnly key="organization" tooltip={t('header.switchOrganization')} />,
+            <RoleSwitcher iconOnly key="organization" tooltip={t('auth.switchRole')} />,
             <Dropdown
               key="announcements"
               popupRender={() => <div className="system-announcement-panel"><Empty description={t('header.noAnnouncements')} image={Empty.PRESENTED_IMAGE_SIMPLE} /></div>}

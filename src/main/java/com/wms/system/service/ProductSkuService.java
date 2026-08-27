@@ -69,12 +69,14 @@ public class ProductSkuService {
         return convertToResponse(product);
     }
 
+    @Transactional(readOnly = true)
     public ProductSkuResponse getProductSku(Long id) {
         ProductSku product = productSkuRepository.findById(id)
             .orElseThrow(() -> new BusinessException(ErrorKeys.PRODUCT_SKU_NOT_FOUND, Map.of("id", id)));
         return convertToResponse(product);
     }
 
+    @Transactional(readOnly = true)
     public List<ProductSkuResponse> listProductSkus(Boolean enabledOnly, Long productId) {
         List<ProductSku> products;
         if (productId != null) {

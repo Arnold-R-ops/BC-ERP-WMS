@@ -30,7 +30,7 @@ public class BackorderController {
     }
 
     @PostMapping("/wake/product/{productSkuId}")
-    @PreAuthorize("hasAnyAuthority('inventory:adjust', 'TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('backorder:wake', 'TENANT_ADMIN')")
     public ResponseEntity<?> wakeProduct(@PathVariable("productSkuId") Long productSkuId) {
         int createdTasks = backorderService.wakeProduct(productSkuId);
         return ResponseEntity.ok(Map.of("productSkuId", productSkuId, "createdTaskGroups", createdTasks));

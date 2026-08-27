@@ -1,27 +1,16 @@
 package com.wms.system.service;
 
 import com.wms.system.entity.InventoryBatch;
-import com.wms.system.entity.Location;
-import com.wms.system.entity.ProductSku;
-import com.wms.system.entity.StockTransaction;
-import com.wms.system.entity.enums.SourceType;
-import com.wms.system.entity.enums.TransactionType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
-import com.wms.system.repository.LocationRepository;
 import com.wms.system.repository.ProductSkuRepository;
-import com.wms.system.repository.StockTransactionRepository;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,29 +18,16 @@ import java.util.Map;
  * Inventory Batch Management Service (批次库存管理服务)
  *
  * Core Responsibilities:
- * 1. FIFO outbound logic (先进先出出库 - based on expiry date)
- * 2. Batch stock queries (by product, location, expiry status)
- * 3. V3.0 stock aggregation (real-time SUM from InventoryBatch)
- * 4. Expiry warnings (过期预警)
- * 5. Batch lifecycle management
+ * 1. Batch stock queries (by product, location, expiry status)
+ * 2. V3.0 stock aggregation (real-time SUM from InventoryBatch)
+ * 3. Expiry warnings (过期预警)
+ * 4. Batch lifecycle queries
  *
  * V3.0 Architecture:
  * - InventoryBatch is the ONLY inventory data source (Single Source of Truth)
  * - No Inventory aggregation table
  * - All stock queries aggregate from InventoryBatch with WHERE active = true
  * - Stock aggregation: SELECT SUM(quantity) WHERE product_sku_id = ? AND active = true
- *
- * FIFO Logic:
- * - Query: ORDER BY expiryDate ASC (earliest expiry first)
- * - Deduct from earliest expiring batches first
- * - Ensure no expired batches are used for outbound
- * - Generate stock transactions for each batch deduction
- *
- * Technical Features:
- * - @Transactional: Ensures atomicity (multi-batch deduction + transaction generation)
- * - @Retryable: Auto-retry on optimistic lock conflicts (max 3 attempts)
- * - Error Key System: All exceptions use error keys for frontend i18n
- * - Optimistic locking: @Version field prevents concurrent stock oversell
  *
  * @author WMS Team
  * @since 2025-01-13
@@ -64,284 +40,6 @@ public class InventoryBatchService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductSkuRepository productSkuRepository;
-    private final LocationRepository locationRepository;
-    private final StockTransactionRepository stockTransactionRepository;
-    private final LocationOccupancyService locationOccupancyService;
-
-    /**
-     * ⭐ FIFO Outbound with Loose Item First Strategy (先进先出出库 - V3.1 零头优先策略)
-     *
-     * V3.1 Upgrade: Multi-Unit Auto-Unpacking Strategy
-     * - Stage 1: Prioritize loose batches (零头批次优先 - quantity % conversionRate != 0)
-     * - Stage 2: Use full pack batches only when loose items are insufficient (零头不足时才拆新箱)
-     *
-     * Business Flow:
-     * 1. Query loose batches first (ORDER BY expiryDate ASC)
-     * 2. If loose items insufficient, query full pack batches (ORDER BY expiryDate ASC)
-     * 3. Filter out expired batches (reject outbound if expired batch exists)
-     * 4. Deduct from earliest expiring batches first (FIFO within each stage)
-     * 5. Update batch quantities (optimistic locking)
-     * 6. Generate stock transactions for each batch deduction
-     *
-     * Loose Item First Rules:
-     * - Loose batch: quantity % conversionRate != 0 (已开箱)
-     * - Full pack batch: quantity % conversionRate == 0 (未开箱)
-     * - Always consume loose items before opening new packs
-     * - Minimize number of open packs in warehouse
-     *
-     * Example (conversionRate = 12):
-     * - Warehouse has: [5 loose units, 24 full pack units]
-     * - Request 10 units:
-     *   → Use 5 from loose batch
-     *   → Open 1 full pack (12 units), use 5, leave 7 as new loose batch
-     * - Result: [7 loose units, 12 full pack units]
-     *
-     * V3.0 Architecture:
-     * - No Inventory table update
-     * - InventoryBatch.quantity is directly decremented
-     * - Stock transactions record batch_code for traceability
-     *
-     * @param productSkuId ProductSku ID
-     * @param requestedQuantity Requested outbound quantity
-     * @param sourceType Source type (e.g., SALE_OUT, PRODUCTION_OUT)
-     * @param sourceOrderId Source order ID (e.g., SO-20250113-001)
-     * @param operatorId Operator user ID
-     * @param operatorName Operator user name
-     * @return List<StockTransaction> Generated transactions (one per batch)
-     * @throws BusinessException if insufficient stock, expired batch found, or concurrency conflict
-     * @since V3.1 (upgraded from V3.0)
-     */
-    @Transactional(rollbackFor = Exception.class)
-    @Retryable(
-        retryFor = {OptimisticLockException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000)
-    )
-    public List<StockTransaction> outboundWithFifo(
-        Long productSkuId,
-        Integer requestedQuantity,
-        SourceType sourceType,
-        String sourceOrderId,
-        Long operatorId,
-        String operatorName
-    ) {
-        log.info("🚀 V3.1 FIFO outbound started: productSkuId={}, requestedQty={}, sourceType={}, sourceOrder={}",
-            productSkuId, requestedQuantity, sourceType, sourceOrderId);
-
-        // 1. Validate product exists
-        ProductSku product = productSkuRepository.findById(productSkuId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PRODUCT_SKU_NOT_FOUND,
-                Map.of("productSkuId", productSkuId)
-            ));
-
-        if (requestedQuantity == null || requestedQuantity <= 0) {
-            Object quantityValue = requestedQuantity == null ? "null" : requestedQuantity;
-            throw new BusinessException(
-                ErrorKeys.STOCK_INVALID_QUANTITY,
-                Map.of(
-                    "quantity", quantityValue,
-                    "operationType", "OUTBOUND"
-                )
-            );
-        }
-
-        log.info("📦 ProductSku info: name={}, packUnit={}, conversionRate={}, formattedRequest={}",
-            product.getName(), product.getPackUnit(), product.getConversionRate(),
-            product.formatQuantity(requestedQuantity));
-
-        // 2. V3.1: Query batches with Loose Item First Strategy
-        List<InventoryBatch> allBatches = new ArrayList<>();
-
-        // Stage 1: Query loose batches first (零头批次优先)
-        List<InventoryBatch> looseBatches = inventoryBatchRepository
-            .findLooseBatchesByProductSkuOrderByExpiryDateAsc(productSkuId, product.getConversionRate(), true);
-
-        if (!looseBatches.isEmpty()) {
-            allBatches.addAll(looseBatches);
-            log.info("✅ Stage 1: Found {} loose batches (已开箱批次)", looseBatches.size());
-        } else {
-            log.info("⚠️ Stage 1: No loose batches found");
-        }
-
-        int looseAvailable = looseBatches.stream()
-            .mapToInt(InventoryBatch::getQuantity)
-            .sum();
-
-        // Stage 2: Query full pack batches only when loose batches are insufficient
-        if (looseAvailable < requestedQuantity) {
-            List<InventoryBatch> fullPackBatches = inventoryBatchRepository
-                .findFullPackBatchesByProductSkuOrderByExpiryDateAsc(productSkuId, product.getConversionRate(), true);
-
-            if (!fullPackBatches.isEmpty()) {
-                allBatches.addAll(fullPackBatches);
-                log.info("✅ Stage 2: Found {} full pack batches (整箱批次)", fullPackBatches.size());
-            } else {
-                log.info("⚠️ Stage 2: No full pack batches found");
-            }
-        } else {
-            log.info("Skipping full pack query: looseAvailable={}, requestedQuantity={}",
-                looseAvailable, requestedQuantity);
-        }
-
-        List<InventoryBatch> activeBatchesForCheck = inventoryBatchRepository
-            .findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
-        if (activeBatchesForCheck == null || activeBatchesForCheck.isEmpty()) {
-            activeBatchesForCheck = allBatches;
-        }
-
-        // Validate we have batches
-        if (allBatches.isEmpty()) {
-            log.error("❌ No active batches found: productSkuId={}", productSkuId);
-
-            throw new BusinessException(
-                ErrorKeys.INSUFFICIENT_STOCK,
-                Map.of(
-                    "productSkuId", productSkuId,
-                    "productName", product.getName(),
-                    "requestedQuantity", requestedQuantity,
-                    "availableQuantity", 0,
-                    "shortage", requestedQuantity
-                )
-            );
-        }
-
-        // 3. Check for expired batches (reject outbound if found)
-        LocalDate today = LocalDate.now();
-        List<InventoryBatch> expiredBatches = activeBatchesForCheck.stream()
-            .filter(b -> b.getExpiryDate().isBefore(today))
-            .toList();
-
-        if (!expiredBatches.isEmpty()) {
-            InventoryBatch firstExpired = expiredBatches.get(0);
-            log.error("❌ Expired batch found: batchCode={}, expiryDate={}, quantity={}",
-                firstExpired.getBatchCode(), firstExpired.getExpiryDate(), firstExpired.getQuantity());
-
-            throw new BusinessException(
-                ErrorKeys.EXPIRED_BATCH_FOUND,
-                Map.of(
-                    "batchCode", firstExpired.getBatchCode(),
-                    "expiryDate", firstExpired.getExpiryDate().toString(),
-                    "productSkuId", productSkuId,
-                    "productName", product.getName()
-                )
-            );
-        }
-
-        int totalAvailable = activeBatchesForCheck.stream()
-            .mapToInt(InventoryBatch::getQuantity)
-            .sum();
-
-        if (totalAvailable < requestedQuantity) {
-            log.error("Insufficient stock before deduction: productSkuId={}, requested={}, available={}",
-                productSkuId, requestedQuantity, totalAvailable);
-
-            throw new BusinessException(
-                ErrorKeys.INSUFFICIENT_STOCK,
-                Map.of(
-                    "productSkuId", productSkuId,
-                    "productName", product.getName(),
-                    "requestedQuantity", requestedQuantity,
-                    "availableQuantity", totalAvailable,
-                    "shortage", requestedQuantity - totalAvailable
-                )
-            );
-        }
-
-        // 4. FIFO deduction: deduct from batches in order (loose first, then full packs)
-        int remaining = requestedQuantity;
-        List<StockTransaction> transactions = new ArrayList<>();
-        int looseBatchesUsed = 0;
-        int fullPackBatchesUsed = 0;
-
-        for (InventoryBatch batch : allBatches) {
-            if (remaining <= 0) {
-                break;  // All quantity fulfilled
-            }
-
-            // Skip exhausted batches
-            if (batch.getQuantity() == 0) {
-                continue;
-            }
-
-            // Track which type of batch we're using
-            boolean isLooseBatch = product.isLooseQuantity(batch.getQuantity());
-
-            // Calculate deduction for this batch
-            int quantityBefore = batch.getQuantity();
-            int toDeduct = Math.min(remaining, quantityBefore);
-
-            // Deduct from batch
-            batch.decreaseQuantity(toDeduct);  // Throws exception if insufficient
-            InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
-            locationOccupancyService.refreshLocationStatus(savedBatch.getLocation() == null ? null : savedBatch.getLocation().getId());
-
-            // Log with formatted quantities (V3.1)
-            log.info("✅ Batch deducted: batchCode={}, type={}, deducted={}, before={}, after={}",
-                savedBatch.getBatchCode(),
-                isLooseBatch ? "LOOSE" : "FULL_PACK",
-                product.formatQuantity(toDeduct),
-                product.formatQuantity(quantityBefore),
-                product.formatQuantity(savedBatch.getQuantity()));
-
-            // Track batch type usage
-            if (isLooseBatch) {
-                looseBatchesUsed++;
-            } else {
-                fullPackBatchesUsed++;
-            }
-
-            // Generate stock transaction
-            StockTransaction transaction = StockTransaction.builder()
-                .productSku(product)
-                .location(batch.getLocation())
-                .transactionType(TransactionType.OUT)
-                .sourceType(sourceType)
-                .quantity(toDeduct)
-                .quantityBefore(quantityBefore)
-                .quantityAfter(savedBatch.getQuantity())
-                .sourceOrderId(sourceOrderId)
-                .operatorId(operatorId)
-                .operatorName(operatorName)
-                .remark(String.format("V3.1 FIFO outbound (%s) - Batch: %s",
-                    isLooseBatch ? "Loose Item" : "Full Pack", savedBatch.getBatchCode()))
-                .build();
-
-            StockTransaction savedTransaction = stockTransactionRepository.save(transaction);
-            transactions.add(savedTransaction);
-
-            log.info("📝 Transaction created: id={}, batchCode={}, quantity={}",
-                savedTransaction.getId(), savedBatch.getBatchCode(), product.formatQuantity(toDeduct));
-
-            remaining -= toDeduct;
-        }
-
-        // 5. Verify sufficient stock
-        if (remaining > 0) {
-            int availableQuantity = allBatches.stream()
-                .mapToInt(InventoryBatch::getQuantity)
-                .sum();
-
-            log.error("❌ Insufficient stock: productSkuId={}, requested={}, available={}, shortage={}",
-                productSkuId, requestedQuantity, availableQuantity, remaining);
-
-            throw new BusinessException(
-                ErrorKeys.INSUFFICIENT_STOCK,
-                Map.of(
-                    "productSkuId", productSkuId,
-                    "productName", product.getName(),
-                    "requestedQuantity", requestedQuantity,
-                    "availableQuantity", availableQuantity,
-                    "shortage", remaining
-                )
-            );
-        }
-
-        log.info("✅ V3.1 FIFO outbound completed: productSkuId={}, quantity={}, looseBatches={}, fullPackBatches={}, totalTransactions={}",
-            productSkuId, product.formatQuantity(requestedQuantity), looseBatchesUsed, fullPackBatchesUsed, transactions.size());
-
-        return transactions;
-    }
 
     /**
      * ⭐ Get total stock for product (V3.0: Real-time aggregation)
@@ -379,6 +77,15 @@ public class InventoryBatchService {
     @Transactional(readOnly = true)
     public List<InventoryBatch> getActiveBatchesByProductSku(Long productSkuId) {
         return inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
+    }
+
+    /**
+     * Query selectable existing batches for the emergency-correction workflow.
+     * This intentionally does not alter the ordinary inventory query above.
+     */
+    @Transactional(readOnly = true)
+    public List<InventoryBatch> getCorrectionBatchOptions(Long productSkuId) {
+        return inventoryBatchRepository.findCorrectionCandidatesByProductSkuId(productSkuId);
     }
 
     /**
@@ -479,100 +186,4 @@ public class InventoryBatchService {
         return inventoryBatchRepository.countByProductSkuIdAndActive(productSkuId, true);
     }
 
-    /**
-     * ⭐ Manual stock adjustment for specific batch
-     *
-     * Use Cases:
-     * - Inventory reconciliation (盘点调整)
-     * - Damage/loss recording
-     * - Manual corrections
-     *
-     * ⚠️ Note: This directly modifies batch quantity.
-     * For normal outbound, use outboundWithFifo() instead.
-     *
-     * @param batchCode Batch code
-     * @param adjustmentQuantity Adjustment quantity (positive = increase, negative = decrease)
-     * @param sourceType Source type (e.g., INVENTORY_GAIN, INVENTORY_LOSS)
-     * @param sourceOrderId Source order ID (e.g., ST-20250113-001)
-     * @param operatorId Operator user ID
-     * @param operatorName Operator user name
-     * @param remark Adjustment reason
-     * @return StockTransaction Generated transaction
-     * @throws BusinessException if batch not found, inactive, or insufficient stock
-     */
-    @Transactional(rollbackFor = Exception.class)
-    @Retryable(
-        retryFor = {OptimisticLockException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000)
-    )
-    public StockTransaction adjustBatchStock(
-        String batchCode,
-        Integer adjustmentQuantity,
-        SourceType sourceType,
-        String sourceOrderId,
-        Long operatorId,
-        String operatorName,
-        String remark
-    ) {
-        log.info("Adjusting batch stock: batchCode={}, adjustment={}, sourceType={}",
-            batchCode, adjustmentQuantity, sourceType);
-
-        // 1. Query batch
-        InventoryBatch batch = findByBatchCode(batchCode);
-
-        // 2. Validate batch is active
-        if (!batch.getActive()) {
-            log.error("Batch is inactive: batchCode={}", batchCode);
-
-            throw new BusinessException(
-                ErrorKeys.BATCH_INACTIVE,
-                Map.of("batchCode", batchCode)
-            );
-        }
-
-        // 3. Record quantity before
-        Integer quantityBefore = batch.getQuantity();
-
-        // 4. Adjust quantity
-        if (adjustmentQuantity > 0) {
-            batch.increaseQuantity(adjustmentQuantity);
-        } else if (adjustmentQuantity < 0) {
-            batch.decreaseQuantity(Math.abs(adjustmentQuantity));
-        } else {
-            // No change
-            log.warn("Adjustment quantity is zero: batchCode={}", batchCode);
-        }
-
-        // 5. Save batch
-        InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
-        locationOccupancyService.refreshLocationStatus(savedBatch.getLocation() == null ? null : savedBatch.getLocation().getId());
-
-        log.info("✅ Batch adjusted: batchCode={}, before={}, after={}, adjustment={}",
-            savedBatch.getBatchCode(), quantityBefore, savedBatch.getQuantity(), adjustmentQuantity);
-
-        // 6. Generate transaction
-        TransactionType transactionType = adjustmentQuantity > 0 ? TransactionType.IN : TransactionType.OUT;
-
-        StockTransaction transaction = StockTransaction.builder()
-            .productSku(batch.getProductSku())
-            .location(batch.getLocation())
-            .transactionType(transactionType)
-            .sourceType(sourceType)
-            .quantity(Math.abs(adjustmentQuantity))
-            .quantityBefore(quantityBefore)
-            .quantityAfter(savedBatch.getQuantity())
-            .sourceOrderId(sourceOrderId)
-            .operatorId(operatorId)
-            .operatorName(operatorName)
-            .remark(String.format("Batch adjustment - %s", remark))
-            .build();
-
-        StockTransaction savedTransaction = stockTransactionRepository.save(transaction);
-
-        log.info("✅ Adjustment transaction created: transactionId={}, batchCode={}, adjustment={}",
-            savedTransaction.getId(), savedBatch.getBatchCode(), adjustmentQuantity);
-
-        return savedTransaction;
-    }
 }

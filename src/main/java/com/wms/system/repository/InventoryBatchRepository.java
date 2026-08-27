@@ -1,9 +1,11 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.InventoryBatch;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,6 +35,16 @@ import java.util.Optional;
  */
 @Repository
 public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, Long> {
+
+    boolean existsByBatchCodeAndLocationId(String batchCode, Long locationId);
+
+    /**
+     * Loads one batch under a database write lock for authoritative inventory
+     * posting. The surrounding service transaction owns the lock lifetime.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM InventoryBatch b WHERE b.id = :batchId")
+    Optional<InventoryBatch> findByIdForPosting(@Param("batchId") Long batchId);
 
     interface InventorySummaryRow {
         Long getProductSkuId();
@@ -192,6 +204,37 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     List<InventoryBatch> findByProductSkuIdAndActiveOrderByExpiryDateAsc(
         @Param("productSkuId") Long productSkuId,
         @Param("active") Boolean active
+    );
+
+    /**
+     * Returns the deliberately wider batch set used only when creating an
+     * emergency stock correction. Ordinary inventory and FIFO queries must
+     * continue to hide inactive or exhausted batches.
+     *
+     * <p>An inactive batch is selectable only when its authoritative quantity
+     * is zero. The correction posting service remains responsible for enforcing
+     * that only a governed positive inventory gain may reactivate it.</p>
+     */
+    @Query("""
+        SELECT b
+        FROM InventoryBatch b
+        JOIN FETCH b.productSku p
+        JOIN FETCH b.location l
+        JOIN FETCH l.warehouse w
+        WHERE b.productSku.id = :productSkuId
+          AND b.location IS NOT NULL
+          AND (
+            (b.active = true AND b.quantity > 0)
+            OR (b.active = false AND b.quantity = 0)
+          )
+        ORDER BY
+          CASE WHEN b.active = true THEN 0 ELSE 1 END,
+          b.expiryDate ASC,
+          b.quantity ASC,
+          b.id ASC
+        """)
+    List<InventoryBatch> findCorrectionCandidatesByProductSkuId(
+        @Param("productSkuId") Long productSkuId
     );
 
     /**
@@ -373,72 +416,6 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      * @since V3.3
      */
     List<InventoryBatch> findByLocationCodeAndActive(String locationCode, Boolean active);
-
-    // ========== V3.1 多单位自动拆包策略查询 (Loose Item First Strategy) ==========
-
-    /**
-     * ⭐ V3.1 FIFO Query: Find loose batches (零头批次) by product
-     *
-     * Loose Batch Definition:
-     * - quantity % product.conversionRate != 0（已开箱的批次）
-     *
-     * Strategy: Loose Item First
-     * - 优先查询零头批次（已开箱的）
-     * - 按保质期升序排序（FIFO）
-     * - 用于避免开新箱，优先消耗已开箱批次
-     *
-     * Usage: outboundWithFifo() 第一阶段查询
-     *
-     * @param productSkuId ProductSku ID
-     * @param conversionRate Conversion rate (from ProductSku entity)
-     * @param active Active flag (true for valid batches)
-     * @return List of loose batches sorted by expiry date (earliest first)
-     * @since V3.1
-     */
-    @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.productSku.id = :productSkuId " +
-           "AND b.active = :active " +
-           "AND b.location IS NOT NULL " +
-           "AND b.quantity > 0 " +
-           "AND MOD(b.quantity, :conversionRate) <> 0 " +  // 零头批次（已开箱）
-           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
-    List<InventoryBatch> findLooseBatchesByProductSkuOrderByExpiryDateAsc(
-        @Param("productSkuId") Long productSkuId,
-        @Param("conversionRate") Integer conversionRate,
-        @Param("active") Boolean active
-    );
-
-    /**
-     * ⭐ V3.1 FIFO Query: Find full pack batches (整箱批次) by product
-     *
-     * Full Pack Batch Definition:
-     * - quantity % product.conversionRate == 0（未开箱的批次）
-     *
-     * Strategy: Open new pack only when loose items are insufficient
-     * - 仅在零头不足时查询整箱批次
-     * - 按保质期升序排序（FIFO）
-     * - 避免过早开箱，减少零头批次数量
-     *
-     * Usage: outboundWithFifo() 第二阶段查询
-     *
-     * @param productSkuId ProductSku ID
-     * @param conversionRate Conversion rate (from ProductSku entity)
-     * @param active Active flag (true for valid batches)
-     * @return List of full pack batches sorted by expiry date (earliest first)
-     * @since V3.1
-     */
-    @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.productSku.id = :productSkuId " +
-           "AND b.active = :active " +
-           "AND b.location IS NOT NULL " +
-           "AND b.quantity > 0 " +
-           "AND MOD(b.quantity, :conversionRate) = 0 " +  // 整箱批次（未开箱）
-           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
-    List<InventoryBatch> findFullPackBatchesByProductSkuOrderByExpiryDateAsc(
-        @Param("productSkuId") Long productSkuId,
-        @Param("conversionRate") Integer conversionRate,
-        @Param("active") Boolean active
-    );
 
     /**
      * Find inventory batches by batch code and location

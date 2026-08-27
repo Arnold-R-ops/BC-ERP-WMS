@@ -21,7 +21,7 @@ export function getStocktakeCapabilities(role?: string, permissionCodes?: string
 
 export function getCorrectionCapabilities(role?: string, permissionCodes?: string[]): CorrectionCapabilities {
   return {
-    canAdjust: hasPermission(role, permissionCodes, 'inventory:adjust'),
+    canAdjust: hasPermission(role, permissionCodes, 'inventory:correction:execute'),
     canReview: hasPermission(role, permissionCodes, 'inventory:correction:review'),
     canApprove: hasPermission(role, permissionCodes, 'inventory:correction:approve'),
     canReject: hasPermission(role, permissionCodes, 'inventory:correction:reject'),

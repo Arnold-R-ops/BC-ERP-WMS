@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, Form, Input, InputNumber, Modal, Radio, Select } from 'antd';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CreateEmergencyCorrectionPayload } from '../../api/emergencyCorrections';
-import { listInventoryBatchesByProductSku } from '../../api/inventory';
+import {
+  listEmergencyCorrectionBatchOptions,
+  type CreateEmergencyCorrectionPayload,
+} from '../../api/emergencyCorrections';
 import { listActiveWarehouses, listLocationsByWarehouse } from '../../api/masterData';
 import { listProductSkus, PRODUCT_SKUS_QUERY_KEY } from '../../api/productSkus';
 
@@ -46,8 +48,8 @@ export function EmergencyCorrectionCreateModal({
     enabled: open && mode === 'NEW_BATCH' && warehouseId !== undefined,
   });
   const batchesQuery = useQuery({
-    queryKey: ['inventory-batches', productSkuId],
-    queryFn: () => listInventoryBatchesByProductSku(productSkuId as number),
+    queryKey: ['emergency-stock-corrections', 'batch-options', productSkuId],
+    queryFn: () => listEmergencyCorrectionBatchOptions(productSkuId as number),
     enabled: open && mode === 'EXISTING_BATCH' && productSkuId !== undefined,
   });
   const selectedBatch = (batchesQuery.data ?? []).find((batch) => batch.id === inventoryBatchId);
@@ -134,7 +136,7 @@ export function EmergencyCorrectionCreateModal({
               disabled={!productSkuId}
               loading={batchesQuery.isLoading}
               options={(batchesQuery.data ?? []).filter((batch) => batch.id !== undefined && batch.locationId !== undefined).map((batch) => ({
-                label: `${batch.batchCode ?? '-'} · ${batch.locationCode ?? '-'} · ${t('corrections.create.bookQty', { count: batch.quantity ?? 0 })}`,
+                label: `${batch.batchCode ?? '-'} · ${batch.locationCode ?? '-'} · ${t('corrections.create.bookQty', { count: batch.quantity ?? 0 })}${batch.active === false ? ` · ${t('corrections.create.inactiveRecoverable')}` : ''}`,
                 value: batch.id,
               }))}
               placeholder={t('corrections.create.batchPlaceholder')}

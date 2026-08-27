@@ -22,9 +22,34 @@ public class LocationOccupancyService {
     private final LocationRepository locationRepository;
 
     @Transactional(readOnly = true)
+    public boolean canStore(Location location, ProductSku product, String batchCode) {
+        return conflictingBatch(location, product, batchCode) == null;
+    }
+
+    @Transactional(readOnly = true)
     public void validateCanStore(Location location, ProductSku product, String batchCode) {
-        if (location == null || product == null || batchCode == null || batchCode.isBlank()) {
+        InventoryBatch existing = conflictingBatch(location, product, batchCode);
+        if (existing == null) {
             return;
+        }
+
+        Long existingProductSkuId = existing.getProductSku() == null ? -1L : existing.getProductSku().getId();
+        throw new BusinessException(
+            ErrorKeys.LOCATION_BATCH_MIXING_FORBIDDEN,
+            Map.of(
+                "locationId", location.getId(),
+                "locationCode", location.getLocationCode(),
+                "existingProductSkuId", existingProductSkuId,
+                "incomingProductSkuId", product.getId(),
+                "existingBatchCode", existing.getBatchCode(),
+                "incomingBatchCode", batchCode
+            )
+        );
+    }
+
+    private InventoryBatch conflictingBatch(Location location, ProductSku product, String batchCode) {
+        if (location == null || product == null || batchCode == null || batchCode.isBlank()) {
+            return null;
         }
 
         List<InventoryBatch> existingBatches = inventoryBatchRepository
@@ -36,20 +61,10 @@ public class LocationOccupancyService {
             boolean sameBatch = batchCode.equals(existing.getBatchCode());
 
             if (!sameProduct || !sameBatch) {
-                Long existingProductSkuId = existing.getProductSku() == null ? -1L : existing.getProductSku().getId();
-                throw new BusinessException(
-                    ErrorKeys.LOCATION_BATCH_MIXING_FORBIDDEN,
-                    Map.of(
-                        "locationId", location.getId(),
-                        "locationCode", location.getLocationCode(),
-                        "existingProductSkuId", existingProductSkuId,
-                        "incomingProductSkuId", product.getId(),
-                        "existingBatchCode", existing.getBatchCode(),
-                        "incomingBatchCode", batchCode
-                    )
-                );
+                return existing;
             }
         }
+        return null;
     }
 
     @Transactional(rollbackFor = Exception.class)

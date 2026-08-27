@@ -3,7 +3,11 @@ import {
   applyEmergencyCorrection,
   approveEmergencyCorrection,
   createEmergencyCorrection,
+  getEmergencyCorrectionImpact,
+  getEmergencyCorrectionPolicy,
+  listEmergencyCorrectionBatchOptions,
   listEmergencyCorrections,
+  updateEmergencyCorrectionPolicy,
 } from './emergencyCorrections';
 import {
   listStocktakeReviewItems,
@@ -22,7 +26,7 @@ function jsonResponse(body: unknown): Response {
 describe('inventory governance API contracts', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse([]));
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(jsonResponse([])));
   });
 
   it('encodes stocktake queue filters', async () => {
@@ -102,10 +106,54 @@ describe('inventory governance API contracts', () => {
     }));
   });
 
-  it('keeps approval and inventory application as separate commands', async () => {
+  it('reads correction policy and impact from dedicated endpoints', async () => {
+    await getEmergencyCorrectionPolicy();
+    await getEmergencyCorrectionImpact(9);
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      '/api/emergency-stock-corrections/policy',
+      expect.any(Object),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/emergency-stock-corrections/9/impact',
+      expect.any(Object),
+    );
+  });
+
+  it('loads existing-batch choices from the correction-specific endpoint', async () => {
+    await listEmergencyCorrectionBatchOptions(42);
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/emergency-stock-corrections/batch-options?productSkuId=42',
+      expect.any(Object),
+    );
+  });
+
+  it('requires a reason and explicit confirmation when changing correction policy', async () => {
+    await updateEmergencyCorrectionPolicy({
+      mode: 'TWO_PERSON',
+      reason: 'separate warehouse approval duties',
+      confirmed: true,
+    });
+
+    const options = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/emergency-stock-corrections/policy',
+      expect.objectContaining({ method: 'PUT' }),
+    );
+    expect(JSON.parse(String(options?.body))).toEqual({
+      mode: 'TWO_PERSON',
+      reason: 'separate warehouse approval duties',
+      confirmed: true,
+    });
+  });
+
+  it('keeps approval and idempotent inventory application as separate commands', async () => {
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(jsonResponse({ id: 9 })));
     await approveEmergencyCorrection(9, { comment: 'manager approved' });
-    await applyEmergencyCorrection(9);
+    await applyEmergencyCorrection(9, 'esc-9-command-1', 'preview-token-9');
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
@@ -117,6 +165,19 @@ describe('inventory governance API contracts', () => {
       '/api/emergency-stock-corrections/9/apply',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(vi.mocked(fetch).mock.calls[1]?.[1]?.body).toBeUndefined();
+    const applyOptions = vi.mocked(fetch).mock.calls[1]?.[1];
+    expect(JSON.parse(String(applyOptions?.body))).toEqual({
+      confirmed: true,
+      previewToken: 'preview-token-9',
+    });
+    expect((applyOptions?.headers as Headers).get('Idempotency-Key')).toBe('esc-9-command-1');
+  });
+
+  it('does not call apply when the current impact has no preview token', async () => {
+    await expect(applyEmergencyCorrection(9, 'esc-9-command-2', '   ')).rejects.toThrow(
+      'Emergency correction preview token is required',
+    );
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

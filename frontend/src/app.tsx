@@ -294,7 +294,7 @@ export function App(): JSX.Element {
                 v7_startTransition: true,
               }}
             >
-              <AuthProvider>
+              <AuthProvider onSessionScopeChange={() => queryClient.clear()}>
                 <AppRoutes />
               </AuthProvider>
             </HashRouter>

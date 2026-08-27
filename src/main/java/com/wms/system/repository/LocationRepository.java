@@ -3,6 +3,8 @@ package com.wms.system.repository;
 import com.wms.system.entity.Location;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.Zone;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,6 +27,11 @@ import java.util.Optional;
  */
 @Repository
 public interface LocationRepository extends JpaRepository<Location, Long> {
+
+    /** Serializes occupancy validation and batch creation for one location. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT l FROM Location l WHERE l.id = :id")
+    Optional<Location> findByIdForInventoryPosting(@Param("id") Long id);
 
     /**
      * 根据库位编码查询（唯一标识）

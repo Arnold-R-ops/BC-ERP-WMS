@@ -29,7 +29,7 @@ import java.util.Map;
  *     "shortage": 50
  *   },
  *   "timestamp": "2025-01-11T10:30:00+00:00",
- *   "path": "/api/inventory/adjust"
+ *   "path": "/api/emergency-stock-corrections/42/apply"
  * }
  *
  * // Frontend translates:
@@ -69,7 +69,7 @@ public class ErrorResponse {
 
     /**
      * API request path where error occurred
-     * Example: "/api/inventory/adjust"
+     * Example: "/api/emergency-stock-corrections/42/apply"
      */
     private String path;
 

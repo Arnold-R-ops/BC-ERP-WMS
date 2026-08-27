@@ -520,25 +520,38 @@ client.assert(response.status === 404, "non-existent SKU should be rejected");
 client.assert(response.body.errorKey === "PRODUCT_SKU_NOT_FOUND", "non-existent SKU should return PRODUCT_SKU_NOT_FOUND");
 %}
 
-### 28. Boundary: zero stock adjustment should be rejected
-# @name boundaryZeroStockAdjustment
+### 28. Contract: direct inventory adjustment route is removed
+# @name removedDirectInventoryAdjustment
 POST {{host}}/api/inventory/adjust
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{
-  "productSkuId": {{productSkuId}},
-  "locationId": {{locationId}},
-  "transactionType": "ADJUST",
-  "sourceType": "MANUAL_ADJUST",
-  "quantity": 0,
-  "sourceOrderId": "HARD-BAD-ADJ-{{runId}}",
-  "operatorId": 2,
-  "operatorName": "admin",
-  "remark": "hardening bad input"
-}
+{}
 
 > {%
-client.assert(response.status === 400, "zero stock adjustment should be rejected");
-client.assert(response.body.errorKey === "VALIDATION_FAILED", "zero stock adjustment should be validation failure");
+client.assert(response.status === 404, "direct inventory adjustment route should not exist");
+%}
+
+### 29. Contract: direct batch adjustment route is removed
+# @name removedDirectBatchAdjustment
+PUT {{host}}/api/inventory/batches/HARD-BATCH-{{runId}}/adjust
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+> {%
+client.assert(response.status === 404, "direct batch adjustment route should not exist");
+%}
+
+### 30. Contract: direct FIFO outbound route is removed
+# @name removedDirectFifoOutbound
+POST {{host}}/api/inventory/batches/outbound
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+> {%
+client.assert(response.status === 404, "direct FIFO outbound route should not exist");
 %}

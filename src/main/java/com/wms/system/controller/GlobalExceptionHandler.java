@@ -14,13 +14,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +50,7 @@ import java.util.Map;
  *     "shortage": 50
  *   },
  *   "timestamp": "2025-01-11T10:30:00+00:00",
- *   "path": "/api/inventory/adjust",
+ *   "path": "/api/emergency-stock-corrections/42/apply",
  *   "status": 400
  * }
  * </pre>
@@ -174,6 +177,67 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    /** Handle required command headers such as Idempotency-Key. */
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(
+        MissingRequestHeaderException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.PARAMETER_REQUIRED)
+            .params(Map.of("parameter", ex.getHeaderName()))
+            .path(request.getRequestURI())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .build();
+
+        log.warn("Missing request header: header={}, path={}",
+            ex.getHeaderName(), request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Handle requests for endpoints or static resources that do not exist.
+     *
+     * Keeping this ahead of the generic exception handler ensures retired API
+     * routes are reported as 404 instead of being misclassified as server errors.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+        NoResourceFoundException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.RESOURCE_NOT_FOUND)
+            .params(Map.of("resourcePath", ex.getResourcePath()))
+            .path(request.getRequestURI())
+            .status(HttpStatus.NOT_FOUND.value())
+            .build();
+
+        log.warn("Resource not found: path={}", request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    /** Handle a known path invoked with an unsupported HTTP method. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+        HttpRequestMethodNotSupportedException ex,
+        HttpServletRequest request
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .errorKey(ErrorKeys.OPERATION_NOT_ALLOWED)
+            .params(Map.of("method", ex.getMethod()))
+            .path(request.getRequestURI())
+            .status(HttpStatus.METHOD_NOT_ALLOWED.value())
+            .build();
+
+        log.warn("Request method not supported: method={}, path={}",
+            ex.getMethod(), request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorResponse);
+    }
+
     /**
      * Handle Validation Errors for @RequestParam/@PathVariable
      */
@@ -214,7 +278,7 @@ public class GlobalExceptionHandler {
      *     "quantity": "Quantity must be greater than 0"
      *   },
      *   "timestamp": "...",
-     *   "path": "/api/inventory/adjust",
+     *   "path": "/api/emergency-stock-corrections",
      *   "status": 400
      * }
      * </pre>
@@ -473,7 +537,7 @@ public class GlobalExceptionHandler {
      *     "exceptionType": "NullPointerException"
      *   },
      *   "timestamp": "...",
-     *   "path": "/api/inventory/adjust",
+     *   "path": "/api/emergency-stock-corrections/42/apply",
      *   "status": 500
      * }
      * </pre>
@@ -549,6 +613,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.PRODUCT_DISABLED,
                  ErrorKeys.PRODUCT_SKU_DISABLED,
                  ErrorKeys.STOCK_INVALID_QUANTITY,
+                 ErrorKeys.IDEMPOTENCY_KEY_REQUIRED,
                  ErrorKeys.VALIDATION_FAILED,
                  ErrorKeys.PARAMETER_REQUIRED,
                  ErrorKeys.TRANSACTION_INVALID_TYPE,
@@ -623,10 +688,19 @@ public class GlobalExceptionHandler {
                  ErrorKeys.AUTH_SESSION_INVALIDATED,
                  ErrorKeys.AUTH_ACCESS_DENIED,
                  ErrorKeys.WAREHOUSE_SCOPE_DENIED,
+                 ErrorKeys.INVENTORY_CORRECTION_APPROVAL_NOT_ENTITLED,
                  ErrorKeys.PO_ALREADY_COMPLETED -> HttpStatus.FORBIDDEN;
 
             // 409 Conflict
             case ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
+                 ErrorKeys.INVENTORY_RESERVED_QUANTITY_CONFLICT,
+                 ErrorKeys.INVENTORY_POSTING_CONTEXT_MISMATCH,
+                 ErrorKeys.INVENTORY_CORRECTION_MODE_CONFLICT,
+                 ErrorKeys.INVENTORY_CORRECTION_ACTOR_CONFLICT,
+                 ErrorKeys.INVENTORY_CORRECTION_PREVIEW_STALE,
+                 ErrorKeys.INVENTORY_CORRECTION_BATCH_CONFLICT,
+                 ErrorKeys.IDEMPOTENCY_CONFLICT,
+                 ErrorKeys.IDEMPOTENCY_REQUEST_IN_PROGRESS,
                  ErrorKeys.PO_EDIT_CONFLICT,
                  ErrorKeys.CATEGORY_ALREADY_EXISTS,
                  ErrorKeys.CATEGORY_HAS_CHILDREN,
@@ -688,6 +762,7 @@ public class GlobalExceptionHandler {
 
             // 500 Internal Server Error
             case ErrorKeys.ROLE_SWITCH_FAILED,  // v3.3 Multi-Role System
+                 ErrorKeys.INVENTORY_CORRECTION_POLICY_INVALID,
                  ErrorKeys.INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
 
             // Default (fallback)

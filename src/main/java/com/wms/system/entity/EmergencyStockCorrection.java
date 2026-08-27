@@ -1,6 +1,7 @@
 package com.wms.system.entity;
 
 import com.wms.system.entity.enums.EmergencyCorrectionStatus;
+import com.wms.system.entity.enums.EmergencyCorrectionApprovalMode;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,6 +40,9 @@ public class EmergencyStockCorrection extends BaseEntity {
     @Column(name = "location_id", nullable = false)
     private Long locationId;
 
+    @Column(name = "warehouse_id", nullable = false, updatable = false)
+    private Long warehouseId;
+
     @Column(name = "inventory_batch_id")
     private Long inventoryBatchId;
 
@@ -72,6 +76,13 @@ public class EmergencyStockCorrection extends BaseEntity {
     @Column(name = "related_sales_order_id")
     private Long relatedSalesOrderId;
 
+    @Column(name = "created_by", nullable = false, updatable = false)
+    private Long createdBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_mode_snapshot", length = 20)
+    private EmergencyCorrectionApprovalMode approvalModeSnapshot;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default
@@ -101,9 +112,38 @@ public class EmergencyStockCorrection extends BaseEntity {
     @Column(name = "applied_at")
     private LocalDateTime appliedAt;
 
+    @Column(name = "applied_quantity_before")
+    private Integer appliedQuantityBefore;
+
+    @Column(name = "applied_quantity_after")
+    private Integer appliedQuantityAfter;
+
+    @Column(name = "posting_id", length = 120)
+    private String postingId;
+
+    @Column(name = "idempotency_key", length = 120)
+    private String idempotencyKey;
+
+    @Column(name = "rejected_by")
+    private Long rejectedBy;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejection_comment", length = 500)
+    private String rejectionComment;
+
+    @Column(name = "submission_comment", length = 500)
+    private String submissionComment;
+
     @Column(name = "review_comment", length = 500)
     private String reviewComment;
 
     @Column(name = "approval_comment", length = 500)
     private String approvalComment;
+
+    @Version
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer version = 0;
 }

@@ -2,16 +2,10 @@ package com.wms.system.controller;
 
 import com.wms.system.dto.InventoryBatchResponse;
 import com.wms.system.entity.InventoryBatch;
-import com.wms.system.entity.StockTransaction;
-import com.wms.system.entity.enums.SourceType;
 import com.wms.system.service.InventoryBatchService;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,7 +17,6 @@ import java.util.stream.Collectors;
  * Inventory Batch Management Controller
  *
  * Provides RESTful APIs for batch-based inventory operations:
- * - FIFO outbound (先进先出出库)
  * - Batch stock queries (V3.0: Real-time aggregation)
  * - Expiry warnings (过期预警)
  * - Batch lifecycle management
@@ -47,92 +40,9 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/inventory/batches")
 @RequiredArgsConstructor
-@Validated
 public class InventoryBatchController {
 
     private final InventoryBatchService inventoryBatchService;
-
-    /**
-     * ⭐ FIFO Outbound (先进先出出库)
-     *
-     * API Endpoint:
-     * POST /api/inventory/batches/outbound
-     *
-     * Request Body Example:
-     * <pre>
-     * {
-     *   "productSkuId": 1,
-     *   "quantity": 150,
-     *   "sourceType": "SALE_OUT",
-     *   "sourceOrderId": "SO-20250113-001",
-     *   "operatorId": 1,
-     *   "operatorName": "warehouse_staff"
-     * }
-     * </pre>
-     *
-     * Business Flow:
-     * 1. Query active batches for product (ORDER BY expiryDate ASC)
-     * 2. Deduct from earliest expiring batches first
-     * 3. Generate stock transactions for each batch deduction
-     *
-     * Success Response (200 OK):
-     * <pre>
-     * {
-     *   "success": true,
-     *   "deductedBatches": [
-     *     {
-     *       "batchCode": "R7M4K9",
-     *       "deductedQuantity": 100,
-     *       "remainingQuantity": 0
-     *     },
-     *     {
-     *       "batchCode": "X8N2P5",
-     *       "deductedQuantity": 50,
-     *       "remainingQuantity": 50
-     *     }
-     *   ],
-     *   "transactionIds": [1001, 1002]
-     * }
-     * </pre>
-     *
-     * @param productSkuId ProductSku ID (required)
-     * @param quantity Outbound quantity (required, >= 1)
-     * @param sourceType Source type (required, e.g., SALE_OUT, PRODUCTION_OUT)
-     * @param sourceOrderId Source order ID (required)
-     * @param operatorId Operator user ID (required)
-     * @param operatorName Operator user name (required)
-     * @return ResponseEntity with outbound result
-     */
-    @PostMapping("/outbound")
-    public ResponseEntity<Map<String, Object>> fifoOutbound(
-        @RequestParam("productSkuId") @NotNull(message = "ProductSku ID is required") Long productSkuId,
-        @RequestParam("quantity") @NotNull(message = "Quantity is required") @Min(value = 1, message = "Quantity must be >= 1") Integer quantity,
-        @RequestParam("sourceType") @NotNull(message = "Source type is required") SourceType sourceType,
-        @RequestParam("sourceOrderId") @NotBlank(message = "Source order ID is required") String sourceOrderId,
-        @RequestParam("operatorId") @NotNull(message = "Operator ID is required") Long operatorId,
-        @RequestParam("operatorName") @NotBlank(message = "Operator name is required") String operatorName
-    ) {
-        log.info("API: FIFO outbound - productSkuId={}, quantity={}, sourceType={}, sourceOrder={}",
-            productSkuId, quantity, sourceType, sourceOrderId);
-
-        // Call service (FIFO logic)
-        List<StockTransaction> transactions = inventoryBatchService.outboundWithFifo(
-            productSkuId, quantity, sourceType, sourceOrderId, operatorId, operatorName
-        );
-
-        // Build response
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("transactionCount", transactions.size());
-        response.put("transactionIds", transactions.stream()
-            .map(StockTransaction::getId)
-            .collect(Collectors.toList()));
-
-        log.info("API: FIFO outbound completed - productSkuId={}, quantity={}, transactionCount={}",
-            productSkuId, quantity, transactions.size());
-
-        return ResponseEntity.ok(response);
-    }
 
     /**
      * ⭐ Get Total Stock for ProductSku (V3.0: Real-time Aggregation)
@@ -339,80 +249,6 @@ public class InventoryBatchController {
         log.info("API: Found {} exhausted batches", responses.size());
 
         return ResponseEntity.ok(responses);
-    }
-
-    /**
-     * ⭐ Manual Stock Adjustment for Specific Batch
-     *
-     * API Endpoint:
-     * PUT /api/inventory/batches/{batchCode}/adjust
-     *
-     * Use Cases:
-     * - Inventory reconciliation (盘点调整)
-     * - Damage/loss recording
-     * - Manual corrections
-     *
-     * Request Parameters:
-     * - adjustmentQuantity: Adjustment quantity (positive = increase, negative = decrease)
-     * - sourceType: Source type (e.g., INVENTORY_GAIN, INVENTORY_LOSS)
-     * - sourceOrderId: Source order ID (e.g., ST-20250113-001)
-     * - operatorId: Operator user ID
-     * - operatorName: Operator user name
-     * - remark: Adjustment reason
-     *
-     * Success Response (200 OK):
-     * <pre>
-     * {
-     *   "success": true,
-     *   "transactionId": 1001,
-     *   "batchCode": "R7M4K9",
-     *   "quantityBefore": 100,
-     *   "quantityAfter": 120,
-     *   "adjustment": 20
-     * }
-     * </pre>
-     *
-     * @param batchCode Batch code
-     * @param adjustmentQuantity Adjustment quantity
-     * @param sourceType Source type
-     * @param sourceOrderId Source order ID
-     * @param operatorId Operator ID
-     * @param operatorName Operator name
-     * @param remark Adjustment reason
-     * @return ResponseEntity with adjustment result
-     */
-    @PutMapping("/{batchCode}/adjust")
-    public ResponseEntity<Map<String, Object>> adjustBatchStock(
-        @PathVariable("batchCode") String batchCode,
-        @RequestParam("adjustmentQuantity") @NotNull(message = "Adjustment quantity is required") Integer adjustmentQuantity,
-        @RequestParam("sourceType") @NotNull(message = "Source type is required") SourceType sourceType,
-        @RequestParam("sourceOrderId") @NotBlank(message = "Source order ID is required") String sourceOrderId,
-        @RequestParam("operatorId") @NotNull(message = "Operator ID is required") Long operatorId,
-        @RequestParam("operatorName") @NotBlank(message = "Operator name is required") String operatorName,
-        @RequestParam(value = "remark", required = false) String remark
-    ) {
-        log.info("API: Adjust batch stock - batchCode={}, adjustment={}, sourceType={}",
-            batchCode, adjustmentQuantity, sourceType);
-
-        // Call service
-        StockTransaction transaction = inventoryBatchService.adjustBatchStock(
-            batchCode, adjustmentQuantity, sourceType, sourceOrderId,
-            operatorId, operatorName, remark
-        );
-
-        // Build response
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("transactionId", transaction.getId());
-        response.put("batchCode", batchCode);
-        response.put("quantityBefore", transaction.getQuantityBefore());
-        response.put("quantityAfter", transaction.getQuantityAfter());
-        response.put("adjustment", adjustmentQuantity);
-
-        log.info("API: Batch adjustment completed - transactionId={}, batchCode={}, adjustment={}",
-            transaction.getId(), batchCode, adjustmentQuantity);
-
-        return ResponseEntity.ok(response);
     }
 
     // ========== Helper Methods ==========

@@ -72,6 +72,46 @@ describe('responsive application navigation', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('keeps a parent menu visible when only one child module is accessible', async () => {
+    writeAuthSession({
+      availableRoles: ['WAREHOUSE_ADMIN'],
+      currentRole: 'WAREHOUSE_ADMIN',
+      permissionCodes: ['menu:inventory-correction'],
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000,
+      mustChangePassword: false,
+      token: 'correction-token',
+      tokenType: 'Bearer',
+      username: 'correction-user',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ConfigProvider>
+          <AntdApp>
+            <AuthProvider>
+              <Routes>
+                <Route element={<AppLayout />}>
+                  <Route element={<div>dashboard body</div>} index />
+                </Route>
+                <Route element={<div>correction destination</div>} path="/inventory-governance/corrections" />
+              </Routes>
+            </AuthProvider>
+          </AntdApp>
+        </ConfigProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+
+    const drawer = await screen.findByRole('dialog');
+    fireEvent.click(within(drawer).getByText('库存治理'));
+    expect(within(drawer).queryByText('盘点作业')).not.toBeInTheDocument();
+    fireEvent.click(await within(drawer).findByText('紧急校正'));
+
+    expect(await screen.findByText('correction destination')).toBeVisible();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('groups the desktop account controls and opens the account menu', async () => {
     setMobileViewport(false);
 
@@ -91,7 +131,8 @@ describe('responsive application navigation', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: '切换组织机构' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '切换角色' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: '切换组织机构' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '语言' })).toBeVisible();
     expect(screen.getByRole('button', { name: '帮助' })).toBeVisible();
     expect(screen.getByRole('button', { name: '系统公告' })).toBeVisible();

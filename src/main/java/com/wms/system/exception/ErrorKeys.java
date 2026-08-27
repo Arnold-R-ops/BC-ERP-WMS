@@ -218,6 +218,39 @@ public final class ErrorKeys {
      */
     public static final String INVENTORY_RESERVATION_INVALID_STATUS = "INVENTORY_RESERVATION_INVALID_STATUS";
 
+    /** A posting would leave physical on-hand below the quantity already reserved. */
+    public static final String INVENTORY_RESERVED_QUANTITY_CONFLICT = "INVENTORY_RESERVED_QUANTITY_CONFLICT";
+
+    /** Inventory posting context does not match the locked batch truth. */
+    public static final String INVENTORY_POSTING_CONTEXT_MISMATCH = "INVENTORY_POSTING_CONTEXT_MISMATCH";
+
+    /** Inventory correction approval is not included in the tenant's effective entitlements. */
+    public static final String INVENTORY_CORRECTION_APPROVAL_NOT_ENTITLED = "INVENTORY_CORRECTION_APPROVAL_NOT_ENTITLED";
+
+    /** Tenant inventory-correction policy contains an unsupported value. */
+    public static final String INVENTORY_CORRECTION_POLICY_INVALID = "INVENTORY_CORRECTION_POLICY_INVALID";
+
+    /** The requested correction action is incompatible with its captured approval mode. */
+    public static final String INVENTORY_CORRECTION_MODE_CONFLICT = "INVENTORY_CORRECTION_MODE_CONFLICT";
+
+    /** Maker/reviewer/approver separation would be violated. */
+    public static final String INVENTORY_CORRECTION_ACTOR_CONFLICT = "INVENTORY_CORRECTION_ACTOR_CONFLICT";
+
+    /** The apply command did not confirm the latest signed correction impact preview. */
+    public static final String INVENTORY_CORRECTION_PREVIEW_STALE = "INVENTORY_CORRECTION_PREVIEW_STALE";
+
+    /** A correction tried to create a batch identity that already exists at the location. */
+    public static final String INVENTORY_CORRECTION_BATCH_CONFLICT = "INVENTORY_CORRECTION_BATCH_CONFLICT";
+
+    /** An idempotency key is required for this write command. */
+    public static final String IDEMPOTENCY_KEY_REQUIRED = "IDEMPOTENCY_KEY_REQUIRED";
+
+    /** The same company-scoped idempotency key was reused for a different command intent. */
+    public static final String IDEMPOTENCY_CONFLICT = "IDEMPOTENCY_CONFLICT";
+
+    /** Another request currently owns the unexpired execution lease. */
+    public static final String IDEMPOTENCY_REQUEST_IN_PROGRESS = "IDEMPOTENCY_REQUEST_IN_PROGRESS";
+
     // ========== Transaction Related Errors ==========
 
     /**

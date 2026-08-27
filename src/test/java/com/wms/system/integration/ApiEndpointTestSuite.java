@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -670,27 +671,24 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "warehouse", authorities = {"inventory:adjust"})
-        void testAdjustInventory() throws Exception {
-            ProductSku product = createProduct(BigDecimal.ZERO);
-            Location location = createLocation(createWarehouse());
-
-            String adjustRequest = json(Map.of(
-                "productSkuId", product.getId(),
-                "locationId", location.getId(),
-                "quantity", 10,
-                "transactionType", "ADJUST",
-                "sourceType", "MANUAL_ADJUST",
-                "sourceOrderId", "ADJ-" + nextId(),
-                "remark", "Inventory adjustment"
-            ));
-
-            mockMvc.perform(post("/api/inventory/adjust")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(adjustRequest))
+        @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
+        void testDirectInventoryWriteRoutesAreNotMapped() throws Exception {
+            mockMvc.perform(post("/api/inventory/adjust"))
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productSkuId").value(product.getId()));
+                .andExpect(result -> assertRetiredInventoryRoute(result.getResponse().getStatus()));
+
+            mockMvc.perform(put("/api/inventory/batches/BATCH001/adjust"))
+                .andDo(print())
+                .andExpect(result -> assertRetiredInventoryRoute(result.getResponse().getStatus()));
+
+            mockMvc.perform(post("/api/inventory/batches/outbound"))
+                .andDo(print())
+                .andExpect(result -> assertRetiredInventoryRoute(result.getResponse().getStatus()));
+        }
+
+        private void assertRetiredInventoryRoute(int responseStatus) {
+            assertTrue(responseStatus == 404 || responseStatus == 405,
+                "retired inventory route must return 404 or 405, but was " + responseStatus);
         }
     }
 

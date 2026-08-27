@@ -36,6 +36,10 @@ import lombok.*;
         @Index(name = "idx_transaction_type", columnList = "transactionType"),
         @Index(name = "idx_source_type", columnList = "sourceType"),
         @Index(name = "idx_source_order_id", columnList = "sourceOrderId"),
+        @Index(name = "idx_stock_tx_warehouse_id", columnList = "company_id,warehouse_id"),
+        @Index(name = "idx_stock_tx_inventory_batch_id", columnList = "company_id,inventory_batch_id"),
+        @Index(name = "idx_stock_tx_posting_id", columnList = "company_id,posting_id"),
+        @Index(name = "idx_stock_tx_idempotency_key", columnList = "company_id,idempotency_key"),
         @Index(name = "idx_stock_tx_created_at", columnList = "created_at")  // 按时间查询流水（高频场景）
     }
 )
@@ -63,6 +67,26 @@ public class StockTransaction extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transaction_location"))
     private Location location;
+
+    /** Warehouse snapshot for direct, immutable posting traceability. */
+    @Column(name = "warehouse_id")
+    private Long warehouseId;
+
+    /** Inventory-batch snapshot for direct, immutable posting traceability. */
+    @Column(name = "inventory_batch_id")
+    private Long inventoryBatchId;
+
+    /** Batch-code snapshot retained even if the batch master later changes. */
+    @Column(name = "batch_code", length = 50)
+    private String batchCode;
+
+    /** Unique identifier assigned to this logical inventory posting. */
+    @Column(name = "posting_id", length = 120)
+    private String postingId;
+
+    /** Company-scoped request key that caused this posting. */
+    @Column(name = "idempotency_key", length = 120)
+    private String idempotencyKey;
 
     /**
      * 变动类型（枚举）

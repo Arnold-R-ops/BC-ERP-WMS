@@ -340,6 +340,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/admins/{targetUserId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["changeRole"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/locations/{id}": {
         parameters: {
             query?: never;
@@ -388,22 +404,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/batches/{batchCode}/adjust": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["adjustBatchStock"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/integration/sku-mappings/{id}": {
         parameters: {
             query?: never;
@@ -427,7 +427,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_4"];
         put: operations["update_4"];
         post?: never;
         delete: operations["delete_1"];
@@ -468,6 +468,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/emergency-stock-corrections/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPolicy"];
+        put: operations["updatePolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/customers/{id}": {
         parameters: {
             query?: never;
@@ -491,7 +507,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_5"];
+        get: operations["get_6"];
         put: operations["update_5"];
         post?: never;
         delete: operations["delete_2"];
@@ -542,6 +558,86 @@ export interface paths {
         get?: never;
         put: operations["activate_4"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/v1/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["begin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/v1/signup/{signupId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/v1/signup/{signupId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/v1/session-handoff/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["consume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/v1/email-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verify"];
         delete?: never;
         options?: never;
         head?: never;
@@ -606,6 +702,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["assignRoles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/revoke-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeUserSessions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1044,7 +1156,343 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/permission-requests": {
+    "/api/platform/companies/{companyId}/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}/operations/{authorizationId}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["execute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/recovery-codes/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["regenerateRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/recovery-codes/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startRecoveryCodeRegeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verify_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/mfa/enroll/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirmEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logoutAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/logout-all/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startLogoutAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/invitations/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/invitations/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activate_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/invitations/activate/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/status-change/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/sessions/revoke/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startSessionRevoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/roles/change/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startChallenge_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/mfa-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resetMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/mfa-reset/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startMfaReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["enable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/invitations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1053,7 +1501,71 @@ export interface paths {
         };
         get: operations["list_3"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/invitations/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/invitations/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["challenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/access-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
+        put?: never;
+        post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/permission-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1069,7 +1581,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["revoke"];
+        post: operations["revoke_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1172,38 +1684,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/batches/outbound": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["fifoOutbound"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inventory/adjust": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["adjustStock"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/integration/sku-mappings": {
         parameters: {
             query?: never;
@@ -1211,9 +1691,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_6"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1291,9 +1771,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_8"];
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1403,9 +1883,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_9"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1508,6 +1988,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/company-access/operations/{authorizationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -1515,9 +2011,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_11"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1556,6 +2052,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/revoke-all-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeAllSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/refresh-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refreshToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -1565,7 +2093,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["login"];
+        post: operations["login_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1708,6 +2236,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getStocktakeItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/session-security/audits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAudits"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1948,6 +2492,214 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["companies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["company"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}/operations/{authorizationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}/exports/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["status_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}/exports/{jobId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/companies/{companyId}/data/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["data"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/recovery-codes/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recoveryCodeStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["currentSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/admins/{targetUserId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/access-grants/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/access-grants/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["effectiveAccess"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2347,7 +3099,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2363,7 +3115,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2491,7 +3243,55 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_4"];
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/emergency-stock-corrections/{id}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/emergency-stock-corrections/batch-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listBatchOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/company-access/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2591,6 +3391,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["removeRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/access-grants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["revoke_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2919,10 +3735,10 @@ export interface components {
             exhausted?: boolean;
             expiringSoon?: boolean;
             expired?: boolean;
-            /** Format: double */
-            usageRate?: number;
             /** Format: int64 */
             daysUntilExpiry?: number;
+            /** Format: double */
+            usageRate?: number;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -3113,6 +3929,27 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        PlatformAdminRoleChangeMutationRequest: {
+            jobRoleCode: string;
+            challengeToken: string;
+            password: string;
+            code: string;
+            reason: string;
+        };
+        PlatformAdminRoleChangeResponse: {
+            /** Format: int64 */
+            targetUserId?: number;
+            changed?: boolean;
+            enabled?: boolean;
+            beforeRoles?: string[];
+            afterRoles?: string[];
+            /** Format: int64 */
+            activeGrantCount?: number;
+            /** Format: int64 */
+            securityVersion?: number;
+            /** Format: date-time */
+            completedAt?: string;
+        };
         UpdateLocationRequest: {
             /** Format: int32 */
             posX?: number;
@@ -3204,6 +4041,22 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        EmergencyStockCorrectionPolicyUpdateRequest: {
+            /** @enum {string} */
+            mode: "NONE" | "TWO_PERSON" | "THREE_PERSON";
+            reason: string;
+            /** @enum {boolean} */
+            confirmed: true;
+        };
+        EmergencyStockCorrectionPolicyResponse: {
+            /** @enum {string} */
+            configuredMode?: "NONE" | "TWO_PERSON" | "THREE_PERSON";
+            /** @enum {string} */
+            effectiveMode?: "NONE" | "TWO_PERSON" | "THREE_PERSON";
+            approvalEntitled?: boolean;
+            configurable?: boolean;
+            availableModes?: ("NONE" | "TWO_PERSON" | "THREE_PERSON")[];
+        };
         CreateCustomerRequest: {
             code?: string;
             name: string;
@@ -3273,6 +4126,51 @@ export interface components {
             /** Format: int64 */
             parentId?: number;
         };
+        BeginSignupRequest: {
+            email: string;
+            /** @enum {string} */
+            planCode: "FREE" | "TRIAL";
+        };
+        SignupResponse: {
+            signupId?: string;
+            /** @enum {string} */
+            status?: "EMAIL_PENDING" | "EMAIL_VERIFIED" | "DETAILS_COMPLETED" | "PROVISIONING" | "ACTIVE" | "PROVISIONING_FAILED" | "EXPIRED";
+            maskedEmail?: string;
+            /** Format: int32 */
+            resendAfterSeconds?: number;
+            companySlug?: string;
+            redirectUrl?: string;
+            handoffCode?: string;
+            /** Format: int32 */
+            handoffExpiresInSeconds?: number;
+        };
+        CompleteSignupRequest: {
+            firstName: string;
+            lastName: string;
+            companyName: string;
+            slug: string;
+            password: string;
+        };
+        ConsumeRequest: {
+            code: string;
+        };
+        LoginResponse: {
+            token?: string;
+            tokenType?: string;
+            username?: string;
+            currentRole?: string;
+            availableRoles?: string[];
+            permissionCodes?: string[];
+            /** Format: int64 */
+            expiresIn?: number;
+            /** Format: int64 */
+            sessionEndsAt?: number;
+            mustChangePassword?: boolean;
+        };
+        VerifyEmailRequest: {
+            signupId: string;
+            code: string;
+        };
         CreateWarehouseRequest: {
             code: string;
             name: string;
@@ -3294,6 +4192,9 @@ export interface components {
             /** Format: int64 */
             defaultRoleId?: number;
             warehouseIds?: number[];
+        };
+        RevokeUserSessionsRequest: {
+            reason: string;
         };
         ResetPasswordResponse: {
             /** Format: int64 */
@@ -3513,6 +4414,234 @@ export interface components {
             description?: string;
             enabled?: boolean;
         };
+        PlatformOperationRequest: {
+            operationType: string;
+            resourceType: string;
+            resourceId: string;
+            payload: {
+                [key: string]: Record<string, never>;
+            };
+            reason: string;
+        };
+        PlatformOperationResponse: {
+            authorizationId?: string;
+            /** Format: int64 */
+            companyId?: number;
+            operationType?: string;
+            resourceType?: string;
+            resourceId?: string;
+            requestedChanges?: {
+                [key: string]: Record<string, never>;
+            };
+            status?: string;
+            reason?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** Format: date-time */
+            consumedAt?: string;
+        };
+        ExportRequest: {
+            resource?: string;
+        };
+        PlatformExportJobResponse: {
+            id?: string;
+            /** Format: int64 */
+            companyId?: number;
+            status?: string;
+            resource?: string;
+            /** Format: int64 */
+            recordCount?: number;
+            sha256?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+        };
+        PlatformRecoveryCodeRegenerationRequest: {
+            challengeToken: string;
+            password: string;
+            code: string;
+        };
+        PlatformRecoveryCodesResponse: {
+            recoveryCodes?: string[];
+            /** Format: int32 */
+            remaining?: number;
+        };
+        PlatformReauthenticationChallengeResponse: {
+            challengeToken?: string;
+            /** Format: int64 */
+            expiresIn?: number;
+        };
+        PlatformMfaVerifyRequest: {
+            challengeToken: string;
+            code?: string;
+            recoveryCode?: string;
+        };
+        PlatformAuthResponse: {
+            status?: string;
+            challengeToken?: string;
+            enrollmentSecret?: string;
+            otpauthUri?: string;
+            token?: string;
+            tokenType?: string;
+            email?: string;
+            roles?: string[];
+            /** Format: int64 */
+            expiresIn?: number;
+            recoveryCodes?: string[];
+        };
+        PlatformLoginRequest: {
+            email: string;
+            password: string;
+        };
+        PlatformInvitationTokenRequest: {
+            token: string;
+        };
+        PlatformInvitationStatusResponse: {
+            email?: string;
+            displayName?: string;
+            invitationType?: string;
+            roleCode?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+        };
+        PlatformInvitationActivateRequest: {
+            token: string;
+            password: string;
+        };
+        PlatformAdminStatusChallengeRequest: {
+            desiredEnabled: boolean;
+        };
+        PlatformAdminStatusChallengeResponse: {
+            challengeToken?: string;
+            /** Format: int64 */
+            expiresIn?: number;
+            /** Format: int64 */
+            targetSecurityVersion?: number;
+        };
+        PlatformAdminSessionRevokeRequest: {
+            challengeToken: string;
+            password: string;
+            code: string;
+            reason: string;
+        };
+        PlatformAdminSecurityMutationResponse: {
+            /** Format: int64 */
+            targetUserId?: number;
+            action?: string;
+            changed?: boolean;
+            enabled?: boolean;
+            mfaStatus?: string;
+            roles?: string[];
+            /** Format: int64 */
+            activeGrantCount?: number;
+            /** Format: int64 */
+            securityVersion?: number;
+            /** Format: date-time */
+            completedAt?: string;
+        };
+        PlatformAdminSecurityChallengeResponse: {
+            challengeToken?: string;
+            /** Format: int64 */
+            expiresIn?: number;
+            /** Format: int64 */
+            targetSecurityVersion?: number;
+        };
+        PlatformAdminRoleChangeChallengeRequest: {
+            jobRoleCode: string;
+        };
+        PlatformAdminMfaResetRequest: {
+            challengeToken: string;
+            password: string;
+            code: string;
+            reason: string;
+        };
+        PlatformAdminStatusMutationRequest: {
+            challengeToken: string;
+            password: string;
+            code: string;
+            reason: string;
+        };
+        PlatformAdminMutationResponse: {
+            /** Format: int64 */
+            targetUserId?: number;
+            action?: string;
+            changed?: boolean;
+            enabled?: boolean;
+            roles?: string[];
+            /** Format: int64 */
+            activeGrantCount?: number;
+            /** Format: int64 */
+            securityVersion?: number;
+            /** Format: date-time */
+            completedAt?: string;
+        };
+        PlatformAdminInvitationCreateRequest: {
+            challengeToken: string;
+            password: string;
+            code: string;
+            email: string;
+            displayName: string;
+            invitationType: string;
+            roleCode: string;
+            reason: string;
+        };
+        PlatformAdminInvitationResponse: {
+            /** Format: int64 */
+            id?: number;
+            email?: string;
+            displayName?: string;
+            invitationType?: string;
+            roleCode?: string;
+            status?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            acceptedAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            activationPath?: string;
+        };
+        PlatformAdminInvitationRevokeRequest: {
+            reason: string;
+        };
+        PlatformAccessGrantRequest: {
+            /** Format: int64 */
+            platformUserId: number;
+            capabilities: string[];
+            tenantIds: number[];
+            datasets: string[];
+            /** Format: date-time */
+            effectiveFrom?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+        };
+        PlatformAccessGrantResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            platformUserId?: number;
+            platformUserEmail?: string;
+            capability?: string;
+            /** Format: int64 */
+            tenantId?: number;
+            tenantName?: string;
+            datasetCode?: string;
+            /** Format: date-time */
+            effectiveFrom?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+        };
         PermissionRequestCreateRequest: {
             /** Format: int64 */
             targetUserId: number;
@@ -3676,56 +4805,6 @@ export interface components {
             sourceType?: string;
             /** Format: int64 */
             createdBy?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        StockAdjustmentRequest: {
-            /** Format: int64 */
-            productSkuId: number;
-            /** Format: int64 */
-            locationId: number;
-            /** @enum {string} */
-            transactionType: "IN" | "OUT" | "ADJUST";
-            /** @enum {string} */
-            sourceType: "PURCHASE_IN" | "INBOUND_IN" | "SALE_OUT" | "RETURN_IN" | "PRODUCTION_OUT" | "PRODUCTION_IN" | "TRANSFER_OUT" | "TRANSFER_IN" | "INVENTORY_GAIN" | "INVENTORY_LOSS" | "SCRAP_OUT" | "GIFT_OUT" | "SAMPLE_OUT" | "MANUAL_ADJUST" | "EMERGENCY_CORRECTION";
-            /** Format: int32 */
-            quantity: number;
-            sourceOrderId: string;
-            /** Format: int64 */
-            operatorId?: number;
-            operatorName?: string;
-            remark?: string;
-            adjustment?: boolean;
-            inbound?: boolean;
-            outbound?: boolean;
-        };
-        StockTransactionResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            productSkuId?: number;
-            productName?: string;
-            productBarcode?: string;
-            /** Format: int64 */
-            locationId?: number;
-            locationCode?: string;
-            /** @enum {string} */
-            transactionType?: "IN" | "OUT" | "ADJUST";
-            /** @enum {string} */
-            sourceType?: "PURCHASE_IN" | "INBOUND_IN" | "SALE_OUT" | "RETURN_IN" | "PRODUCTION_OUT" | "PRODUCTION_IN" | "TRANSFER_OUT" | "TRANSFER_IN" | "INVENTORY_GAIN" | "INVENTORY_LOSS" | "SCRAP_OUT" | "GIFT_OUT" | "SAMPLE_OUT" | "MANUAL_ADJUST" | "EMERGENCY_CORRECTION";
-            /** Format: int32 */
-            quantity?: number;
-            /** Format: int32 */
-            quantityBefore?: number;
-            /** Format: int32 */
-            quantityAfter?: number;
-            sourceOrderId?: string;
-            /** Format: int64 */
-            operatorId?: number;
-            operatorName?: string;
-            remark?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -3949,7 +5028,7 @@ export interface components {
             /** Format: int32 */
             countedQty: number;
             reasonCode: string;
-            reasonDetail?: string;
+            reasonDetail: string;
             evidenceUrl?: string;
             /** Format: int64 */
             relatedSalesOrderId?: number;
@@ -3960,8 +5039,15 @@ export interface components {
             correctionNo?: string;
             /** Format: int64 */
             productSkuId?: number;
+            productSkuCode?: string;
+            productSkuName?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseCode?: string;
+            warehouseName?: string;
             /** Format: int64 */
             locationId?: number;
+            locationCode?: string;
             /** Format: int64 */
             inventoryBatchId?: number;
             batchCode?: string;
@@ -3980,6 +5066,10 @@ export interface components {
             evidenceUrl?: string;
             /** Format: int64 */
             relatedSalesOrderId?: number;
+            /** Format: int64 */
+            createdBy?: number;
+            /** @enum {string} */
+            approvalModeSnapshot?: "NONE" | "TWO_PERSON" | "THREE_PERSON";
             /** @enum {string} */
             status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
             /** Format: int64 */
@@ -3998,6 +5088,17 @@ export interface components {
             appliedBy?: number;
             /** Format: date-time */
             appliedAt?: string;
+            /** Format: int32 */
+            appliedQuantityBefore?: number;
+            /** Format: int32 */
+            appliedQuantityAfter?: number;
+            postingId?: string;
+            /** Format: int64 */
+            rejectedBy?: number;
+            /** Format: date-time */
+            rejectedAt?: string;
+            rejectionComment?: string;
+            submissionComment?: string;
             reviewComment?: string;
             approvalComment?: string;
             /** Format: date-time */
@@ -4006,7 +5107,15 @@ export interface components {
             updatedAt?: string;
         };
         EmergencyStockCorrectionActionRequest: {
-            comment?: string;
+            comment: string;
+        };
+        EmergencyStockCorrectionApplyRequest: {
+            /** @enum {boolean} */
+            confirmed: true;
+            previewToken: string;
+        };
+        CompanyOperationDecisionRequest: {
+            decision: string;
         };
         CreateCategoryRequest: {
             categoryCode: string;
@@ -4028,21 +5137,15 @@ export interface components {
             message?: string;
             /** Format: int64 */
             expiresIn?: number;
+            /** Format: int64 */
+            sessionEndsAt?: number;
+        };
+        RevokeOwnSessionsRequest: {
+            currentPassword: string;
         };
         LoginRequest: {
             username: string;
             password: string;
-        };
-        LoginResponse: {
-            token?: string;
-            tokenType?: string;
-            username?: string;
-            currentRole?: string;
-            availableRoles?: string[];
-            permissionCodes?: string[];
-            /** Format: int64 */
-            expiresIn?: number;
-            mustChangePassword?: boolean;
         };
         HistoricalTestDataArchiveRequest: {
             reason: string;
@@ -4092,6 +5195,21 @@ export interface components {
             /** Format: int32 */
             differenceQty?: number;
         };
+        TenantSessionSecurityAuditDTO: {
+            /** Format: int64 */
+            id?: number;
+            action?: string;
+            /** Format: int64 */
+            operatorId?: number;
+            operatorUsername?: string;
+            /** Format: int64 */
+            targetUserId?: number;
+            targetUsername?: string;
+            reason?: string;
+            result?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         PermissionDTO: {
             /** Format: int64 */
             id?: number;
@@ -4112,9 +5230,9 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
-            menuPermission?: boolean;
             apiPermission?: boolean;
             buttonPermission?: boolean;
+            menuPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
             /** Format: int64 */
@@ -4231,10 +5349,10 @@ export interface components {
             refreshedAt?: string;
         };
         PageCustomerFactListItemResponse: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -4243,21 +5361,21 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PageableObject: {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
+            unpaged?: boolean;
+            /** Format: int32 */
+            pageSize?: number;
             paged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
-            /** Format: int32 */
-            pageSize?: number;
-            unpaged?: boolean;
         };
         SortObject: {
             direction?: string;
@@ -4338,6 +5456,186 @@ export interface components {
             estimatedCost?: number;
             remark?: string;
         };
+        PagePlatformCompanyResponse: {
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["PlatformCompanyResponse"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"][];
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            empty?: boolean;
+        };
+        PlatformCompanyResponse: {
+            /** Format: int64 */
+            id?: number;
+            tenantCode?: string;
+            displayName?: string;
+            slug?: string;
+            status?: string;
+            /** Format: date-time */
+            closedAt?: string;
+            /** Format: date-time */
+            purgeDueAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PlatformDataPage: {
+            resource?: string;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            content?: {
+                [key: string]: Record<string, never>;
+            }[];
+        };
+        PlatformRecoveryCodeStatusResponse: {
+            /** Format: int32 */
+            remaining?: number;
+        };
+        PlatformSessionResponse: {
+            email?: string;
+            roles?: string[];
+            mfaEnabled?: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+        };
+        PagePlatformAuditLogResponse: {
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["PlatformAuditLogResponse"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"][];
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            empty?: boolean;
+        };
+        PlatformAuditLogResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            actorEmail?: string;
+            /** Format: int64 */
+            targetTenantId?: number;
+            targetTenantName?: string;
+            action?: string;
+            resourceType?: string;
+            result?: string;
+            summary?: {
+                [key: string]: Record<string, never>;
+            };
+        };
+        PagePlatformAdminSummaryResponse: {
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["PlatformAdminSummaryResponse"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"][];
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            empty?: boolean;
+        };
+        PlatformAdminRoleResponse: {
+            code?: string;
+            name?: string;
+            type?: string;
+        };
+        PlatformAdminSummaryResponse: {
+            /** Format: int64 */
+            id?: number;
+            displayName?: string;
+            email?: string;
+            enabled?: boolean;
+            roles?: components["schemas"]["PlatformAdminRoleResponse"][];
+            mfaStatus?: string;
+            /** Format: date-time */
+            mfaEnrolledAt?: string;
+            /** Format: date-time */
+            mfaLockedUntil?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            activeGrantCount?: number;
+            currentUser?: boolean;
+            lastEnabledSuperAdmin?: boolean;
+        };
+        PlatformAdminDetailResponse: {
+            /** Format: int64 */
+            id?: number;
+            displayName?: string;
+            email?: string;
+            enabled?: boolean;
+            roles?: components["schemas"]["PlatformAdminRoleResponse"][];
+            mfaStatus?: string;
+            /** Format: date-time */
+            mfaEnrolledAt?: string;
+            /** Format: date-time */
+            mfaLockedUntil?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            activeGrantCount?: number;
+            activeGrantCounts?: {
+                [key: string]: number;
+            };
+            currentUser?: boolean;
+            lastEnabledSuperAdmin?: boolean;
+        };
+        PlatformManagedUserResponse: {
+            /** Format: int64 */
+            id?: number;
+            email?: string;
+            displayName?: string;
+            enabled?: boolean;
+            superAdmin?: boolean;
+            mfaEnabled?: boolean;
+        };
+        PlatformEffectiveAccessResponse: {
+            superAdmin?: boolean;
+            tenantDirectoryScope?: string;
+            scopes?: components["schemas"]["PlatformEffectiveAccessScopeResponse"][];
+        };
+        PlatformEffectiveAccessScopeResponse: {
+            /** Format: int64 */
+            tenantId?: number;
+            datasetCode?: string;
+            read?: boolean;
+            export?: boolean;
+        };
         PermissionRequestPageResponse: {
             items?: components["schemas"]["PermissionRequestDTO"][];
             /** Format: int64 */
@@ -4392,10 +5690,10 @@ export interface components {
             furthestExpiryDate?: string;
         };
         PageInventorySummaryDto: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -4404,9 +5702,9 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SkuInfoDto: {
@@ -4458,10 +5756,10 @@ export interface components {
             supplierReliabilityScore?: number;
         };
         PageRawEventSummary: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
@@ -4470,9 +5768,9 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         RawEventSummary: {
@@ -4510,6 +5808,27 @@ export interface components {
             errorMessage?: string;
             /** Format: date-time */
             processedAt?: string;
+        };
+        EmergencyStockCorrectionImpactResponse: {
+            /** Format: int64 */
+            correctionId?: number;
+            /** Format: int32 */
+            snapshotSystemQty?: number;
+            /** Format: int32 */
+            countedQty?: number;
+            /** Format: int32 */
+            adjustmentQty?: number;
+            /** Format: int32 */
+            currentQty?: number;
+            /** Format: int32 */
+            reservedQty?: number;
+            /** Format: int64 */
+            projectedQty?: number;
+            canApply?: boolean;
+            affectedSalesOrderIds?: number[];
+            previewToken?: string;
+            /** Format: date-time */
+            previewExpiresAt?: string;
         };
         BackorderLineResponse: {
             /** Format: int64 */
@@ -5247,6 +6566,34 @@ export interface operations {
             };
         };
     };
+    changeRole: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminRoleChangeMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminRoleChangeResponse"];
+                };
+            };
+        };
+    };
     getLocationById: {
         parameters: {
             query?: never;
@@ -5339,37 +6686,6 @@ export interface operations {
             };
         };
     };
-    adjustBatchStock: {
-        parameters: {
-            query: {
-                adjustmentQuantity: number;
-                sourceType: "PURCHASE_IN" | "INBOUND_IN" | "SALE_OUT" | "RETURN_IN" | "PRODUCTION_OUT" | "PRODUCTION_IN" | "TRANSFER_OUT" | "TRANSFER_IN" | "INVENTORY_GAIN" | "INVENTORY_LOSS" | "SCRAP_OUT" | "GIFT_OUT" | "SAMPLE_OUT" | "MANUAL_ADJUST" | "EMERGENCY_CORRECTION";
-                sourceOrderId: string;
-                operatorId: number;
-                operatorName: string;
-                remark?: string;
-            };
-            header?: never;
-            path: {
-                batchCode: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
     update_3: {
         parameters: {
             query?: never;
@@ -5396,7 +6712,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -5508,6 +6824,50 @@ export interface operations {
             };
         };
     };
+    getPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EmergencyStockCorrectionPolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmergencyStockCorrectionPolicyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EmergencyStockCorrectionPolicyResponse"];
+                };
+            };
+        };
+    };
     getCustomer: {
         parameters: {
             query?: never;
@@ -5576,7 +6936,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5710,6 +7070,128 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CategoryResponse"];
+                };
+            };
+        };
+    };
+    begin: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeginSignupRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignupResponse"];
+                };
+            };
+        };
+    };
+    resend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignupResponse"];
+                };
+            };
+        };
+    };
+    complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteSignupRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignupResponse"];
+                };
+            };
+        };
+    };
+    consume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsumeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
+    verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignupResponse"];
                 };
             };
         };
@@ -5854,6 +7336,30 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["UserWithRolesDTO"];
                 };
+            };
+        };
+    };
+    revokeUserSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeUserSessionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6688,7 +8194,656 @@ export interface operations {
             };
         };
     };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformOperationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformOperationResponse"];
+                };
+            };
+        };
+    };
+    execute: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                companyId: number;
+                authorizationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformOperationResponse"];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformExportJobResponse"];
+                };
+            };
+        };
+    };
+    regenerateRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformRecoveryCodeRegenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformRecoveryCodesResponse"];
+                };
+            };
+        };
+    };
+    startRecoveryCodeRegeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformReauthenticationChallengeResponse"];
+                };
+            };
+        };
+    };
+    verify_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformMfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAuthResponse"];
+                };
+            };
+        };
+    };
+    confirmEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformMfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAuthResponse"];
+                };
+            };
+        };
+    };
+    logoutAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformMfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    startLogoutAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformReauthenticationChallengeResponse"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAuthResponse"];
+                };
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformInvitationTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformInvitationStatusResponse"];
+                };
+            };
+        };
+    };
+    activate_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformInvitationActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAuthResponse"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformMfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAuthResponse"];
+                };
+            };
+        };
+    };
+    startChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminStatusChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminStatusChallengeResponse"];
+                };
+            };
+        };
+    };
+    revokeSessions: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminSessionRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminSecurityMutationResponse"];
+                };
+            };
+        };
+    };
+    startSessionRevoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminSecurityChallengeResponse"];
+                };
+            };
+        };
+    };
+    startChallenge_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminRoleChangeChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminStatusChallengeResponse"];
+                };
+            };
+        };
+    };
+    resetMfa: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminMfaResetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminSecurityMutationResponse"];
+                };
+            };
+        };
+    };
+    startMfaReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminSecurityChallengeResponse"];
+                };
+            };
+        };
+    };
+    enable: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminStatusMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminMutationResponse"];
+                };
+            };
+        };
+    };
+    disable: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminStatusMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminMutationResponse"];
+                };
+            };
+        };
+    };
     list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminInvitationResponse"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminInvitationCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminInvitationResponse"];
+                };
+            };
+        };
+    };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAdminInvitationRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    challenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformReauthenticationChallengeResponse"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query: {
+                platformUserId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAccessGrantResponse"][];
+                };
+            };
+        };
+    };
+    create_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformAccessGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAccessGrantResponse"][];
+                };
+            };
+        };
+    };
+    list_5: {
         parameters: {
             query?: {
                 status?: string;
@@ -6714,7 +8869,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6738,7 +8893,7 @@ export interface operations {
             };
         };
     };
-    revoke: {
+    revoke_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6908,60 +9063,7 @@ export interface operations {
             };
         };
     };
-    fifoOutbound: {
-        parameters: {
-            query: {
-                productSkuId: number;
-                quantity: number;
-                sourceType: "PURCHASE_IN" | "INBOUND_IN" | "SALE_OUT" | "RETURN_IN" | "PRODUCTION_OUT" | "PRODUCTION_IN" | "TRANSFER_OUT" | "TRANSFER_IN" | "INVENTORY_GAIN" | "INVENTORY_LOSS" | "SCRAP_OUT" | "GIFT_OUT" | "SAMPLE_OUT" | "MANUAL_ADJUST" | "EMERGENCY_CORRECTION";
-                sourceOrderId: string;
-                operatorId: number;
-                operatorName: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    adjustStock: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StockAdjustmentRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["StockTransactionResponse"];
-                };
-            };
-        };
-    };
-    list_4: {
+    list_6: {
         parameters: {
             query?: {
                 channel?: string;
@@ -6983,7 +9085,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7103,7 +9205,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7123,7 +9225,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7299,7 +9401,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_9: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -7321,7 +9423,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -7354,7 +9456,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["EmergencyStockCorrectionActionRequest"];
             };
@@ -7380,7 +9482,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["EmergencyStockCorrectionActionRequest"];
             };
@@ -7406,7 +9508,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["EmergencyStockCorrectionActionRequest"];
             };
@@ -7432,7 +9534,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["EmergencyStockCorrectionActionRequest"];
             };
@@ -7452,13 +9554,19 @@ export interface operations {
     apply: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmergencyStockCorrectionApplyRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -7518,7 +9626,33 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                authorizationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyOperationDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformOperationResponse"];
+                };
+            };
+        };
+    };
+    list_11: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -7540,7 +9674,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -7589,7 +9723,9 @@ export interface operations {
     switchRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                Authorization?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -7610,7 +9746,51 @@ export interface operations {
             };
         };
     };
-    login: {
+    revokeAllSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeOwnSessionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refreshToken: {
+        parameters: {
+            query?: never;
+            header: {
+                Authorization: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
+    login_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -7828,6 +10008,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["StocktakeItemResponse"][];
+                };
+            };
+        };
+    };
+    listAudits: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TenantSessionSecurityAuditDTO"][];
                 };
             };
         };
@@ -8164,6 +10366,306 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    companies: {
+        parameters: {
+            query?: {
+                keyword?: string;
+                status?: "PROVISIONING" | "ACTIVE" | "SUSPENDED" | "CLOSED" | "PURGE_PENDING" | "PURGED";
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagePlatformCompanyResponse"];
+                };
+            };
+        };
+    };
+    company: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformCompanyResponse"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+                authorizationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformOperationResponse"];
+                };
+            };
+        };
+    };
+    status_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformExportJobResponse"];
+                };
+            };
+        };
+    };
+    download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    data: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                companyId: number;
+                resource: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformDataPage"];
+                };
+            };
+        };
+    };
+    recoveryCodeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformRecoveryCodeStatusResponse"];
+                };
+            };
+        };
+    };
+    currentSession: {
+        parameters: {
+            query?: never;
+            header?: {
+                Authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformSessionResponse"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                tenantId?: number;
+                action?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagePlatformAuditLogResponse"];
+                };
+            };
+        };
+    };
+    admins: {
+        parameters: {
+            query?: {
+                keyword?: string;
+                enabled?: boolean;
+                role?: string;
+                mfaStatus?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagePlatformAdminSummaryResponse"];
+                };
+            };
+        };
+    };
+    admin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetUserId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformAdminDetailResponse"];
+                };
+            };
+        };
+    };
+    users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformManagedUserResponse"][];
+                };
+            };
+        };
+    };
+    effectiveAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformEffectiveAccessResponse"];
                 };
             };
         };
@@ -8696,7 +11198,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_7: {
         parameters: {
             query?: {
                 channel?: string;
@@ -8721,7 +11223,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8889,7 +11391,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -8907,6 +11409,70 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EmergencyStockCorrectionResponse"];
+                };
+            };
+        };
+    };
+    impact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EmergencyStockCorrectionImpactResponse"];
+                };
+            };
+        };
+    };
+    listBatchOptions: {
+        parameters: {
+            query: {
+                productSkuId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryBatchResponse"][];
+                };
+            };
+        };
+    };
+    list_10: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformOperationResponse"][];
                 };
             };
         };
@@ -9026,6 +11592,26 @@ export interface operations {
             path: {
                 id: number;
                 roleId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
             };
             cookie?: never;
         };

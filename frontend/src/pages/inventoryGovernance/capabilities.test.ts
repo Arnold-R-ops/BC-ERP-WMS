@@ -11,7 +11,7 @@ describe('inventory governance role boundaries', () => {
   });
 
   it('separates warehouse adjustment work from manager approval', () => {
-    expect(getCorrectionCapabilities('WAREHOUSE_ADMIN', ['inventory:adjust'])).toEqual({
+    expect(getCorrectionCapabilities('WAREHOUSE_ADMIN', ['inventory:correction:execute'])).toEqual({
       canAdjust: true,
       canApprove: false,
       canReject: false,
@@ -23,6 +23,10 @@ describe('inventory governance role boundaries', () => {
       canReject: true,
       canReview: true,
     });
+  });
+
+  it('does not treat the retired generic inventory adjustment authority as correction execution', () => {
+    expect(getCorrectionCapabilities('WAREHOUSE_ADMIN', ['inventory:adjust']).canAdjust).toBe(false);
   });
 
   it('lets managers review but not enter physical counts', () => {
