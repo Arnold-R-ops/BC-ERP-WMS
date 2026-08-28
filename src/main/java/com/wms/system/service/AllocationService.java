@@ -517,6 +517,18 @@ public class AllocationService {
                 );
             }
 
+            if (!batch.isSaleable()) {
+                throw new BusinessException(
+                    ErrorKeys.INVENTORY_BATCH_NOT_SALEABLE,
+                    Map.of(
+                        "batchId", batchId,
+                        "batchCode", batch.getBatchCode(),
+                        "qualityStatus", batch.getQualityStatus().name(),
+                        "expired", batch.isExpired()
+                    )
+                );
+            }
+
             if (batch.getAvailableQuantity() <= 0) {
                 log.error("❌ Specified batch has no stock: batchId={}, batchCode={}, quantity={}",
                     batchId, batch.getBatchCode(), batch.getAvailableQuantity());
@@ -690,9 +702,9 @@ public class AllocationService {
         log.debug("🔍 Querying available batches: productSkuId={}, rejectNearExpiry={}, nearExpiryDays={}",
             productSkuId, rejectNearExpiry, nearExpiryDays);
 
-        // Query all active batches for product
+        // Query only quality-available, active and date-valid batches.
         List<InventoryBatch> batches = inventoryBatchRepository
-            .findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
+            .findSaleableByProductSkuIdOrderByExpiryDateAsc(productSkuId);
 
         // Filter out batches with quantity = 0
         batches = batches.stream()

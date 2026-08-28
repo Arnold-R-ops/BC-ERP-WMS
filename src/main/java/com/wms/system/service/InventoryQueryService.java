@@ -93,6 +93,12 @@ public class InventoryQueryService {
             .reservedQuantity(reservedQuantity)
             .availableQuantity(availableQuantity)
             .displayAvailableQuantity(formatQuantity(availableQuantity, conversionRate, row.getPackUnit()))
+            .pendingInspectionQuantity(numberToInt(row.getPendingInspectionQuantity()))
+            .quarantinedQuantity(numberToInt(row.getQuarantinedQuantity()))
+            .damagedQuantity(numberToInt(row.getDamagedQuantity()))
+            .expiredQuantity(numberToInt(row.getExpiredQuantity()))
+            .recallHoldQuantity(numberToInt(row.getRecallHoldQuantity()))
+            .returnInspectionQuantity(numberToInt(row.getReturnInspectionQuantity()))
             .stockStatus(availableQuantity < safetyStock ? StockStatus.LOW_STOCK : StockStatus.SUFFICIENT)
             .furthestExpiryDate(row.getFurthestExpiryDate())
             .build();
@@ -107,6 +113,7 @@ public class InventoryQueryService {
             .quantity(numberToInt(row.getQuantity()))
             .reservedQuantity(numberToInt(row.getReservedQuantity()))
             .availableQuantity(numberToInt(row.getAvailableQuantity()))
+            .qualityStatus(row.getQualityStatus())
             .packageStatus(PackageStatusFormatter.plain(row.getQuantity(), row.getConversionRate()))
             .expiryDate(row.getExpiryDate())
             .build();

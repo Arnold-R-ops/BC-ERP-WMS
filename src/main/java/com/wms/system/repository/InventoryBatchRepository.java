@@ -1,6 +1,7 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.InventoryBatch;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -58,6 +59,12 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         Number getTotalQuantity();
         Number getTotalReservedQuantity();
         Number getTotalAvailableQuantity();
+        Number getPendingInspectionQuantity();
+        Number getQuarantinedQuantity();
+        Number getDamagedQuantity();
+        Number getExpiredQuantity();
+        Number getRecallHoldQuantity();
+        Number getReturnInspectionQuantity();
         LocalDate getFurthestExpiryDate();
         String getWarehouseNames();
     }
@@ -69,6 +76,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         Number getQuantity();
         Number getReservedQuantity();
         Number getAvailableQuantity();
+        InventoryQualityStatus getQualityStatus();
         LocalDate getExpiryDate();
         Number getConversionRate();
     }
@@ -86,7 +94,16 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 p.safety_stock AS "safetyStock",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity ELSE 0 END), 0) AS "totalQuantity",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.reserved_quantity ELSE 0 END), 0) AS "totalReservedQuantity",
-                COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity - b.reserved_quantity ELSE 0 END), 0) AS "totalAvailableQuantity",
+                COALESCE(SUM(CASE
+                    WHEN b.quality_status = 'AVAILABLE'
+                     AND (b.expiry_date IS NULL OR b.expiry_date >= CURRENT_DATE)
+                    THEN b.quantity - b.reserved_quantity ELSE 0 END), 0) AS "totalAvailableQuantity",
+                COALESCE(SUM(CASE WHEN b.quality_status = 'PENDING_INSPECTION' THEN b.quantity ELSE 0 END), 0) AS "pendingInspectionQuantity",
+                COALESCE(SUM(CASE WHEN b.quality_status = 'QUARANTINED' THEN b.quantity ELSE 0 END), 0) AS "quarantinedQuantity",
+                COALESCE(SUM(CASE WHEN b.quality_status = 'DAMAGED' THEN b.quantity ELSE 0 END), 0) AS "damagedQuantity",
+                COALESCE(SUM(CASE WHEN b.quality_status = 'EXPIRED' THEN b.quantity ELSE 0 END), 0) AS "expiredQuantity",
+                COALESCE(SUM(CASE WHEN b.quality_status = 'RECALL_HOLD' THEN b.quantity ELSE 0 END), 0) AS "recallHoldQuantity",
+                COALESCE(SUM(CASE WHEN b.quality_status = 'RETURN_INSPECTION' THEN b.quantity ELSE 0 END), 0) AS "returnInspectionQuantity",
                 MAX(b.expiry_date) AS "furthestExpiryDate",
                 COALESCE(string_agg(DISTINCT w.name, ','), '') AS "warehouseNames"
             FROM product_skus p
@@ -139,7 +156,12 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             b.locationCode AS locationCode,
             b.quantity AS quantity,
             b.reservedQuantity AS reservedQuantity,
-            (b.quantity - b.reservedQuantity) AS availableQuantity,
+            CASE
+              WHEN b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+               AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)
+              THEN b.quantity - b.reservedQuantity ELSE 0
+            END AS availableQuantity,
+            b.qualityStatus AS qualityStatus,
             b.expiryDate AS expiryDate,
             p.conversionRate AS conversionRate
         FROM InventoryBatch b
@@ -163,7 +185,12 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             b.locationCode AS locationCode,
             b.quantity AS quantity,
             b.reservedQuantity AS reservedQuantity,
-            (b.quantity - b.reservedQuantity) AS availableQuantity,
+            CASE
+              WHEN b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+               AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)
+              THEN b.quantity - b.reservedQuantity ELSE 0
+            END AS availableQuantity,
+            b.qualityStatus AS qualityStatus,
             b.expiryDate AS expiryDate,
             p.conversionRate AS conversionRate
         FROM InventoryBatch b
@@ -211,6 +238,20 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     List<InventoryBatch> findByProductSkuIdAndActiveOrderByExpiryDateAsc(
         @Param("productSkuId") Long productSkuId,
         @Param("active") Boolean active
+    );
+
+    /** Saleable FEFO candidates used by reservations, allocations and sales entry. */
+    @Query("SELECT b FROM InventoryBatch b " +
+           "WHERE b.productSku.id = :productSkuId " +
+           "AND b.active = true " +
+           "AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE " +
+           "AND b.location IS NOT NULL " +
+           "AND b.quantity > b.reservedQuantity " +
+           "AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE) " +
+           "ORDER BY CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END, " +
+           "b.expiryDate ASC, b.quantity ASC, b.id ASC")
+    List<InventoryBatch> findSaleableByProductSkuIdOrderByExpiryDateAsc(
+        @Param("productSkuId") Long productSkuId
     );
 
     /**
@@ -268,7 +309,9 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT SUM(b.quantity - b.reservedQuantity) FROM InventoryBatch b " +
            "WHERE b.productSku.id = :productSkuId " +
            "AND b.location IS NOT NULL " +
-           "AND b.active = true")
+           "AND b.active = true " +
+           "AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE " +
+           "AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)")
     Integer sumAvailableQuantityByProductSku(@Param("productSkuId") Long productSkuId);
 
     /**

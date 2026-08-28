@@ -1,5 +1,6 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -180,6 +181,15 @@ public class InventoryBatch extends BaseEntity {
     private Integer reservedQuantity = 0;
 
     /**
+     * Authoritative quality state. Only AVAILABLE stock may be promised or
+     * shipped; {@code active} remains the physical-row lifecycle flag.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "quality_status", nullable = false, length = 30)
+    @Builder.Default
+    private InventoryQualityStatus qualityStatus = InventoryQualityStatus.AVAILABLE;
+
+    /**
      * 初始入库数量（不可变）
      *
      * 用途:
@@ -294,7 +304,17 @@ public class InventoryBatch extends BaseEntity {
     }
 
     public int getAvailableQuantity() {
+        if (!isSaleable()) {
+            return 0;
+        }
         return this.quantity - (this.reservedQuantity == null ? 0 : this.reservedQuantity);
+    }
+
+    /** AVAILABLE, active and not date-expired is the complete saleability gate. */
+    public boolean isSaleable() {
+        return isActive()
+            && InventoryQualityStatus.AVAILABLE == this.qualityStatus
+            && !isExpired();
     }
 
     public void reserveQuantity(Integer reserveQuantity) {
@@ -325,6 +345,12 @@ public class InventoryBatch extends BaseEntity {
     }
 
     public void consumeReservedQuantity(Integer consumeQuantity) {
+        if (!isSaleable()) {
+            throw new IllegalStateException(
+                String.format("Inventory batch is not saleable: batchCode=%s, qualityStatus=%s",
+                    this.batchCode, this.qualityStatus)
+            );
+        }
         releaseReservedQuantity(consumeQuantity);
         decreaseQuantity(consumeQuantity);
     }

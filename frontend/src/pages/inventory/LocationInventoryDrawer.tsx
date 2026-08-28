@@ -1,8 +1,9 @@
-import { Alert, Descriptions, Drawer, Table, type TableColumnsType } from 'antd';
+import { Alert, Descriptions, Drawer, Table, Tag, type TableColumnsType } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
 import { getLocationInventory, type InventoryDetail } from '../../api/inventory';
+import { getQualityStatusColor, type InventoryQualityStatus } from './inventoryUtils';
 
 interface LocationInventoryDrawerProps {
   locationCode?: string;
@@ -51,6 +52,16 @@ export function LocationInventoryDrawer({
       dataIndex: 'availableQuantity',
       align: 'right',
       width: 110,
+    },
+    {
+      title: t('inventory.fields.qualityStatus'),
+      dataIndex: 'qualityStatus',
+      width: 150,
+      render: (value: InventoryQualityStatus | undefined) => (
+        <Tag color={getQualityStatusColor(value)}>
+          {t(`inventory.qualityStatus.${value ?? 'AVAILABLE'}`)}
+        </Tag>
+      ),
     },
     {
       title: t('inventory.fields.packageStatus'),
@@ -114,7 +125,7 @@ export function LocationInventoryDrawer({
         locale={{ emptyText: t('inventory.locationEmpty') }}
         pagination={false}
         rowKey={(record) => `${record.batchCode ?? 'batch'}-${record.traceCode ?? 'trace'}`}
-        scroll={{ x: 1050 }}
+        scroll={{ x: 1200 }}
         size="small"
       />
     </Drawer>

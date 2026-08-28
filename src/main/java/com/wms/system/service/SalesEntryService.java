@@ -215,7 +215,7 @@ public class SalesEntryService {
 
         // 鏌ヨ鍙敤鎵规锛團EFO 鎺掑簭锛?
         List<InventoryBatch> batches = inventoryBatchRepository
-            .findByProductSkuIdAndActiveOrderByExpiryDateAsc(productSkuId, true);
+            .findSaleableByProductSkuIdOrderByExpiryDateAsc(productSkuId);
 
         LocalDate today = LocalDate.now();
 

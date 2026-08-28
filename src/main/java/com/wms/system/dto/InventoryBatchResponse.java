@@ -1,5 +1,6 @@
 package com.wms.system.dto;
 
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -79,6 +80,9 @@ public class InventoryBatchResponse {
      * Quantity currently available for new allocations.
      */
     private Integer availableQuantity;
+
+    /** Authoritative physical-inventory quality state. */
+    private InventoryQualityStatus qualityStatus;
 
     /**
      * Initial quantity (for turnover calculation)

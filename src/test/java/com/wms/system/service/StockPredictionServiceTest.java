@@ -60,7 +60,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion - returns suggestion with no outbound history")
     void testGetReorderSuggestion_NoHistory() {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(30);
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(30);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -80,7 +80,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion - no outbound history with sufficient stock is low urgency")
     void testGetReorderSuggestion_NoHistorySufficientStock() {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -98,7 +98,7 @@ class StockPredictionServiceTest {
         StockTransaction tx2 = buildTransaction(30, LocalDateTime.now().minusDays(2));
 
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of(tx1, tx2));
 
@@ -123,7 +123,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion - treats null stock as 0")
     void testGetReorderSuggestion_NullStock() {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(null);
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(null);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -136,7 +136,7 @@ class StockPredictionServiceTest {
     @DisplayName("getReorderSuggestion(productSkuId) - uses default period 30 days")
     void testGetReorderSuggestion_DefaultPeriod() {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -158,7 +158,7 @@ class StockPredictionServiceTest {
 
         when(productSkuRepository.findLowStockProducts()).thenReturn(List.of(lowStockProduct));
         when(productSkuRepository.findById(2L)).thenReturn(Optional.of(lowStockProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(2L)).thenReturn(20); // below minStock
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(2L)).thenReturn(20); // below minStock
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of());
 
@@ -225,7 +225,7 @@ class StockPredictionServiceTest {
         StockTransaction tx = buildTransaction(10, utcTime);
 
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.sumQuantityByProductSku(1L)).thenReturn(100);
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(100);
         when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any()))
                 .thenReturn(List.of(tx));
 

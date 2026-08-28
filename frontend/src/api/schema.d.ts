@@ -4198,6 +4198,8 @@ export interface components {
             reservedQuantity?: number;
             /** Format: int32 */
             availableQuantity?: number;
+            /** @enum {string} */
+            qualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
             /** Format: int32 */
             initialQuantity?: number;
             /** Format: date */
@@ -4217,12 +4219,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             expiringSoon?: boolean;
+            expired?: boolean;
             exhausted?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
             /** Format: double */
             usageRate?: number;
-            expired?: boolean;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -4247,9 +4249,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            fullyReceived?: boolean;
             /** Format: int32 */
             remainingQuantity?: number;
+            fullyReceived?: boolean;
         };
         PurchaseOrderResponse: {
             /** Format: int64 */
@@ -6038,14 +6040,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerFactListItemResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6234,14 +6236,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformCompanyResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6291,14 +6293,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAuditLogResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6325,14 +6327,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAdminSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6457,6 +6459,18 @@ export interface components {
             /** Format: int32 */
             availableQuantity?: number;
             displayAvailableQuantity?: string;
+            /** Format: int32 */
+            pendingInspectionQuantity?: number;
+            /** Format: int32 */
+            quarantinedQuantity?: number;
+            /** Format: int32 */
+            damagedQuantity?: number;
+            /** Format: int32 */
+            expiredQuantity?: number;
+            /** Format: int32 */
+            recallHoldQuantity?: number;
+            /** Format: int32 */
+            returnInspectionQuantity?: number;
             /** @enum {string} */
             stockStatus?: "SUFFICIENT" | "LOW_STOCK";
             /** Format: date */
@@ -6467,14 +6481,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["InventorySummaryDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6498,6 +6512,8 @@ export interface components {
             reservedQuantity?: number;
             /** Format: int32 */
             availableQuantity?: number;
+            /** @enum {string} */
+            qualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
             packageStatus?: string;
             /** Format: date */
             expiryDate?: string;
@@ -6535,14 +6551,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["RawEventSummary"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];

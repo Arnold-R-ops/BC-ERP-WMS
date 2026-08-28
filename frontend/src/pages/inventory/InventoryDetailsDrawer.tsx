@@ -3,7 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
 import { getInventoryDetails, type InventoryDetail, type InventorySummary } from '../../api/inventory';
-import { getDaysUntilExpiry, getFreshnessStatus } from './inventoryUtils';
+import {
+  getDaysUntilExpiry,
+  getFreshnessStatus,
+  getQualityStatusColor,
+  type InventoryQualityStatus,
+} from './inventoryUtils';
 
 interface InventoryDetailsDrawerProps {
   open: boolean;
@@ -75,6 +80,16 @@ export function InventoryDetailsDrawer({
         <strong className={(value ?? 0) <= 0 ? 'quantity-danger' : 'quantity-ok'}>
           {value ?? 0}
         </strong>
+      ),
+    },
+    {
+      title: t('inventory.fields.qualityStatus'),
+      dataIndex: 'qualityStatus',
+      width: 150,
+      render: (value: InventoryQualityStatus | undefined) => (
+        <Tag color={getQualityStatusColor(value)}>
+          {t(`inventory.qualityStatus.${value ?? 'AVAILABLE'}`)}
+        </Tag>
       ),
     },
     {
@@ -177,7 +192,7 @@ export function InventoryDetailsDrawer({
               : '';
         }}
         rowKey={(record) => `${record.batchCode ?? 'batch'}-${record.locationCode ?? 'location'}`}
-        scroll={{ x: 1250 }}
+        scroll={{ x: 1400 }}
         size="small"
       />
     </Drawer>

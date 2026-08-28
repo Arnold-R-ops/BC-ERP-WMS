@@ -18,6 +18,7 @@ import com.wms.system.entity.ReceivingTaskItem;
 import com.wms.system.entity.enums.OtherInboundStatus;
 import com.wms.system.entity.enums.PurchaseAsnStatus;
 import com.wms.system.entity.enums.ReceiptEventStatus;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import com.wms.system.entity.enums.ReceivingPlanStatus;
 import com.wms.system.entity.enums.ReceivingTaskSourceType;
 import com.wms.system.entity.enums.ReceivingTaskStatus;
@@ -176,6 +177,7 @@ public class ReceivingReceiptExecutor {
                 .locationCode(line.location().getLocationCode())
                 .quantity(0)
                 .reservedQuantity(0)
+                .qualityStatus(InventoryQualityStatus.AVAILABLE)
                 .initialQuantity(line.request().quantity())
                 .productionDate(line.productionDate())
                 .expiryDate(line.expiryDate())

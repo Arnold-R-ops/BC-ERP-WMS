@@ -6,6 +6,7 @@ import com.wms.system.dto.inventory.LocationViewDto;
 import com.wms.system.entity.Location;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.StockStatus;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
@@ -60,6 +61,7 @@ class InventoryQueryServiceTest {
         assertThat(summary.getTotalQuantity()).isEqualTo(32);
         assertThat(summary.getReservedQuantity()).isEqualTo(5);
         assertThat(summary.getAvailableQuantity()).isEqualTo(27);
+        assertThat(summary.getQuarantinedQuantity()).isEqualTo(3);
         assertThat(summary.getStockStatus()).isEqualTo(StockStatus.LOW_STOCK);
     }
 
@@ -101,6 +103,7 @@ class InventoryQueryServiceTest {
         assertThat(result.get(0).getQuantity()).isEqualTo(24);
         assertThat(result.get(0).getReservedQuantity()).isEqualTo(4);
         assertThat(result.get(0).getAvailableQuantity()).isEqualTo(20);
+        assertThat(result.get(0).getQualityStatus()).isEqualTo(InventoryQualityStatus.AVAILABLE);
         assertThat(result.get(0).getPackageStatus()).isNotBlank();
     }
 
@@ -170,6 +173,12 @@ class InventoryQueryServiceTest {
         when(row.getTotalQuantity()).thenReturn(total);
         when(row.getTotalReservedQuantity()).thenReturn(reserved);
         when(row.getTotalAvailableQuantity()).thenReturn(available);
+        when(row.getPendingInspectionQuantity()).thenReturn(1);
+        when(row.getQuarantinedQuantity()).thenReturn(3);
+        when(row.getDamagedQuantity()).thenReturn(0);
+        when(row.getExpiredQuantity()).thenReturn(0);
+        when(row.getRecallHoldQuantity()).thenReturn(0);
+        when(row.getReturnInspectionQuantity()).thenReturn(1);
         when(row.getFurthestExpiryDate()).thenReturn(LocalDate.of(2027, 1, 1));
         when(row.getWarehouseNames()).thenReturn("Warehouse A,Warehouse B,Warehouse A");
         return row;
@@ -183,6 +192,7 @@ class InventoryQueryServiceTest {
         when(row.getQuantity()).thenReturn(24);
         when(row.getReservedQuantity()).thenReturn(4);
         when(row.getAvailableQuantity()).thenReturn(20);
+        when(row.getQualityStatus()).thenReturn(InventoryQualityStatus.AVAILABLE);
         when(row.getExpiryDate()).thenReturn(expiryDate);
         when(row.getConversionRate()).thenReturn(12);
         return row;

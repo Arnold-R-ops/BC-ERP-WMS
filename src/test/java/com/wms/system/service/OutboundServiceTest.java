@@ -5,6 +5,7 @@ import com.wms.system.entity.*;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.BatchTrackingMode;
 import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
@@ -331,6 +332,23 @@ class OutboundServiceTest {
 
         verify(inventoryBatchRepository, never()).save(any(InventoryBatch.class));
         verify(stockTransactionRepository, never()).save(any(StockTransaction.class));
+    }
+
+    @Test
+    @DisplayName("quality-held inventory cannot be shipped")
+    void confirmPickingRejectsNonSaleableBatch() {
+        testBatch.setQualityStatus(InventoryQualityStatus.QUARANTINED);
+        when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(outboundTaskRepository.save(any(OutboundTask.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
+
+        assertThatThrownBy(() -> outboundService.confirmPicking(1L, 10, 1L, "Operator"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.INVENTORY_BATCH_NOT_SALEABLE);
+
+        verify(inventoryBatchRepository, never()).save(any());
+        verify(stockTransactionRepository, never()).save(any());
     }
 
     // ========== Test 8: Batch Confirm Picking ==========

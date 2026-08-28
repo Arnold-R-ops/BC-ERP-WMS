@@ -1,13 +1,13 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.Category;
-import com.wms.system.entity.Inventory;
 import com.wms.system.entity.InventoryBatch;
 import com.wms.system.entity.Location;
 import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.Zone;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -296,10 +296,16 @@ class ProductSkuRepositoryTest {
         entityManager.persist(location);
 
         // productJuice has minStock=50; inventory quantity=200 → sufficient
-        Inventory sufficientInventory = Inventory.builder()
+        InventoryBatch sufficientInventory = InventoryBatch.builder()
+                .batchCode("SUFFICIENT-STOCK-BATCH")
                 .productSku(productJuice)
                 .location(location)
+                .locationCode(location.getLocationCode())
                 .quantity(200)
+                .reservedQuantity(0)
+                .initialQuantity(200)
+                .expiryDate(java.time.LocalDate.now().plusMonths(6))
+                .active(true)
                 .build();
         entityManager.persist(sufficientInventory);
         entityManager.flush();
@@ -309,5 +315,41 @@ class ProductSkuRepositoryTest {
         assertThat(lowStock)
                 .extracting(ProductSku::getBarcode)
                 .doesNotContain("BAR-JUS-002");
+    }
+
+    @Test
+    @DisplayName("findLowStockProducts - quality-held stock does not suppress replenishment")
+    void testFindLowStockProducts_QuarantinedStockIsNotSaleable() {
+        Warehouse warehouse = Warehouse.builder()
+            .code("WH-QUALITY-HOLD")
+            .name("Quality hold warehouse")
+            .isActive(true)
+            .build();
+        entityManager.persist(warehouse);
+        Location location = Location.builder()
+            .warehouse(warehouse)
+            .warehouseCode("WH-QUALITY-HOLD")
+            .zone(Zone.ZONE_A)
+            .shelfNumber("Q01")
+            .positionNumber("001")
+            .enabled(true)
+            .build();
+        entityManager.persist(location);
+        entityManager.persist(InventoryBatch.builder()
+            .batchCode("QUARANTINED-STOCK-BATCH")
+            .productSku(productTea)
+            .location(location)
+            .locationCode(location.getLocationCode())
+            .quantity(1000)
+            .reservedQuantity(0)
+            .initialQuantity(1000)
+            .qualityStatus(InventoryQualityStatus.QUARANTINED)
+            .active(true)
+            .build());
+        entityManager.flush();
+
+        assertThat(productSkuRepository.findLowStockProducts())
+            .extracting(ProductSku::getBarcode)
+            .contains("BAR-TEA-001");
     }
 }

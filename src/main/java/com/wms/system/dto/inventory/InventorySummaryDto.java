@@ -25,6 +25,12 @@ public class InventorySummaryDto {
     private Integer reservedQuantity;
     private Integer availableQuantity;
     private String displayAvailableQuantity;
+    private Integer pendingInspectionQuantity;
+    private Integer quarantinedQuantity;
+    private Integer damagedQuantity;
+    private Integer expiredQuantity;
+    private Integer recallHoldQuantity;
+    private Integer returnInspectionQuantity;
     private StockStatus stockStatus;
     private LocalDate furthestExpiryDate;
 }

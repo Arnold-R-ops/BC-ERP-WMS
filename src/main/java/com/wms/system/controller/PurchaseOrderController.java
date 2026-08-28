@@ -438,6 +438,7 @@ public class PurchaseOrderController {
             .quantity(batch.getQuantity())
             .reservedQuantity(batch.getReservedQuantity())
             .availableQuantity(batch.getAvailableQuantity())
+            .qualityStatus(batch.getQualityStatus())
             .initialQuantity(batch.getInitialQuantity())
             .expiryDate(batch.getExpiryDate())
             .productionDate(batch.getProductionDate())

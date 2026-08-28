@@ -122,7 +122,7 @@ public class StockPredictionService {
         // 2. Query current total stock (sum across all locations)
         // Single source of truth is inventory_batch (V3.0 architecture decision);
         // the legacy Inventory table is no longer maintained by inbound/outbound flows.
-        Integer currentStock = inventoryBatchRepository.sumQuantityByProductSku(productSkuId);
+        Integer currentStock = inventoryBatchRepository.sumAvailableQuantityByProductSku(productSkuId);
         if (currentStock == null) {
             currentStock = 0;
         }

@@ -150,13 +150,13 @@ public interface ProductSkuRepository extends JpaRepository<ProductSku, Long> {
      * @return 需要补货的商品列表
      */
     @Query("SELECT p FROM ProductSku p " +
-           "WHERE p.id IN (" +
-           "  SELECT b.productSku.id FROM InventoryBatch b " +
-           "  WHERE b.active = true AND b.location IS NOT NULL " +
-           "  GROUP BY b.productSku.id " +
-           "  HAVING SUM(b.quantity) < " +
-           "    (SELECT p2.minStock FROM ProductSku p2 WHERE p2.id = b.productSku.id)" +
-           ")")
+           "WHERE COALESCE((" +
+           "  SELECT SUM(b.quantity - b.reservedQuantity) FROM InventoryBatch b " +
+           "  WHERE b.productSku.id = p.id " +
+           "    AND b.active = true AND b.location IS NOT NULL " +
+           "    AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE " +
+           "    AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)" +
+           "), 0) < p.minStock")
     List<ProductSku> findLowStockProducts();
 
     /**
@@ -170,13 +170,13 @@ public interface ProductSkuRepository extends JpaRepository<ProductSku, Long> {
      */
     @Query("SELECT p FROM ProductSku p " +
            "WHERE p.supplier = :supplier " +
-           "AND p.id IN (" +
-           "  SELECT b.productSku.id FROM InventoryBatch b " +
-           "  WHERE b.active = true AND b.location IS NOT NULL " +
-           "  GROUP BY b.productSku.id " +
-           "  HAVING SUM(b.quantity) < " +
-           "    (SELECT p2.minStock FROM ProductSku p2 WHERE p2.id = b.productSku.id)" +
-           ")")
+           "AND COALESCE((" +
+           "  SELECT SUM(b.quantity - b.reservedQuantity) FROM InventoryBatch b " +
+           "  WHERE b.productSku.id = p.id " +
+           "    AND b.active = true AND b.location IS NOT NULL " +
+           "    AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE " +
+           "    AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)" +
+           "), 0) < p.minStock")
     List<ProductSku> findLowStockProductsBySupplier(@Param("supplier") String supplier);
 
     /**

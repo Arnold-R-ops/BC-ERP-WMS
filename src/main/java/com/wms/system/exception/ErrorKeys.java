@@ -250,6 +250,15 @@ public final class ErrorKeys {
     /** A correction tried to create a batch identity that already exists at the location. */
     public static final String INVENTORY_CORRECTION_BATCH_CONFLICT = "INVENTORY_CORRECTION_BATCH_CONFLICT";
 
+    /** The batch is physical stock but its quality state/date does not permit sale. */
+    public static final String INVENTORY_BATCH_NOT_SALEABLE = "INVENTORY_BATCH_NOT_SALEABLE";
+
+    /** A quality-state command requested a no-op or otherwise invalid transition. */
+    public static final String INVENTORY_QUALITY_TRANSITION_INVALID = "INVENTORY_QUALITY_TRANSITION_INVALID";
+
+    /** Reserved stock must be released before it can leave AVAILABLE. */
+    public static final String INVENTORY_QUALITY_RESERVED_CONFLICT = "INVENTORY_QUALITY_RESERVED_CONFLICT";
+
     /** An idempotency key is required for this write command. */
     public static final String IDEMPOTENCY_KEY_REQUIRED = "IDEMPOTENCY_KEY_REQUIRED";
 

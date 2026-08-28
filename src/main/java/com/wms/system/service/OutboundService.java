@@ -374,6 +374,8 @@ public class OutboundService {
             );
         }
 
+        requireSaleable(batch);
+
         // 3. Validate sufficient stock
         if (batch.getQuantity() < quantity) {
             log.error("Insufficient batch stock: batchId={}, batchCode={}, available={}, requested={}",
@@ -443,6 +445,8 @@ public class OutboundService {
             );
         }
 
+        requireSaleable(batch);
+
         Integer quantityBefore = batch.getQuantity();
         batch.consumeReservedQuantity(actualQty);
         if (batch.getQuantity() == 0) {
@@ -457,6 +461,20 @@ public class OutboundService {
         log.info("Reservation consumed: reservationId={}, batchId={}, before={}, after={}, consumed={}, status={}",
             reservation.getId(), batch.getId(), quantityBefore, batch.getQuantity(), actualQty,
             reservation.getStatus());
+    }
+
+    private void requireSaleable(InventoryBatch batch) {
+        if (!batch.isSaleable()) {
+            throw new BusinessException(
+                ErrorKeys.INVENTORY_BATCH_NOT_SALEABLE,
+                Map.of(
+                    "batchId", batch.getId(),
+                    "batchCode", batch.getBatchCode(),
+                    "qualityStatus", batch.getQualityStatus().name(),
+                    "expired", batch.isExpired()
+                )
+            );
+        }
     }
 
     private void updateSalesOrderItemShipment(Long salesOrderItemId, Integer actualQty) {

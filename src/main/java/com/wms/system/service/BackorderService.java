@@ -113,7 +113,7 @@ public class BackorderService {
 
     private int reserveAvailable(SalesOrderItem item, int requestedQty) {
         int remaining = requestedQty;
-        List<InventoryBatch> batches = inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(item.getProductSkuId(), true)
+        List<InventoryBatch> batches = inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(item.getProductSkuId())
             .stream()
             .filter(batch -> batch.getAvailableQuantity() > 0)
             .toList();

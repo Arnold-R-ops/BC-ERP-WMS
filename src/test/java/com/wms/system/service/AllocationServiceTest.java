@@ -140,7 +140,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(List.of(batch1));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -211,7 +211,7 @@ class AllocationServiceTest {
         assertThat(tasks.get(1).getAssignedBatchId()).isEqualTo(2L);
         assertThat(tasks.get(1).getPlanQty()).isEqualTo(5);
 
-        verify(inventoryBatchRepository, never()).findByProductSkuIdAndActiveOrderByExpiryDateAsc(anyLong(), anyBoolean());
+        verify(inventoryBatchRepository, never()).findSaleableByProductSkuIdOrderByExpiryDateAsc(anyLong());
     }
 
     @Test
@@ -264,7 +264,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(looseBatch, fullBoxBatch1, fullBoxBatch2));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -298,7 +298,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(nearExpiryBatch, freshBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -326,7 +326,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(batch1, batch2));
 
         // When & Then
@@ -352,7 +352,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(batch2, batch3, batch1)); // Already sorted by expiry date
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -381,7 +381,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(looseBatch, fullBoxBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -410,7 +410,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(List.of(fullBoxBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -437,7 +437,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(Arrays.asList(item1, item2));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(List.of(batch1));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -553,7 +553,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(looseBatch, fullBoxBatch1, fullBoxBatch2));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -582,7 +582,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(List.of(oldBatch, freshBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -605,7 +605,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(List.of(mixedBatch));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -636,7 +636,7 @@ class AllocationServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
-        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+        when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
             .thenReturn(Arrays.asList(nearExpiryBatch1, nearExpiryBatch2, freshBatch1, freshBatch2));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));

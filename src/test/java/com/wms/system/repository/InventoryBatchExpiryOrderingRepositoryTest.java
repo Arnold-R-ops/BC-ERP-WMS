@@ -6,6 +6,7 @@ import com.wms.system.entity.Product;
 import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Warehouse;
 import com.wms.system.entity.enums.Zone;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import com.wms.system.support.TestCatalogFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -77,6 +79,9 @@ class InventoryBatchExpiryOrderingRepositoryTest {
         persistBatch("UNDATED", productSku, location, null);
         persistBatch("DATED-EARLIER", productSku, location, today.plusDays(30));
         persistBatch("EXPIRED", productSku, location, today.minusDays(1));
+        InventoryBatch quarantined = persistBatch(
+            "QUARANTINED", productSku, location, today.plusDays(20));
+        quarantined.setQualityStatus(InventoryQualityStatus.QUARANTINED);
         entityManager.flush();
         entityManager.clear();
         productSkuId = productSku.getId();
@@ -91,6 +96,7 @@ class InventoryBatchExpiryOrderingRepositoryTest {
             .extracting(InventoryBatch::getBatchCode)
             .containsExactly(
                 "EXPIRED",
+                "QUARANTINED",
                 "DATED-EARLIER",
                 "DATED-LATER",
                 "UNDATED"
@@ -109,16 +115,37 @@ class InventoryBatchExpiryOrderingRepositoryTest {
             true
         ))
             .extracting(InventoryBatch::getBatchCode)
-            .containsExactly("DATED-EARLIER");
+            .containsExactly("QUARANTINED", "DATED-EARLIER");
     }
 
-    private void persistBatch(
+    @Test
+    void saleableFefoAndAvailableAggregationExcludeQualityHeldAndExpiredStock() {
+        assertThat(repository.findSaleableByProductSkuIdOrderByExpiryDateAsc(productSkuId))
+            .extracting(InventoryBatch::getBatchCode)
+            .containsExactly("DATED-EARLIER", "DATED-LATER", "UNDATED");
+
+        assertThat(repository.sumQuantityByProductSku(productSkuId)).isEqualTo(50);
+        assertThat(repository.sumAvailableQuantityByProductSku(productSkuId)).isEqualTo(30);
+
+        InventoryBatchRepository.InventorySummaryRow summary = repository
+            .findInventorySummaryRows(1L, "", PageRequest.of(0, 20))
+            .getContent()
+            .stream()
+            .filter(row -> row.getProductSkuId().equals(productSkuId))
+            .findFirst()
+            .orElseThrow();
+        assertThat(summary.getTotalQuantity().intValue()).isEqualTo(50);
+        assertThat(summary.getTotalAvailableQuantity().intValue()).isEqualTo(30);
+        assertThat(summary.getQuarantinedQuantity().intValue()).isEqualTo(10);
+    }
+
+    private InventoryBatch persistBatch(
         String batchCode,
         ProductSku productSku,
         Location location,
         LocalDate expiryDate
     ) {
-        entityManager.persist(InventoryBatch.builder()
+        InventoryBatch batch = InventoryBatch.builder()
             .batchCode(batchCode)
             .productSku(productSku)
             .location(location)
@@ -128,6 +155,8 @@ class InventoryBatchExpiryOrderingRepositoryTest {
             .initialQuantity(10)
             .expiryDate(expiryDate)
             .active(true)
-            .build());
+            .build();
+        entityManager.persist(batch);
+        return batch;
     }
 }

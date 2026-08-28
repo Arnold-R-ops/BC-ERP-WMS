@@ -13,7 +13,12 @@ import {
 import { toProTablePage, toSpringPage } from '../../api/pagination';
 import { listProductSkus, PRODUCT_SKUS_QUERY_KEY } from '../../api/productSkus';
 import { InventoryDetailsDrawer } from './InventoryDetailsDrawer';
-import { getFreshnessStatus } from './inventoryUtils';
+import {
+  getFreshnessStatus,
+  getQualityStatusColor,
+  inventoryQualityStatuses,
+  type InventoryQualityStatus,
+} from './inventoryUtils';
 import { LocationInventoryDrawer } from './LocationInventoryDrawer';
 
 interface InventoryTableParams {
@@ -125,6 +130,43 @@ export function InventoryPage(): JSX.Element {
         ),
       },
       {
+        title: t('inventory.fields.qualityBreakdown'),
+        dataIndex: 'qualityBreakdown',
+        search: false,
+        width: 270,
+        render: (_, record) => {
+          const nonAvailable = {
+            PENDING_INSPECTION: record.pendingInspectionQuantity ?? 0,
+            QUARANTINED: record.quarantinedQuantity ?? 0,
+            DAMAGED: record.damagedQuantity ?? 0,
+            EXPIRED: record.expiredQuantity ?? 0,
+            RECALL_HOLD: record.recallHoldQuantity ?? 0,
+            RETURN_INSPECTION: record.returnInspectionQuantity ?? 0,
+          } satisfies Record<Exclude<InventoryQualityStatus, 'AVAILABLE'>, number>;
+          const availableOnHand = Math.max(
+            0,
+            (record.totalQuantity ?? 0)
+              - Object.values(nonAvailable).reduce((sum, quantity) => sum + quantity, 0),
+          );
+          const quantities: Record<InventoryQualityStatus, number> = {
+            AVAILABLE: availableOnHand,
+            ...nonAvailable,
+          };
+          return (
+            <Space size={[4, 4]} wrap>
+              {inventoryQualityStatuses
+                .filter((status) => quantities[status] > 0)
+                .map((status) => (
+                  <Tag color={getQualityStatusColor(status)} key={status}>
+                    {t(`inventory.qualityStatus.${status}`)} {quantities[status]}
+                  </Tag>
+                ))}
+              {(record.totalQuantity ?? 0) === 0 && '-'}
+            </Space>
+          );
+        },
+      },
+      {
         title: t('inventory.fields.stockStatus'),
         dataIndex: 'stockStatus',
         search: false,
@@ -211,7 +253,7 @@ export function InventoryPage(): JSX.Element {
           }
         }}
         rowKey="productSkuId"
-        scroll={{ x: 1550 }}
+        scroll={{ x: 1820 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
         toolBarRender={() => [
           <Input.Search

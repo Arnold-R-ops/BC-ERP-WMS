@@ -1,5 +1,6 @@
 package com.wms.system.dto.inventory;
 
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class InventoryDetailDto {
     private Integer quantity;
     private Integer reservedQuantity;
     private Integer availableQuantity;
+    private InventoryQualityStatus qualityStatus;
     private String packageStatus;
     private LocalDate expiryDate;
 }

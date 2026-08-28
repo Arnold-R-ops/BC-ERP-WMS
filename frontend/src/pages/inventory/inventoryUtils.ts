@@ -1,5 +1,37 @@
 export type FreshnessStatus = 'expired' | 'nearExpiry' | 'fresh' | 'unknown';
 
+export type InventoryQualityStatus =
+  | 'AVAILABLE'
+  | 'PENDING_INSPECTION'
+  | 'QUARANTINED'
+  | 'DAMAGED'
+  | 'EXPIRED'
+  | 'RECALL_HOLD'
+  | 'RETURN_INSPECTION';
+
+export const inventoryQualityStatuses: InventoryQualityStatus[] = [
+  'AVAILABLE',
+  'PENDING_INSPECTION',
+  'QUARANTINED',
+  'DAMAGED',
+  'EXPIRED',
+  'RECALL_HOLD',
+  'RETURN_INSPECTION',
+];
+
+export function getQualityStatusColor(status?: InventoryQualityStatus): string {
+  switch (status) {
+    case 'AVAILABLE': return 'success';
+    case 'PENDING_INSPECTION':
+    case 'RETURN_INSPECTION': return 'processing';
+    case 'QUARANTINED':
+    case 'RECALL_HOLD': return 'warning';
+    case 'DAMAGED':
+    case 'EXPIRED': return 'error';
+    default: return 'default';
+  }
+}
+
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 export function getDaysUntilExpiry(expiryDate?: string, now = new Date()): number | undefined {
