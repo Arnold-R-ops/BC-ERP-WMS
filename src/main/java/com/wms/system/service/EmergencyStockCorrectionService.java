@@ -48,6 +48,7 @@ public class EmergencyStockCorrectionService {
     private final InventoryBatchRepository inventoryBatchRepository;
     private final InventoryReservationRepository reservationRepository;
     private final ProductSkuRepository productSkuRepository;
+    private final ProductSkuExpiryPolicy expiryPolicy;
     private final LocationRepository locationRepository;
     private final WarehouseRepository warehouseRepository;
     private final LocationOccupancyService locationOccupancyService;
@@ -95,12 +96,11 @@ public class EmergencyStockCorrectionService {
         } else {
             batchCode = requireText(request.getBatchCode(), "batchCode");
             requireNewBatchIdentityAvailable(batchCode, location.getId(), null);
-            if (request.getExpiryDate() == null) {
-                throw new BusinessException(
-                    ErrorKeys.PARAMETER_REQUIRED,
-                    Map.of("parameter", "expiryDate")
-                );
-            }
+            expiryPolicy.validateForInventoryReceipt(
+                product,
+                request.getProductionDate(),
+                request.getExpiryDate()
+            );
         }
 
         EmergencyStockCorrection correction = EmergencyStockCorrection.builder()

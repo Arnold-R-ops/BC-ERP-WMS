@@ -86,6 +86,14 @@ public final class ErrorKeys {
     public static final String PRODUCT_CATEGORY_INVALID = "PRODUCT_CATEGORY_INVALID";
     public static final String PRODUCT_DISABLED = "PRODUCT_DISABLED";
     public static final String PRODUCT_SKU_DISABLED = "PRODUCT_SKU_DISABLED";
+    public static final String PRODUCT_SKU_PRODUCTION_DATE_REQUIRED =
+        "PRODUCT_SKU_PRODUCTION_DATE_REQUIRED";
+    public static final String PRODUCT_SKU_EXPIRY_DATE_REQUIRED =
+        "PRODUCT_SKU_EXPIRY_DATE_REQUIRED";
+    public static final String PRODUCT_SKU_PRODUCTION_DATE_INVALID =
+        "PRODUCT_SKU_PRODUCTION_DATE_INVALID";
+    public static final String PRODUCT_SKU_EXPIRY_DATE_INVALID =
+        "PRODUCT_SKU_EXPIRY_DATE_INVALID";
 
     // ========== Category Related Errors ==========
 

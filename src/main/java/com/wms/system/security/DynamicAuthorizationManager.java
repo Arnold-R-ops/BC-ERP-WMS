@@ -402,13 +402,22 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
             }
         }
 
-        // 4. Check resource path match (Ant pattern)
+        // 4. Check resource path match (Ant pattern). A permission may govern
+        // several closely related routes by separating patterns with ';'.
+        // Keeping those routes on one permission code lets method-level
+        // authorization remain the capability truth source without widening a
+        // pattern to an entire module.
         String resourcePath = permission.getResourcePath();
         if (resourcePath == null || resourcePath.isEmpty()) {
             return false;
         }
 
-        return pathMatcher.match(resourcePath, requestUri);
+        for (String pattern : resourcePath.split(";")) {
+            if (!pattern.isBlank() && pathMatcher.match(pattern.trim(), requestUri)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

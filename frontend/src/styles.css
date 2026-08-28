@@ -1356,8 +1356,8 @@ input {
 
 .purchase-line-grid {
   display: grid;
-  grid-template-columns: 30px minmax(280px, 2fr) 110px 125px 145px 145px 170px minmax(180px, 1fr) 110px 42px;
-  min-width: 1400px;
+  grid-template-columns: 30px minmax(280px, 2fr) 110px minmax(390px, 2fr) 125px 145px 145px 170px minmax(180px, 1fr) 110px 42px;
+  min-width: 1900px;
   column-gap: 10px;
 }
 
@@ -1398,6 +1398,36 @@ input {
 .purchase-line-subtotal {
   padding-top: 6px;
   text-align: right;
+}
+
+.purchase-line-allocations {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid rgb(127 127 127 / 20%);
+  border-radius: 6px;
+  background: rgb(127 127 127 / 4%);
+}
+
+.purchase-line-allocation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: inherit;
+  font-size: 12px;
+}
+
+.purchase-line-allocation-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) 120px 34px;
+  align-items: start;
+  gap: 8px;
+}
+
+.purchase-line-allocation-row .ant-form-item {
+  margin-bottom: 0;
 }
 
 .purchase-lines-toolbar,
@@ -1457,6 +1487,80 @@ input {
 
 .purchase-bulk-remark {
   grid-column: 1 / -1;
+}
+
+.shipment-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 0 16px;
+  margin-top: 16px;
+}
+
+.shipment-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.shipment-line {
+  display: grid;
+  grid-template-columns: 32px minmax(180px, 1.3fr) 120px minmax(140px, 1fr) 145px 145px minmax(140px, 1fr);
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgb(127 127 127 / 24%);
+  border-radius: 8px;
+}
+
+.shipment-line .ant-form-item {
+  margin-bottom: 0;
+}
+
+.shipment-line-product {
+  display: grid;
+  gap: 3px;
+  align-self: center;
+}
+
+.shipment-line-product span,
+.shipment-expiry-note {
+  color: inherit;
+  font-size: 12px;
+  opacity: 0.68;
+}
+
+.shipment-expiry-note {
+  grid-column: 3 / -1;
+}
+
+.purchase-asn-section-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.other-inbound-lines {
+  display: grid;
+  gap: 12px;
+}
+
+.other-inbound-line {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) 120px 145px 145px minmax(160px, 1fr) 74px;
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgb(127 127 127 / 24%);
+  border-radius: 8px;
+}
+
+.other-inbound-line .ant-form-item {
+  margin-bottom: 0;
+}
+
+.other-inbound-line .ant-input-number {
+  width: 100%;
 }
 
 .workflow-line {
@@ -2928,6 +3032,178 @@ button.mobile-task-card:disabled {
   width: 126px;
 }
 
+.mobile-task-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgb(22 119 255 / 8%);
+}
+
+.mobile-receiving-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid #d6e1df;
+  background: #f2f6f5;
+  border-radius: 8px;
+}
+
+.mobile-receiving-switch > .ant-btn {
+  min-height: 44px;
+}
+
+.receiving-plan-list {
+  display: grid;
+  gap: 14px;
+}
+
+.receiving-plan-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #d4dfdd;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(23, 57, 53, 0.06);
+  border-radius: 8px;
+}
+
+.receiving-plan-card-heading,
+.receiving-plan-lines-heading,
+.receiving-plan-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receiving-plan-card-heading > div,
+.receiving-plan-line > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.receiving-plan-card-heading strong {
+  color: #173b39;
+  font-size: 18px;
+}
+
+.receiving-plan-card-heading span,
+.receiving-plan-line span,
+.receiving-plan-lines-heading span {
+  color: #687976;
+  font-size: 12px;
+}
+
+.receiving-plan-metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.receiving-plan-metadata > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #f5f8f7;
+  border-radius: 6px;
+}
+
+.receiving-plan-metadata dt,
+.receiving-plan-notes > span {
+  color: #70807d;
+  font-size: 12px;
+}
+
+.receiving-plan-metadata dd {
+  margin: 0;
+  color: #263b38;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.receiving-plan-lines {
+  display: grid;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid #dbe5e3;
+  border-radius: 6px;
+}
+
+.receiving-plan-line {
+  padding-top: 9px;
+  border-top: 1px solid #edf1f0;
+}
+
+.receiving-plan-line b {
+  flex: 0 0 auto;
+  color: #0f625c;
+  font-size: 13px;
+}
+
+.receiving-plan-lines-empty {
+  padding: 12px;
+  color: #80651f;
+  background: #fff8e8;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.receiving-plan-notes {
+  display: grid;
+  gap: 4px;
+}
+
+.receiving-plan-notes p,
+.receiving-plan-editor-context {
+  margin: 0;
+  color: #425350;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.receiving-plan-editor-context {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: #f5f8f7;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.receiving-plan-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.receiving-plan-editor-grid .ant-input-number {
+  width: 100%;
+}
+
+.receiving-line-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.receiving-line-fields label {
+  display: grid;
+  gap: 5px;
+  color: inherit;
+  font-size: 12px;
+}
+
+.receiving-line-fields .ant-input-number,
+.receiving-line-fields .ant-select {
+  width: 100%;
+}
+
 .mobile-blind-count-notice {
   gap: 12px;
   padding: 14px 16px;
@@ -3068,6 +3344,29 @@ button.mobile-task-card:disabled {
 }
 
 @media (max-width: 560px) {
+  .shipment-meta-grid,
+  .shipment-line,
+  .other-inbound-line,
+  .receiving-line-fields,
+  .receiving-plan-metadata,
+  .receiving-plan-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .receiving-plan-card {
+    padding: 14px;
+  }
+
+  .receiving-plan-card-heading,
+  .receiving-plan-lines-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shipment-expiry-note {
+    grid-column: auto;
+  }
+
   .mobile-warehouse-main {
     padding: 18px 14px calc(92px + env(safe-area-inset-bottom));
   }

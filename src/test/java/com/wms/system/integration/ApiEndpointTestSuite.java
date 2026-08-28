@@ -8,6 +8,7 @@ import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.entity.enums.Zone;
 import com.wms.system.repository.*;
+import com.wms.system.security.SecurityUser;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -560,78 +563,169 @@ class ApiEndpointTestSuite {
         }
 
         @Test
-        @WithMockUser(username = "buyer", authorities = {"purchase:create", "purchase:confirm"})
-        void testConfirmAsn() throws Exception {
+        @WithMockUser(username = "buyer", authorities = {"TENANT_ADMIN"})
+        void testQuickConfirmCreatesAsnAndUnifiedReceivingTask() throws Exception {
             ProductSku product = createProduct(BigDecimal.ZERO);
+            Warehouse warehouse = createWarehouse();
             JsonNode createJson = createPurchaseOrderApi(product.getId());
             long orderId = createJson.path("id").asLong();
             long itemId = createJson.path("items").get(0).path("id").asLong();
 
+            JsonNode submitted = allocateAndSubmit(createJson, warehouse.getId());
+            assertEquals("AWAITING_SHIPMENT", submitted.path("status").asText());
+
             String confirmRequest = json(Map.of(
+                "warehouseId", warehouse.getId(),
                 "items", List.of(Map.of(
-                    "itemId", itemId,
-                    "expiryDate", LocalDate.now().plusDays(180).toString()
+                    "purchaseOrderItemId", itemId,
+                    "shippedQuantity", 10
                 ))
             ));
-
-            mockMvc.perform(put("/api/purchase-orders/" + orderId + "/confirm")
+            mockMvc.perform(post("/api/purchase-orders/" + orderId + "/asns/quick-confirm")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(confirmRequest))
                 .andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+
+            mockMvc.perform(get("/api/receiving-tasks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("IN_TRANSIT"));
+                .andExpect(jsonPath("$[0].sourceType").value("PURCHASE_ASN"))
+                .andExpect(jsonPath("$[0].purchaseOrderId").value(orderId))
+                .andExpect(jsonPath("$[0].supplier").doesNotExist())
+                .andExpect(jsonPath("$[0].carrier").doesNotExist())
+                .andExpect(jsonPath("$[0].trackingNo").doesNotExist());
         }
 
         @Test
-        @WithMockUser(username = "warehouse", authorities = {
-            "purchase:create", "purchase:confirm", "purchase:receive"
-        })
-        void testReceiveGoods() throws Exception {
+        @WithMockUser(username = "warehouse", authorities = {"TENANT_ADMIN"})
+        void testUnifiedReceiptPostsInventoryAndSupportsIdempotentReplay() throws Exception {
             ProductSku product = createProduct(BigDecimal.ZERO);
-            Location location = createLocation(createWarehouse());
+            Warehouse warehouse = createWarehouse();
+            Location location = createLocation(warehouse);
 
             JsonNode createJson = createPurchaseOrderApi(product.getId());
             long orderId = createJson.path("id").asLong();
             long itemId = createJson.path("items").get(0).path("id").asLong();
+            allocateAndSubmit(createJson, warehouse.getId());
 
             String confirmRequest = json(Map.of(
+                "warehouseId", warehouse.getId(),
                 "items", List.of(Map.of(
-                    "itemId", itemId,
-                    "expiryDate", LocalDate.now().plusDays(180).toString()
+                    "purchaseOrderItemId", itemId,
+                    "shippedQuantity", 10
                 ))
             ));
-
-            MvcResult confirmResult = mockMvc.perform(put("/api/purchase-orders/" + orderId + "/confirm")
+            mockMvc.perform(post("/api/purchase-orders/" + orderId + "/asns/quick-confirm")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(confirmRequest))
-                .andDo(print())
+                .andExpect(status().isCreated());
+
+            JsonNode tasks = readJson(mockMvc.perform(get("/api/receiving-tasks"))
                 .andExpect(status().isOk())
-                .andReturn();
-
-            String batchCode = inventoryBatchRepository.findByPurchaseOrderItemId(itemId).stream()
-                .findFirst()
-                .map(InventoryBatch::getBatchCode)
-                .orElse("");
-            assertFalse(batchCode.isBlank());
-
+                .andReturn());
+            JsonNode task = null;
+            for (JsonNode candidate : tasks) {
+                if (candidate.path("purchaseOrderId").asLong() == orderId) {
+                    task = candidate;
+                    break;
+                }
+            }
+            assertTrue(task != null);
+            long taskId = task.path("id").asLong();
+            long taskItemId = task.path("items").get(0).path("id").asLong();
             String receiveRequest = json(Map.of(
-                "receiveItems", List.of(Map.of(
-                    "itemId", itemId,
-                    "batches", List.of(Map.of(
-                        "batchCode", batchCode,
-                        "locationId", location.getId()
-                    ))
-                )),
-                "operatorId", 1,
-                "operatorName", "warehouse"
+                "lines", List.of(Map.of(
+                    "receivingTaskItemId", taskItemId,
+                    "locationId", location.getId(),
+                    "quantity", 10
+                ))
             ));
+            String idempotencyKey = "api-suite-receipt-" + nextId();
+            User receiver = userRepository.saveAndFlush(User.builder()
+                .username("warehouse-receiver-" + nextId())
+                .password(passwordEncoder.encode("password123"))
+                .displayName("Warehouse Receiver")
+                .enabled(true)
+                .build());
+            var receiverAuthentication = new UsernamePasswordAuthenticationToken(
+                new SecurityUser(receiver), null,
+                List.of(new SimpleGrantedAuthority("TENANT_ADMIN")));
 
-            mockMvc.perform(put("/api/purchase-orders/" + orderId + "/receive")
+            MvcResult first = mockMvc.perform(post("/api/receiving-tasks/" + taskId + "/receipts")
+                    .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .authentication(receiverAuthentication))
+                    .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(receiveRequest))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status", anyOf(is("PARTIALLY_RECEIVED"), is("COMPLETED"))));
+                .andExpect(jsonPath("$.receivedByName").value(receiver.getUsername()))
+                .andReturn();
+            long eventId = readJson(first).path("id").asLong();
+
+            mockMvc.perform(post("/api/receiving-tasks/" + taskId + "/receipts")
+                    .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .authentication(receiverAuthentication))
+                    .header("Idempotency-Key", idempotencyKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(receiveRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(eventId));
+
+            mockMvc.perform(get("/api/receiving-tasks/" + taskId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+            mockMvc.perform(get("/api/purchase-orders/" + orderId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+            List<InventoryBatch> batches = inventoryBatchRepository
+                .findByPurchaseOrderItemId(itemId);
+            assertEquals(1, batches.size());
+            assertEquals(10, batches.get(0).getQuantity());
+            assertEquals(location.getId(), batches.get(0).getLocation().getId());
+        }
+
+        @Test
+        @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
+        void legacyDirectReceiptAndInboundRoutesAreNotMapped() throws Exception {
+            for (String route : List.of("confirm", "receive", "rollback")) {
+                mockMvc.perform(put("/api/purchase-orders/999999/" + route)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                    .andExpect(status().isNotFound());
+            }
+            mockMvc.perform(post("/api/inbound-orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"))
+                .andExpect(status().isNotFound());
+        }
+
+        private JsonNode allocateAndSubmit(JsonNode purchaseOrder, long warehouseId) throws Exception {
+            long orderId = purchaseOrder.path("id").asLong();
+            long itemId = purchaseOrder.path("items").get(0).path("id").asLong();
+            mockMvc.perform(put("/api/purchase-orders/" + orderId + "/allocations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(json(Map.of(
+                        "purchaseOrderVersion", purchaseOrder.path("version").asLong(),
+                        "allocations", List.of(Map.of(
+                            "purchaseOrderItemId", itemId,
+                            "warehouseId", warehouseId,
+                            "plannedQuantity", 10
+                        ))
+                    ))))
+                .andExpect(status().isOk());
+
+            JsonNode refreshed = readJson(mockMvc.perform(get("/api/purchase-orders/" + orderId))
+                .andExpect(status().isOk())
+                .andReturn());
+            MvcResult submitted = mockMvc.perform(post("/api/purchase-orders/" + orderId + "/submit")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(json(Map.of("version", refreshed.path("version").asLong()))))
+                .andExpect(status().isOk())
+                .andReturn();
+            return readJson(submitted);
         }
     }
 
@@ -946,7 +1040,7 @@ class ApiEndpointTestSuite {
     }
 
     private JsonNode createPurchaseOrderApi(Long productSkuId) throws Exception {
-        User buyer = ensureUser("buyer");
+        ensureUser("buyer");
         long supplierSequence = nextId();
         Supplier supplier = supplierRepository.save(Supplier.builder()
             .code("SUP-API-" + supplierSequence)
@@ -962,8 +1056,6 @@ class ApiEndpointTestSuite {
                 "unitCost", new BigDecimal("10.00")
             )),
             "expectedDate", LocalDate.now().plusDays(3),
-            "operatorId", buyer.getId(),
-            "operatorName", buyer.getUsername(),
             "remark", "Created by ApiEndpointTestSuite"
         ));
 

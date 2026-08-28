@@ -193,4 +193,55 @@ class DynamicAuthorizationManagerTest {
             assertThat(decision.isGranted()).isTrue();
         }
     }
+
+    @Test
+    void oneCapabilityCanDeclareSeveralExactRoutePatterns() {
+        User user = User.builder()
+                .id(45L)
+                .username("buyer")
+                .password("encoded")
+                .enabled(true)
+                .securityVersion(4L)
+                .build();
+        user.setCompanyId(1L);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                new SecurityUser(user),
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_BUYER"))
+        );
+
+        PermissionDTO submit = PermissionDTO.builder()
+                .permissionCode("purchase:submit")
+                .permissionType("API")
+                .resourcePath("/api/purchase-orders/*/submit;/api/purchase-orders/*/withdraw")
+                .httpMethod("POST")
+                .status("ACTIVE")
+                .build();
+        when(permissionService.getUserPermissionsForRole(
+                1L, 45L, "BUYER", 4L))
+                .thenReturn(UserPermissionDTO.builder()
+                        .userId(45L)
+                        .roleCodes(Set.of("BUYER"))
+                        .apiPermissions(List.of(submit))
+                        .permissionCodes(Set.of("purchase:submit"))
+                        .build());
+
+        for (String route : List.of(
+                "/api/purchase-orders/10/submit",
+                "/api/purchase-orders/10/withdraw"
+        )) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", route);
+            assertThat(authorizationManager.check(
+                    () -> authentication,
+                    new RequestAuthorizationContext(request)
+            ).isGranted()).isTrue();
+        }
+
+        MockHttpServletRequest unrelated = new MockHttpServletRequest(
+                "POST", "/api/purchase-orders/10/cancel");
+        assertThat(authorizationManager.check(
+                () -> authentication,
+                new RequestAuthorizationContext(unrelated)
+        ).isGranted()).isFalse();
+    }
 }

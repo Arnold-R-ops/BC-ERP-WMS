@@ -55,6 +55,7 @@ public class ProductSkuService {
             .conversionRate(request.getConversionRate() != null ? request.getConversionRate() : 1)
             .packUnit(request.getPackUnit() != null ? request.getPackUnit() : "Box")
             .nearExpiryDays(request.getNearExpiryDays() != null ? request.getNearExpiryDays() : 90)
+            .expiryManagementEnabled(Boolean.TRUE.equals(request.getExpiryManagementEnabled()))
             .supplier(request.getSupplier())
             .description(request.getDescription())
             .batchTrackingMode(request.getBatchTrackingMode() != null
@@ -124,6 +125,9 @@ public class ProductSkuService {
         if (request.getConversionRate() != null) product.setConversionRate(request.getConversionRate());
         if (request.getPackUnit() != null)      product.setPackUnit(request.getPackUnit());
         if (request.getNearExpiryDays() != null) product.setNearExpiryDays(request.getNearExpiryDays());
+        if (request.getExpiryManagementEnabled() != null) {
+            product.setExpiryManagementEnabled(request.getExpiryManagementEnabled());
+        }
         if (request.getSupplier() != null)      product.setSupplier(request.getSupplier());
         if (request.getDescription() != null)   product.setDescription(request.getDescription());
         if (request.getBatchTrackingMode() != null) product.setBatchTrackingMode(request.getBatchTrackingMode());
@@ -184,6 +188,7 @@ public class ProductSkuService {
             .conversionRate(product.getConversionRate())
             .packUnit(product.getPackUnit())
             .nearExpiryDays(product.getNearExpiryDays())
+            .expiryManagementEnabled(product.getExpiryManagementEnabled())
             .categoryId(product.getProduct().getCategory().getId())
             .categoryCode(product.getProduct().getCategory().getCategoryCode())
             .categoryName(product.getProduct().getCategory().getCategoryName())

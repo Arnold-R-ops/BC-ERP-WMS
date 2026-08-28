@@ -2,6 +2,7 @@ package com.wms.system.service;
 
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
+import com.wms.system.entity.enums.PurchaseApprovalMode;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.repository.*;
 import com.wms.system.util.BatchCodeGenerator;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.*;
 class PurchaseOrderServiceTest {
 
     @Mock private PurchaseOrderRepository purchaseOrderRepository;
+    @Mock private PurchaseOrderReceivingRepository purchaseOrderReceivingRepository;
     @Mock private SupplierRepository supplierRepository;
     @Mock private PurchaseOrderItemRepository purchaseOrderItemRepository;
     @Mock private InventoryBatchRepository inventoryBatchRepository;
@@ -39,6 +41,11 @@ class PurchaseOrderServiceTest {
     @Mock private LocationRepository locationRepository;
     @Mock private StockTransactionRepository stockTransactionRepository;
     @Mock private BatchCodeGenerator batchCodeGenerator;
+    @Mock private PurchaseGovernancePolicyService purchaseGovernancePolicyService;
+    @Mock private PurchaseOrderAllocationService purchaseOrderAllocationService;
+    @Mock private PurchaseOrderAllocationRepository purchaseOrderAllocationRepository;
+    @Mock private ReceivingPlanService receivingPlanService;
+    @Mock private PurchaseAsnService purchaseAsnService;
 
     @InjectMocks
     private PurchaseOrderService purchaseOrderService;
@@ -70,7 +77,7 @@ class PurchaseOrderServiceTest {
                 .poNumber("PO-20260101-001")
                 .supplier("Test Supplier")
                 .supplierReference(testSupplier)
-                .status(PurchaseOrderStatus.ORDERING)
+                .status(PurchaseOrderStatus.DRAFT)
                 .totalQuantity(100)
                 .totalCost(new BigDecimal("1000.00"))
                 .items(new ArrayList<>())
@@ -102,7 +109,7 @@ class PurchaseOrderServiceTest {
         );
 
         assertThat(result).isNotNull();
-        assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.ORDERING);
+        assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
         verify(purchaseOrderRepository).save(any(PurchaseOrder.class));
     }
 
@@ -186,8 +193,6 @@ class PurchaseOrderServiceTest {
         verify(purchaseOrderRepository, never()).save(any());
     }
 
-    // ========== Stage 2: confirmAndGenerateBatchCodes ==========
-
     // ========== Stage 1: updateOrderingPurchaseOrder ==========
 
     @Test
@@ -230,13 +235,13 @@ class PurchaseOrderServiceTest {
         assertThat(result.getTotalCost()).isEqualByComparingTo("102.00");
         assertThat(result.getExpectedDate()).isEqualTo(LocalDate.of(2026, 8, 30));
         assertThat(result.getRemark()).isEqualTo("updated order");
-        assertThat(result.getAuditLog()).contains("ORDERING purchase order edited by buyer");
+        assertThat(result.getAuditLog()).contains("Draft purchase order edited by buyer");
         verify(inventoryBatchRepository, never()).save(any());
         verify(stockTransactionRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("updateOrderingPurchaseOrder - rejects non-ORDERING status")
+    @DisplayName("updateOrderingPurchaseOrder - rejects non-draft status")
     void testUpdateOrderingPurchaseOrder_WrongStatus() {
         orderingPurchaseOrder.setStatus(PurchaseOrderStatus.IN_TRANSIT);
         when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
@@ -302,57 +307,143 @@ class PurchaseOrderServiceTest {
     }
 
     @Test
-    @DisplayName("confirmAndGenerateBatchCodes - throws when status is not ORDERING")
-    void testConfirmAndGenerateBatchCodes_WrongStatus() {
-        PurchaseOrder inTransitOrder = PurchaseOrder.builder()
-                .id(1L)
-                .poNumber("PO-20260101-001")
-                .status(PurchaseOrderStatus.IN_TRANSIT) // wrong status
-                .items(new ArrayList<>())
+    @DisplayName("updateOrderingPurchaseOrder - removes unexecuted allocations before deleting one of two lines")
+    void testUpdateOrderingPurchaseOrder_RemovesUnexecutedAllocationsBeforeLine() {
+        orderingPurchaseOrder.setVersion(3L);
+        PurchaseOrderItem kept = PurchaseOrderItem.builder()
+            .id(10L).purchaseOrder(orderingPurchaseOrder).productSku(testProduct)
+            .orderedQuantity(10).receivedQuantity(0).unitCost(BigDecimal.ONE).build();
+        ProductSku removedSku = ProductSku.builder()
+            .id(2L).skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
+            .name("Removed SKU").enabled(true).build();
+        PurchaseOrderItem removed = PurchaseOrderItem.builder()
+            .id(11L).purchaseOrder(orderingPurchaseOrder).productSku(removedSku)
+            .orderedQuantity(5).receivedQuantity(0).unitCost(BigDecimal.ONE).build();
+        orderingPurchaseOrder.getItems().addAll(List.of(kept, removed));
+        PurchaseOrderAllocation allocation = PurchaseOrderAllocation.builder()
+            .id(30L).purchaseOrderItem(removed)
+            .warehouse(Warehouse.builder().id(8L).code("WH8").name("Main").build())
+            .plannedQuantity(5).shippedQuantity(0).receivedQuantity(0).closedQuantity(0)
+            .status(com.wms.system.entity.enums.PurchaseOrderAllocationStatus.ACTIVE)
+            .build();
+        PurchaseOrderService.PurchaseOrderItemUpdateData request =
+            PurchaseOrderService.PurchaseOrderItemUpdateData.builder()
+                .id(10L).productSkuId(1L).orderedQuantity(10).unitCost(BigDecimal.ONE)
                 .build();
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+            .thenReturn(Optional.of(testSupplier));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(purchaseOrderAllocationRepository.findByPurchaseOrderItemIdForUpdate(11L))
+            .thenReturn(List.of(allocation));
+        when(purchaseOrderRepository.saveAndFlush(any(PurchaseOrder.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(inTransitOrder));
+        PurchaseOrder result = purchaseOrderService.updateOrderingPurchaseOrder(
+            1L, 3L, 1L, List.of(request), null, 7L, "buyer", null);
 
-        assertThatThrownBy(() -> purchaseOrderService.confirmAndGenerateBatchCodes(1L, List.of()))
-                .isInstanceOf(BusinessException.class);
+        assertThat(result.getItems()).containsExactly(kept);
+        verify(purchaseOrderAllocationRepository).deleteAll(List.of(allocation));
+        verify(purchaseOrderAllocationRepository).flush();
     }
 
     @Test
-    @DisplayName("confirmAndGenerateBatchCodes - throws when PO not found")
-    void testConfirmAndGenerateBatchCodes_NotFound() {
-        when(purchaseOrderRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("updateOrderingPurchaseOrder - refuses deleting a line with allocation execution history")
+    void testUpdateOrderingPurchaseOrder_RejectsExecutedAllocationRemoval() {
+        orderingPurchaseOrder.setVersion(3L);
+        PurchaseOrderItem removed = PurchaseOrderItem.builder()
+            .id(11L).purchaseOrder(orderingPurchaseOrder).productSku(testProduct)
+            .orderedQuantity(5).receivedQuantity(0).build();
+        orderingPurchaseOrder.getItems().add(removed);
+        PurchaseOrderAllocation allocation = PurchaseOrderAllocation.builder()
+            .id(30L).purchaseOrderItem(removed)
+            .plannedQuantity(5).shippedQuantity(1).receivedQuantity(0).closedQuantity(0)
+            .status(com.wms.system.entity.enums.PurchaseOrderAllocationStatus.ACTIVE)
+            .build();
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPurchaseOrder));
+        when(supplierRepository.findByIdAndCompanyIdAndIsDeletedFalse(1L, 1L))
+            .thenReturn(Optional.of(testSupplier));
+        when(purchaseOrderAllocationRepository.findByPurchaseOrderItemIdForUpdate(11L))
+            .thenReturn(List.of(allocation));
 
-        assertThatThrownBy(() -> purchaseOrderService.confirmAndGenerateBatchCodes(99L, List.of()))
-                .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> purchaseOrderService.updateOrderingPurchaseOrder(
+            1L, 3L, 1L, List.of(), null, 7L, "buyer", null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue(
+                "errorKey", com.wms.system.exception.ErrorKeys.PO_ITEM_HISTORY_LOCKED);
+
+        verify(purchaseOrderAllocationRepository, never()).deleteAll(anyCollection());
+        verify(purchaseOrderRepository, never()).saveAndFlush(any());
     }
 
-    // ========== Stage 3: receiveGoods - skipped (complex integration scenario) ==========
-
-    // ========== rollbackToOrdering ==========
-
     @Test
-    @DisplayName("rollbackToOrdering - throws when PO not in IN_TRANSIT status")
-    void testRollbackToOrdering_WrongStatus() {
-        PurchaseOrder orderingPO = PurchaseOrder.builder()
-                .id(1L)
-                .poNumber("PO-20260101-001")
-                .status(PurchaseOrderStatus.ORDERING) // can't rollback from ORDERING
-                .items(new ArrayList<>())
-                .build();
+    @DisplayName("submit - ordinary policy becomes effective and creates waiting plans")
+    void testSubmit_OrdinaryPolicyCreatesPlans() {
+        orderingPurchaseOrder.setVersion(2L);
+        when(purchaseOrderReceivingRepository.findByIdForReceiving(1L))
+            .thenReturn(Optional.of(orderingPurchaseOrder));
+        when(purchaseGovernancePolicyService.effectivePurchaseApprovalMode())
+            .thenReturn(PurchaseApprovalMode.NONE);
+        when(purchaseOrderRepository.saveAndFlush(any()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(orderingPO));
+        PurchaseOrder result = purchaseOrderService.submit(1L, 2L, 7L, "buyer");
 
-        assertThatThrownBy(() -> purchaseOrderService.rollbackToOrdering(1L, "Test reason"))
-                .isInstanceOf(BusinessException.class);
+        assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.AWAITING_SHIPMENT);
+        verify(purchaseOrderAllocationService).requireCompletePlan(orderingPurchaseOrder);
+        verify(receivingPlanService).ensureWaitingShipmentPlans(
+            orderingPurchaseOrder, 7L, "buyer");
     }
 
     @Test
-    @DisplayName("rollbackToOrdering - throws when PO not found")
-    void testRollbackToOrdering_NotFound() {
-        when(purchaseOrderRepository.findById(99L)).thenReturn(Optional.empty());
+    @DisplayName("submit - enterprise approval remains optional and independent")
+    void testSubmit_ApprovalModeWaitsForApproval() {
+        orderingPurchaseOrder.setVersion(2L);
+        when(purchaseOrderReceivingRepository.findByIdForReceiving(1L))
+            .thenReturn(Optional.of(orderingPurchaseOrder));
+        when(purchaseGovernancePolicyService.effectivePurchaseApprovalMode())
+            .thenReturn(PurchaseApprovalMode.SIMPLE);
+        when(purchaseOrderRepository.saveAndFlush(any()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThatThrownBy(() -> purchaseOrderService.rollbackToOrdering(99L, "reason"))
-                .isInstanceOf(BusinessException.class);
+        PurchaseOrder result = purchaseOrderService.submit(1L, 2L, 7L, "buyer");
+
+        assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.PENDING_APPROVAL);
+        verify(receivingPlanService, never()).ensureWaitingShipmentPlans(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("withdraw - confirmed shipment cannot be silently returned to draft")
+    void testWithdraw_RejectsConfirmedShipment() {
+        orderingPurchaseOrder.setStatus(PurchaseOrderStatus.AWAITING_SHIPMENT);
+        orderingPurchaseOrder.setVersion(2L);
+        when(purchaseOrderReceivingRepository.findByIdForReceiving(1L))
+            .thenReturn(Optional.of(orderingPurchaseOrder));
+        when(purchaseAsnService.hasConfirmedOrReceipt(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> purchaseOrderService.withdrawBeforeShipment(
+            1L, 2L, "need edit", 7L, "buyer"))
+            .isInstanceOf(BusinessException.class);
+        verify(purchaseAsnService, never()).cancelPurchaseDownstream(
+            any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("cancel - no-receipt purchase cascades through ASN tasks and plans")
+    void testCancel_CascadesDownstream() {
+        orderingPurchaseOrder.setStatus(PurchaseOrderStatus.IN_TRANSIT);
+        orderingPurchaseOrder.setVersion(2L);
+        when(purchaseOrderReceivingRepository.findByIdForReceiving(1L))
+            .thenReturn(Optional.of(orderingPurchaseOrder));
+        when(purchaseOrderRepository.saveAndFlush(any()))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PurchaseOrder result = purchaseOrderService.cancelGoverned(
+            1L, 2L, "supplier failed", 7L, "buyer");
+
+        assertThat(result.getStatus()).isEqualTo(PurchaseOrderStatus.CANCELLED);
+        verify(purchaseAsnService).cancelPurchaseDownstream(
+            1L, "supplier failed", 7L, "buyer");
     }
 
     // ========== findById ==========

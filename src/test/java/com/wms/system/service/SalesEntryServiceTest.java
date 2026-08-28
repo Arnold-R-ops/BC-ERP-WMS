@@ -171,6 +171,32 @@ class SalesEntryServiceTest {
     }
 
     @Test
+    @DisplayName("getBatchOptions - keeps undated batches and marks expiry as not applicable")
+    void testGetBatchOptions_UndatedBatch() {
+        InventoryBatch undatedBatch = buildBatch(1L, "BC-NO-EXPIRY", 100, null);
+        InventoryBatch nearExpiryBatch = buildBatch(
+            2L,
+            "BC-WARNING",
+            50,
+            LocalDate.now().plusDays(10)
+        );
+
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findByProductSkuIdAndActiveOrderByExpiryDateAsc(1L, true))
+            .thenReturn(List.of(nearExpiryBatch, undatedBatch));
+
+        List<BatchOptionDto> result = salesEntryService.getBatchOptions(1L, 50, true);
+
+        assertThat(result).singleElement()
+            .satisfies(option -> {
+                assertThat(option.getBatchCode()).isEqualTo("BC-NO-EXPIRY");
+                assertThat(option.getExpiryDate()).isNull();
+                assertThat(option.getDaysUntilExpiry()).isNull();
+                assertThat(option.getFreshnessStatus()).isEqualTo("NO_EXPIRY");
+            });
+    }
+
+    @Test
     @DisplayName("getBatchOptions - marks fresh/warning freshness status correctly")
     void testGetBatchOptions_FreshnessStatus() {
         // nearExpiryDays = 30

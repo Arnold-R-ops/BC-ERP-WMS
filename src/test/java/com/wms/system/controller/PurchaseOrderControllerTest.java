@@ -64,7 +64,7 @@ class PurchaseOrderControllerTest {
                 .poNumber("PO-20260101-001")
                 .supplier("Test Supplier")
                 .supplierReference(supplier)
-                .status(PurchaseOrderStatus.ORDERING)
+                .status(PurchaseOrderStatus.DRAFT)
                 .totalQuantity(100)
                 .totalCost(new BigDecimal("1000.00"))
                 .items(new ArrayList<>())
@@ -85,9 +85,7 @@ class PurchaseOrderControllerTest {
                 {
                   "supplierId": 1,
                   "items": [{"productSkuId": 1, "orderedQuantity": 100}],
-                  "expectedDate": "2026-06-01",
-                  "operatorId": 1,
-                  "operatorName": "admin"
+                  "expectedDate": "2026-06-01"
                 }
                 """;
 
@@ -191,9 +189,7 @@ class PurchaseOrderControllerTest {
 
         mockMvc.perform(multipart("/api/purchase-orders/upload")
                         .file(file)
-                        .param("supplierId", "1")
-                        .param("operatorId", "1")
-                        .param("operatorName", "admin"))
+                        .param("supplierId", "1"))
                 .andExpect(status().isCreated());
     }
 
@@ -240,33 +236,6 @@ class PurchaseOrderControllerTest {
                 .andExpect(jsonPath("$.supplier").value("***"));
     }
 
-    // ========== PUT /api/purchase-orders/{id}/rollback ==========
-
-    @Test
-    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
-    @DisplayName("rollback - returns 200 when successful")
-    void testRollback_Success() throws Exception {
-        PurchaseOrder rolledBack = buildPurchaseOrder();
-        when(purchaseOrderService.rollbackToOrdering(1L, "Wrong delivery")).thenReturn(rolledBack);
-
-        mockMvc.perform(put("/api/purchase-orders/1/rollback")
-                        .param("reason", "Wrong delivery"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
-    @DisplayName("rollback - returns error when wrong status")
-    void testRollback_WrongStatus() throws Exception {
-        when(purchaseOrderService.rollbackToOrdering(any(), any())).thenThrow(
-                new BusinessException(ErrorKeys.PO_ROLLBACK_NOT_ALLOWED, Map.of("status", "ORDERING"))
-        );
-
-        mockMvc.perform(put("/api/purchase-orders/1/rollback")
-                        .param("reason", "Wrong"))
-                .andExpect(status().isBadRequest());
-    }
-
     // ========== V4.4 幂等性防御：重复采购单号 ==========
 
     @Test
@@ -282,9 +251,7 @@ class PurchaseOrderControllerTest {
                 {
                   "supplierId": 1,
                   "items": [{"productSkuId": 1, "orderedQuantity": 100}],
-                  "expectedDate": "2026-06-01",
-                  "operatorId": 1,
-                  "operatorName": "admin"
+                  "expectedDate": "2026-06-01"
                 }
                 """;
 
@@ -297,83 +264,6 @@ class PurchaseOrderControllerTest {
                 .andExpect(jsonPath("$.params.orderType").value("PURCHASE"))
                 .andExpect(jsonPath("$.params.fieldName").value("po_number"))
                 .andExpect(jsonPath("$.params.message").value("该订单号已存在，请勿重复提交"));
-    }
-
-    // ========== PUT /api/purchase-orders/{id}/confirm ==========
-
-    @Test
-    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
-    @DisplayName("confirmAndGenerateBatchCodes - returns 200 when successful")
-    void testConfirmAndGenerateBatchCodes_Success() throws Exception {
-        PurchaseOrder order = buildPurchaseOrder();
-        order.setStatus(PurchaseOrderStatus.IN_TRANSIT);
-        when(purchaseOrderService.confirmAndGenerateBatchCodes(eq(1L), any())).thenReturn(order);
-
-        String requestJson = """
-                {
-                  "items": [
-                    {
-                      "itemId": 1,
-                      "expiryDate": "2027-01-01",
-                      "productionDate": "2026-01-01"
-                    }
-                  ]
-                }
-                """;
-
-        mockMvc.perform(put("/api/purchase-orders/1/confirm")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("IN_TRANSIT"));
-    }
-
-    @Test
-    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
-    @DisplayName("confirmAndGenerateBatchCodes - returns 400 when status invalid")
-    void testConfirmAndGenerateBatchCodes_InvalidStatus() throws Exception {
-        when(purchaseOrderService.confirmAndGenerateBatchCodes(eq(1L), any()))
-                .thenThrow(new BusinessException(ErrorKeys.PO_INVALID_STATUS,
-                        Map.of("currentStatus", "COMPLETED")));
-
-        String requestJson = """
-                {"items": [{"itemId": 1, "expiryDate": "2027-01-01"}]}
-                """;
-
-        mockMvc.perform(put("/api/purchase-orders/1/confirm")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson))
-                .andExpect(status().isBadRequest());
-    }
-
-    // ========== PUT /api/purchase-orders/{id}/receive ==========
-
-    @Test
-    @WithMockUser(username = "admin", authorities = {"TENANT_ADMIN"})
-    @DisplayName("receiveGoods - returns 200 when successful (partial)")
-    void testReceiveGoods_Success() throws Exception {
-        PurchaseOrder order = buildPurchaseOrder();
-        order.setStatus(PurchaseOrderStatus.PARTIALLY_RECEIVED);
-        when(purchaseOrderService.receiveGoods(eq(1L), any(), any(), any())).thenReturn(order);
-
-        String requestJson = """
-                {
-                  "receiveItems": [
-                    {
-                      "itemId": 1,
-                      "batches": [{"batchCode": "R7M4K9", "locationId": 101}]
-                    }
-                  ],
-                  "operatorId": 1,
-                  "operatorName": "warehouse_staff"
-                }
-                """;
-
-        mockMvc.perform(put("/api/purchase-orders/1/receive")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PARTIALLY_RECEIVED"));
     }
 
     // ========== GET /api/purchase-orders ==========
@@ -408,11 +298,11 @@ class PurchaseOrderControllerTest {
     @DisplayName("getPurchaseOrders - filter by status returns 200")
     void testGetPurchaseOrders_FilterByStatus() throws Exception {
         PurchaseOrder order = buildPurchaseOrder();
-        when(purchaseOrderService.findByStatus(eq(PurchaseOrderStatus.ORDERING), any()))
+        when(purchaseOrderService.findByStatus(eq(PurchaseOrderStatus.DRAFT), any()))
                 .thenReturn(List.of(order));
 
-        mockMvc.perform(get("/api/purchase-orders").param("status", "ORDERING"))
+        mockMvc.perform(get("/api/purchase-orders").param("status", "DRAFT"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("ORDERING"));
+                .andExpect(jsonPath("$[0].status").value("DRAFT"));
     }
 }

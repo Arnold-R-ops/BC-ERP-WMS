@@ -180,6 +180,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/receiving-plans/{id}/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateOperations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_6"];
+        put: operations["replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders/{id}": {
         parameters: {
             query?: never;
@@ -196,15 +228,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-orders/{id}/rollback": {
+    "/api/purchase-governance-policy": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: operations["rollbackToOrdering"];
+        get: operations["getPolicy"];
+        put: operations["updatePolicy"];
         post?: never;
         delete?: never;
         options?: never;
@@ -212,31 +244,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-orders/{id}/receive": {
+    "/api/purchase-asns/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: operations["receiveGoods"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/purchase-orders/{id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["confirmAndGenerateBatchCodes"];
+        get: operations["get_3"];
+        put: operations["updateDraft_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -251,7 +267,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["get_4"];
         put: operations["update_2"];
         post?: never;
         delete?: never;
@@ -356,6 +372,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/other-inbound-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPolicy_1"];
+        put: operations["updatePolicy_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_6"];
+        put: operations["update_3"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/locations/{id}": {
         parameters: {
             query?: never;
@@ -412,7 +460,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update_3"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -427,8 +475,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_4"];
-        put: operations["update_4"];
+        get: operations["get_8"];
+        put: operations["update_5"];
         post?: never;
         delete: operations["delete_1"];
         options?: never;
@@ -475,8 +523,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getPolicy"];
-        put: operations["updatePolicy"];
+        get: operations["getPolicy_2"];
+        put: operations["updatePolicy_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -507,8 +555,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_6"];
-        put: operations["update_5"];
+        get: operations["get_10"];
+        put: operations["update_6"];
         post?: never;
         delete: operations["delete_2"];
         options?: never;
@@ -1092,6 +1140,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/receiving-tasks/{id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listReceipts"];
+        put?: never;
+        post: operations["receive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders": {
         parameters: {
             query?: never;
@@ -1102,6 +1214,134 @@ export interface paths {
         get: operations["getPurchaseOrders"];
         put?: never;
         post: operations["createPurchaseOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voidOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/asns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/asns/quick-confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["quickConfirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1124,6 +1364,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/purchase-asns/{purchaseAsnId}/remainder-closure-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-asns/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-asns/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-asns/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-asns/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/products": {
         parameters: {
             query?: never;
@@ -1131,9 +1451,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_7"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1165,7 +1485,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["request"];
+        post: operations["request_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1197,7 +1517,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1357,7 +1677,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirm"];
+        post: operations["confirm_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1499,9 +1819,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_8"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1547,9 +1867,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_9"];
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1563,9 +1883,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_10"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1652,6 +1972,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/other-inbound-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_11"];
+        put?: never;
+        post: operations["create_8"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voidApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["close_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/locations": {
         parameters: {
             query?: never;
@@ -1691,9 +2091,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_12"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1771,9 +2171,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_14"];
         put?: never;
-        post: operations["create_8"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1796,86 +2196,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inbound-orders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createInboundOrder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["rejectOrder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/{id}/receive-goods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["receiveGoods_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/{id}/confirm-order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["confirmOrder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/{id}/approve-plan": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["approvePlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/emergency-stock-corrections": {
         parameters: {
             query?: never;
@@ -1883,9 +2203,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_15"];
         put?: never;
-        post: operations["create_9"];
+        post: operations["create_11"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1901,7 +2221,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit"];
+        post: operations["submit_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1933,7 +2253,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject"];
+        post: operations["reject_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1949,7 +2269,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve"];
+        post: operations["approve_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2011,9 +2331,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_17"];
         put?: never;
-        post: operations["create_10"];
+        post: operations["create_12"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2420,6 +2740,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/receiving-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-tasks/{id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listWorkQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/receiving-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders/template": {
         parameters: {
             query?: never;
@@ -2428,6 +2860,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["downloadImportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/reference/warehouses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["purchaseWarehouses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/reference/skus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["purchaseSkus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2539,7 +3003,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2780,6 +3244,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getOutboundTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/reference/warehouses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["otherInboundWarehouses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/other-inbound-applications/reference/skus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["otherInboundSkus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3099,7 +3595,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3115,119 +3611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getInboundOrderById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/pending-receival": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPendingReceivalOrders"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/pending-confirmation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPendingConfirmationOrders"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/pending-approval": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPendingApprovalOrders"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/my-orders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyInboundOrders"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/by-status/{status}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getInboundOrdersByStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inbound-orders/by-order-no/{orderNo}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getInboundOrderByOrderNo"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3243,7 +3627,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_5"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3291,7 +3675,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3531,7 +3915,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
-        SalesOrderItemData: {
+        UpdateSalesOrderItemRequest: {
             /** Format: int64 */
             productSkuId: number;
             /** Format: int32 */
@@ -3544,7 +3928,7 @@ export interface components {
         UpdateSalesOrderRequest: {
             /** Format: int64 */
             customerId?: number;
-            items: components["schemas"]["SalesOrderItemData"][];
+            items: components["schemas"]["UpdateSalesOrderItemRequest"][];
         };
         SalesOrderItemResponse: {
             /** Format: int64 */
@@ -3675,6 +4059,106 @@ export interface components {
             highRiskCount?: number;
             snapshotFingerprint?: string;
         };
+        UpdateReceivingPlanOperationsRequest: {
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            priority?: number;
+            /** Format: date-time */
+            expectedWindowStart?: string;
+            /** Format: date-time */
+            expectedWindowEnd?: string;
+            /** Format: int64 */
+            assignedReceiverId?: number;
+            assignedReceiverName?: string;
+            assignedTeam?: string;
+            dockArea?: string;
+            workArea?: string;
+            warehouseNotes?: string;
+        };
+        ReceivingPlanAllocationItemResponse: {
+            /** Format: int64 */
+            allocationId?: number;
+            /** Format: int64 */
+            purchaseOrderItemId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int32 */
+            plannedQuantity?: number;
+            /** Format: int32 */
+            confirmedShippedQuantity?: number;
+            /** Format: int32 */
+            remainingToShipQuantity?: number;
+        };
+        ReceivingPlanResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            planNumber?: string;
+            /** Format: int64 */
+            purchaseOrderId?: number;
+            purchaseOrderNumber?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseCode?: string;
+            warehouseName?: string;
+            /** @enum {string} */
+            status?: "WAITING_SHIPMENT" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED";
+            /** Format: int32 */
+            priority?: number;
+            /** Format: date-time */
+            expectedWindowStart?: string;
+            /** Format: date-time */
+            expectedWindowEnd?: string;
+            /** Format: int64 */
+            assignedReceiverId?: number;
+            assignedReceiverName?: string;
+            assignedTeam?: string;
+            dockArea?: string;
+            workArea?: string;
+            warehouseNotes?: string;
+            items?: components["schemas"]["ReceivingPlanAllocationItemResponse"][];
+        };
+        PurchaseOrderAllocationRowRequest: {
+            /** Format: int64 */
+            purchaseOrderItemId: number;
+            /** Format: int64 */
+            warehouseId: number;
+            /** Format: int32 */
+            plannedQuantity: number;
+        };
+        SavePurchaseOrderAllocationsRequest: {
+            /** Format: int64 */
+            purchaseOrderVersion: number;
+            allocations: components["schemas"]["PurchaseOrderAllocationRowRequest"][];
+        };
+        PurchaseOrderAllocationResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            purchaseOrderItemId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseCode?: string;
+            /** Format: int32 */
+            plannedQuantity?: number;
+            /** Format: int32 */
+            shippedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            closedQuantity?: number;
+            /** Format: int32 */
+            availableToShipQuantity?: number;
+            /** @enum {string} */
+            status?: "ACTIVE" | "RECEIVED" | "CLOSED" | "RELEASED";
+        };
         UpdatePurchaseOrderItemRequest: {
             /** Format: int64 */
             id?: number;
@@ -3732,13 +4216,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            exhausted?: boolean;
             expiringSoon?: boolean;
-            expired?: boolean;
+            exhausted?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
             /** Format: double */
             usageRate?: number;
+            expired?: boolean;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -3778,7 +4262,7 @@ export interface components {
             supplierId?: number;
             supplierCode?: string;
             /** @enum {string} */
-            status?: "ORDERING" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CANCELLED" | "VOIDED";
+            status?: "DRAFT" | "PENDING_APPROVAL" | "REJECTED" | "AWAITING_SHIPMENT" | "PARTIALLY_SHIPPED" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
             /** Format: int32 */
             totalQuantity?: number;
             totalCost?: number;
@@ -3797,32 +4281,108 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
-        BatchLocationAssignment: {
-            batchCode: string;
-            /** Format: int64 */
-            locationId: number;
+        PurchaseGovernancePolicyUpdateRequest: {
+            /** @enum {string} */
+            purchaseApprovalMode: "NONE" | "SIMPLE";
+            /** @enum {string} */
+            shortReceiptClosureMode: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            reason: string;
+            /** @enum {boolean} */
+            confirmed: true;
         };
-        ConfirmReceiptRequest: {
-            receiveItems: components["schemas"]["ReceiveItem"][];
-            /** Format: int64 */
-            operatorId: number;
-            operatorName: string;
+        PurchaseGovernancePolicyResponse: {
+            /** @enum {string} */
+            configuredPurchaseApprovalMode?: "NONE" | "SIMPLE";
+            /** @enum {string} */
+            effectivePurchaseApprovalMode?: "NONE" | "SIMPLE";
+            /** @enum {string} */
+            configuredShortReceiptClosureMode?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            /** @enum {string} */
+            effectiveShortReceiptClosureMode?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            approvalEntitled?: boolean;
+            availablePurchaseApprovalModes?: ("NONE" | "SIMPLE")[];
+            availableShortReceiptClosureModes?: ("DIRECT_WITH_REASON" | "APPROVAL_REQUIRED")[];
         };
-        ReceiveItem: {
+        UpdatePurchaseAsnDraftItemRequest: {
             /** Format: int64 */
-            itemId: number;
-            batches: components["schemas"]["BatchLocationAssignment"][];
-        };
-        ConfirmOrderRequest: {
-            items: components["schemas"]["ItemExpiryUpdate"][];
-        };
-        ItemExpiryUpdate: {
-            /** Format: int64 */
-            itemId: number;
-            /** Format: date */
-            expiryDate: string;
+            purchaseOrderItemId: number;
+            /** Format: int32 */
+            shippedQuantity: number;
             /** Format: date */
             productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        UpdatePurchaseAsnDraftRequest: {
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            warehouseId: number;
+            supplierShipmentNo?: string;
+            carrier?: string;
+            trackingNo?: string;
+            /** Format: date */
+            expectedArrivalDate?: string;
+            remark?: string;
+            items: components["schemas"]["UpdatePurchaseAsnDraftItemRequest"][];
+        };
+        PurchaseAsnItemResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            purchaseOrderItemId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int32 */
+            shippedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            closedQuantity?: number;
+            /** Format: int32 */
+            remainingQuantity?: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        PurchaseAsnResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            asnNumber?: string;
+            /** Format: int64 */
+            purchaseOrderId?: number;
+            purchaseOrderNumber?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseCode?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "CONFIRMED" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CLOSED" | "CANCELLED" | "CORRECTED";
+            /** Format: int64 */
+            correctionOfId?: number;
+            supplierShipmentNo?: string;
+            carrier?: string;
+            trackingNo?: string;
+            /** Format: date */
+            expectedArrivalDate?: string;
+            remark?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            /** Format: date-time */
+            closedAt?: string;
+            closeReason?: string;
+            /** Format: date-time */
+            cancelledAt?: string;
+            cancelReason?: string;
+            items?: components["schemas"]["PurchaseAsnItemResponse"][];
         };
         UpdateProductRequest: {
             productName?: string;
@@ -3880,6 +4440,7 @@ export interface components {
             packUnit?: string;
             /** Format: int32 */
             nearExpiryDays?: number;
+            expiryManagementEnabled?: boolean;
             supplier?: string;
             description?: string;
             /** @enum {string} */
@@ -3915,6 +4476,7 @@ export interface components {
             packUnit?: string;
             /** Format: int32 */
             nearExpiryDays?: number;
+            expiryManagementEnabled?: boolean;
             /** Format: int64 */
             categoryId?: number;
             categoryCode?: string;
@@ -3949,6 +4511,93 @@ export interface components {
             securityVersion?: number;
             /** Format: date-time */
             completedAt?: string;
+        };
+        OtherInboundFeaturePolicyUpdateRequest: {
+            enabled?: boolean;
+            allowedBusinessTypes: ("FREE_SAMPLE" | "CUSTOMER_SUPPLIED" | "PRODUCTION_COMPLETION" | "SUBCONTRACT_RETURN" | "AUTHORIZED_SPECIAL")[];
+            reason: string;
+            /** @enum {boolean} */
+            confirmed: true;
+        };
+        OtherInboundFeaturePolicyResponse: {
+            enabled?: boolean;
+            allowedBusinessTypes?: ("FREE_SAMPLE" | "CUSTOMER_SUPPLIED" | "PRODUCTION_COMPLETION" | "SUBCONTRACT_RETURN" | "AUTHORIZED_SPECIAL")[];
+        };
+        OtherInboundApplicationItemRequest: {
+            /** Format: int64 */
+            productSkuId: number;
+            /** Format: int32 */
+            plannedQuantity: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        OtherInboundApplicationUpdateRequest: {
+            /** Format: int64 */
+            version: number;
+            /** @enum {string} */
+            businessType: "FREE_SAMPLE" | "CUSTOMER_SUPPLIED" | "PRODUCTION_COMPLETION" | "SUBCONTRACT_RETURN" | "AUTHORIZED_SPECIAL";
+            sourceReference: string;
+            businessReason: string;
+            /** Format: int64 */
+            warehouseId: number;
+            items: components["schemas"]["OtherInboundApplicationItemRequest"][];
+            remark?: string;
+        };
+        OtherInboundApplicationItemResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            productName?: string;
+            productBarcode?: string;
+            /** Format: int32 */
+            plannedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            closedQuantity?: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        OtherInboundApplicationResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            applicationNumber?: string;
+            /** @enum {string} */
+            businessType?: "FREE_SAMPLE" | "CUSTOMER_SUPPLIED" | "PRODUCTION_COMPLETION" | "SUBCONTRACT_RETURN" | "AUTHORIZED_SPECIAL";
+            sourceReference?: string;
+            businessReason?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            /** Format: int64 */
+            legacyInboundOrderId?: number;
+            /** @enum {string} */
+            status?: "DRAFT" | "CONFIRMED" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
+            /** Format: int32 */
+            plannedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            createdByName?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            terminationReason?: string;
+            remark?: string;
+            items?: components["schemas"]["OtherInboundApplicationItemResponse"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         UpdateLocationRequest: {
             /** Format: int32 */
@@ -4286,10 +4935,20 @@ export interface components {
             approved: boolean;
             comment?: string;
         };
+        CreateSalesOrderItemRequest: {
+            /** Format: int64 */
+            productSkuId: number;
+            /** Format: int32 */
+            quantity: number;
+            unitPrice: number;
+            rejectNearExpiry?: boolean;
+            specifiedBatchIds?: number[];
+            remark?: string;
+        };
         CreateSalesOrderRequest: {
             /** Format: int64 */
             customerId: number;
-            items: components["schemas"]["SalesOrderItemData"][];
+            items: components["schemas"]["CreateSalesOrderItemRequest"][];
             channel?: string;
             consigneeName?: string;
             consigneePhone?: string;
@@ -4381,6 +5040,89 @@ export interface components {
             /** Format: int32 */
             staleSalesRows?: number;
         };
+        ReceivingReceiptLineRequest: {
+            /** Format: int64 */
+            receivingTaskItemId: number;
+            /** Format: int64 */
+            locationId: number;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+        };
+        SubmitReceivingReceiptRequest: {
+            remark?: string;
+            lines: components["schemas"]["ReceivingReceiptLineRequest"][];
+        };
+        ReceiptEventLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            receivingTaskItemId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int64 */
+            inventoryBatchId?: number;
+            batchCode?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+        };
+        ReceiptEventResponse: {
+            /** Format: int64 */
+            id?: number;
+            eventNumber?: string;
+            /** Format: int64 */
+            receivingTaskId?: number;
+            receivingTaskNumber?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            receivedByName?: string;
+            remark?: string;
+            lines?: components["schemas"]["ReceiptEventLineResponse"][];
+        };
+        PurchaseRemainderClosureActionRequest: {
+            comment: string;
+        };
+        PurchaseRemainderClosureResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            /** Format: int64 */
+            purchaseAsnId?: number;
+            asnNumber?: string;
+            /** Format: int64 */
+            purchaseOrderId?: number;
+            purchaseOrderNumber?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            /** @enum {string} */
+            status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+            reason?: string;
+            /** Format: int64 */
+            requestedBy?: number;
+            requestedByName?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedByName?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+        };
         CreatePurchaseOrderItemRequest: {
             /** Format: int64 */
             productSkuId: number;
@@ -4400,10 +5142,50 @@ export interface components {
             items: components["schemas"]["CreatePurchaseOrderItemRequest"][];
             /** Format: date */
             expectedDate?: string;
-            /** Format: int64 */
-            operatorId: number;
-            operatorName: string;
             remark?: string;
+        };
+        PurchaseOrderWorkflowActionRequest: {
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        PurchaseOrderWorkflowResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            poNumber?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "PENDING_APPROVAL" | "REJECTED" | "AWAITING_SHIPMENT" | "PARTIALLY_SHIPPED" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
+        };
+        CreatePurchaseAsnItemRequest: {
+            /** Format: int64 */
+            purchaseOrderItemId: number;
+            /** Format: int32 */
+            shippedQuantity: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        CreatePurchaseAsnRequest: {
+            /** Format: int64 */
+            warehouseId: number;
+            supplierShipmentNo?: string;
+            carrier?: string;
+            trackingNo?: string;
+            /** Format: date */
+            expectedArrivalDate?: string;
+            remark?: string;
+            items: components["schemas"]["CreatePurchaseAsnItemRequest"][];
+        };
+        PurchaseRemainderClosureCreateRequest: {
+            reason: string;
+        };
+        PurchaseAsnActionRequest: {
+            reason: string;
         };
         CreateProductRequest: {
             productCode: string;
@@ -4761,6 +5543,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        OtherInboundApplicationCreateRequest: {
+            /** @enum {string} */
+            businessType: "FREE_SAMPLE" | "CUSTOMER_SUPPLIED" | "PRODUCTION_COMPLETION" | "SUBCONTRACT_RETURN" | "AUTHORIZED_SPECIAL";
+            sourceReference: string;
+            businessReason: string;
+            /** Format: int64 */
+            warehouseId: number;
+            items: components["schemas"]["OtherInboundApplicationItemRequest"][];
+            remark?: string;
+        };
+        OtherInboundActionRequest: {
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
         CreateLocationRequest: {
             /** Format: int64 */
             warehouseId: number;
@@ -4881,7 +5678,7 @@ export interface components {
         ShopifyReconciliationRepairRequest: {
             rawEventIds: number[];
         };
-        Item: {
+        ShopifyReconciliationRepairItem: {
             /** Format: int64 */
             rawEventId?: number;
             externalOrderId?: string;
@@ -4899,119 +5696,7 @@ export interface components {
             skipped?: number;
             /** Format: int32 */
             blocked?: number;
-            items?: components["schemas"]["Item"][];
-        };
-        CreateInboundOrderRequest: {
-            /** Format: int64 */
-            supplierId: number;
-            /** Format: date */
-            expectedDate?: string;
-            remark?: string;
-            items: components["schemas"]["InboundOrderItemRequest"][];
-        };
-        InboundOrderItemRequest: {
-            /** Format: int64 */
-            productSkuId: number;
-            /** Format: int32 */
-            planQty: number;
-            unitCost?: number;
-            /** Format: int64 */
-            targetWarehouseId: number;
-            /** Format: int64 */
-            targetLocationId: number;
-            remark?: string;
-        };
-        InboundOrderItemResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            productSkuId?: number;
-            productName?: string;
-            productBarcode?: string;
-            productCode?: string;
-            productSku?: string;
-            /** Format: int32 */
-            planQty?: number;
-            /** Format: int32 */
-            confirmedQty?: number;
-            /** Format: int32 */
-            actualQty?: number;
-            batchCode?: string;
-            /** Format: date */
-            expiryDate?: string;
-            /** Format: date */
-            productionDate?: string;
-            externalBatchCode?: string;
-            /** Format: int64 */
-            targetWarehouseId?: number;
-            targetWarehouseName?: string;
-            /** Format: int64 */
-            targetLocationId?: number;
-            targetLocationCode?: string;
-            unitCost?: number;
-            remark?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        InboundOrderResponse: {
-            /** Format: int64 */
-            id?: number;
-            orderNo?: string;
-            /** @enum {string} */
-            status?: "PENDING_APPROVAL" | "APPROVED_PLAN" | "AWAITING_RECEIVAL" | "COMPLETED" | "REJECTED" | "CANCELLED" | "VOIDED";
-            statusDescription?: string;
-            /** Format: int64 */
-            supplierId?: number;
-            supplierCode?: string;
-            supplierName?: string;
-            /** Format: int32 */
-            totalPlanQty?: number;
-            /** Format: int32 */
-            totalConfirmedQty?: number;
-            /** Format: int32 */
-            totalActualQty?: number;
-            /** Format: date */
-            expectedDate?: string;
-            remark?: string;
-            /** Format: int64 */
-            gmApprovedBy?: number;
-            /** Format: date-time */
-            gmApprovedAt?: string;
-            gmApprovalComment?: string;
-            /** Format: int64 */
-            confirmedBy?: number;
-            /** Format: date-time */
-            confirmedAt?: string;
-            confirmationComment?: string;
-            /** Format: int64 */
-            receivedBy?: number;
-            /** Format: date-time */
-            receivedAt?: string;
-            /** Format: int64 */
-            applicantId?: number;
-            applicantName?: string;
-            auditLog?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            items?: components["schemas"]["InboundOrderItemResponse"][];
-        };
-        RejectRequest: {
-            reason?: string;
-        };
-        ItemReceipt: {
-            /** Format: int64 */
-            itemId: number;
-            /** Format: int32 */
-            actualQty: number;
-            /** Format: int64 */
-            locationId: number;
-        };
-        ReceiveGoodsRequest: {
-            receipts: components["schemas"]["ItemReceipt"][];
+            items?: components["schemas"]["ShopifyReconciliationRepairItem"][];
         };
         EmergencyStockCorrectionRequest: {
             /** Format: int64 */
@@ -5230,9 +5915,9 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
-            apiPermission?: boolean;
             buttonPermission?: boolean;
             menuPermission?: boolean;
+            apiPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
             /** Format: int64 */
@@ -5370,12 +6055,12 @@ export interface components {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
-            unpaged?: boolean;
-            /** Format: int32 */
-            pageSize?: number;
-            paged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
+            unpaged?: boolean;
+            paged?: boolean;
+            /** Format: int32 */
+            pageSize?: number;
         };
         SortObject: {
             direction?: string;
@@ -5422,12 +6107,100 @@ export interface components {
             lastOrderDate?: string;
             averageIntervalDays?: number;
         };
+        ReceivingTaskItemResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            barcode?: string;
+            productName?: string;
+            expiryManagementEnabled?: boolean;
+            /** Format: int32 */
+            expectedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            closedQuantity?: number;
+            /** Format: int32 */
+            remainingQuantity?: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            externalBatchCode?: string;
+            remark?: string;
+        };
+        ReceivingTaskResponse: {
+            /** Format: int64 */
+            id?: number;
+            taskNumber?: string;
+            /** @enum {string} */
+            sourceType?: "PURCHASE_ASN" | "OTHER_INBOUND";
+            /** @enum {string} */
+            status?: "PENDING" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED";
+            /** Format: int64 */
+            purchaseOrderId?: number;
+            purchaseOrderNumber?: string;
+            /** Format: int64 */
+            otherInboundApplicationId?: number;
+            otherInboundApplicationNumber?: string;
+            /** @enum {string} */
+            otherInboundBusinessType?: "FREE_SAMPLE" | "CUSTOMER_SUPPLIED" | "PRODUCTION_COMPLETION" | "SUBCONTRACT_RETURN" | "AUTHORIZED_SPECIAL";
+            sourceReference?: string;
+            businessReason?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseCode?: string;
+            warehouseName?: string;
+            /** Format: int32 */
+            priority?: number;
+            /** Format: date-time */
+            expectedWindowStart?: string;
+            /** Format: date-time */
+            expectedWindowEnd?: string;
+            /** Format: int64 */
+            assignedReceiverId?: number;
+            assignedReceiverName?: string;
+            assignedTeam?: string;
+            dockArea?: string;
+            workArea?: string;
+            warehouseNotes?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            closedAt?: string;
+            closeReason?: string;
+            items?: components["schemas"]["ReceivingTaskItemResponse"][];
+        };
+        ReceivingTaskLocationResponse: {
+            /** Format: int64 */
+            id?: number;
+            code?: string;
+            name?: string;
+        };
         Pageable: {
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
             size?: number;
             sort?: string[];
+        };
+        InboundReferenceWarehouseResponse: {
+            /** Format: int64 */
+            id?: number;
+            code?: string;
+            name?: string;
+        };
+        InboundReferenceSkuResponse: {
+            /** Format: int64 */
+            id?: number;
+            skuCode?: string;
+            name?: string;
+            barcode?: string;
+            expiryManagementEnabled?: boolean;
         };
         ReorderSuggestion: {
             /** Format: int64 */
@@ -5749,6 +6522,8 @@ export interface components {
             orderedQty?: number;
             /** Format: int32 */
             receivedQty?: number;
+            /** Format: int32 */
+            confirmedInboundQty?: number;
             /** Format: int32 */
             committedQty?: number;
             /** Format: int32 */
@@ -6258,6 +7033,80 @@ export interface operations {
             };
         };
     };
+    updateOperations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReceivingPlanOperationsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingPlanResponse"];
+                };
+            };
+        };
+    };
+    list_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderAllocationResponse"][];
+                };
+            };
+        };
+    };
+    replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePurchaseOrderAllocationsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderAllocationResponse"][];
+                };
+            };
+        };
+    };
     getPurchaseOrderById: {
         parameters: {
             query?: never;
@@ -6306,11 +7155,53 @@ export interface operations {
             };
         };
     };
-    rollbackToOrdering: {
+    getPolicy: {
         parameters: {
-            query: {
-                reason: string;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseGovernancePolicyResponse"];
+                };
             };
+        };
+    };
+    updatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseGovernancePolicyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseGovernancePolicyResponse"];
+                };
+            };
+        };
+    };
+    get_3: {
+        parameters: {
+            query?: never;
             header?: never;
             path: {
                 id: number;
@@ -6325,12 +7216,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PurchaseOrderResponse"];
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
                 };
             };
         };
     };
-    receiveGoods: {
+    updateDraft_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6341,7 +7232,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ConfirmReceiptRequest"];
+                "application/json": components["schemas"]["UpdatePurchaseAsnDraftRequest"];
             };
         };
         responses: {
@@ -6351,38 +7242,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PurchaseOrderResponse"];
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
                 };
             };
         };
     };
-    confirmAndGenerateBatchCodes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmOrderRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PurchaseOrderResponse"];
-                };
-            };
-        };
-    };
-    get_1: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -6594,6 +7459,98 @@ export interface operations {
             };
         };
     };
+    getPolicy_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundFeaturePolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundFeaturePolicyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundFeaturePolicyResponse"];
+                };
+            };
+        };
+    };
+    get_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundApplicationUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
     getLocationById: {
         parameters: {
             query?: never;
@@ -6686,7 +7643,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -6712,7 +7669,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -6734,7 +7691,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -6824,7 +7781,7 @@ export interface operations {
             };
         };
     };
-    getPolicy: {
+    getPolicy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6844,7 +7801,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy: {
+    updatePolicy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -6936,7 +7893,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -6958,7 +7915,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -7819,7 +8776,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SalesOrderItemData"][];
+                    "*/*": components["schemas"]["CreateSalesOrderItemRequest"][];
                 };
             };
         };
@@ -8022,10 +8979,138 @@ export interface operations {
             };
         };
     };
+    listReceipts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceiptEventResponse"][];
+                };
+            };
+        };
+    };
+    receive_1: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitReceivingReceiptRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceiptEventResponse"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseRemainderClosureActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseRemainderClosureActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseRemainderClosureActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                };
+            };
+        };
+    };
     getPurchaseOrders: {
         parameters: {
             query: {
-                status?: "ORDERING" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CANCELLED" | "VOIDED";
+                status?: "DRAFT" | "PENDING_APPROVAL" | "REJECTED" | "AWAITING_SHIPMENT" | "PARTIALLY_SHIPPED" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
                 pageable: components["schemas"]["Pageable"];
             };
             header?: never;
@@ -8069,12 +9154,240 @@ export interface operations {
             };
         };
     };
+    withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderWorkflowActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderWorkflowResponse"];
+                };
+            };
+        };
+    };
+    voidOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderWorkflowActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderWorkflowResponse"];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderWorkflowActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderWorkflowResponse"];
+                };
+            };
+        };
+    };
+    reject_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderWorkflowActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderWorkflowResponse"];
+                };
+            };
+        };
+    };
+    cancel_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderWorkflowActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderWorkflowResponse"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"][];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePurchaseAsnRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
+                };
+            };
+        };
+    };
+    quickConfirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePurchaseAsnRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
+                };
+            };
+        };
+    };
+    approve_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderWorkflowActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseOrderWorkflowResponse"];
+                };
+            };
+        };
+    };
     uploadExcel_1: {
         parameters: {
             query: {
                 supplierId: number;
-                operatorId: number;
-                operatorName: string;
                 expectedDate?: string;
             };
             header?: never;
@@ -8101,7 +9414,133 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseAsnId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseRemainderClosureCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                };
+            };
+        };
+    };
+    correct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseAsnActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
+                };
+            };
+        };
+    };
+    close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseAsnActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
+                };
+            };
+        };
+    };
+    cancel_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseAsnActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseAsnResponse"];
+                };
+            };
+        };
+    };
+    list_7: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -8123,7 +9562,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8194,7 +9633,7 @@ export interface operations {
             };
         };
     };
-    request: {
+    request_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8245,7 +9684,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8477,7 +9916,7 @@ export interface operations {
             };
         };
     };
-    confirm: {
+    confirm_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8709,7 +10148,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -8729,7 +10168,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -8797,7 +10236,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_9: {
         parameters: {
             query: {
                 platformUserId: number;
@@ -8819,7 +10258,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -8843,7 +10282,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_10: {
         parameters: {
             query?: {
                 status?: string;
@@ -8869,7 +10308,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -9017,6 +10456,157 @@ export interface operations {
             };
         };
     };
+    list_11: {
+        parameters: {
+            query: {
+                status?: "DRAFT" | "CONFIRMED" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"][];
+                };
+            };
+        };
+    };
+    create_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundApplicationCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
+    voidApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
+    confirm_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
+    close_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
+    cancel_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtherInboundActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OtherInboundApplicationResponse"];
+                };
+            };
+        };
+    };
     createLocation: {
         parameters: {
             query?: never;
@@ -9063,7 +10653,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_12: {
         parameters: {
             query?: {
                 channel?: string;
@@ -9085,7 +10675,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -9205,7 +10795,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -9225,7 +10815,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -9273,135 +10863,7 @@ export interface operations {
             };
         };
     };
-    createInboundOrder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateInboundOrderRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    rejectOrder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RejectRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    receiveGoods_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReceiveGoodsRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    confirmOrder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmOrderRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    approvePlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApprovalRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    list_9: {
+    list_15: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -9423,7 +10885,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    create_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -9447,7 +10909,7 @@ export interface operations {
             };
         };
     };
-    submit: {
+    submit_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9499,7 +10961,7 @@ export interface operations {
             };
         };
     };
-    reject: {
+    reject_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9525,7 +10987,7 @@ export interface operations {
             };
         };
     };
-    approve: {
+    approve_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9652,7 +11114,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_17: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -9674,7 +11136,7 @@ export interface operations {
             };
         };
     };
-    create_10: {
+    create_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -10262,6 +11724,160 @@ export interface operations {
             };
         };
     };
+    list_2: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingTaskResponse"][];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingTaskResponse"];
+                };
+            };
+        };
+    };
+    listLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingTaskLocationResponse"][];
+                };
+            };
+        };
+    };
+    listWorkQueue: {
+        parameters: {
+            query?: {
+                status?: ("WAITING_SHIPMENT" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED")[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingPlanResponse"][];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"][];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingPlanResponse"][];
+                };
+            };
+        };
+    };
     downloadImportTemplate: {
         parameters: {
             query?: never;
@@ -10278,6 +11894,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": string[];
+                };
+            };
+        };
+    };
+    purchaseWarehouses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InboundReferenceWarehouseResponse"][];
+                };
+            };
+        };
+    };
+    purchaseSkus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InboundReferenceSkuResponse"][];
                 };
             };
         };
@@ -10417,7 +12073,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -10776,6 +12432,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OutboundTaskResponse"];
+                };
+            };
+        };
+    };
+    otherInboundWarehouses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InboundReferenceWarehouseResponse"][];
+                };
+            };
+        };
+    };
+    otherInboundSkus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InboundReferenceSkuResponse"][];
                 };
             };
         };
@@ -11198,7 +12894,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_13: {
         parameters: {
             query?: {
                 channel?: string;
@@ -11223,7 +12919,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -11245,153 +12941,7 @@ export interface operations {
             };
         };
     };
-    getInboundOrderById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    getPendingReceivalOrders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"][];
-                };
-            };
-        };
-    };
-    getPendingConfirmationOrders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"][];
-                };
-            };
-        };
-    };
-    getPendingApprovalOrders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"][];
-                };
-            };
-        };
-    };
-    getMyInboundOrders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"][];
-                };
-            };
-        };
-    };
-    getInboundOrdersByStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                status: "PENDING_APPROVAL" | "APPROVED_PLAN" | "AWAITING_RECEIVAL" | "COMPLETED" | "REJECTED" | "CANCELLED" | "VOIDED";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"][];
-                };
-            };
-        };
-    };
-    getInboundOrderByOrderNo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                orderNo: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InboundOrderResponse"];
-                };
-            };
-        };
-    };
-    get_5: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -11457,7 +13007,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_16: {
         parameters: {
             query?: never;
             header?: never;

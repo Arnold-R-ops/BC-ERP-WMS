@@ -1,8 +1,8 @@
 import type { components } from './schema';
 import { apiRequest } from './http';
 
-export type ProductSku = components['schemas']['ProductSkuResponse'];
-export type ProductSkuPayload = components['schemas']['CreateProductSkuRequest'];
+export type ProductSku = components['schemas']['ProductSkuResponse'] & { expiryManagementEnabled?: boolean };
+export type ProductSkuPayload = components['schemas']['CreateProductSkuRequest'] & { expiryManagementEnabled?: boolean };
 
 export interface ProductSkuListParams {
   enabledOnly?: boolean;

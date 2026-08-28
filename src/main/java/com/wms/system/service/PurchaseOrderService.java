@@ -2,17 +2,12 @@ package com.wms.system.service;
 
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.PurchaseOrderStatus;
-import com.wms.system.entity.enums.SourceType;
-import com.wms.system.entity.enums.TransactionType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
-import com.wms.system.util.BatchCodeGenerator;
-import jakarta.persistence.OptimisticLockException;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
@@ -32,32 +27,16 @@ import java.util.Set;
 /**
  * Purchase Order Management Service (采购单管理服务)
  *
- * Core Responsibilities:
- * 1. Three-stage purchase order workflow (ORDERING → IN_TRANSIT → PARTIALLY_RECEIVED/COMPLETED)
- * 2. Atomic batch code generation (Stage 2)
- * 3. Physical receipt with location assignment (Stage 3)
- * 4. State rollback mechanism (IN_TRANSIT → ORDERING)
- * 5. PO number generation (PO-YYYYMMDD-XXX format)
+ * P0-02 purchase-commercial aggregate. It owns draft editing, optional
+ * approval and business cancellation. Shipment is represented by PurchaseAsn
+ * and every physical receipt goes through the unified ReceivingTask workflow.
  *
- * Business Flow:
- * - Stage 1 (ORDERING): Create PO from Excel or manual input, expiry_date optional
- * - Stage 2 (IN_TRANSIT): Confirm ASN, validate expiry_date, generate Hashids batch codes atomically
- * - Stage 3 (COMPLETED): Physical receipt, assign locations, record entryDate, generate stock transactions
- *
- * V3.0 Architecture:
- * - InventoryBatch is the ONLY inventory data source (Single Source of Truth)
- * - No Inventory aggregation table maintenance
- * - All stock queries aggregate from InventoryBatch in real-time
- *
- * Technical Features:
- * - @Transactional: Ensures atomicity (batch generation + status change in same transaction)
- * - @Retryable: Auto-retry on optimistic lock conflicts (max 3 attempts)
- * - Error Key System: All exceptions use error keys for frontend i18n
- * - Audit logging: Record state changes in auditLog field
+ * Business flow: draft and warehouse allocation, optional approval, supplier
+ * shipment through an independent ASN, then idempotent unified receiving.
+ * Purchase-order commands never post inventory directly.
  *
  * @author WMS Team
  * @since 2025-01-13
- * @version 3.0 (Single Source of Truth Architecture + Batch Management)
  */
 @Slf4j
 @Service
@@ -65,30 +44,28 @@ import java.util.Set;
 public class PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final PurchaseOrderReceivingRepository purchaseOrderReceivingRepository;
     private final SupplierRepository supplierRepository;
-    private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final ProductSkuRepository productSkuRepository;
     private final ProductSkuOperationalPolicy productSkuOperationalPolicy;
-    private final LocationRepository locationRepository;
-    private final StockTransactionRepository stockTransactionRepository;
-    private final BatchCodeGenerator batchCodeGenerator;
-    private final DomainOutboxService domainOutboxService;
-    private final BackorderService backorderService;
-    private final LocationOccupancyService locationOccupancyService;
+    private final PurchaseGovernancePolicyService purchaseGovernancePolicyService;
+    private final PurchaseOrderAllocationService purchaseOrderAllocationService;
+    private final PurchaseOrderAllocationRepository purchaseOrderAllocationRepository;
+    private final ReceivingPlanService receivingPlanService;
+    private final PurchaseAsnService purchaseAsnService;
 
     /**
-     * ⭐ Stage 1: Create Purchase Order (ORDERING)
+     * Create a purchase-order draft.
      *
      * Business Flow:
      * 1. Generate PO number (PO-YYYYMMDD-XXX format)
      * 2. Validate products exist
-     * 3. Create PurchaseOrder with ORDERING status
-     * 4. Create PurchaseOrderItem records (expiry_date optional at this stage)
+     * 3. Create PurchaseOrder with DRAFT status
+     * 4. Create PurchaseOrderItem records (receipt metadata may be prefilled)
      * 5. Calculate totals (totalQuantity, totalCost)
      *
-     * ⚠️ Note: Batch codes are NOT generated at this stage.
-     * They will be generated in Stage 2 when confirming the ASN.
+     * Inventory batches are generated only by the unified receipt executor.
      *
      * @param supplierId Supplier master-data ID
      * @param items List of purchase order items
@@ -96,7 +73,7 @@ public class PurchaseOrderService {
      * @param operatorId Operator user ID
      * @param operatorName Operator user name
      * @param remark Optional remark
-     * @return PurchaseOrder Created purchase order with ORDERING status
+     * @return PurchaseOrder created purchase order with DRAFT status
      * @throws BusinessException if product not found or validation fails
      */
     @Transactional(rollbackFor = Exception.class)
@@ -112,7 +89,7 @@ public class PurchaseOrderService {
             supplierId, items.size(), operatorName);
 
         Supplier supplier = supplierRepository
-            .findByIdAndCompanyIdAndIsDeletedFalse(supplierId, 1L)
+            .findByIdAndCompanyIdAndIsDeletedFalse(supplierId, CompanyScope.currentCompanyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.SUPPLIER_NOT_FOUND,
                 Map.of("supplierId", supplierId)
@@ -133,7 +110,7 @@ public class PurchaseOrderService {
             .poNumber(poNumber)
             .supplier(supplier.getName())
             .supplierReference(supplier)
-            .status(PurchaseOrderStatus.ORDERING)
+            .status(PurchaseOrderStatus.DRAFT)
             .totalQuantity(0)
             .totalCost(java.math.BigDecimal.ZERO)
             .expectedDate(expectedDate)
@@ -200,7 +177,7 @@ public class PurchaseOrderService {
 
     /**
      * Edit the business fields of an existing purchase order while it is still
-     * in ORDERING. No status transition, batch creation, receipt or inventory
+     * as a draft. No status transition, batch creation, receipt or inventory
      * mutation is performed by this operation.
      */
     @Transactional(rollbackFor = Exception.class)
@@ -220,13 +197,13 @@ public class PurchaseOrderService {
                 Map.of("purchaseOrderId", purchaseOrderId)
             ));
 
-        if (purchaseOrder.getStatus() != PurchaseOrderStatus.ORDERING) {
+        if (!purchaseOrder.getStatus().isEditableDraft()) {
             throw new BusinessException(
                 ErrorKeys.PO_INVALID_STATUS,
                 Map.of(
                     "purchaseOrderId", purchaseOrderId,
                     "currentStatus", purchaseOrder.getStatus().name(),
-                    "expectedStatus", PurchaseOrderStatus.ORDERING.name()
+                    "expectedStatus", PurchaseOrderStatus.DRAFT.name()
                 )
             );
         }
@@ -242,7 +219,7 @@ public class PurchaseOrderService {
         }
 
         Supplier supplier = supplierRepository
-            .findByIdAndCompanyIdAndIsDeletedFalse(supplierId, 1L)
+            .findByIdAndCompanyIdAndIsDeletedFalse(supplierId, CompanyScope.currentCompanyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.SUPPLIER_NOT_FOUND,
                 Map.of("supplierId", supplierId)
@@ -335,6 +312,17 @@ public class PurchaseOrderService {
                 if (inventoryBatchRepository.existsByPurchaseOrderItemId(existing.getId())) {
                     throw historyLocked(purchaseOrderId, existing.getId(), "remove");
                 }
+                List<PurchaseOrderAllocation> allocations = purchaseOrderAllocationRepository
+                    .findByPurchaseOrderItemIdForUpdate(existing.getId());
+                if (allocations.stream().anyMatch(this::hasAllocationExecutionHistory)) {
+                    throw historyLocked(purchaseOrderId, existing.getId(), "allocation");
+                }
+                if (!allocations.isEmpty()) {
+                    purchaseOrderAllocationRepository.deleteAll(allocations);
+                    // The FK is restrictive. Execute allocation deletes before
+                    // Hibernate flushes orphan removal of the purchase line.
+                    purchaseOrderAllocationRepository.flush();
+                }
                 purchaseOrder.removeItem(existing);
             }
         }
@@ -348,7 +336,7 @@ public class PurchaseOrderService {
         purchaseOrder.setRemark(remark);
         purchaseOrder.updateTotals();
         purchaseOrder.appendAuditLog(String.format(
-            "ORDERING purchase order edited by %s (userId=%s, lines=%d)",
+            "Draft purchase order edited by %s (userId=%s, lines=%d)",
             editorName,
             editorId,
             requestedItems.size()
@@ -375,382 +363,200 @@ public class PurchaseOrderService {
         );
     }
 
-    /**
-     * ⭐ Stage 2: Confirm ASN and Generate Batch Codes (IN_TRANSIT)
-     *
-     * Business Flow:
-     * 1. Validate PO status (must be ORDERING)
-     * 2. Validate expiry_date for all items (required at this stage)
-     * 3. Generate Hashids batch codes for each item
-     * 4. Create InventoryBatch records (location = null, entryDate = null)
-     * 5. Update PO status to IN_TRANSIT
-     * 6. Record audit log
-     *
-     * ⚠️ Atomic Operation: Batch generation + status change in same transaction.
-     * If any batch code generation fails, entire operation rolls back.
-     *
-     * @param purchaseOrderId Purchase order ID
-     * @param itemUpdates List of item updates with expiry_date (required)
-     * @return PurchaseOrder Updated purchase order with IN_TRANSIT status
-     * @throws BusinessException if status invalid or expiry_date missing
-     */
+    /** Submit a draft using the tenant's optional approval policy. */
     @Transactional(rollbackFor = Exception.class)
-    public PurchaseOrder confirmAndGenerateBatchCodes(
+    public PurchaseOrder submit(
         Long purchaseOrderId,
-        List<ItemExpiryUpdate> itemUpdates
+        Long expectedVersion,
+        Long actorId,
+        String actorName
     ) {
-        log.info("Confirming ASN and generating batch codes: purchaseOrderId={}", purchaseOrderId);
+        PurchaseOrder order = lockedForWorkflow(purchaseOrderId, expectedVersion);
+        if (!order.getStatus().canSubmit()) {
+            throw invalidStatus(order, "DRAFT or REJECTED");
+        }
+        purchaseOrderAllocationService.requireCompletePlan(order);
+        order.setStatus(purchaseGovernancePolicyService.effectivePurchaseApprovalMode()
+            == com.wms.system.entity.enums.PurchaseApprovalMode.SIMPLE
+                ? PurchaseOrderStatus.PENDING_APPROVAL
+                : PurchaseOrderStatus.AWAITING_SHIPMENT);
+        order.appendAuditLog(String.format(
+            "Submitted by %s (userId=%s), resulting status=%s",
+            actorName, actorId, order.getStatus()));
+        if (order.getStatus() == PurchaseOrderStatus.AWAITING_SHIPMENT) {
+            receivingPlanService.ensureWaitingShipmentPlans(order, actorId, actorName);
+        }
+        return purchaseOrderRepository.saveAndFlush(order);
+    }
 
-        // 1. Query purchase order
-        PurchaseOrder purchaseOrder = findById(purchaseOrderId);
-
-        // 2. Validate status (only ORDERING can be confirmed)
-        if (!purchaseOrder.getStatus().canConfirmAndGenerateBatch()) {
-            log.error("Invalid status for batch generation: poNumber={}, currentStatus={}",
-                purchaseOrder.getPoNumber(), purchaseOrder.getStatus());
-
+    /** Approve a submitted order. A maker cannot approve their own order. */
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder approve(
+        Long purchaseOrderId,
+        Long expectedVersion,
+        Long actorId,
+        String actorName
+    ) {
+        PurchaseOrder order = lockedForWorkflow(purchaseOrderId, expectedVersion);
+        if (!order.getStatus().canApprove()) {
+            throw invalidStatus(order, PurchaseOrderStatus.PENDING_APPROVAL.name());
+        }
+        if (Objects.equals(order.getOperatorId(), actorId)) {
             throw new BusinessException(
-                ErrorKeys.PO_INVALID_STATUS,
-                Map.of(
-                    "poNumber", purchaseOrder.getPoNumber(),
-                    "currentStatus", purchaseOrder.getStatus().name(),
-                    "expectedStatus", PurchaseOrderStatus.ORDERING.name()
-                )
+                ErrorKeys.VALIDATION_FAILED,
+                Map.of("purchaseOrderId", purchaseOrderId,
+                    "reason", "Maker cannot approve their own purchase order")
             );
         }
+        order.setStatus(PurchaseOrderStatus.AWAITING_SHIPMENT);
+        order.appendAuditLog(String.format("Approved by %s (userId=%s)", actorName, actorId));
+        receivingPlanService.ensureWaitingShipmentPlans(order, actorId, actorName);
+        return purchaseOrderRepository.saveAndFlush(order);
+    }
 
-        // 3. Update expiry_date if provided and validate
-        for (ItemExpiryUpdate update : itemUpdates) {
-            PurchaseOrderItem item = purchaseOrder.getItems().stream()
-                .filter(i -> i.getId().equals(update.getItemId()))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.PO_ITEM_NOT_FOUND,
-                    Map.of("itemId", update.getItemId())
-                ));
-
-            // Update expiry_date if provided
-            if (update.getExpiryDate() != null) {
-                item.setExpiryDate(update.getExpiryDate());
-            }
-            if (update.getProductionDate() != null) {
-                item.setProductionDate(update.getProductionDate());
-            }
-
-            // Validate expiry_date is present (required at Stage 2)
-            if (item.getExpiryDate() == null) {
-                log.error("Expiry date missing for item: itemId={}, productSkuId={}",
-                    item.getId(), item.getProductSku().getId());
-
-                throw new BusinessException(
-                    ErrorKeys.PO_EXPIRY_DATE_REQUIRED,
-                    Map.of(
-                        "itemId", item.getId(),
-                        "productSkuId", item.getProductSku().getId(),
-                        "productName", item.getProductSku().getName()
-                    )
-                );
-            }
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder reject(
+        Long purchaseOrderId,
+        Long expectedVersion,
+        String reason,
+        Long actorId,
+        String actorName
+    ) {
+        PurchaseOrder order = lockedForWorkflow(purchaseOrderId, expectedVersion);
+        if (!order.getStatus().canApprove()) {
+            throw invalidStatus(order, PurchaseOrderStatus.PENDING_APPROVAL.name());
         }
-
-        // 4. Generate batch codes for all items (atomic operation)
-        for (PurchaseOrderItem item : purchaseOrder.getItems()) {
-            // Generate unique batch code with collision detection
-            String batchCode = batchCodeGenerator.generateUnique(
-                item.getProductSku().getId(),
-                item.getId(),
-                inventoryBatchRepository
-            );
-
-            log.info("Generated batch code: itemId={}, productSkuId={}, batchCode={}",
-                item.getId(), item.getProductSku().getId(), batchCode);
-
-            // Create InventoryBatch record (Stage 2: location = null, entryDate = null)
-            InventoryBatch batch = InventoryBatch.builder()
-                .batchCode(batchCode)
-                .purchaseOrderItem(item)
-                .productSku(item.getProductSku())
-                .location(null)  // Stage 2: Not assigned yet
-                .locationCode("UNASSIGNED")
-                .quantity(item.getOrderedQuantity())  // Initial quantity
-                .initialQuantity(item.getOrderedQuantity())
-                .expiryDate(item.getExpiryDate())
-                .productionDate(item.getProductionDate())
-                .externalBatchCode(item.getExternalBatchCode())
-                .entryDate(null)  // Stage 2: Not received yet
-                .active(true)
-                .version(0)
-                .build();
-
-            inventoryBatchRepository.save(batch);
-
-            log.info("✅ Batch created: batchCode={}, productSkuId={}, quantity={}, expiryDate={}",
-                batchCode, item.getProductSku().getId(), batch.getQuantity(), batch.getExpiryDate());
-        }
-
-        // 5. Update PO status to IN_TRANSIT
-        purchaseOrder.setStatus(PurchaseOrderStatus.IN_TRANSIT);
-        purchaseOrder.appendAuditLog(
-            String.format("Confirmed ASN and generated %d batch codes", purchaseOrder.getItems().size())
-        );
-
-        // 6. Save
-        PurchaseOrder savedOrder = purchaseOrderRepository.save(purchaseOrder);
-
-        log.info("✅ ASN confirmed: poNumber={}, status={}, batchCount={}",
-            savedOrder.getPoNumber(), savedOrder.getStatus(), savedOrder.getItems().size());
-
-        return savedOrder;
+        order.setStatus(PurchaseOrderStatus.REJECTED);
+        order.appendAuditLog(String.format(
+            "Rejected by %s (userId=%s): %s", actorName, actorId, requiredReason(reason)));
+        return purchaseOrderRepository.saveAndFlush(order);
     }
 
     /**
-     * ⭐ Stage 3: Physical Receipt with Location Assignment (COMPLETED)
-     *
-     * Business Flow:
-     * 1. Validate PO status (must be IN_TRANSIT or PARTIALLY_RECEIVED)
-     * 2. For each batch:
-     *    - Query batch by batch code
-     *    - Validate location exists
-     *    - Assign location to batch
-     *    - Record entryDate (current server time)
-     *    - Generate stock transaction (PURCHASE_IN)
-     *    - Update item.receivedQuantity
-     * 3. Check if all items fully received:
-     *    - If yes: Status = COMPLETED
-     *    - If partial: Status = PARTIALLY_RECEIVED
-     * 4. Record audit log
-     *
-     * ⚠️ V3.0 Architecture: No Inventory table update.
-     * InventoryBatch is the single source of truth.
-     *
-     * Supports Partial Receiving:
-     * - Same PurchaseOrderItem can have multiple InventoryBatch records
-     * - receivedQuantity accumulates across multiple calls
-     * - Different entryDate for each batch
-     *
-     * @param purchaseOrderId Purchase order ID
-     * @param receiptData List of batch location assignments
-     * @param operatorId Operator user ID
-     * @param operatorName Operator user name
-     * @return PurchaseOrder Updated purchase order with PARTIALLY_RECEIVED or COMPLETED status
-     * @throws BusinessException if status invalid, batch not found, or location not found
+     * Withdrawal returns an order to an editable draft. The ASN repository is
+     * consulted by the unified receiving slice before this command is exposed
+     * in production; a confirmed ASN makes withdrawal illegal.
      */
     @Transactional(rollbackFor = Exception.class)
-    @Retryable(
-        retryFor = {OptimisticLockException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000)
-    )
-    public PurchaseOrder receiveGoods(
+    public PurchaseOrder withdrawBeforeShipment(
         Long purchaseOrderId,
-        List<BatchReceiptData> receiptData,
-        Long operatorId,
-        String operatorName
+        Long expectedVersion,
+        String reason,
+        Long actorId,
+        String actorName
     ) {
-        log.info("Processing physical receipt: purchaseOrderId={}, batchCount={}, operator={}",
-            purchaseOrderId, receiptData.size(), operatorName);
-
-        // 1. Query purchase order
-        PurchaseOrder purchaseOrder = findById(purchaseOrderId);
-
-        // 2. Validate status (only IN_TRANSIT or PARTIALLY_RECEIVED can receive)
-        if (!purchaseOrder.getStatus().canReceive()) {
-            log.error("Invalid status for receipt: poNumber={}, currentStatus={}",
-                purchaseOrder.getPoNumber(), purchaseOrder.getStatus());
-
+        PurchaseOrder order = lockedForWorkflow(purchaseOrderId, expectedVersion);
+        if (!order.getStatus().canWithdrawBeforeShipment()) {
+            throw invalidStatus(order, "PENDING_APPROVAL, REJECTED or AWAITING_SHIPMENT");
+        }
+        if (purchaseAsnService.hasConfirmedOrReceipt(purchaseOrderId)) {
             throw new BusinessException(
-                ErrorKeys.PO_INVALID_STATUS,
-                Map.of(
-                    "poNumber", purchaseOrder.getPoNumber(),
-                    "currentStatus", purchaseOrder.getStatus().name(),
-                    "expectedStatus", "IN_TRANSIT or PARTIALLY_RECEIVED"
-                )
+                ErrorKeys.OPERATION_NOT_ALLOWED,
+                Map.of("operation", "WITHDRAW_PURCHASE_ORDER",
+                    "purchaseOrderId", purchaseOrderId,
+                    "reason", "CONFIRMED_SHIPMENT_EXISTS")
             );
         }
-
-        // 3. Process each batch receipt
-        int totalReceivedInThisBatch = 0;
-        java.util.Set<Long> receivedProductSkuIds = new java.util.HashSet<>();
-
-        for (BatchReceiptData receipt : receiptData) {
-            // Query batch by batch code (V3.3: returns List, get first one)
-            List<InventoryBatch> batches = inventoryBatchRepository.findByBatchCode(receipt.getBatchCode());
-
-            if (batches.isEmpty()) {
-                throw new BusinessException(
-                    ErrorKeys.BATCH_NOT_FOUND,
-                    Map.of("batchCode", receipt.getBatchCode())
-                );
-            }
-
-            InventoryBatch batch = batches.get(0); // Get first batch
-
-            // Validate batch is active
-            if (!batch.getActive()) {
-                log.error("Batch is inactive: batchCode={}", receipt.getBatchCode());
-
-                throw new BusinessException(
-                    ErrorKeys.BATCH_INACTIVE,
-                    Map.of("batchCode", receipt.getBatchCode())
-                );
-            }
-
-            // Query location
-            Location location = locationRepository.findById(receipt.getLocationId())
-                .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.LOCATION_NOT_FOUND,
-                    Map.of("locationId", receipt.getLocationId())
-                ));
-
-            locationOccupancyService.validateCanStore(location, batch.getProductSku(), batch.getBatchCode());
-
-            // Record quantity before (for audit)
-            Integer quantityBefore = batch.getQuantity();
-
-            // Assign location and record entry time (Stage 3 completion)
-            batch.assignLocation(location);  // Sets location and entryDate
-
-            // Save batch
-            InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
-            locationOccupancyService.markOccupied(location);
-
-            log.info("✅ Batch received: batchCode={}, location={}, quantity={}, entryDate={}",
-                savedBatch.getBatchCode(), location.getLocationCode(),
-                savedBatch.getQuantity(), savedBatch.getEntryDate());
-
-            // Generate stock transaction (V3.0: No Inventory table update)
-            StockTransaction transaction = StockTransaction.builder()
-                .productSku(batch.getProductSku())
-                .location(location)
-                .transactionType(TransactionType.IN)
-                .sourceType(SourceType.PURCHASE_IN)
-                .quantity(savedBatch.getQuantity())
-                .quantityBefore(quantityBefore)
-                .quantityAfter(savedBatch.getQuantity())  // Same as quantity (no previous stock)
-                .sourceOrderId(purchaseOrder.getPoNumber())
-                .operatorId(operatorId)
-                .operatorName(operatorName)
-                .reasonCode("PURCHASE_INBOUND")  // V4.2: 结构化归因码
-                .remarks(String.format("采购入库，批次 %s", savedBatch.getBatchCode()))  // V4.2: 归因短注释
-                .remark(String.format("Purchase receipt - Batch: %s", savedBatch.getBatchCode()))
-                .build();
-
-            stockTransactionRepository.save(transaction);
-
-            log.info("✅ Stock transaction created: batchCode={}, quantity={}, location={}",
-                savedBatch.getBatchCode(), transaction.getQuantity(), location.getLocationCode());
-
-            // Update item receivedQuantity
-            PurchaseOrderItem item = batch.getPurchaseOrderItem();
-            item.increaseReceivedQuantity(savedBatch.getQuantity());
-            receivedProductSkuIds.add(item.getProductSku().getId());
-
-            totalReceivedInThisBatch += savedBatch.getQuantity();
-        }
-
-        // 4. Check if order is fully received
-        boolean fullyReceived = purchaseOrder.isFullyReceived();
-
-        if (fullyReceived) {
-            purchaseOrder.setStatus(PurchaseOrderStatus.COMPLETED);
-            purchaseOrder.setActualEntryDate(LocalDateTime.now());
-            log.info("✅ Purchase order fully received: poNumber={}", purchaseOrder.getPoNumber());
-        } else {
-            purchaseOrder.setStatus(PurchaseOrderStatus.PARTIALLY_RECEIVED);
-            log.info("⚠️ Purchase order partially received: poNumber={}, receivedQty={}/{}",
-                purchaseOrder.getPoNumber(),
-                purchaseOrder.getItems().stream().mapToInt(PurchaseOrderItem::getReceivedQuantity).sum(),
-                purchaseOrder.getTotalQuantity());
-        }
-
-        // 5. Record audit log
-        purchaseOrder.appendAuditLog(
-            String.format("Received %d units in %d batches by %s",
-                totalReceivedInThisBatch, receiptData.size(), operatorName)
-        );
-
-        // 6. Save
-        PurchaseOrder savedOrder = purchaseOrderRepository.save(purchaseOrder);
-
-        log.info("✅ Physical receipt completed: poNumber={}, status={}, operator={}",
-            savedOrder.getPoNumber(), savedOrder.getStatus(), operatorName);
-
-        for (Long productSkuId : receivedProductSkuIds) {
-            domainOutboxService.append("INVENTORY_AVAILABLE", "ProductSku", productSkuId, Map.of(
-                "schemaVersion", 2,
-                "productSkuId", productSkuId,
-                "source", "PURCHASE_ORDER",
-                "purchaseOrderId", savedOrder.getId()
-            ));
-            backorderService.wakeProduct(productSkuId);
-        }
-
-        return savedOrder;
+        purchaseAsnService.cancelPurchaseDownstream(
+            purchaseOrderId, requiredReason(reason), actorId, actorName);
+        order.setStatus(PurchaseOrderStatus.DRAFT);
+        order.appendAuditLog(String.format(
+            "Withdrawn before confirmed shipment by %s (userId=%s): %s",
+            actorName, actorId, requiredReason(reason)));
+        return purchaseOrderRepository.saveAndFlush(order);
     }
 
-    /**
-     * ⭐ Rollback to ORDERING (State Rollback)
-     *
-     * Business Flow:
-     * 1. Validate status (only IN_TRANSIT can rollback)
-     * 2. Mark all generated batches as inactive (active = false)
-     * 3. Record invalidation reason in batch.remark
-     * 4. Update PO status to ORDERING
-     * 5. Record audit log
-     *
-     * ⚠️ Note: PARTIALLY_RECEIVED and COMPLETED cannot rollback.
-     * Once physical receipt starts, rollback is prohibited.
-     *
-     * @param purchaseOrderId Purchase order ID
-     * @param reason Rollback reason
-     * @return PurchaseOrder Updated purchase order with ORDERING status
-     * @throws BusinessException if status does not allow rollback
-     */
     @Transactional(rollbackFor = Exception.class)
-    public PurchaseOrder rollbackToOrdering(Long purchaseOrderId, String reason) {
-        log.info("Rolling back to ORDERING: purchaseOrderId={}, reason={}", purchaseOrderId, reason);
+    public PurchaseOrder cancelGoverned(
+        Long purchaseOrderId,
+        Long expectedVersion,
+        String reason,
+        Long actorId,
+        String actorName
+    ) {
+        PurchaseOrder order = lockedForWorkflow(purchaseOrderId, expectedVersion);
+        if (!order.getStatus().canCancelWithoutReceipt()) {
+            throw invalidStatus(order, "any non-final state without a physical receipt");
+        }
+        purchaseAsnService.cancelPurchaseDownstream(
+            purchaseOrderId, requiredReason(reason), actorId, actorName);
+        order.setStatus(PurchaseOrderStatus.CANCELLED);
+        order.appendAuditLog(String.format(
+            "Business cancelled by %s (userId=%s): %s",
+            actorName, actorId, requiredReason(reason)));
+        return purchaseOrderRepository.saveAndFlush(order);
+    }
 
-        // 1. Query purchase order
-        PurchaseOrder purchaseOrder = findById(purchaseOrderId);
-
-        // 2. Validate status (only IN_TRANSIT can rollback)
-        if (!purchaseOrder.getStatus().canRollbackToOrdering()) {
-            log.error("Rollback not allowed: poNumber={}, currentStatus={}",
-                purchaseOrder.getPoNumber(), purchaseOrder.getStatus());
-
+    @Transactional(rollbackFor = Exception.class)
+    public PurchaseOrder voidGoverned(
+        Long purchaseOrderId,
+        Long expectedVersion,
+        String reason,
+        Long actorId,
+        String actorName
+    ) {
+        PurchaseOrder order = lockedForWorkflow(purchaseOrderId, expectedVersion);
+        if (!order.getStatus().canVoidWithoutDownstream()) {
+            throw invalidStatus(order, "DRAFT or REJECTED without downstream records");
+        }
+        if (purchaseAsnService.hasAnyDownstream(purchaseOrderId)) {
             throw new BusinessException(
-                ErrorKeys.PO_ROLLBACK_NOT_ALLOWED,
-                Map.of(
-                    "poNumber", purchaseOrder.getPoNumber(),
-                    "currentStatus", purchaseOrder.getStatus().name()
-                )
+                ErrorKeys.OPERATION_NOT_ALLOWED,
+                Map.of("operation", "VOID_PURCHASE_ORDER",
+                    "purchaseOrderId", purchaseOrderId,
+                    "reason", "DOWNSTREAM_RECORD_EXISTS")
             );
         }
+        order.setStatus(PurchaseOrderStatus.VOIDED);
+        order.appendAuditLog(String.format(
+            "Voided as erroneous data by %s (userId=%s): %s",
+            actorName, actorId, requiredReason(reason)));
+        return purchaseOrderRepository.saveAndFlush(order);
+    }
 
-        // 3. Mark all batches as inactive
-        for (PurchaseOrderItem item : purchaseOrder.getItems()) {
-            List<InventoryBatch> batches = inventoryBatchRepository.findByPurchaseOrderItemId(item.getId());
-
-            for (InventoryBatch batch : batches) {
-                batch.markAsInactive(reason);
-                inventoryBatchRepository.save(batch);
-
-                log.info("⚠️ Batch invalidated: batchCode={}, reason={}", batch.getBatchCode(), reason);
-            }
+    private PurchaseOrder lockedForWorkflow(Long purchaseOrderId, Long expectedVersion) {
+        PurchaseOrder order = purchaseOrderReceivingRepository.findByIdForReceiving(purchaseOrderId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
+                Map.of("purchaseOrderId", purchaseOrderId)));
+        if (!Objects.equals(order.getVersion(), expectedVersion)) {
+            throw new BusinessException(
+                ErrorKeys.PO_EDIT_CONFLICT,
+                Map.of("purchaseOrderId", purchaseOrderId,
+                    "expectedVersion", expectedVersion,
+                    "currentVersion", order.getVersion())
+            );
         }
+        return order;
+    }
 
-        // 4. Update status to ORDERING
-        purchaseOrder.setStatus(PurchaseOrderStatus.ORDERING);
-        purchaseOrder.appendAuditLog(
-            String.format("Rolled back to ORDERING - Reason: %s", reason)
+    private BusinessException invalidStatus(PurchaseOrder order, String expected) {
+        return new BusinessException(
+            ErrorKeys.PO_INVALID_STATUS,
+            Map.of("purchaseOrderId", order.getId(),
+                "currentStatus", order.getStatus().name(),
+                "expectedStatus", expected)
         );
+    }
 
-        // 5. Save
-        PurchaseOrder savedOrder = purchaseOrderRepository.save(purchaseOrder);
+    private boolean hasAllocationExecutionHistory(PurchaseOrderAllocation allocation) {
+        return positive(allocation.getShippedQuantity())
+            || positive(allocation.getReceivedQuantity())
+            || positive(allocation.getClosedQuantity());
+    }
 
-        log.info("✅ Rollback completed: poNumber={}, status={}", savedOrder.getPoNumber(), savedOrder.getStatus());
+    private boolean positive(Integer value) {
+        return value != null && value > 0;
+    }
 
-        return savedOrder;
+    private String requiredReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException(
+                ErrorKeys.VALIDATION_FAILED,
+                Map.of("field", "reason", "reason", "A reason is required")
+            );
+        }
+        return reason.trim();
     }
 
     /**
@@ -853,160 +659,6 @@ public class PurchaseOrderService {
         return purchaseOrderRepository.findAll(pageable).getContent();
     }
 
-    // ========== Delete/Cancel/Void Operations ==========
-
-    /**
-     * Delete purchase order (physical delete, ORDERING only)
-     *
-     * Business Rule:
-     * - ORDERING status: physical DELETE from database
-     * - Any other status: throws exception, use cancelPurchaseOrder or voidPurchaseOrder instead
-     *
-     * @param poId Purchase order ID
-     * @param operatorId Operator user ID
-     * @throws BusinessException if order not found or not in ORDERING status
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public void deletePurchaseOrder(Long poId, Long operatorId) {
-        log.info("🗑️ Deleting purchase order (physical): poId={}, operatorId={}", poId, operatorId);
-
-        PurchaseOrder po = purchaseOrderRepository.findById(poId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
-                Map.of("purchaseOrderId", poId)
-            ));
-
-        if (!po.getStatus().canPhysicallyDelete()) {
-            throw new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
-                Map.of(
-                    "purchaseOrderId", poId,
-                    "currentStatus", po.getStatus().name(),
-                    "reason", "只有下单中状态的采购单可以物理删除，已生效的采购单请使用取消或作废"
-                )
-            );
-        }
-
-        purchaseOrderRepository.deleteById(poId);
-        log.info("✅ Purchase order physically deleted: poId={}, poNumber={}", poId, po.getPoNumber());
-    }
-
-    /**
-     * Cancel purchase order (business failure, kept for AI learning)
-     *
-     * Business Rule:
-     * - ORDERING status → physical delete
-     * - IN_TRANSIT / PARTIALLY_RECEIVED → set status = CANCELLED
-     * - reason is required
-     * - Data preserved for AI learning
-     *
-     * @param poId Purchase order ID
-     * @param reason Cancellation reason (required)
-     * @param operatorId Operator user ID
-     * @return Updated PurchaseOrder
-     * @throws BusinessException if order not found or cannot be cancelled
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public PurchaseOrder cancelPurchaseOrder(Long poId, String reason, Long operatorId) {
-        log.info("🚫 Cancelling purchase order: poId={}, operatorId={}, reason={}", poId, operatorId, reason);
-
-        if (reason == null || reason.isBlank()) {
-            throw new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
-                Map.of("purchaseOrderId", poId, "reason", "业务取消必须填写取消原因")
-            );
-        }
-
-        PurchaseOrder po = purchaseOrderRepository.findById(poId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
-                Map.of("purchaseOrderId", poId)
-            ));
-
-        // ORDERING → physical delete
-        if (po.getStatus() == PurchaseOrderStatus.ORDERING) {
-            purchaseOrderRepository.deleteById(poId);
-            log.info("✅ ORDERING purchase order physically deleted during cancel: poId={}", poId);
-            return null;
-        }
-
-        if (!po.getStatus().canCancel()) {
-            throw new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
-                Map.of(
-                    "purchaseOrderId", poId,
-                    "currentStatus", po.getStatus().name(),
-                    "reason", "当前状态不允许取消"
-                )
-            );
-        }
-
-        po.setStatus(PurchaseOrderStatus.CANCELLED);
-        po.appendAuditLog("业务取消 by User-" + operatorId + ": " + reason);
-        po = purchaseOrderRepository.save(po);
-
-        log.info("✅ Purchase order cancelled: poId={}, poNumber={}", poId, po.getPoNumber());
-        return po;
-    }
-
-    /**
-     * Void purchase order (data noise, filtered from AI and statistics)
-     *
-     * Business Rule:
-     * - ORDERING status → physical delete
-     * - IN_TRANSIT / PARTIALLY_RECEIVED → set status = VOIDED
-     * - VOIDED orders are excluded from AI training and business statistics
-     * - Financial audit trail is preserved (PO number retained)
-     *
-     * @param poId Purchase order ID
-     * @param reason Void reason (required)
-     * @param operatorId Operator user ID
-     * @return Updated PurchaseOrder
-     * @throws BusinessException if order not found or cannot be voided
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public PurchaseOrder voidPurchaseOrder(Long poId, String reason, Long operatorId) {
-        log.info("🚫 Voiding purchase order: poId={}, operatorId={}, reason={}", poId, operatorId, reason);
-
-        if (reason == null || reason.isBlank()) {
-            throw new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
-                Map.of("purchaseOrderId", poId, "reason", "系统作废必须填写作废原因")
-            );
-        }
-
-        PurchaseOrder po = purchaseOrderRepository.findById(poId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_NOT_FOUND,
-                Map.of("purchaseOrderId", poId)
-            ));
-
-        // ORDERING → physical delete
-        if (po.getStatus() == PurchaseOrderStatus.ORDERING) {
-            purchaseOrderRepository.deleteById(poId);
-            log.info("✅ ORDERING purchase order physically deleted during void: poId={}", poId);
-            return null;
-        }
-
-        if (!po.getStatus().canVoid()) {
-            throw new BusinessException(
-                ErrorKeys.PURCHASE_ORDER_INVALID_STATUS,
-                Map.of(
-                    "purchaseOrderId", poId,
-                    "currentStatus", po.getStatus().name(),
-                    "reason", "当前状态不允许作废"
-                )
-            );
-        }
-
-        po.setStatus(PurchaseOrderStatus.VOIDED);
-        po.appendAuditLog("系统作废 by User-" + operatorId + ": " + reason);
-        po = purchaseOrderRepository.save(po);
-
-        log.info("✅ Purchase order voided: poId={}, poNumber={}", poId, po.getPoNumber());
-        return po;
-    }
-
     // ========== Inner Classes (Data Transfer Objects) ==========
 
     /**
@@ -1037,24 +689,4 @@ public class PurchaseOrderService {
         private String remark;
     }
 
-    /**
-     * Item expiry date update for Stage 2
-     */
-    @lombok.Data
-    @lombok.Builder
-    public static class ItemExpiryUpdate {
-        private Long itemId;
-        private LocalDate expiryDate;  // Required at Stage 2
-        private LocalDate productionDate;
-    }
-
-    /**
-     * Batch receipt data for Stage 3
-     */
-    @lombok.Data
-    @lombok.Builder
-    public static class BatchReceiptData {
-        private String batchCode;  // Batch code from Stage 2
-        private Long locationId;   // Location to assign
-    }
 }

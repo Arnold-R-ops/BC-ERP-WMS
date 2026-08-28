@@ -41,7 +41,7 @@ class PurchaseOrderRepositoryTest {
         orderOrdering1 = PurchaseOrder.builder()
                 .poNumber("PO-20260101-001")
                 .supplier("Supplier Alpha")
-                .status(PurchaseOrderStatus.ORDERING)
+                .status(PurchaseOrderStatus.DRAFT)
                 .totalQuantity(100)
                 .totalCost(new BigDecimal("1000.00"))
                 .expectedDate(LocalDate.of(2026, 6, 1))
@@ -54,7 +54,7 @@ class PurchaseOrderRepositoryTest {
         orderOrdering2 = PurchaseOrder.builder()
                 .poNumber("PO-20260101-002")
                 .supplier("Supplier Beta")
-                .status(PurchaseOrderStatus.ORDERING)
+                .status(PurchaseOrderStatus.DRAFT)
                 .totalQuantity(50)
                 .totalCost(new BigDecimal("500.00"))
                 .expectedDate(LocalDate.of(2026, 6, 15))
@@ -92,7 +92,7 @@ class PurchaseOrderRepositoryTest {
 
         assertThat(found).isPresent();
         assertThat(found.get().getSupplier()).isEqualTo("Supplier Alpha");
-        assertThat(found.get().getStatus()).isEqualTo(PurchaseOrderStatus.ORDERING);
+        assertThat(found.get().getStatus()).isEqualTo(PurchaseOrderStatus.DRAFT);
     }
 
     @Test
@@ -126,7 +126,7 @@ class PurchaseOrderRepositoryTest {
     @Test
     @DisplayName("findByStatus - returns all orders with ORDERING status")
     void testFindByStatus_Ordering() {
-        List<PurchaseOrder> orders = purchaseOrderRepository.findByStatus(PurchaseOrderStatus.ORDERING);
+        List<PurchaseOrder> orders = purchaseOrderRepository.findByStatus(PurchaseOrderStatus.DRAFT);
 
         assertThat(orders).hasSize(2);
         assertThat(orders)
@@ -157,7 +157,7 @@ class PurchaseOrderRepositoryTest {
     @DisplayName("findByStatus with pageable - returns paginated results")
     void testFindByStatus_Pageable() {
         Page<PurchaseOrder> page = purchaseOrderRepository.findByStatus(
-                PurchaseOrderStatus.ORDERING, PageRequest.of(0, 1));
+                PurchaseOrderStatus.DRAFT, PageRequest.of(0, 1));
 
         assertThat(page.getTotalElements()).isEqualTo(2);
         assertThat(page.getContent()).hasSize(1);
@@ -167,7 +167,7 @@ class PurchaseOrderRepositoryTest {
     @DisplayName("findByStatus with pageable - second page returns remaining")
     void testFindByStatus_Pageable_SecondPage() {
         Page<PurchaseOrder> page = purchaseOrderRepository.findByStatus(
-                PurchaseOrderStatus.ORDERING, PageRequest.of(1, 1));
+                PurchaseOrderStatus.DRAFT, PageRequest.of(1, 1));
 
         assertThat(page.getTotalElements()).isEqualTo(2);
         assertThat(page.getContent()).hasSize(1);
@@ -199,7 +199,7 @@ class PurchaseOrderRepositoryTest {
     @Test
     @DisplayName("countByStatus - returns correct count for ORDERING")
     void testCountByStatus_Ordering() {
-        long count = purchaseOrderRepository.countByStatus(PurchaseOrderStatus.ORDERING);
+        long count = purchaseOrderRepository.countByStatus(PurchaseOrderStatus.DRAFT);
 
         assertThat(count).isEqualTo(2);
     }
@@ -224,7 +224,7 @@ class PurchaseOrderRepositoryTest {
         Optional<PurchaseOrder> found = purchaseOrderRepository.findByPoNumber("PO-20260101-001");
         assertThat(found).isEmpty();
 
-        long count = purchaseOrderRepository.countByStatus(PurchaseOrderStatus.ORDERING);
+        long count = purchaseOrderRepository.countByStatus(PurchaseOrderStatus.DRAFT);
         assertThat(count).isEqualTo(1);
     }
 }

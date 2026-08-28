@@ -23,8 +23,11 @@ public class AtpService {
             .toList();
     }
 
-    private AtpSupplyResponse toResponse(PurchaseOrderItem item) {
+    private AtpSupplyResponse toResponse(PurchaseOrderItemRepository.AtpSupplyRow row) {
+        PurchaseOrderItem item = row.getPurchaseOrderItem();
         PurchaseOrder order = item.getPurchaseOrder();
+        int confirmedInbound = row.getConfirmedInboundQuantity().intValue();
+        int committed = item.getCommittedQty() == null ? 0 : item.getCommittedQty();
         return AtpSupplyResponse.builder()
             .purchaseOrderId(order.getId())
             .poNumber(order.getPoNumber())
@@ -34,8 +37,9 @@ public class AtpService {
             .expectedDate(order.getExpectedDate())
             .orderedQty(item.getOrderedQuantity())
             .receivedQty(item.getReceivedQuantity())
-            .committedQty(item.getCommittedQty())
-            .availableToPromiseQty(item.getAvailableToPromiseQuantity())
+            .confirmedInboundQty(confirmedInbound)
+            .committedQty(committed)
+            .availableToPromiseQty(Math.max(0, confirmedInbound - committed))
             .supplierReliabilityScore(order.getSupplierReliabilityScore())
             .build();
     }

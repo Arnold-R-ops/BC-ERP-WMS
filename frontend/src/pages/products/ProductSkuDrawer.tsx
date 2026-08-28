@@ -125,6 +125,10 @@ export function ProductSkuDrawer({ open, permissionCodes, product, role, onClose
       render: (_, record) => <Tag color={record.batchTrackingMode === 'LOCATION_VISUAL' ? 'gold' : 'blue'}>{t(`productSkus.batchTracking.${record.batchTrackingMode ?? 'PRINTED_LABEL'}`)}</Tag>,
     },
     {
+      title: t('productSkus.fields.expiryManagementEnabled'), dataIndex: 'expiryManagementEnabled', width: 120, search: false,
+      render: (_, record) => <Tag color={record.expiryManagementEnabled ? 'gold' : 'default'}>{record.expiryManagementEnabled ? t('common.enabled') : t('common.disabled')}</Tag>,
+    },
+    {
       title: t('productSkus.fields.enabled'), dataIndex: 'enabled', width: 80, search: false,
       render: (_, record) => <Tag color={record.enabled ? 'success' : 'default'}>{record.enabled ? t('common.enabled') : t('common.disabled')}</Tag>,
     },

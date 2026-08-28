@@ -77,15 +77,26 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
            "AND item.receivedQuantity = 0")
     List<PurchaseOrderItem> findUnreceivedItems(@Param("purchaseOrderId") Long purchaseOrderId);
 
+    interface AtpSupplyRow {
+        PurchaseOrderItem getPurchaseOrderItem();
+        Number getConfirmedInboundQuantity();
+    }
+
+    /** Only confirmed, still-unreceived ASN quantities are promiseable supply. */
     @Query("""
-        SELECT item
-        FROM PurchaseOrderItem item
+        SELECT item AS purchaseOrderItem,
+               SUM(asnItem.shippedQuantity - asnItem.receivedQuantity - asnItem.closedQuantity)
+                   AS confirmedInboundQuantity
+        FROM PurchaseAsnItem asnItem
+        JOIN asnItem.purchaseAsn asn
+        JOIN asnItem.purchaseOrderItem item
         JOIN item.purchaseOrder po
         WHERE item.productSku.id = :productSkuId
-          AND po.status IN (com.wms.system.entity.enums.PurchaseOrderStatus.IN_TRANSIT,
-                            com.wms.system.entity.enums.PurchaseOrderStatus.PARTIALLY_RECEIVED)
-          AND item.orderedQuantity > item.receivedQuantity
+          AND asn.status IN (com.wms.system.entity.enums.PurchaseAsnStatus.CONFIRMED,
+                             com.wms.system.entity.enums.PurchaseAsnStatus.PARTIALLY_RECEIVED)
+          AND asnItem.shippedQuantity > asnItem.receivedQuantity + asnItem.closedQuantity
+        GROUP BY item, po.expectedDate, po.id
         ORDER BY po.expectedDate ASC, po.id ASC, item.id ASC
         """)
-    List<PurchaseOrderItem> findAtpSupplyByProductSku(@Param("productSkuId") Long productSkuId);
+    List<AtpSupplyRow> findAtpSupplyByProductSku(@Param("productSkuId") Long productSkuId);
 }

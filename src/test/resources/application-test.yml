@@ -24,6 +24,11 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:123465}
+    # Spring 会缓存多个测试上下文；测试池按需取连接，避免整套回归耗尽 PostgreSQL 槽位。
+    hikari:
+      minimum-idle: 0
+      maximum-pool-size: 4
+      idle-timeout: 10000
 
   # JPA 配置
   jpa:

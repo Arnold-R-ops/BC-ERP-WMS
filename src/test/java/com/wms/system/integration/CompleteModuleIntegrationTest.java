@@ -293,7 +293,7 @@ class CompleteModuleIntegrationTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.supplier").value("Test Supplier"))
             .andExpect(jsonPath("$.supplierId").value(supplier.getId()))
-            .andExpect(jsonPath("$.status").value("ORDERING"));
+            .andExpect(jsonPath("$.status").value("DRAFT"));
     }
 
     // ========== 濠电姷鏁告慨鐑姐€傞挊澹╋綁宕ㄩ弶鎴濈€銈呯箰閻楀棝鎮為崹顐犱簻闁圭儤鍨甸弳鐐烘煟濠垫劒閭柡?闂傚倸鍊搁崐鐑芥倿閿旈敮鍋撶粭娑樻噽閻瑩鏌熼悜姗嗘畷闁搞倕鐭傞弻娑㈠箻濡も偓濡鐨梻浣告惈椤︻垶鎮ч崘顔兼濞撴埃鍋撶€规洘鍨块獮姗€寮妷锔绘綌婵犵數鍋涘Λ娆撯€﹂崶顒€绀夌€瑰嫰鍋婂〒濠氭煏閸繃顥為悘蹇庡嵆閺岀喖顢欓悡搴樺亾閸ф宓?==========

@@ -198,7 +198,7 @@ public class InventoryBatch extends BaseEntity {
      * - 过期商品预警
      * - 自动拦截过期批次出库
      */
-    @Column(name = "expiry_date", nullable = false)
+    @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
     /**
@@ -384,7 +384,7 @@ public class InventoryBatch extends BaseEntity {
      * @return true 如果当前日期超过保质期
      */
     public boolean isExpired() {
-        return LocalDate.now().isAfter(this.expiryDate);
+        return this.expiryDate != null && LocalDate.now().isAfter(this.expiryDate);
     }
 
     /**
@@ -393,6 +393,9 @@ public class InventoryBatch extends BaseEntity {
      * @return true 如果距离过期日期小于等于 7 天
      */
     public boolean isExpiringSoon() {
+        if (this.expiryDate == null) {
+            return false;
+        }
         LocalDate today = LocalDate.now();
         LocalDate sevenDaysLater = today.plusDays(7);
         return !this.expiryDate.isBefore(today) && this.expiryDate.isBefore(sevenDaysLater);
@@ -403,7 +406,10 @@ public class InventoryBatch extends BaseEntity {
      *
      * @return 剩余天数（负数表示已过期）
      */
-    public long getDaysUntilExpiry() {
+    public Long getDaysUntilExpiry() {
+        if (this.expiryDate == null) {
+            return null;
+        }
         return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), this.expiryDate);
     }
 

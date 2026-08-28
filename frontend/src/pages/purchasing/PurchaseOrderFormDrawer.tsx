@@ -19,13 +19,27 @@ import {
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { listProductSkus } from '../../api/productSkus';
-import type { PurchaseOrderUpdatePayload } from '../../api/purchasing';
+import {
+  listPurchaseReferenceSkus,
+  listPurchaseReferenceWarehouses,
+  type PurchaseOrderUpdatePayload,
+} from '../../api/purchasing';
 import { listSuppliers } from '../../api/suppliers';
 
 const PURCHASE_LINES_PAGE_SIZE = 20;
 
-export type PurchaseOrderFormValues = Omit<PurchaseOrderUpdatePayload, 'version'>;
+export interface PurchaseOrderFormAllocation {
+  warehouseId?: number;
+  plannedQuantity?: number;
+}
+
+export type PurchaseOrderFormLine = PurchaseOrderUpdatePayload['items'][number] & {
+  allocations: PurchaseOrderFormAllocation[];
+};
+
+export interface PurchaseOrderFormValues extends Omit<PurchaseOrderUpdatePayload, 'version' | 'items'> {
+  items: PurchaseOrderFormLine[];
+}
 
 interface PurchaseOrderFormDrawerProps {
   initialValues?: PurchaseOrderFormValues;
@@ -44,6 +58,7 @@ interface PurchaseLine {
   productionDate?: string;
   remark?: string;
   orderedQuantity?: number;
+  allocations?: PurchaseOrderFormAllocation[];
   unitCost?: number;
 }
 
@@ -68,9 +83,10 @@ export interface PurchaseLinePageRange {
 }
 
 export interface PurchaseLineValidationIssue {
-  field: 'orderedQuantity' | 'productSkuId';
+  field: 'orderedQuantity' | 'plannedQuantity' | 'productSkuId' | 'warehouseId';
+  allocationIndex?: number;
   index: number;
-  type: 'duplicateProduct' | 'productRequired' | 'quantityRequired';
+  type: 'allocationMismatch' | 'allocationQuantityRequired' | 'duplicateProduct' | 'duplicateWarehouse' | 'productRequired' | 'quantityRequired' | 'warehouseRequired';
 }
 
 export function summarizePurchaseLines(lines: PurchaseLine[] = []): PurchaseLineSummary {
@@ -131,6 +147,31 @@ export function validatePurchaseLines(lines: PurchaseLine[] = []): PurchaseLineV
     }
     skuIndexes.set(line.productSkuId, index);
   }
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const allocations = line.allocations ?? [];
+    if (allocations.length === 0) {
+      return { allocationIndex: 0, field: 'warehouseId', index, type: 'warehouseRequired' };
+    }
+    const warehouseIndexes = new Map<number, number>();
+    for (let allocationIndex = 0; allocationIndex < allocations.length; allocationIndex += 1) {
+      const allocation = allocations[allocationIndex];
+      if (!allocation.warehouseId) {
+        return { allocationIndex, field: 'warehouseId', index, type: 'warehouseRequired' };
+      }
+      if (!allocation.plannedQuantity || Number(allocation.plannedQuantity) < 1) {
+        return { allocationIndex, field: 'plannedQuantity', index, type: 'allocationQuantityRequired' };
+      }
+      if (warehouseIndexes.has(allocation.warehouseId)) {
+        return { allocationIndex, field: 'warehouseId', index, type: 'duplicateWarehouse' };
+      }
+      warehouseIndexes.set(allocation.warehouseId, allocationIndex);
+    }
+    const allocatedQuantity = allocations.reduce((sum, allocation) => sum + (Number(allocation.plannedQuantity) || 0), 0);
+    if (allocatedQuantity !== Number(line.orderedQuantity)) {
+      return { allocationIndex: 0, field: 'plannedQuantity', index, type: 'allocationMismatch' };
+    }
+  }
   return null;
 }
 
@@ -149,8 +190,8 @@ export function PurchaseOrderFormDrawer({
   const [linePage, setLinePage] = useState(1);
   const [selectedLineKeys, setSelectedLineKeys] = useState<number[]>([]);
   const productSkusQuery = useQuery({
-    queryKey: ['product-skus', 'active'],
-    queryFn: () => listProductSkus({ enabledOnly: true }),
+    queryKey: ['purchase-reference-skus'],
+    queryFn: listPurchaseReferenceSkus,
     enabled: open,
   });
   const suppliersQuery = useQuery({
@@ -158,16 +199,27 @@ export function PurchaseOrderFormDrawer({
     queryFn: () => listSuppliers(true),
     enabled: open,
   });
+  const warehousesQuery = useQuery({
+    queryKey: ['purchase-reference-warehouses'],
+    queryFn: listPurchaseReferenceWarehouses,
+    enabled: open,
+  });
   const productSkuOptions = useMemo(() => (productSkusQuery.data ?? [])
     .filter((productSku): productSku is typeof productSku & { id: number } => productSku.id !== undefined)
     .map((productSku) => ({
-      label: `${productSku.productName ?? productSku.name ?? '-'} · ${productSku.skuName ?? productSku.specification ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`,
+      label: `${productSku.name ?? '-'} (${productSku.skuCode ?? productSku.barcode ?? '-'})`,
       value: productSku.id,
     })), [productSkusQuery.data]);
   const supplierOptions = (suppliersQuery.data ?? []).map((supplier) => ({
     label: `${supplier.name ?? '-'} (${supplier.code ?? '-'})`,
     value: supplier.id,
   }));
+  const warehouseOptions = (warehousesQuery.data ?? [])
+    .filter((warehouse): warehouse is typeof warehouse & { id: number } => warehouse.id !== undefined)
+    .map((warehouse) => ({
+      label: `${warehouse.name ?? '-'} (${warehouse.code ?? '-'})`,
+      value: warehouse.id,
+    }));
   const watchedItems = Form.useWatch('items', form) ?? [];
   const summary = summarizePurchaseLines(watchedItems);
   const selectedSkuIds = new Set(watchedItems
@@ -177,7 +229,7 @@ export function PurchaseOrderFormDrawer({
   useEffect(() => {
     if (!open) return;
     form.resetFields();
-    form.setFieldsValue(initialValues ?? { items: [{ orderedQuantity: 1 }] });
+    form.setFieldsValue(initialValues ?? { items: [{ allocations: [{ plannedQuantity: 1 }], orderedQuantity: 1 }] });
     setLinePage(1);
     setSelectedLineKeys([]);
   }, [form, initialValues, open]);
@@ -186,9 +238,19 @@ export function PurchaseOrderFormDrawer({
     const validationIssue = validatePurchaseLines(values.items);
     if (validationIssue) {
       setLinePage(Math.floor(validationIssue.index / PURCHASE_LINES_PAGE_SIZE) + 1);
+      const fieldName: ['items', number, 'productSkuId']
+        | ['items', number, 'orderedQuantity']
+        | ['items', number, 'allocations', number, 'warehouseId']
+        | ['items', number, 'allocations', number, 'plannedQuantity'] = validationIssue.allocationIndex === undefined
+        ? validationIssue.field === 'productSkuId'
+          ? ['items', validationIssue.index, 'productSkuId']
+          : ['items', validationIssue.index, 'orderedQuantity']
+        : validationIssue.field === 'warehouseId'
+          ? ['items', validationIssue.index, 'allocations', validationIssue.allocationIndex, 'warehouseId']
+          : ['items', validationIssue.index, 'allocations', validationIssue.allocationIndex, 'plannedQuantity'];
       form.setFields([{
         errors: [t(`purchasing.validation.${validationIssue.type}`)],
-        name: ['items', validationIssue.index, validationIssue.field],
+        name: fieldName,
       }]);
       return false;
     }
@@ -227,6 +289,14 @@ export function PurchaseOrderFormDrawer({
         <Alert
           action={<Button onClick={() => void suppliersQuery.refetch()} size="small">{t('common.retry')}</Button>}
           message={t('purchasing.messages.supplierLoadFailed')}
+          showIcon
+          type="error"
+        />
+      )}
+      {warehousesQuery.isError && (
+        <Alert
+          action={<Button onClick={() => void warehousesQuery.refetch()} size="small">{t('common.retry')}</Button>}
+          message={t('purchasing.messages.warehouseLoadFailed')}
           showIcon
           type="error"
         />
@@ -346,6 +416,7 @@ export function PurchaseOrderFormDrawer({
                       <span />
                       <span>{t('purchasing.fields.product')}</span>
                       <span>{t('purchasing.fields.orderedQuantity')}</span>
+                      <span>{t('purchasing.form.allocations')}</span>
                       <span>{t('purchasing.fields.unitCost')}</span>
                       <span>{t('purchasing.fields.expiryDate')}</span>
                       <span>{t('purchasing.fields.productionDate')}</span>
@@ -359,6 +430,11 @@ export function PurchaseOrderFormDrawer({
                       const currentSkuId = watchedItems[index]?.productSkuId;
                       const lineQuantity = Number(watchedItems[index]?.orderedQuantity) || 0;
                       const lineUnitCost = Number(watchedItems[index]?.unitCost) || 0;
+                      const currentAllocations = watchedItems[index]?.allocations ?? [];
+                      const allocatedQuantity = currentAllocations.reduce(
+                        (total, allocation) => total + (Number(allocation?.plannedQuantity) || 0),
+                        0,
+                      );
                       const options = productSkuOptions.map((option) => ({
                         ...option,
                         disabled: selectedSkuIds.has(option.value) && option.value !== currentSkuId,
@@ -405,8 +481,101 @@ export function PurchaseOrderFormDrawer({
                             name={[field.name, 'orderedQuantity']}
                             rules={[{ required: true, message: t('purchasing.validation.quantityRequired') }]}
                           >
-                            <InputNumber aria-label={t('purchasing.fields.orderedQuantity')} min={1} precision={0} />
+                            <InputNumber
+                              aria-label={t('purchasing.fields.orderedQuantity')}
+                              min={1}
+                              onChange={(value) => {
+                                const allocations = form.getFieldValue(['items', field.name, 'allocations']) ?? [];
+                                if (allocations.length === 1) {
+                                  form.setFieldValue(['items', field.name, 'allocations', 0, 'plannedQuantity'], value);
+                                }
+                              }}
+                              precision={0}
+                            />
                           </Form.Item>
+                          <Form.List
+                            name={[field.name, 'allocations']}
+                            rules={[{
+                              validator: async (_, allocations) => {
+                                if (!allocations || allocations.length < 1) {
+                                  throw new Error(t('purchasing.validation.warehouseRequired'));
+                                }
+                              },
+                            }]}
+                          >
+                            {(allocationFields, { add: addAllocation, remove: removeAllocation }, { errors: allocationErrors }) => (
+                              <div className="purchase-line-allocations">
+                                <div className="purchase-line-allocation-heading">
+                                  <span>{t('purchasing.form.allocatedSummary', { allocated: allocatedQuantity, ordered: lineQuantity })}</span>
+                                  <Button
+                                    aria-label={t('purchasing.form.addAllocation')}
+                                    icon={<PlusOutlined />}
+                                    onClick={() => addAllocation({
+                                      plannedQuantity: Math.max(1, lineQuantity - allocatedQuantity),
+                                    })}
+                                    size="small"
+                                    type="link"
+                                  >
+                                    {t('purchasing.form.addAllocation')}
+                                  </Button>
+                                </div>
+                                {allocationFields.map((allocationField) => {
+                                  const allocationIndex = allocationField.name;
+                                  const currentWarehouseId = currentAllocations[allocationIndex]?.warehouseId;
+                                  const selectedWarehouseIds = new Set(currentAllocations
+                                    .map((allocation) => allocation?.warehouseId)
+                                    .filter((warehouseId): warehouseId is number => warehouseId !== undefined));
+                                  const allocationWarehouseOptions = warehouseOptions.map((option) => ({
+                                    ...option,
+                                    disabled: selectedWarehouseIds.has(option.value) && option.value !== currentWarehouseId,
+                                  }));
+                                  return (
+                                    <div className="purchase-line-allocation-row" key={allocationField.key}>
+                                      <Form.Item
+                                        name={[allocationField.name, 'warehouseId']}
+                                        rules={[
+                                          { required: true, message: t('purchasing.validation.warehouseRequired') },
+                                          ({ getFieldValue }) => ({
+                                            validator: async (_, value) => {
+                                              if (!value) return;
+                                              const allocations = getFieldValue(['items', field.name, 'allocations']) ?? [];
+                                              const duplicateCount = allocations.filter(
+                                                (allocation: PurchaseOrderFormAllocation) => allocation?.warehouseId === value,
+                                              ).length;
+                                              if (duplicateCount > 1) throw new Error(t('purchasing.validation.duplicateWarehouse'));
+                                            },
+                                          }),
+                                        ]}
+                                      >
+                                        <Select
+                                          aria-label={t('purchasing.fields.targetWarehouse')}
+                                          loading={warehousesQuery.isLoading}
+                                          optionFilterProp="label"
+                                          options={allocationWarehouseOptions}
+                                          showSearch
+                                        />
+                                      </Form.Item>
+                                      <Form.Item
+                                        name={[allocationField.name, 'plannedQuantity']}
+                                        rules={[{ required: true, message: t('purchasing.validation.allocationQuantityRequired') }]}
+                                      >
+                                        <InputNumber aria-label={t('purchasing.fields.plannedQuantity')} min={1} precision={0} />
+                                      </Form.Item>
+                                      <Button
+                                        aria-label={t('purchasing.form.removeAllocation', { index: allocationIndex + 1 })}
+                                        danger
+                                        disabled={allocationFields.length === 1}
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => removeAllocation(allocationField.name)}
+                                        type="text"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                                <Form.ErrorList errors={allocationErrors} />
+                              </div>
+                            )}
+                          </Form.List>
                           <Form.Item name={[field.name, 'unitCost']}>
                             <InputNumber aria-label={t('purchasing.fields.unitCost')} min={0} precision={2} />
                           </Form.Item>
@@ -444,7 +613,7 @@ export function PurchaseOrderFormDrawer({
                       aria-label={t('purchasing.form.addItem')}
                       icon={<PlusOutlined />}
                       onClick={() => {
-                        add({ orderedQuantity: 1 });
+                        add({ allocations: [{ plannedQuantity: 1 }], orderedQuantity: 1 });
                         setLinePage(Math.ceil((fields.length + 1) / PURCHASE_LINES_PAGE_SIZE));
                       }}
                       type="dashed"

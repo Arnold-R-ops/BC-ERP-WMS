@@ -172,9 +172,9 @@ public class InventoryBatchResponse {
      *
      * @return days until expiry (negative if expired)
      */
-    public long getDaysUntilExpiry() {
+    public Long getDaysUntilExpiry() {
         if (expiryDate == null) {
-            return Long.MAX_VALUE;
+            return null;
         }
         return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), expiryDate);
     }

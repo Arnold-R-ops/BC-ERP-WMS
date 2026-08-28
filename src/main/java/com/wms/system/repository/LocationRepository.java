@@ -223,6 +223,9 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
      */
     List<Location> findByWarehouseId(Long warehouseId);
 
+    /** Enabled choices for task-scoped receiving; stable order helps handheld clients. */
+    List<Location> findByWarehouseIdAndEnabledTrueOrderByLocationCodeAsc(Long warehouseId);
+
     /**
      * 根据仓库对象和区域查询库位（Phase 3.4 新增）
      * 方法命名规范：findBy + 关联实体（Warehouse） + And + 字段（Zone）

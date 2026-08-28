@@ -214,6 +214,41 @@ class AllocationServiceTest {
         verify(inventoryBatchRepository, never()).findByProductSkuIdAndActiveOrderByExpiryDateAsc(anyLong(), anyBoolean());
     }
 
+    @Test
+    @DisplayName("specified FEFO allocation places undated batches after dated batches")
+    void testAllocateInventory_UserSpecifiedBatchesNullExpiryLast() throws Exception {
+        SalesOrderItem item = createOrderItem(1L, 1L, 15);
+        item.setSpecifiedBatchIds("[2, 3]");
+
+        InventoryBatch undated = createBatch(2L, "BATCH-UNDATED", 10, null);
+        InventoryBatch dated = createBatch(
+            3L,
+            "BATCH-DATED",
+            10,
+            LocalDate.now().plusMonths(2)
+        );
+
+        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(objectMapper.readValue(
+            eq("[2, 3]"),
+            org.mockito.ArgumentMatchers.<com.fasterxml.jackson.core.type.TypeReference<List<Long>>>any()
+        )).thenReturn(Arrays.asList(2L, 3L));
+        when(inventoryBatchRepository.findById(2L)).thenReturn(Optional.of(undated));
+        when(inventoryBatchRepository.findById(3L)).thenReturn(Optional.of(dated));
+        when(outboundTaskRepository.save(any(OutboundTask.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<OutboundTask> tasks = allocationService.allocateInventory(1L);
+
+        assertThat(tasks).hasSize(2);
+        assertThat(tasks.get(0).getAssignedBatchId()).isEqualTo(3L);
+        assertThat(tasks.get(0).getPlanQty()).isEqualTo(10);
+        assertThat(tasks.get(1).getAssignedBatchId()).isEqualTo(2L);
+        assertThat(tasks.get(1).getPlanQty()).isEqualTo(5);
+    }
+
     // ========== Test 3: Strict Box Strategy ==========
 
     @Test

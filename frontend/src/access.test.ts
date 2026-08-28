@@ -34,6 +34,11 @@ describe('effective-permission module access', () => {
     expect(canAccessModule('WAREHOUSE_STAFF', 'warehouseSetup', permissions)).toBe(false);
   });
 
+  it('shows other inbound only with its dedicated management permission', () => {
+    expect(canAccessModule('CUSTOM_ROLE', 'inbound', ['menu:inbound'])).toBe(false);
+    expect(canAccessModule('CUSTOM_ROLE', 'inbound', ['other_inbound:manage'])).toBe(true);
+  });
+
   it('separates integration administration from read-only reconciliation', () => {
     const permissions = ['menu:integration-reconciliation', 'integration:reconcile:view'];
     expect(canAccessModule('GENERAL_MANAGER', 'integrations', permissions)).toBe(true);

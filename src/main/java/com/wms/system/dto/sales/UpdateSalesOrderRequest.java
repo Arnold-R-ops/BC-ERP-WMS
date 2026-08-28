@@ -1,5 +1,6 @@
 package com.wms.system.dto.sales;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,6 +47,7 @@ public class UpdateSalesOrderRequest {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(name = "UpdateSalesOrderItemRequest")
     public static class SalesOrderItemData {
 
         /**

@@ -62,6 +62,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AllocationService {
 
+    private static final Comparator<InventoryBatch> FEFO_BATCH_ORDER =
+        Comparator.comparing(
+                InventoryBatch::getExpiryDate,
+                Comparator.nullsLast(Comparator.naturalOrder())
+            )
+            .thenComparing(
+                InventoryBatch::getQuantity,
+                Comparator.nullsLast(Comparator.naturalOrder())
+            )
+            .thenComparing(
+                InventoryBatch::getId,
+                Comparator.nullsLast(Comparator.naturalOrder())
+            );
+
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
@@ -556,7 +570,7 @@ public class AllocationService {
 
         // 4. Sort by expiry date (FEFO)
         List<InventoryBatch> sortedBatches = specifiedBatches.stream()
-            .sorted((b1, b2) -> b1.getExpiryDate().compareTo(b2.getExpiryDate()))
+            .sorted(FEFO_BATCH_ORDER)
             .collect(Collectors.toList());
 
         // 5. Allocate from batches
@@ -636,7 +650,7 @@ public class AllocationService {
         int remaining = requestedQty;
 
         List<InventoryBatch> fefoBatches = sortedBatches.stream()
-            .sorted(Comparator.comparing(InventoryBatch::getExpiryDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .sorted(FEFO_BATCH_ORDER)
             .collect(Collectors.toList());
 
         for (InventoryBatch batch : fefoBatches) {

@@ -493,6 +493,17 @@ public class ProductSku extends BaseEntity {
     @Builder.Default
     private Integer nearExpiryDays = 90;
 
+    /**
+     * Whether production and expiry dates are mandatory for newly received
+     * inventory of this SKU.
+     *
+     * <p>New SKUs default to {@code false}. The V4.75 migration marks legacy
+     * SKUs as enabled so existing expiry-managed behaviour is preserved.</p>
+     */
+    @Column(name = "expiry_management_enabled", nullable = false)
+    @Builder.Default
+    private Boolean expiryManagementEnabled = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "batch_tracking_mode", nullable = false, length = 30)
     @Builder.Default

@@ -1,5 +1,6 @@
 package com.wms.system.dto.integration;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
@@ -16,6 +17,7 @@ public class ShopifyReconciliationRepairResult {
 
     @Data
     @Builder
+    @Schema(name = "ShopifyReconciliationRepairItem")
     public static class Item {
         private Long rawEventId;
         private String externalOrderId;

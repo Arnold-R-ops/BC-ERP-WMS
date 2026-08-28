@@ -1,7 +1,6 @@
 package com.wms.system.dto;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -19,15 +18,13 @@ import java.util.List;
  *
  * Business Flow:
  * 1. Upload Excel or manually create purchase order
- * 2. Submit this request to create PO with ORDERING status
+ * 2. Submit this request to create a DRAFT purchase order
  * 3. Generate PO number (PO-YYYYMMDD-XXX format)
  * 4. expiry_date is optional at this stage
  *
  * Validation:
  * - supplierId: required; supplier name is resolved from master data
  * - items: required, at least one item
- * - operatorId: required
- * - operatorName: required
  * - expectedDate: optional
  * - remark: optional
  *
@@ -58,18 +55,6 @@ public class CreatePurchaseOrderRequest {
      * Expected delivery date (optional)
      */
     private LocalDate expectedDate;
-
-    /**
-     * Operator user ID (required)
-     */
-    @NotNull(message = "Operator ID is required")
-    private Long operatorId;
-
-    /**
-     * Operator user name (required)
-     */
-    @NotBlank(message = "Operator name is required")
-    private String operatorName;
 
     /**
      * Remark (optional)

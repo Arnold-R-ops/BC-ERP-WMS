@@ -30,10 +30,12 @@ import java.util.stream.Collectors;
  * Purchase Order Management Controller
  *
  * Provides RESTful APIs for purchase order operations:
- * - Stage 1: Create PO (ORDERING)
- * - Stage 2: Confirm ASN and generate batch codes (IN_TRANSIT)
- * - Stage 3: Physical receipt (PARTIALLY_RECEIVED/COMPLETED)
- * - State rollback (IN_TRANSIT → ORDERING)
+ * - Create and edit purchase-order drafts
+ * - Query commercial workflow status
+ * - Import draft lines from the controlled spreadsheet template
+ *
+ * Shipment notifications and physical receipts are intentionally exposed by
+ * PurchaseAsnController and ReceivingTaskController, not by this controller.
  * - Excel import
  * - Query operations
  *
@@ -75,7 +77,7 @@ public class PurchaseOrderController {
     }
 
     /**
-     * ⭐ Stage 1: Create Purchase Order
+     * Create purchase-order draft
      *
      * API Endpoint:
      * POST /api/purchase-orders
@@ -89,19 +91,19 @@ public class PurchaseOrderController {
      *       "productSkuId": 1,
      *       "orderedQuantity": 100,
      *       "unitCost": 10.50,
-     *       "expiryDate": "2025-12-31",
+     *       "expiryDate": "2027-12-31",
      *       "externalBatchCode": "BATCH001"
      *     }
      *   ],
-     *   "expectedDate": "2025-01-20",
-     *   "operatorId": 1,
-     *   "operatorName": "admin",
+     *   "expectedDate": "2026-09-20",
      *   "remark": "Urgent order"
      * }
      * </pre>
      *
      * Success Response (200 OK):
-     * Returns PurchaseOrderResponse with ORDERING status
+     * Returns PurchaseOrderResponse with DRAFT status. The authoritative actor
+     * is always resolved from the authenticated account and is never accepted
+     * from this request body.
      *
      * @param request Create purchase order request
      * @param authentication Current user authentication
@@ -114,8 +116,10 @@ public class PurchaseOrderController {
         @Valid @RequestBody CreatePurchaseOrderRequest request,
         Authentication authentication
     ) {
-        log.info("API: Create purchase order - supplierId={}, itemCount={}, operator={}",
-            request.getSupplierId(), request.getItems().size(), request.getOperatorName());
+        Long actorId = AuthUserResolver.resolveUserId(authentication);
+        String actorName = AuthUserResolver.resolveUsername(authentication);
+        log.info("API: Create purchase order - supplierId={}, itemCount={}, actorId={}",
+            request.getSupplierId(), request.getItems().size(), actorId);
 
         // Convert DTO to Service input format
         List<PurchaseOrderService.PurchaseOrderItemData> itemsData = request.getItems().stream()
@@ -135,8 +139,8 @@ public class PurchaseOrderController {
             request.getSupplierId(),
             itemsData,
             request.getExpectedDate(),
-            request.getOperatorId(),
-            request.getOperatorName(),
+            actorId,
+            actorName,
             request.getRemark()
         );
 
@@ -150,7 +154,7 @@ public class PurchaseOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** Edit an existing purchase order without leaving ORDERING. */
+    /** Edit an existing purchase-order draft. */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('purchase:update', 'TENANT_ADMIN')")
     @Transactional(rollbackFor = Exception.class)
@@ -195,8 +199,6 @@ public class PurchaseOrderController {
      * Form Data Parameters:
      * - file: Excel file (XLSX format, required)
      * - supplierId: Supplier master-data ID (required)
-     * - operatorId: Operator user ID (required)
-     * - operatorName: Operator user name (required)
      * - expectedDate: Expected delivery date (optional, format: yyyy-MM-dd)
      *
      * Excel Format:
@@ -207,8 +209,6 @@ public class PurchaseOrderController {
      *
      * @param file Excel file
      * @param supplierId Supplier master-data ID
-     * @param operatorId Operator ID
-     * @param operatorName Operator name
      * @param authentication Current user authentication
      * @return ResponseEntity<PurchaseOrderResponse> Created purchase order
      */
@@ -218,13 +218,13 @@ public class PurchaseOrderController {
     public ResponseEntity<PurchaseOrderResponse> uploadExcel(
         @RequestParam("file") MultipartFile file,
         @RequestParam("supplierId") Long supplierId,
-        @RequestParam("operatorId") Long operatorId,
-        @RequestParam("operatorName") String operatorName,
         @RequestParam(value = "expectedDate", required = false) String expectedDate,
         Authentication authentication
     ) {
-        log.info("API: Upload Excel - filename={}, supplierId={}, operator={}",
-            file.getOriginalFilename(), supplierId, operatorName);
+        Long actorId = AuthUserResolver.resolveUserId(authentication);
+        String actorName = AuthUserResolver.resolveUsername(authentication);
+        log.info("API: Upload Excel - filename={}, supplierId={}, actorId={}",
+            file.getOriginalFilename(), supplierId, actorId);
 
         // Parse Excel file
         List<PurchaseOrderService.PurchaseOrderItemData> itemsData =
@@ -237,8 +237,8 @@ public class PurchaseOrderController {
             supplierId,
             itemsData,
             expectedDate != null ? java.time.LocalDate.parse(expectedDate) : null,
-            operatorId,
-            operatorName,
+            actorId,
+            actorName,
             "Imported from Excel: " + file.getOriginalFilename()
         );
 
@@ -250,191 +250,6 @@ public class PurchaseOrderController {
             response.getPoNumber(), response.getItems().size());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    /**
-     * ⭐ Stage 2: Confirm ASN and Generate Batch Codes
-     *
-     * API Endpoint:
-     * PUT /api/purchase-orders/{id}/confirm
-     *
-     * Request Body Example:
-     * <pre>
-     * {
-     *   "items": [
-     *     {
-     *       "itemId": 1,
-     *       "expiryDate": "2025-12-31",
-     *       "productionDate": "2025-01-01"
-     *     }
-     *   ]
-     * }
-     * </pre>
-     *
-     * Success Response (200 OK):
-     * Returns PurchaseOrderResponse with IN_TRANSIT status and generated batch codes
-     *
-     * @param id Purchase order ID
-     * @param request Confirm order request
-     * @param authentication Current user authentication
-     * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
-     */
-    @PutMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyAuthority('purchase:confirm', 'TENANT_ADMIN')")
-    @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<PurchaseOrderResponse> confirmAndGenerateBatchCodes(
-        @PathVariable("id") Long id,
-        @Valid @RequestBody ConfirmOrderRequest request,
-        Authentication authentication
-    ) {
-        log.info("API: Confirm ASN and generate batch codes - purchaseOrderId={}, itemCount={}",
-            id, request.getItems().size());
-
-        // Convert DTO to Service input format
-        List<PurchaseOrderService.ItemExpiryUpdate> updates = request.getItems().stream()
-            .map(item -> PurchaseOrderService.ItemExpiryUpdate.builder()
-                .itemId(item.getItemId())
-                .expiryDate(item.getExpiryDate())
-                .productionDate(item.getProductionDate())
-                .build())
-            .collect(Collectors.toList());
-
-        // Call service
-        PurchaseOrder purchaseOrder = purchaseOrderService.confirmAndGenerateBatchCodes(id, updates);
-
-        // Convert to response DTO with privacy masking
-        String userRoleCode = getUserRoleCode(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
-
-        log.info("API: Batch codes generated - poNumber={}, status={}, batchCount={}",
-            response.getPoNumber(), response.getStatus(),
-            response.getItems().stream().mapToLong(item -> item.getBatches().size()).sum());
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * ⭐ Stage 3: Confirm Physical Receipt
-     *
-     * API Endpoint:
-     * PUT /api/purchase-orders/{id}/receive
-     *
-     * Request Body Example:
-     * <pre>
-     * {
-     *   "receiveItems": [
-     *     {
-     *       "itemId": 1,
-     *       "batches": [
-     *         {
-     *           "batchCode": "R7M4K9",
-     *           "locationId": 101
-     *         }
-     *       ]
-     *     }
-     *   ],
-     *   "operatorId": 1,
-     *   "operatorName": "warehouse_staff"
-     * }
-     * </pre>
-     *
-     * Success Response (200 OK):
-     * Returns PurchaseOrderResponse with PARTIALLY_RECEIVED or COMPLETED status
-     *
-     * Supports Partial Receiving:
-     * - Can be called multiple times for same PO
-     * - receivedQuantity accumulates
-     *
-     * @param id Purchase order ID
-     * @param request Confirm receipt request
-     * @param authentication Current user authentication
-     * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
-     */
-    @PutMapping("/{id}/receive")
-    @PreAuthorize("hasAnyAuthority('purchase:receive', 'TENANT_ADMIN')")
-    @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<PurchaseOrderResponse> receiveGoods(
-        @PathVariable("id") Long id,
-        @Valid @RequestBody ConfirmReceiptRequest request,
-        Authentication authentication
-    ) {
-        log.info("API: Confirm physical receipt - purchaseOrderId={}, batchCount={}, operator={}",
-            id, request.getReceiveItems().stream().mapToLong(item -> item.getBatches().size()).sum(),
-            request.getOperatorName());
-
-        // Convert DTO to Service input format
-        List<PurchaseOrderService.BatchReceiptData> receiptData = request.getReceiveItems().stream()
-            .flatMap(item -> item.getBatches().stream()
-                .map(batch -> PurchaseOrderService.BatchReceiptData.builder()
-                    .batchCode(batch.getBatchCode())
-                    .locationId(batch.getLocationId())
-                    .build()))
-            .collect(Collectors.toList());
-
-        // Call service
-        PurchaseOrder purchaseOrder = purchaseOrderService.receiveGoods(
-            id,
-            receiptData,
-            request.getOperatorId(),
-            request.getOperatorName()
-        );
-
-        // Convert to response DTO with privacy masking
-        String userRoleCode = getUserRoleCode(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
-
-        log.info("API: Physical receipt completed - poNumber={}, status={}, receivedQty={}/{}",
-            response.getPoNumber(), response.getStatus(),
-            response.getItems().stream().mapToInt(PurchaseOrderItemResponse::getReceivedQuantity).sum(),
-            response.getTotalQuantity());
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * ⭐ Rollback to ORDERING
-     *
-     * API Endpoint:
-     * PUT /api/purchase-orders/{id}/rollback
-     *
-     * Request Body Example:
-     * <pre>
-     * {
-     *   "reason": "Supplier changed, need to re-verify data"
-     * }
-     * </pre>
-     *
-     * Success Response (200 OK):
-     * Returns PurchaseOrderResponse with ORDERING status
-     *
-     * ⚠️ Note: Only IN_TRANSIT → ORDERING rollback allowed
-     *
-     * @param id Purchase order ID
-     * @param reason Rollback reason
-     * @param authentication Current user authentication
-     * @return ResponseEntity<PurchaseOrderResponse> Updated purchase order
-     */
-    @PutMapping("/{id}/rollback")
-    @PreAuthorize("hasAnyAuthority('purchase:rollback', 'TENANT_ADMIN')")
-    @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<PurchaseOrderResponse> rollbackToOrdering(
-        @PathVariable("id") Long id,
-        @RequestParam("reason") String reason,
-        Authentication authentication
-    ) {
-        log.info("API: Rollback to ORDERING - purchaseOrderId={}, reason={}", id, reason);
-
-        // Call service
-        PurchaseOrder purchaseOrder = purchaseOrderService.rollbackToOrdering(id, reason);
-
-        // Convert to response DTO with privacy masking
-        String userRoleCode = getUserRoleCode(authentication);
-        PurchaseOrderResponse response = mapToResponse(purchaseOrder, userRoleCode);
-
-        log.info("API: Rollback completed - poNumber={}, status={}",
-            response.getPoNumber(), response.getStatus());
-
-        return ResponseEntity.ok(response);
     }
 
     /**
@@ -471,7 +286,7 @@ public class PurchaseOrderController {
      * Query Purchase Orders by Status
      *
      * API Endpoint:
-     * GET /api/purchase-orders?status=ORDERING
+     * GET /api/purchase-orders?status=DRAFT
      *
      * Success Response (200 OK):
      * Returns List<PurchaseOrderResponse> with privacy masking applied

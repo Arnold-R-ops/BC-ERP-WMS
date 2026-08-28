@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -53,6 +54,7 @@ class EmergencyStockCorrectionServiceTest {
     @Mock private InventoryBatchRepository inventoryBatchRepository;
     @Mock private InventoryReservationRepository reservationRepository;
     @Mock private ProductSkuRepository productSkuRepository;
+    @Spy private ProductSkuExpiryPolicy expiryPolicy = new ProductSkuExpiryPolicy();
     @Mock private LocationRepository locationRepository;
     @Mock private WarehouseRepository warehouseRepository;
     @Mock private LocationOccupancyService locationOccupancyService;
@@ -70,6 +72,7 @@ class EmergencyStockCorrectionServiceTest {
             inventoryBatchRepository,
             reservationRepository,
             productSkuRepository,
+            expiryPolicy,
             locationRepository,
             warehouseRepository,
             locationOccupancyService,
@@ -118,6 +121,55 @@ class EmergencyStockCorrectionServiceTest {
         assertThat(response.getSubmittedBy()).isNull();
         assertThat(response.getApprovalModeSnapshot()).isNull();
         verify(policyService, never()).effectiveMode();
+    }
+
+    @Test
+    void createNewBatchAllowsMissingDatesForUnmanagedSku() {
+        ProductSku product = product(1L);
+        product.setExpiryManagementEnabled(false);
+        Location location = location(7L, 5L);
+        EmergencyStockCorrectionRequest request = request(1L, 7L, null, 5);
+        request.setBatchCode("B-NO-EXPIRY");
+        request.setProductionDate(null);
+        request.setExpiryDate(null);
+
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(locationRepository.findByIdForInventoryPosting(7L)).thenReturn(Optional.of(location));
+        when(inventoryBatchRepository.existsByBatchCodeAndLocationId("B-NO-EXPIRY", 7L))
+            .thenReturn(false);
+        when(correctionRepository.existsByCorrectionNo(any())).thenReturn(false);
+
+        EmergencyStockCorrectionResponse response = service.create(request, 21L, 5L);
+
+        assertThat(response.getProductionDate()).isNull();
+        assertThat(response.getExpiryDate()).isNull();
+        verify(expiryPolicy).validateForInventoryReceipt(product, null, null);
+    }
+
+    @Test
+    void createNewBatchRequiresDatesForExpiryManagedSku() {
+        ProductSku product = product(1L);
+        product.setExpiryManagementEnabled(true);
+        Location location = location(7L, 5L);
+        EmergencyStockCorrectionRequest request = request(1L, 7L, null, 5);
+        request.setBatchCode("B-MANAGED");
+        request.setProductionDate(null);
+        request.setExpiryDate(null);
+
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(locationRepository.findByIdForInventoryPosting(7L)).thenReturn(Optional.of(location));
+        when(inventoryBatchRepository.existsByBatchCodeAndLocationId("B-MANAGED", 7L))
+            .thenReturn(false);
+
+        assertThatThrownBy(() -> service.create(request, 21L, 5L))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue(
+                "errorKey",
+                ErrorKeys.PRODUCT_SKU_PRODUCTION_DATE_REQUIRED
+            );
+
+        verify(expiryPolicy).validateForInventoryReceipt(product, null, null);
+        verify(correctionRepository, never()).save(any());
     }
 
     @Test

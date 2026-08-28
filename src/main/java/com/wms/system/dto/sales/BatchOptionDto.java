@@ -58,6 +58,7 @@ public class BatchOptionDto {
      * 值：
      * - FRESH: 新鲜
      * - WARNING: 临期预警
+     * - NO_EXPIRY: SKU 未启用效期管理
      */
     private String freshnessStatus;
 

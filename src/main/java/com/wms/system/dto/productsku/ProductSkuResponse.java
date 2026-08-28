@@ -31,6 +31,7 @@ public class ProductSkuResponse {
     private Integer conversionRate;
     private String packUnit;
     private Integer nearExpiryDays;
+    private Boolean expiryManagementEnabled;
     private Long categoryId;
     private String categoryCode;
     private String categoryName;

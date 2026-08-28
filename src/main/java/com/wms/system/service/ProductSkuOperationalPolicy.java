@@ -20,6 +20,7 @@ public class ProductSkuOperationalPolicy {
     public static final String SALES_ORDER = "SALES_ORDER";
     public static final String PURCHASE_ORDER = "PURCHASE_ORDER";
     public static final String INBOUND_ORDER = "INBOUND_ORDER";
+    public static final String OTHER_INBOUND = "OTHER_INBOUND";
     public static final String INVENTORY_ALLOCATION = "INVENTORY_ALLOCATION";
 
     public void requireEnabled(ProductSku productSku, String operation) {

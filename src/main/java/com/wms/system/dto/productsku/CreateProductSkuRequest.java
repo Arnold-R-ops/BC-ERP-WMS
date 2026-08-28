@@ -61,6 +61,13 @@ public class CreateProductSkuRequest {
     @Min(1)
     private Integer nearExpiryDays;
 
+    /**
+     * Whether production and expiry dates are required when this SKU is
+     * received into inventory. Omitted values default to {@code false} when
+     * creating a SKU and leave the existing setting unchanged when updating.
+     */
+    private Boolean expiryManagementEnabled;
+
     @Size(max = 200)
     private String supplier;
 

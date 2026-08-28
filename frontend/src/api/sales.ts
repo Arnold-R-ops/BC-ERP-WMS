@@ -4,7 +4,7 @@ import { apiBlobRequest, apiRawRequest, apiRequest } from './http';
 export type SalesOrder = components['schemas']['SalesOrderResponse'];
 export type SalesOrderItem = components['schemas']['SalesOrderItemResponse'];
 export type SalesOrderPayload = components['schemas']['CreateSalesOrderRequest'];
-export type SalesOrderItemPayload = components['schemas']['SalesOrderItemData'];
+export type SalesOrderItemPayload = components['schemas']['CreateSalesOrderItemRequest'];
 export type SalesApprovalPayload = components['schemas']['ApprovalRequest'];
 export type SalesOrderShipment = components['schemas']['SalesOrderShipmentResponse'];
 export type SalesOrderShipmentPayload = components['schemas']['SalesOrderShipmentRequest'];

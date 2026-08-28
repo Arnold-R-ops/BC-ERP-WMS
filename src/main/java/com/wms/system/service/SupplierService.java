@@ -25,7 +25,11 @@ import java.util.Map;
 public class SupplierService {
 
     private static final List<PurchaseOrderStatus> OPEN_PURCHASE_STATUSES = List.of(
-        PurchaseOrderStatus.ORDERING,
+        PurchaseOrderStatus.DRAFT,
+        PurchaseOrderStatus.PENDING_APPROVAL,
+        PurchaseOrderStatus.REJECTED,
+        PurchaseOrderStatus.AWAITING_SHIPMENT,
+        PurchaseOrderStatus.PARTIALLY_SHIPPED,
         PurchaseOrderStatus.IN_TRANSIT,
         PurchaseOrderStatus.PARTIALLY_RECEIVED
     );

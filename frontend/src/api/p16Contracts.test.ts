@@ -48,8 +48,6 @@ describe('P1.6 frontend API contracts', () => {
     await downloadPurchaseOrderTemplate();
     await importPurchaseOrder({
       file: new File(['xlsx'], 'purchase.xlsx'),
-      operatorId: 2,
-      operatorName: 'buyer',
       supplierId: 9,
     });
 
@@ -60,7 +58,7 @@ describe('P1.6 frontend API contracts', () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      '/api/purchase-orders/upload?supplierId=9&operatorId=2&operatorName=buyer',
+      '/api/purchase-orders/upload?supplierId=9',
       expect.objectContaining({ method: 'POST' }),
     );
   });

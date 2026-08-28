@@ -224,19 +224,25 @@ public class SalesEntryService {
             .filter(batch -> {
                 // 杩囨护涓存湡鎵规
                 if (Boolean.TRUE.equals(rejectNearExpiry)) {
-                    long daysUntilExpiry = ChronoUnit.DAYS.between(today, batch.getExpiryDate());
-                    return daysUntilExpiry > product.getNearExpiryDays();
+                    Integer daysUntilExpiry = daysUntilExpiry(today, batch.getExpiryDate());
+                    return daysUntilExpiry == null
+                        || daysUntilExpiry > product.getNearExpiryDays();
                 }
                 return true;
             })
             .map(batch -> {
                 // 璁＄畻璺濈杩囨湡澶╂暟
-                long daysUntilExpiry = ChronoUnit.DAYS.between(today, batch.getExpiryDate());
+                Integer daysUntilExpiry = daysUntilExpiry(today, batch.getExpiryDate());
 
                 // 鍒ゆ柇鏂伴矞搴︾姸鎬?
-                String freshnessStatus = daysUntilExpiry > product.getNearExpiryDays()
-                    ? "FRESH"
-                    : "WARNING";
+                String freshnessStatus;
+                if (daysUntilExpiry == null) {
+                    freshnessStatus = "NO_EXPIRY";
+                } else {
+                    freshnessStatus = daysUntilExpiry > product.getNearExpiryDays()
+                        ? "FRESH"
+                        : "WARNING";
+                }
 
                 // 鍒ゆ柇鍖呰鐘舵€?
                 String packageStatus = PackageStatusFormatter.withIcon(
@@ -250,7 +256,7 @@ public class SalesEntryService {
                     .locationCode(batch.getLocationCode())
                     .quantity(batch.getQuantity())
                     .expiryDate(batch.getExpiryDate())
-                    .daysUntilExpiry((int) daysUntilExpiry)
+                    .daysUntilExpiry(daysUntilExpiry)
                     .freshnessStatus(freshnessStatus)
                     .packageStatus(packageStatus)
                     .unitPrice(product.getUnitPrice())
@@ -260,6 +266,13 @@ public class SalesEntryService {
 
         log.info("Found {} batch options for productSkuId={}", options.size(), productSkuId);
         return options;
+    }
+
+    private Integer daysUntilExpiry(LocalDate today, LocalDate expiryDate) {
+        if (expiryDate == null) {
+            return null;
+        }
+        return Math.toIntExact(ChronoUnit.DAYS.between(today, expiryDate));
     }
 
     // ========== Helper Methods ==========

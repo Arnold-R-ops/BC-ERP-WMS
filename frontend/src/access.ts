@@ -29,7 +29,7 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
   sales: ['menu:sales'],
   analytics: ['menu:reports'],
   purchasing: ['menu:purchase'],
-  inbound: ['menu:inbound'],
+  inbound: ['other_inbound:manage'],
   outbound: ['menu:outbound'],
   stocktake: ['menu:stocktake'],
   inventoryCorrection: ['menu:inventory-correction'],

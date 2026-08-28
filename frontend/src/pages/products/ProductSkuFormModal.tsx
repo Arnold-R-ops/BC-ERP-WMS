@@ -51,6 +51,7 @@ export function ProductSkuFormModal({
         conversionRate: productSku?.conversionRate ?? 1,
         packUnit: productSku?.packUnit ?? t('common.unit'),
         nearExpiryDays: productSku?.nearExpiryDays ?? 90,
+        expiryManagementEnabled: productSku?.expiryManagementEnabled ?? false,
         supplier: productSku?.supplier,
         description: productSku?.description,
         batchTrackingMode: productSku?.batchTrackingMode ?? 'PRINTED_LABEL',
@@ -123,6 +124,11 @@ export function ProductSkuFormModal({
         <ProFormDigit fieldProps={{ min: 0, precision: 0 }} label={t('productSkus.fields.leadTime')} name="leadTime" width="xs" />
         <ProFormDigit fieldProps={{ min: 1, precision: 0 }} label={t('productSkus.fields.nearExpiryDays')} name="nearExpiryDays" width="xs" />
       </ProForm.Group>
+      <ProFormSwitch
+        label={t('productSkus.fields.expiryManagementEnabled')}
+        name="expiryManagementEnabled"
+        tooltip={t('productSkus.form.expiryManagementHint')}
+      />
       <ProForm.Group>
         <ProFormText fieldProps={{ maxLength: 200 }} label={t('productSkus.fields.supplier')} name="supplier" width="md" />
         <ProFormSelect

@@ -149,7 +149,10 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         WHERE b.productSku.id = :productSkuId
           AND b.active = true
           AND b.quantity > 0
-        ORDER BY b.expiryDate DESC
+        ORDER BY
+          CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END,
+          b.expiryDate DESC,
+          b.id ASC
         """)
     List<InventoryDetailRow> findActiveDetailRowsByProductSkuId(@Param("productSkuId") Long productSkuId);
 
@@ -170,7 +173,10 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         WHERE b.locationCode = :locationCode
           AND b.active = true
           AND b.quantity > 0
-        ORDER BY b.expiryDate DESC
+        ORDER BY
+          CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END,
+          b.expiryDate DESC,
+          b.id ASC
         """)
     List<InventoryDetailRow> findActiveDetailRowsByLocationCode(@Param("locationCode") String locationCode);
 
@@ -200,7 +206,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
            "AND b.active = :active " +
            "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +
-           "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
+           "ORDER BY CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END, " +
+           "b.expiryDate ASC, b.quantity ASC, b.id ASC")
     List<InventoryBatch> findByProductSkuIdAndActiveOrderByExpiryDateAsc(
         @Param("productSkuId") Long productSkuId,
         @Param("active") Boolean active
@@ -229,6 +236,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
           )
         ORDER BY
           CASE WHEN b.active = true THEN 0 ELSE 1 END,
+          CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END,
           b.expiryDate ASC,
           b.quantity ASC,
           b.id ASC
@@ -289,7 +297,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      * @return List of expired batches
      */
     @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.expiryDate < :today " +
+           "WHERE b.expiryDate IS NOT NULL " +
+           "AND b.expiryDate < :today " +
            "AND b.active = :active " +
            "AND b.location IS NOT NULL " +
            "ORDER BY b.expiryDate ASC, b.quantity ASC, b.id ASC")
@@ -307,7 +316,8 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
      * @return List of soon-to-expire batches
      */
     @Query("SELECT b FROM InventoryBatch b " +
-           "WHERE b.expiryDate BETWEEN :today AND :alertDate " +
+           "WHERE b.expiryDate IS NOT NULL " +
+           "AND b.expiryDate BETWEEN :today AND :alertDate " +
            "AND b.active = :active " +
            "AND b.location IS NOT NULL " +
            "AND b.quantity > 0 " +

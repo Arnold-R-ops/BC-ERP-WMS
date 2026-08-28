@@ -27,6 +27,12 @@ public class WarehouseScopeService {
     }
 
     @Transactional(readOnly = true)
+    public Set<Long> getAssignedWarehouseIds(Authentication authentication) {
+        return userWarehouseService.getAssignedWarehouseIds(
+            AuthUserResolver.resolveUserId(authentication));
+    }
+
+    @Transactional(readOnly = true)
     public void requireAccess(
         Authentication authentication,
         Collection<Long> resourceWarehouseIds,

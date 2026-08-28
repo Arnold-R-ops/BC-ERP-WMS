@@ -17,6 +17,7 @@ public class AtpSupplyResponse {
     private LocalDate expectedDate;
     private Integer orderedQty;
     private Integer receivedQty;
+    private Integer confirmedInboundQty;
     private Integer committedQty;
     private Integer availableToPromiseQty;
     private BigDecimal supplierReliabilityScore;
