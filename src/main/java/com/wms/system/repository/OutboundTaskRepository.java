@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import jakarta.persistence.LockModeType;
 
 /**
@@ -28,6 +29,12 @@ import jakarta.persistence.LockModeType;
  */
 @Repository
 public interface OutboundTaskRepository extends JpaRepository<OutboundTask, Long> {
+
+    Optional<OutboundTask> findByReservationId(Long reservationId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM OutboundTask o WHERE o.reservationId = :reservationId")
+    Optional<OutboundTask> findByReservationIdForUpdate(@Param("reservationId") Long reservationId);
 
     /**
      * 根据销售订单ID查询任务列表

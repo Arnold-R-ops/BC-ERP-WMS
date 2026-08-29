@@ -44,6 +44,9 @@ const StocktakePage = lazy(() =>
 const EmergencyCorrectionPage = lazy(() =>
   import('./pages/corrections/EmergencyCorrectionPage').then((module) => ({ default: module.EmergencyCorrectionPage })),
 );
+const InventoryQualityPage = lazy(() =>
+  import('./pages/inventoryQuality/InventoryQualityPage').then((module) => ({ default: module.InventoryQualityPage })),
+);
 const WarehousePage = lazy(() =>
   import('./pages/warehouseSetup/WarehousePage').then((module) => ({ default: module.WarehousePage })),
 );
@@ -218,6 +221,7 @@ function AppRoutes(): JSX.Element {
             />
             <Route element={<ModuleRoute module="stocktake"><Navigate replace to="stocktake" /></ModuleRoute>} path="inventory-governance" />
             <Route element={<ModuleRoute module="stocktake"><StocktakePage /></ModuleRoute>} path="inventory-governance/stocktake" />
+            <Route element={<ModuleRoute module="inventoryQuality"><InventoryQualityPage /></ModuleRoute>} path="inventory-governance/quality" />
             <Route element={<ModuleRoute module="inventoryCorrection"><EmergencyCorrectionPage /></ModuleRoute>} path="inventory-governance/corrections" />
             <Route element={<ModuleRoute module="warehouseSetup"><Navigate replace to="warehouses" /></ModuleRoute>} path="warehouse-setup" />
             <Route element={<ModuleRoute module="warehouseSetup"><WarehousePage /></ModuleRoute>} path="warehouse-setup/warehouses" />

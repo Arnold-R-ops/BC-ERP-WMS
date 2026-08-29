@@ -25,6 +25,10 @@ public interface InventoryReservationRepository extends JpaRepository<InventoryR
 
     List<InventoryReservation> findByInventoryBatchId(Long inventoryBatchId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM InventoryReservation r WHERE r.inventoryBatchId IN :batchIds ORDER BY r.id")
+    List<InventoryReservation> findOpenByBatchIdsForUpdate(@Param("batchIds") Collection<Long> batchIds);
+
     List<InventoryReservation> findBySalesOrderIdAndStatusIn(
         Long salesOrderId,
         Collection<ReservationStatus> statuses

@@ -258,6 +258,11 @@ public final class ErrorKeys {
 
     /** Reserved stock must be released before it can leave AVAILABLE. */
     public static final String INVENTORY_QUALITY_RESERVED_CONFLICT = "INVENTORY_QUALITY_RESERVED_CONFLICT";
+    public static final String INVENTORY_QUALITY_ACTION_NOT_FOUND = "INVENTORY_QUALITY_ACTION_NOT_FOUND";
+    public static final String INVENTORY_QUALITY_ACTION_INVALID = "INVENTORY_QUALITY_ACTION_INVALID";
+    public static final String INVENTORY_QUALITY_REALLOCATION_SHORTAGE = "INVENTORY_QUALITY_REALLOCATION_SHORTAGE";
+    public static final String INVENTORY_QUALITY_OUTBOUND_STARTED = "INVENTORY_QUALITY_OUTBOUND_STARTED";
+    public static final String INVENTORY_QUALITY_RELEASE_PENDING = "INVENTORY_QUALITY_RELEASE_PENDING";
 
     /** An idempotency key is required for this write command. */
     public static final String IDEMPOTENCY_KEY_REQUIRED = "IDEMPOTENCY_KEY_REQUIRED";

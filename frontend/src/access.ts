@@ -12,6 +12,7 @@ export type AppModule =
   | 'outbound'
   | 'stocktake'
   | 'inventoryCorrection'
+  | 'inventoryQuality'
   | 'warehouseMobile'
   | 'warehouseSetup'
   | 'integrations'
@@ -33,6 +34,7 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
   outbound: ['menu:outbound'],
   stocktake: ['menu:stocktake'],
   inventoryCorrection: ['menu:inventory-correction'],
+  inventoryQuality: ['inventory_quality:view'],
   warehouseMobile: ['menu:warehouse-mobile'],
   warehouseSetup: ['menu:warehouse-setup'],
   integrations: ['menu:system', 'menu:integration-reconciliation'],

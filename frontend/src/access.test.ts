@@ -46,6 +46,13 @@ describe('effective-permission module access', () => {
     expect(canAccessModule('GENERAL_MANAGER', 'integrationAdmin', permissions)).toBe(false);
   });
 
+  it('exposes quality handling only through its dedicated view permission', () => {
+    expect(canAccessModule('WAREHOUSE_STAFF', 'inventoryQuality', ['inventory_quality:view']))
+      .toBe(true);
+    expect(canAccessModule('WAREHOUSE_STAFF', 'inventoryQuality', ['menu:inventory']))
+      .toBe(false);
+  });
+
   it('requires a current role even for the dashboard', () => {
     expect(canAccessModule(undefined, 'dashboard', [])).toBe(false);
     expect(canAccessModule('CUSTOM_ROLE', 'dashboard', [])).toBe(true);

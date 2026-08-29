@@ -452,6 +452,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory-quality/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["policy"];
+        put: operations["updatePolicy_2"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/sku-mappings/{id}": {
         parameters: {
             query?: never;
@@ -475,7 +491,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_8"];
+        get: operations["get_9"];
         put: operations["update_5"];
         post?: never;
         delete: operations["delete_1"];
@@ -524,7 +540,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_2"];
-        put: operations["updatePolicy_2"];
+        put: operations["updatePolicy_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -555,7 +571,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_10"];
+        get: operations["get_11"];
         put: operations["update_6"];
         post?: never;
         delete: operations["delete_2"];
@@ -2084,6 +2100,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory-quality/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["release_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/hold-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["previewHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/actions/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["withdraw_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/actions/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/actions/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/sku-mappings": {
         parameters: {
             query?: never;
@@ -2091,7 +2203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post: operations["create_9"];
         delete?: never;
@@ -2171,7 +2283,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post: operations["create_10"];
         delete?: never;
@@ -2203,7 +2315,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post: operations["create_11"];
         delete?: never;
@@ -2253,7 +2365,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_2"];
+        post: operations["reject_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2269,7 +2381,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_2"];
+        post: operations["approve_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2331,7 +2443,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_17"];
+        get: operations["list_18"];
         put?: never;
         post: operations["create_12"];
         delete?: never;
@@ -3556,6 +3668,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory-quality/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_12"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-quality/actions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_7"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/sku-mappings/pending": {
         parameters: {
             query?: never;
@@ -3595,7 +3755,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3611,7 +3771,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_7"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3627,7 +3787,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_9"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3675,7 +3835,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_16"];
+        get: operations["list_17"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4631,6 +4791,17 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        InventoryQualityPolicyUpdateRequest: {
+            /** @enum {string} */
+            releaseMode: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            reason: string;
+            confirmed?: boolean;
+        };
+        InventoryQualityPolicyResponse: {
+            /** @enum {string} */
+            releaseMode?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            availableModes?: ("DIRECT_WITH_REASON" | "APPROVAL_REQUIRED")[];
         };
         ChannelSkuMappingRequest: {
             channel?: string;
@@ -5609,6 +5780,131 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        InventoryQualityQuantityRequest: {
+            /** Format: int64 */
+            batchId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
+        InventoryQualityReleaseRequest: {
+            lines: components["schemas"]["InventoryQualityQuantityRequest"][];
+            reasonCode: string;
+            reasonDetail?: string;
+            externalReference?: string;
+        };
+        InventoryQualityActionLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            /** Format: int64 */
+            resultBatchId?: number;
+            sourceBatchCode?: string;
+            resultBatchCode?: string;
+            /** Format: int64 */
+            productSkuId?: number;
+            productSkuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            reallocatedReservedQuantity?: number;
+            /** @enum {string} */
+            fromStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+            /** @enum {string} */
+            toStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+        };
+        InventoryQualityActionResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            version?: number;
+            actionNumber?: string;
+            /** @enum {string} */
+            actionType?: "HOLD" | "RELEASE";
+            /** @enum {string} */
+            holdType?: "QUARANTINE" | "RECALL";
+            /** @enum {string} */
+            status?: "COMPLETED" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+            /** @enum {string} */
+            releaseModeSnapshot?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            reasonCode?: string;
+            reasonDetail?: string;
+            recallNoticeNumber?: string;
+            externalReference?: string;
+            /** Format: int64 */
+            requestedBy?: number;
+            requestedByName?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedByName?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+            lines?: components["schemas"]["InventoryQualityActionLineResponse"][];
+        };
+        InventoryQualityHoldRequest: {
+            /** @enum {string} */
+            holdType: "QUARANTINE" | "RECALL";
+            lines: components["schemas"]["InventoryQualityQuantityRequest"][];
+            reasonCode: string;
+            reasonDetail?: string;
+            recallNoticeNumber?: string;
+            externalReference?: string;
+            confirmReservationReallocation?: boolean;
+        };
+        InventoryQualityAffectedOrderResponse: {
+            /** Format: int64 */
+            salesOrderId?: number;
+            /** Format: int64 */
+            salesOrderItemId?: number;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        InventoryQualityHoldPreviewLineResponse: {
+            /** Format: int64 */
+            batchId?: number;
+            batchCode?: string;
+            productSkuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            locationCode?: string;
+            /** Format: int32 */
+            onHandQuantity?: number;
+            /** Format: int32 */
+            reservedQuantity?: number;
+            /** Format: int32 */
+            requestedHoldQuantity?: number;
+            /** Format: int32 */
+            reservationQuantityToReallocate?: number;
+            /** Format: int32 */
+            alternateSaleableQuantity?: number;
+            /** Format: int32 */
+            shortageQuantity?: number;
+            affectedSalesOrders?: components["schemas"]["InventoryQualityAffectedOrderResponse"][];
+        };
+        InventoryQualityHoldPreviewResponse: {
+            executable?: boolean;
+            confirmationRequired?: boolean;
+            /** Format: int32 */
+            totalReservationQuantityToReallocate?: number;
+            /** Format: int32 */
+            totalShortageQuantity?: number;
+            lines?: components["schemas"]["InventoryQualityHoldPreviewLineResponse"][];
+        };
+        InventoryQualityActionRequest: {
+            comment: string;
+        };
         ResolvePendingSkuRequest: {
             action: string;
             /** Format: int64 */
@@ -5917,9 +6213,9 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
-            buttonPermission?: boolean;
             menuPermission?: boolean;
             apiPermission?: boolean;
+            buttonPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
             /** Format: int64 */
@@ -6040,14 +6336,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerFactListItemResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6057,12 +6353,12 @@ export interface components {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
-            /** Format: int32 */
-            pageNumber?: number;
             unpaged?: boolean;
             paged?: boolean;
             /** Format: int32 */
             pageSize?: number;
+            /** Format: int32 */
+            pageNumber?: number;
         };
         SortObject: {
             direction?: string;
@@ -6236,14 +6532,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformCompanyResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6293,14 +6589,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAuditLogResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6327,14 +6623,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAdminSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6481,14 +6777,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["InventorySummaryDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6502,6 +6798,8 @@ export interface components {
             specs?: string;
         };
         InventoryDetailDto: {
+            /** Format: int64 */
+            batchId?: number;
             batchCode?: string;
             traceCode?: string;
             warehouseName?: string;
@@ -6546,19 +6844,50 @@ export interface components {
             availableToPromiseQty?: number;
             supplierReliabilityScore?: number;
         };
+        InventoryQualityCandidateResponse: {
+            /** Format: int64 */
+            batchId?: number;
+            batchCode?: string;
+            externalBatchCode?: string;
+            qualitySegmentNo?: string;
+            /** Format: int64 */
+            qualityParentBatchId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            productSkuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            reservedQuantity?: number;
+            /** Format: int32 */
+            availableQuantity?: number;
+            /** @enum {string} */
+            qualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+        };
         PageRawEventSummary: {
             /** Format: int64 */
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["RawEventSummary"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -7659,6 +7988,50 @@ export interface operations {
             };
         };
     };
+    policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityPolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityPolicyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityPolicyResponse"];
+                };
+            };
+        };
+    };
     update_4: {
         parameters: {
             query?: never;
@@ -7685,7 +8058,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -7817,7 +8190,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_2: {
+    updatePolicy_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -7909,7 +8282,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -10669,7 +11042,161 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    release_1: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"];
+                };
+            };
+        };
+    };
+    hold: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityHoldRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"];
+                };
+            };
+        };
+    };
+    previewHold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityHoldRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityHoldPreviewResponse"];
+                };
+            };
+        };
+    };
+    withdraw_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"];
+                };
+            };
+        };
+    };
+    reject_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"];
+                };
+            };
+        };
+    };
+    approve_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryQualityActionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"];
+                };
+            };
+        };
+    };
+    list_13: {
         parameters: {
             query?: {
                 channel?: string;
@@ -10811,7 +11338,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -10879,7 +11406,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -10977,7 +11504,7 @@ export interface operations {
             };
         };
     };
-    reject_2: {
+    reject_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11003,7 +11530,7 @@ export interface operations {
             };
         };
     };
-    approve_2: {
+    approve_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11130,7 +11657,7 @@ export interface operations {
             };
         };
     };
-    list_17: {
+    list_18: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -12863,6 +13390,73 @@ export interface operations {
             };
         };
     };
+    candidates: {
+        parameters: {
+            query?: {
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityCandidateResponse"][];
+                };
+            };
+        };
+    };
+    list_12: {
+        parameters: {
+            query?: {
+                type?: "HOLD" | "RELEASE";
+                status?: "COMPLETED" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"][];
+                };
+            };
+        };
+    };
+    get_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryQualityActionResponse"];
+                };
+            };
+        };
+    };
     pending: {
         parameters: {
             query?: {
@@ -12910,7 +13504,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: {
                 channel?: string;
@@ -12935,7 +13529,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -12957,7 +13551,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -13023,7 +13617,7 @@ export interface operations {
             };
         };
     };
-    list_16: {
+    list_17: {
         parameters: {
             query?: never;
             header?: never;

@@ -24,6 +24,7 @@ import com.wms.system.signup.security.SignupTokenHasher;
 import com.wms.system.subscription.model.*;
 import com.wms.system.subscription.repository.SubscriptionPlanRepository;
 import com.wms.system.subscription.repository.TenantSubscriptionRepository;
+import com.wms.system.service.inventory.InventoryQualityPermissionCatalogue;
 import com.wms.system.tenant.config.TenancyProperties;
 import com.wms.system.tenant.context.RequestSurface;
 import com.wms.system.tenant.context.TenantContext;
@@ -59,6 +60,7 @@ public class TenantProvisioningService {
     private final SysRoleRepository roleRepository;
     private final SysUserRoleRepository userRoleRepository;
     private final SessionHandoffCodeRepository handoffRepository;
+    private final InventoryQualityPermissionCatalogue inventoryQualityPermissionCatalogue;
     private final PasswordEncoder passwordEncoder;
     private final SignupTokenHasher tokenHasher;
     private final SignupProperties signupProperties;
@@ -174,6 +176,7 @@ public class TenantProvisioningService {
         SignupRequest signup = signupRepository.findById(signupId)
             .orElseThrow(() -> new BusinessException(ErrorKeys.SIGNUP_REQUEST_NOT_FOUND));
         String internalUsername = "owner-" + signup.getIdentityId();
+        inventoryQualityPermissionCatalogue.provisionForTenant(tenantId);
         User user = userRepository.findByCompanyIdAndUsername(tenantId, internalUsername)
             .orElseGet(() -> userRepository.save(User.builder()
                 .username(internalUsername).password(signup.getPasswordHash())

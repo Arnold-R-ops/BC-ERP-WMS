@@ -90,6 +90,7 @@ const menuDefinitions: MenuDefinition[] = [
     path: '/inventory-governance', module: 'stocktake', nameKey: 'menu.inventoryGovernance', icon: <SafetyCertificateOutlined />, delivered: true,
     children: [
       { path: '/inventory-governance/stocktake', module: 'stocktake', nameKey: 'menu.stocktake', icon: <AuditOutlined />, delivered: true },
+      { path: '/inventory-governance/quality', module: 'inventoryQuality', nameKey: 'menu.inventoryQuality', icon: <SafetyCertificateOutlined />, delivered: true },
       { path: '/inventory-governance/corrections', module: 'inventoryCorrection', nameKey: 'menu.emergencyCorrections', icon: <ThunderboltOutlined />, delivered: true },
     ],
   },

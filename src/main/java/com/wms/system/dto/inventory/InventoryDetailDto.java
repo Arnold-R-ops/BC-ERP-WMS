@@ -16,6 +16,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventoryDetailDto {
+    private Long batchId;
     private String batchCode;
     private String traceCode;
     private String warehouseName;

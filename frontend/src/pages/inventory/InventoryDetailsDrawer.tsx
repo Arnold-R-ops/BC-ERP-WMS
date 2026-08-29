@@ -1,6 +1,9 @@
-import { Alert, Descriptions, Drawer, Empty, Table, Tag, type TableColumnsType } from 'antd';
+import { Alert, Button, Descriptions, Drawer, Empty, Table, Tag, type TableColumnsType } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { hasPermission } from '../../access';
+import { useAuth } from '../../auth/AuthProvider';
 import { getErrorMessage } from '../../api/errors';
 import { getInventoryDetails, type InventoryDetail, type InventorySummary } from '../../api/inventory';
 import {
@@ -24,6 +27,10 @@ export function InventoryDetailsDrawer({
   onClose,
 }: InventoryDetailsDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const canHold = session?.currentRole === 'TENANT_ADMIN'
+    || hasPermission(session?.currentRole, session?.permissionCodes, 'inventory_quality:hold');
   const productSkuId = summary?.productSkuId;
   const detailsQuery = useQuery({
     queryKey: ['inventory', 'details', productSkuId],
@@ -118,6 +125,23 @@ export function InventoryDetailsDrawer({
         );
       },
     },
+    ...(canHold ? [{
+      title: t('common.actions'),
+      fixed: 'right' as const,
+      width: 120,
+      render: (_: unknown, row: InventoryDetail) => row.batchId && row.qualityStatus === 'AVAILABLE' ? (
+        <Button
+          onClick={() => {
+            onClose();
+            navigate(`/inventory-governance/quality?batchId=${row.batchId}&search=${encodeURIComponent(row.batchCode ?? '')}`);
+          }}
+          size="small"
+          type="link"
+        >
+          {i18n.language === 'zh-CN' ? '冻结库存' : 'Freeze'}
+        </Button>
+      ) : '-',
+    }] : []),
   ];
 
   return (

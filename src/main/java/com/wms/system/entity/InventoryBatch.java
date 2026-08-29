@@ -189,6 +189,14 @@ public class InventoryBatch extends BaseEntity {
     @Builder.Default
     private InventoryQualityStatus qualityStatus = InventoryQualityStatus.AVAILABLE;
 
+    /** Parent physical row when this row was created by a partial quality split. */
+    @Column(name = "quality_parent_batch_id")
+    private Long qualityParentBatchId;
+
+    /** Internal, tenant-scoped identifier for a quality-controlled stock segment. */
+    @Column(name = "quality_segment_no", length = 50)
+    private String qualitySegmentNo;
+
     /**
      * 初始入库数量（不可变）
      *

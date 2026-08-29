@@ -106,6 +106,7 @@ public class InventoryQueryService {
 
     private InventoryDetailDto buildInventoryDetail(InventoryBatchRepository.InventoryDetailRow row) {
         return InventoryDetailDto.builder()
+            .batchId(row.getBatchId())
             .batchCode(row.getBatchCode())
             .traceCode(row.getBatchCode())
             .warehouseName(row.getWarehouseName())
