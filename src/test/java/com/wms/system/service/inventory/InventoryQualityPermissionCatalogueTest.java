@@ -18,7 +18,7 @@ class InventoryQualityPermissionCatalogueTest {
     @Mock private SysPermissionRepository repository;
 
     @Test
-    void newTenantReceivesFiveUnassignedCustomPermissions() {
+    void newTenantReceivesQualityAndInspectionCustomPermissions() {
         when(repository.existsByCompanyIdAndPermissionCode(eq(88L), anyString()))
             .thenReturn(false);
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -26,18 +26,21 @@ class InventoryQualityPermissionCatalogueTest {
         new InventoryQualityPermissionCatalogue(repository).provisionForTenant(88L);
 
         ArgumentCaptor<SysPermission> captor = ArgumentCaptor.forClass(SysPermission.class);
-        verify(repository, times(5)).save(captor.capture());
+        verify(repository, times(10)).save(captor.capture());
         assertThat(captor.getAllValues()).extracting(SysPermission::getPermissionCode)
             .containsExactly(
                 "inventory_quality:view", "inventory_quality:hold",
                 "inventory_quality:release", "inventory_quality:review",
-                "inventory_quality:policy"
+                "inventory_quality:policy",
+                "receiving_inspection:view", "receiving_inspection:execute",
+                "receiving_inspection:review", "receiving_inspection:correct",
+                "receiving_inspection:policy"
             );
         assertThat(captor.getAllValues()).allSatisfy(permission -> {
             assertThat(permission.isCustomAssignable()).isTrue();
             assertThat(permission.getStatus()).isEqualTo("ACTIVE");
         });
-        verify(repository, times(5)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
+        verify(repository, times(10)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
         verifyNoMoreInteractions(repository);
     }
 }

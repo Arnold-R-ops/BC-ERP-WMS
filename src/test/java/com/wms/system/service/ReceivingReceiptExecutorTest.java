@@ -25,6 +25,8 @@ import com.wms.system.repository.PurchaseOrderReceivingRepository;
 import com.wms.system.repository.ReceiptEventRepository;
 import com.wms.system.repository.ReceivingTaskRepository;
 import com.wms.system.service.inventory.InventoryPostingService;
+import com.wms.system.service.inspection.ReceivingInspectionPolicyService;
+import com.wms.system.service.inspection.ReceivingInspectionTaskFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -55,6 +57,8 @@ class ReceivingReceiptExecutorTest {
     @Mock PurchaseAsnService purchaseAsnService;
     @Mock BackorderService backorderService;
     @Mock ReceivingResponseMapper mapper;
+    @Mock ReceivingInspectionPolicyService inspectionPolicyService;
+    @Mock ReceivingInspectionTaskFactory inspectionTaskFactory;
 
     @InjectMocks ReceivingReceiptExecutor executor;
 

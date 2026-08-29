@@ -1,8 +1,15 @@
 import type { components } from './schema';
 import { apiRequest } from './http';
 
-export type ProductSku = components['schemas']['ProductSkuResponse'] & { expiryManagementEnabled?: boolean };
-export type ProductSkuPayload = components['schemas']['CreateProductSkuRequest'] & { expiryManagementEnabled?: boolean };
+export type ReceivingInspectionRequirement = 'INHERIT' | 'REQUIRED' | 'EXEMPT';
+export type ProductSku = components['schemas']['ProductSkuResponse'] & {
+  expiryManagementEnabled?: boolean;
+  inspectionRequirement?: ReceivingInspectionRequirement;
+};
+export type ProductSkuPayload = components['schemas']['CreateProductSkuRequest'] & {
+  expiryManagementEnabled?: boolean;
+  inspectionRequirement?: ReceivingInspectionRequirement;
+};
 
 export interface ProductSkuListParams {
   enabledOnly?: boolean;

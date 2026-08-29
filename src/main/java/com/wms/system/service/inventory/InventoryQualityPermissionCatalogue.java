@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/** Ensures tenants created after V4.79 receive the same assignable catalogue. */
+/** Ensures newly created tenants receive the current assignable quality catalogue. */
 @Service
 @RequiredArgsConstructor
 public class InventoryQualityPermissionCatalogue {
@@ -55,7 +55,24 @@ public class InventoryQualityPermissionCatalogue {
                 "Approve or reject another user's release request"),
             new PermissionSeed("inventory_quality:policy", "配置恢复可售策略",
                 "/api/inventory-quality/policy", "*", SysPermission.RISK_LEVEL_CRITICAL,
-                154, "Configure the tenant release-to-saleable policy when explicitly assigned")
+                154, "Configure the tenant release-to-saleable policy when explicitly assigned"),
+            new PermissionSeed("receiving_inspection:view", "查看收货质检任务",
+                "/api/receiving-inspections/**", "GET", SysPermission.RISK_LEVEL_NORMAL,
+                155, "View warehouse-scoped receipt inspection tasks and safe receipt data"),
+            new PermissionSeed("receiving_inspection:execute", "执行收货质检",
+                "/api/receiving-inspections/*/results", "POST", SysPermission.RISK_LEVEL_HIGH,
+                156, "Submit full or sampling inspection decisions"),
+            new PermissionSeed("receiving_inspection:review", "复核质检放行",
+                "/api/receiving-inspections/results/*/approve;/api/receiving-inspections/results/*/reject",
+                "POST", SysPermission.RISK_LEVEL_CRITICAL, 157,
+                "Approve or reject another user release-to-saleable decision"),
+            new PermissionSeed("receiving_inspection:correct", "发起质检更正复检",
+                "/api/receiving-inspections/reinspections", "POST",
+                SysPermission.RISK_LEVEL_CRITICAL, 158,
+                "Create an immutable correction and reinspection chain"),
+            new PermissionSeed("receiving_inspection:policy", "配置收货质检策略",
+                "/api/receiving-inspections/policy", "*", SysPermission.RISK_LEVEL_CRITICAL,
+                159, "Configure optional tenant inspection and release review policy")
         );
     }
 

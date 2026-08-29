@@ -1,6 +1,7 @@
 package com.wms.system.dto.productsku;
 
 import com.wms.system.entity.enums.BatchTrackingMode;
+import com.wms.system.entity.enums.ReceivingInspectionRequirement;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -67,6 +68,8 @@ public class CreateProductSkuRequest {
      * creating a SKU and leave the existing setting unchanged when updating.
      */
     private Boolean expiryManagementEnabled;
+
+    private ReceivingInspectionRequirement inspectionRequirement;
 
     @Size(max = 200)
     private String supplier;

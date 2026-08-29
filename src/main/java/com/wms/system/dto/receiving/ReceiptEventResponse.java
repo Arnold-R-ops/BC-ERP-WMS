@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.wms.system.entity.enums.InventoryQualityStatus;
 
 public record ReceiptEventResponse(
     Long id,
@@ -27,6 +28,8 @@ public record ReceiptEventResponse(
         Long inventoryBatchId,
         String batchCode,
         Integer quantity,
+        Boolean inspectionRequired,
+        InventoryQualityStatus qualityStatusAtReceipt,
         LocalDate productionDate,
         LocalDate expiryDate,
         String externalBatchCode

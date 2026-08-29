@@ -52,6 +52,7 @@ export function ProductSkuFormModal({
         packUnit: productSku?.packUnit ?? t('common.unit'),
         nearExpiryDays: productSku?.nearExpiryDays ?? 90,
         expiryManagementEnabled: productSku?.expiryManagementEnabled ?? false,
+        inspectionRequirement: productSku?.inspectionRequirement ?? 'INHERIT',
         supplier: productSku?.supplier,
         description: productSku?.description,
         batchTrackingMode: productSku?.batchTrackingMode ?? 'PRINTED_LABEL',
@@ -128,6 +129,17 @@ export function ProductSkuFormModal({
         label={t('productSkus.fields.expiryManagementEnabled')}
         name="expiryManagementEnabled"
         tooltip={t('productSkus.form.expiryManagementHint')}
+      />
+      <ProFormSelect
+        label={t('productSkus.fields.inspectionRequirement')}
+        name="inspectionRequirement"
+        tooltip={t('productSkus.form.inspectionRequirementHint')}
+        options={[
+          { label: t('productSkus.inspectionRequirement.INHERIT'), value: 'INHERIT' },
+          { label: t('productSkus.inspectionRequirement.REQUIRED'), value: 'REQUIRED' },
+          { label: t('productSkus.inspectionRequirement.EXEMPT'), value: 'EXEMPT' },
+        ]}
+        width="md"
       />
       <ProForm.Group>
         <ProFormText fieldProps={{ maxLength: 200 }} label={t('productSkus.fields.supplier')} name="supplier" width="md" />

@@ -129,6 +129,10 @@ export function ProductSkuDrawer({ open, permissionCodes, product, role, onClose
       render: (_, record) => <Tag color={record.expiryManagementEnabled ? 'gold' : 'default'}>{record.expiryManagementEnabled ? t('common.enabled') : t('common.disabled')}</Tag>,
     },
     {
+      title: t('productSkus.fields.inspectionRequirement'), dataIndex: 'inspectionRequirement', width: 145, search: false,
+      render: (_, record) => <Tag color={record.inspectionRequirement === 'REQUIRED' ? 'blue' : 'default'}>{t('productSkus.inspectionRequirement.' + (record.inspectionRequirement ?? 'INHERIT'))}</Tag>,
+    },
+    {
       title: t('productSkus.fields.enabled'), dataIndex: 'enabled', width: 80, search: false,
       render: (_, record) => <Tag color={record.enabled ? 'success' : 'default'}>{record.enabled ? t('common.enabled') : t('common.disabled')}</Tag>,
     },

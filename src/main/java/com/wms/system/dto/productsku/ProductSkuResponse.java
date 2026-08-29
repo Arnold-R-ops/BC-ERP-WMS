@@ -1,6 +1,7 @@
 package com.wms.system.dto.productsku;
 
 import com.wms.system.entity.enums.BatchTrackingMode;
+import com.wms.system.entity.enums.ReceivingInspectionRequirement;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -32,6 +33,7 @@ public class ProductSkuResponse {
     private String packUnit;
     private Integer nearExpiryDays;
     private Boolean expiryManagementEnabled;
+    private ReceivingInspectionRequirement inspectionRequirement;
     private Long categoryId;
     private String categoryCode;
     private String categoryName;

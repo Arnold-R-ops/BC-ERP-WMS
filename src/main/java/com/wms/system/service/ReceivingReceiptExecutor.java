@@ -36,6 +36,8 @@ import com.wms.system.repository.ReceivingTaskRepository;
 import com.wms.system.service.inventory.InventoryPostingCommand;
 import com.wms.system.service.inventory.InventoryPostingService;
 import com.wms.system.service.inventory.PostingContext;
+import com.wms.system.service.inspection.ReceivingInspectionPolicyService;
+import com.wms.system.service.inspection.ReceivingInspectionTaskFactory;
 import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -78,6 +80,8 @@ public class ReceivingReceiptExecutor {
     private final PurchaseAsnService purchaseAsnService;
     private final BackorderService backorderService;
     private final ReceivingResponseMapper mapper;
+    private final ReceivingInspectionPolicyService inspectionPolicyService;
+    private final ReceivingInspectionTaskFactory inspectionTaskFactory;
 
     @Transactional(rollbackFor = Exception.class)
     public ReceiptEventResponse execute(
@@ -169,6 +173,11 @@ public class ReceivingReceiptExecutor {
         int sequence = 0;
         for (ValidatedLine line : lines) {
             String batchCode = uniqueNumber("RCB");
+            boolean inspectionRequired =
+                inspectionPolicyService.requiresInspection(line.taskItem().getProductSku());
+            InventoryQualityStatus receiptQualityStatus = inspectionRequired
+                ? InventoryQualityStatus.PENDING_INSPECTION
+                : InventoryQualityStatus.AVAILABLE;
             InventoryBatch batch = InventoryBatch.builder()
                 .batchCode(batchCode)
                 .purchaseOrderItem(line.taskItem().getPurchaseOrderItem())
@@ -177,7 +186,7 @@ public class ReceivingReceiptExecutor {
                 .locationCode(line.location().getLocationCode())
                 .quantity(0)
                 .reservedQuantity(0)
-                .qualityStatus(InventoryQualityStatus.AVAILABLE)
+                .qualityStatus(receiptQualityStatus)
                 .initialQuantity(line.request().quantity())
                 .productionDate(line.productionDate())
                 .expiryDate(line.expiryDate())
@@ -219,16 +228,21 @@ public class ReceivingReceiptExecutor {
                 .expiryDate(line.expiryDate())
                 .externalBatchCode(line.externalBatchCode())
                 .postingId(postingId)
+                .inspectionRequired(inspectionRequired)
+                .qualityStatusAtReceipt(receiptQualityStatus)
                 .build());
 
             applyQuantities(
                 task.getSourceType(), line.taskItem(), line.allocation(),
                 line.request().quantity());
-            receivedSkuIds.add(line.taskItem().getProductSku().getId());
+            if (!inspectionRequired) {
+                receivedSkuIds.add(line.taskItem().getProductSku().getId());
+            }
         }
 
         updateStatuses(locked, allocations.values());
         receiptEventRepository.saveAndFlush(event);
+        inspectionTaskFactory.createForReceipt(event);
         receivedSkuIds.forEach(backorderService::wakeProduct);
         return mapper.toReceipt(event);
     }

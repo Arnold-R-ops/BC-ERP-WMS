@@ -9,6 +9,7 @@ import {
   DatabaseOutlined,
   ExportOutlined,
   EnvironmentOutlined,
+  ExperimentOutlined,
   HomeOutlined,
   InboxOutlined,
   LinkOutlined,
@@ -82,6 +83,7 @@ const menuDefinitions: MenuDefinition[] = [
     path: '/mobile', module: 'warehouseMobile', nameKey: 'menu.mobileOperations', icon: <ScanOutlined />, delivered: true,
     children: [
       { path: '/mobile/receiving', module: 'warehouseMobile', nameKey: 'mobile.receiving.nav', icon: <InboxOutlined />, delivered: true },
+      { path: '/mobile/inspection', module: 'receivingInspection', nameKey: 'mobile.inspection.nav', icon: <ExperimentOutlined />, delivered: true },
       { path: '/mobile/picking', module: 'warehouseMobile', nameKey: 'mobile.picking.nav', icon: <ExportOutlined />, delivered: true },
       { path: '/mobile/stocktake', module: 'warehouseMobile', nameKey: 'mobile.stocktake.nav', icon: <AuditOutlined />, delivered: true },
     ],
@@ -91,6 +93,7 @@ const menuDefinitions: MenuDefinition[] = [
     children: [
       { path: '/inventory-governance/stocktake', module: 'stocktake', nameKey: 'menu.stocktake', icon: <AuditOutlined />, delivered: true },
       { path: '/inventory-governance/quality', module: 'inventoryQuality', nameKey: 'menu.inventoryQuality', icon: <SafetyCertificateOutlined />, delivered: true },
+      { path: '/inventory-governance/receiving-inspections', module: 'receivingInspection', nameKey: 'menu.receivingInspection', icon: <ExperimentOutlined />, delivered: true },
       { path: '/inventory-governance/corrections', module: 'inventoryCorrection', nameKey: 'menu.emergencyCorrections', icon: <ThunderboltOutlined />, delivered: true },
     ],
   },

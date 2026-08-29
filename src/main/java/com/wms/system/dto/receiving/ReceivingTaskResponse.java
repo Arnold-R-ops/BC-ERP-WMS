@@ -3,6 +3,7 @@ package com.wms.system.dto.receiving;
 import com.wms.system.entity.enums.ReceivingTaskStatus;
 import com.wms.system.entity.enums.ReceivingTaskSourceType;
 import com.wms.system.entity.enums.OtherInboundBusinessType;
+import com.wms.system.entity.enums.ReceivingInspectionRequirement;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
@@ -51,6 +52,7 @@ public record ReceivingTaskResponse(
         String barcode,
         String productName,
         Boolean expiryManagementEnabled,
+        ReceivingInspectionRequirement inspectionRequirement,
         Integer expectedQuantity,
         Integer receivedQuantity,
         Integer closedQuantity,

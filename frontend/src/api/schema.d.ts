@@ -196,6 +196,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/receiving-inspections/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["policy"];
+        put: operations["updatePolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders/{purchaseOrderId}/allocations": {
         parameters: {
             query?: never;
@@ -203,7 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put: operations["replace"];
         post?: never;
         delete?: never;
@@ -236,7 +252,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy"];
-        put: operations["updatePolicy"];
+        put: operations["updatePolicy_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -251,7 +267,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_4"];
         put: operations["updateDraft_1"];
         post?: never;
         delete?: never;
@@ -267,7 +283,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_4"];
+        get: operations["get_5"];
         put: operations["update_2"];
         post?: never;
         delete?: never;
@@ -380,7 +396,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_1"];
-        put: operations["updatePolicy_1"];
+        put: operations["updatePolicy_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -395,7 +411,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_6"];
+        get: operations["get_7"];
         put: operations["update_3"];
         post?: never;
         delete?: never;
@@ -459,8 +475,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["policy"];
-        put: operations["updatePolicy_2"];
+        get: operations["policy_1"];
+        put: operations["updatePolicy_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -491,7 +507,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_9"];
+        get: operations["get_10"];
         put: operations["update_5"];
         post?: never;
         delete: operations["delete_1"];
@@ -540,7 +556,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_2"];
-        put: operations["updatePolicy_3"];
+        put: operations["updatePolicy_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -571,7 +587,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_11"];
+        get: operations["get_12"];
         put: operations["update_6"];
         post?: never;
         delete: operations["delete_2"];
@@ -1172,7 +1188,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-remainder-closure-requests/{id}/reject": {
+    "/api/receiving-tasks/{id}/arrival-exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listArrivalExceptions"];
+        put?: never;
+        post: operations["recordArrivalException"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-inspections/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-inspections/results/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -1182,6 +1230,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-inspections/results/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/receiving-inspections/reinspections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reinspection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1213,7 +1309,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve"];
+        post: operations["approve_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1277,7 +1373,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit"];
+        post: operations["submit_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1293,7 +1389,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_1"];
+        post: operations["reject_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1323,7 +1419,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post: operations["create_2"];
         delete?: never;
@@ -1357,7 +1453,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_1"];
+        post: operations["approve_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1467,7 +1563,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post: operations["create_3"];
         delete?: never;
@@ -1835,7 +1931,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post: operations["create_5"];
         delete?: never;
@@ -1883,7 +1979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post: operations["create_6"];
         delete?: never;
@@ -1899,7 +1995,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post: operations["create_7"];
         delete?: never;
@@ -1995,7 +2091,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post: operations["create_8"];
         delete?: never;
@@ -2173,7 +2269,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_2"];
+        post: operations["reject_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2189,7 +2285,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_2"];
+        post: operations["approve_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2203,7 +2299,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post: operations["create_9"];
         delete?: never;
@@ -2283,7 +2379,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post: operations["create_10"];
         delete?: never;
@@ -2315,7 +2411,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_16"];
+        get: operations["list_17"];
         put?: never;
         post: operations["create_11"];
         delete?: never;
@@ -2333,7 +2429,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_1"];
+        post: operations["submit_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2365,7 +2461,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_3"];
+        post: operations["reject_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2381,7 +2477,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_3"];
+        post: operations["approve_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2443,7 +2539,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_18"];
+        get: operations["list_19"];
         put?: never;
         post: operations["create_12"];
         delete?: never;
@@ -2916,7 +3012,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-remainder-closure-requests": {
+    "/api/receiving-inspections": {
         parameters: {
             query?: never;
             header?: never;
@@ -2932,7 +3028,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-remainder-closure-requests/{id}": {
+    "/api/receiving-inspections/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2948,7 +3044,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/purchase-orders/{purchaseOrderId}/receiving-plans": {
+    "/api/purchase-remainder-closure-requests": {
         parameters: {
             query?: never;
             header?: never;
@@ -2956,6 +3052,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["list_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-remainder-closure-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{purchaseOrderId}/receiving-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3115,7 +3243,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3691,7 +3819,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3707,7 +3835,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_7"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3755,7 +3883,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3771,7 +3899,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3787,7 +3915,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_10"];
+        get: operations["get_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3835,7 +3963,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_17"];
+        get: operations["list_18"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4204,9 +4332,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             active?: boolean;
+            privilegedRole?: boolean;
             assignableToUsers?: boolean;
             systemRole?: boolean;
-            privilegedRole?: boolean;
         };
         RoleGovernanceResult: {
             role?: components["schemas"]["RoleDTO"];
@@ -4281,6 +4409,19 @@ export interface components {
             workArea?: string;
             warehouseNotes?: string;
             items?: components["schemas"]["ReceivingPlanAllocationItemResponse"][];
+        };
+        UpdateReceivingInspectionPolicyRequest: {
+            defaultInspectionRequired?: boolean;
+            /** @enum {string} */
+            reviewMode: "DIRECT" | "REVIEW_REQUIRED";
+            reason: string;
+        };
+        ReceivingInspectionPolicyResponse: {
+            defaultInspectionRequired?: boolean;
+            /** @enum {string} */
+            reviewMode?: "DIRECT" | "REVIEW_REQUIRED";
+            skuRequirements?: ("INHERIT" | "REQUIRED" | "EXEMPT")[];
+            reviewModes?: ("DIRECT" | "REVIEW_REQUIRED")[];
         };
         PurchaseOrderAllocationRowRequest: {
             /** Format: int64 */
@@ -4603,6 +4744,8 @@ export interface components {
             /** Format: int32 */
             nearExpiryDays?: number;
             expiryManagementEnabled?: boolean;
+            /** @enum {string} */
+            inspectionRequirement?: "INHERIT" | "REQUIRED" | "EXEMPT";
             supplier?: string;
             description?: string;
             /** @enum {string} */
@@ -4639,6 +4782,8 @@ export interface components {
             /** Format: int32 */
             nearExpiryDays?: number;
             expiryManagementEnabled?: boolean;
+            /** @enum {string} */
+            inspectionRequirement?: "INHERIT" | "REQUIRED" | "EXEMPT";
             /** Format: int64 */
             categoryId?: number;
             categoryCode?: string;
@@ -5246,6 +5391,9 @@ export interface components {
             batchCode?: string;
             /** Format: int32 */
             quantity?: number;
+            inspectionRequired?: boolean;
+            /** @enum {string} */
+            qualityStatusAtReceipt?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
             /** Format: date */
             productionDate?: string;
             /** Format: date */
@@ -5264,6 +5412,122 @@ export interface components {
             receivedByName?: string;
             remark?: string;
             lines?: components["schemas"]["ReceiptEventLineResponse"][];
+        };
+        RecordReceivingArrivalExceptionRequest: {
+            /** Format: int64 */
+            productSkuId?: number;
+            /** @enum {string} */
+            exceptionType: "SHORT_RECEIPT" | "OVER_RECEIPT" | "WRONG_ITEM" | "DAMAGED" | "EXPIRY_FAILED" | "OTHER";
+            /** @enum {string} */
+            disposition: "AWAITING_REDELIVERY" | "REJECTED_AT_DOCK" | "RECEIVED_FOR_INSPECTION" | "RECORDED_ONLY";
+            /** Format: int32 */
+            observedQuantity: number;
+            reasonDetail?: string;
+        };
+        ReceivingArrivalExceptionResponse: {
+            /** Format: int64 */
+            id?: number;
+            exceptionNumber?: string;
+            /** Format: int64 */
+            receivingTaskId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            /** @enum {string} */
+            exceptionType?: "SHORT_RECEIPT" | "OVER_RECEIPT" | "WRONG_ITEM" | "DAMAGED" | "EXPIRY_FAILED" | "OTHER";
+            /** @enum {string} */
+            disposition?: "AWAITING_REDELIVERY" | "REJECTED_AT_DOCK" | "RECEIVED_FOR_INSPECTION" | "RECORDED_ONLY";
+            /** Format: int32 */
+            observedQuantity?: number;
+            reasonDetail?: string;
+            recordedByName?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+        };
+        Line: {
+            /** Format: int64 */
+            inspectionTaskLineId: number;
+            /** Format: int32 */
+            passedQuantity: number;
+            /** Format: int32 */
+            quarantinedQuantity: number;
+        };
+        SubmitReceivingInspectionRequest: {
+            /** @enum {string} */
+            inspectionMethod: "FULL" | "SAMPLING";
+            /** Format: int32 */
+            sampleQuantity?: number;
+            /** Format: int32 */
+            defectQuantity: number;
+            reasonCode: string;
+            reasonDetail?: string;
+            lines: components["schemas"]["Line"][];
+        };
+        ReceivingInspectionResultResponse: {
+            /** Format: int64 */
+            id?: number;
+            resultNumber?: string;
+            /** Format: int64 */
+            inspectionTaskId?: number;
+            /** @enum {string} */
+            status?: "COMPLETED" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+            /** @enum {string} */
+            inspectionMethod?: "FULL" | "SAMPLING";
+            /** Format: int32 */
+            sampleQuantity?: number;
+            /** Format: int32 */
+            defectQuantity?: number;
+            reasonCode?: string;
+            reasonDetail?: string;
+            /** Format: int64 */
+            submittedBy?: number;
+            submittedByName?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedByName?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+            lines?: components["schemas"]["Line"][];
+        };
+        ReceivingInspectionReviewRequest: {
+            comment: string;
+        };
+        CreateReceivingReinspectionRequest: {
+            /** Format: int64 */
+            originalResultId: number;
+            /** Format: int64 */
+            inventoryBatchId: number;
+            /** Format: int32 */
+            quantity: number;
+            reason: string;
+            confirmReservationReallocation?: boolean;
+        };
+        ReceivingInspectionTaskResponse: {
+            /** Format: int64 */
+            id?: number;
+            taskNumber?: string;
+            /** @enum {string} */
+            sourceType?: "RECEIPT" | "REINSPECTION";
+            sourceReference?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseCode?: string;
+            warehouseName?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "IN_PROGRESS" | "PENDING_REVIEW" | "COMPLETED";
+            /** @enum {string} */
+            reviewMode?: "DIRECT" | "REVIEW_REQUIRED";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: int64 */
+            correctionOfResultId?: number;
+            lines?: components["schemas"]["Line"][];
+            results?: components["schemas"]["ReceivingInspectionResultResponse"][];
         };
         PurchaseRemainderClosureActionRequest: {
             comment: string;
@@ -6336,14 +6600,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerFactListItemResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6354,9 +6618,9 @@ export interface components {
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
             unpaged?: boolean;
-            paged?: boolean;
             /** Format: int32 */
             pageSize?: number;
+            paged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
         };
@@ -6414,6 +6678,8 @@ export interface components {
             barcode?: string;
             productName?: string;
             expiryManagementEnabled?: boolean;
+            /** @enum {string} */
+            inspectionRequirement?: "INHERIT" | "REQUIRED" | "EXEMPT";
             /** Format: int32 */
             expectedQuantity?: number;
             /** Format: int32 */
@@ -6532,14 +6798,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformCompanyResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6589,14 +6855,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAuditLogResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6623,14 +6889,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAdminSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6777,14 +7043,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["InventorySummaryDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -6880,14 +7146,14 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["RawEventSummary"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -7404,7 +7670,51 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingInspectionPolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReceivingInspectionPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingInspectionPolicyResponse"];
+                };
+            };
+        };
+    };
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7520,7 +7830,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy: {
+    updatePolicy_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -7544,7 +7854,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -7592,7 +7902,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -7824,7 +8134,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_1: {
+    updatePolicy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7848,7 +8158,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7988,7 +8298,7 @@ export interface operations {
             };
         };
     };
-    policy: {
+    policy_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8008,7 +8318,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_2: {
+    updatePolicy_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8058,7 +8368,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -8190,7 +8500,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_3: {
+    updatePolicy_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8282,7 +8592,7 @@ export interface operations {
             };
         };
     };
-    get_11: {
+    get_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -9418,7 +9728,167 @@ export interface operations {
             };
         };
     };
+    listArrivalExceptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingArrivalExceptionResponse"][];
+                };
+            };
+        };
+    };
+    recordArrivalException: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordReceivingArrivalExceptionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingArrivalExceptionResponse"];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitReceivingInspectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingInspectionResultResponse"];
+                };
+            };
+        };
+    };
     reject: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceivingInspectionReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingInspectionResultResponse"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceivingInspectionReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingInspectionResultResponse"];
+                };
+            };
+        };
+    };
+    reinspection: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReceivingReinspectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivingInspectionTaskResponse"];
+                };
+            };
+        };
+    };
+    reject_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9470,7 +9940,7 @@ export interface operations {
             };
         };
     };
-    approve: {
+    approve_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9595,7 +10065,7 @@ export interface operations {
             };
         };
     };
-    submit: {
+    submit_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9621,7 +10091,7 @@ export interface operations {
             };
         };
     };
-    reject_1: {
+    reject_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9673,7 +10143,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9747,7 +10217,7 @@ export interface operations {
             };
         };
     };
-    approve_1: {
+    approve_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9929,7 +10399,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -10537,7 +11007,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -10625,7 +11095,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query: {
                 platformUserId: number;
@@ -10671,7 +11141,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: {
                 status?: string;
@@ -10845,7 +11315,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query: {
                 status?: "DRAFT" | "CONFIRMED" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
@@ -11144,7 +11614,7 @@ export interface operations {
             };
         };
     };
-    reject_2: {
+    reject_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11170,7 +11640,7 @@ export interface operations {
             };
         };
     };
-    approve_2: {
+    approve_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11196,7 +11666,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: {
                 channel?: string;
@@ -11338,7 +11808,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query?: never;
             header?: never;
@@ -11406,7 +11876,7 @@ export interface operations {
             };
         };
     };
-    list_16: {
+    list_17: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -11452,7 +11922,7 @@ export interface operations {
             };
         };
     };
-    submit_1: {
+    submit_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -11504,7 +11974,7 @@ export interface operations {
             };
         };
     };
-    reject_3: {
+    reject_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -11530,7 +12000,7 @@ export interface operations {
             };
         };
     };
-    approve_3: {
+    approve_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -11657,7 +12127,7 @@ export interface operations {
             };
         };
     };
-    list_18: {
+    list_19: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -12358,7 +12828,7 @@ export interface operations {
     list_3: {
         parameters: {
             query?: {
-                status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                status?: "PENDING" | "IN_PROGRESS" | "PENDING_REVIEW" | "COMPLETED";
             };
             header?: never;
             path?: never;
@@ -12372,7 +12842,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"][];
+                    "*/*": components["schemas"]["ReceivingInspectionTaskResponse"][];
                 };
             };
         };
@@ -12394,12 +12864,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                    "*/*": components["schemas"]["ReceivingInspectionTaskResponse"];
                 };
             };
         };
     };
     list_4: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"][];
+                };
+            };
+        };
+    };
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseRemainderClosureResponse"];
+                };
+            };
+        };
+    };
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -12616,7 +13130,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -13412,7 +13926,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: {
                 type?: "HOLD" | "RELEASE";
@@ -13435,7 +13949,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -13504,7 +14018,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query?: {
                 channel?: string;
@@ -13529,7 +14043,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -13551,7 +14065,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -13617,7 +14131,7 @@ export interface operations {
             };
         };
     };
-    list_17: {
+    list_18: {
         parameters: {
             query?: never;
             header?: never;

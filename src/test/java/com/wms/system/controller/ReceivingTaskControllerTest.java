@@ -7,6 +7,7 @@ import com.wms.system.entity.enums.ReceivingTaskStatus;
 import com.wms.system.service.ReceivingReceiptService;
 import com.wms.system.service.ReceivingTaskService;
 import com.wms.system.service.WarehouseScopeService;
+import com.wms.system.service.inspection.ReceivingArrivalExceptionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 
@@ -28,8 +29,9 @@ class ReceivingTaskControllerTest {
         ReceivingTaskService taskService = mock(ReceivingTaskService.class);
         ReceivingReceiptService receiptService = mock(ReceivingReceiptService.class);
         WarehouseScopeService scopeService = mock(WarehouseScopeService.class);
+        ReceivingArrivalExceptionService exceptionService = mock(ReceivingArrivalExceptionService.class);
         ReceivingTaskController controller = new ReceivingTaskController(
-            taskService, receiptService, scopeService);
+            taskService, receiptService, scopeService, exceptionService);
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(
             "receiver", "password", "receiving:view");
         when(scopeService.isWarehouseStaff(authentication)).thenReturn(true);
@@ -48,8 +50,9 @@ class ReceivingTaskControllerTest {
         ReceivingTaskService taskService = mock(ReceivingTaskService.class);
         ReceivingReceiptService receiptService = mock(ReceivingReceiptService.class);
         WarehouseScopeService scopeService = mock(WarehouseScopeService.class);
+        ReceivingArrivalExceptionService exceptionService = mock(ReceivingArrivalExceptionService.class);
         ReceivingTaskController controller = new ReceivingTaskController(
-            taskService, receiptService, scopeService);
+            taskService, receiptService, scopeService, exceptionService);
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(
             "receiver", "password", "receiving:view");
         when(scopeService.isWarehouseStaff(authentication)).thenReturn(true);
@@ -67,8 +70,9 @@ class ReceivingTaskControllerTest {
         ReceivingTaskService taskService = mock(ReceivingTaskService.class);
         ReceivingReceiptService receiptService = mock(ReceivingReceiptService.class);
         WarehouseScopeService scopeService = mock(WarehouseScopeService.class);
+        ReceivingArrivalExceptionService exceptionService = mock(ReceivingArrivalExceptionService.class);
         ReceivingTaskController controller = new ReceivingTaskController(
-            taskService, receiptService, scopeService);
+            taskService, receiptService, scopeService, exceptionService);
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(
             "receiver", "password", "receiving:view");
         var expected = List.of(new ReceivingTaskLocationResponse(
@@ -88,8 +92,9 @@ class ReceivingTaskControllerTest {
         ReceivingTaskService taskService = mock(ReceivingTaskService.class);
         ReceivingReceiptService receiptService = mock(ReceivingReceiptService.class);
         WarehouseScopeService scopeService = mock(WarehouseScopeService.class);
+        ReceivingArrivalExceptionService exceptionService = mock(ReceivingArrivalExceptionService.class);
         ReceivingTaskController controller = new ReceivingTaskController(
-            taskService, receiptService, scopeService);
+            taskService, receiptService, scopeService, exceptionService);
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(
             "receiver", "password", "receiving:execute");
         when(taskService.getWarehouseId(5L)).thenReturn(8L);

@@ -3,6 +3,7 @@ import {
   DesktopOutlined,
   DisconnectOutlined,
   ExportOutlined,
+  ExperimentOutlined,
   InboxOutlined,
   LogoutOutlined,
   WifiOutlined,
@@ -12,6 +13,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
+import { canAccessModule } from '../../access';
 
 interface MobileOperationContextValue {
   online: boolean;
@@ -28,6 +30,10 @@ export function WarehouseMobileLayout(): JSX.Element {
   const [online, setOnline] = useState(() => navigator.onLine);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const canInspect = canAccessModule(
+    session?.currentRole, 'receivingInspection', session?.permissionCodes);
+  const canUseStandardOperations = canAccessModule(
+    session?.currentRole, 'warehouseMobile', session?.permissionCodes);
 
   useEffect(() => {
     let active = true;
@@ -127,9 +133,10 @@ export function WarehouseMobileLayout(): JSX.Element {
         </main>
 
         <nav aria-label={t('mobile.navigation')} className="mobile-warehouse-nav">
-          <NavLink to="/mobile/receiving"><InboxOutlined /><span>{t('mobile.receiving.nav')}</span></NavLink>
-          <NavLink to="/mobile/picking"><ExportOutlined /><span>{t('mobile.picking.nav')}</span></NavLink>
-          <NavLink to="/mobile/stocktake"><AuditOutlined /><span>{t('mobile.stocktake.nav')}</span></NavLink>
+          {canUseStandardOperations ? <NavLink to="/mobile/receiving"><InboxOutlined /><span>{t('mobile.receiving.nav')}</span></NavLink> : null}
+          {canInspect ? <NavLink to="/mobile/inspection"><ExperimentOutlined /><span>{t('mobile.inspection.nav')}</span></NavLink> : null}
+          {canUseStandardOperations ? <NavLink to="/mobile/picking"><ExportOutlined /><span>{t('mobile.picking.nav')}</span></NavLink> : null}
+          {canUseStandardOperations ? <NavLink to="/mobile/stocktake"><AuditOutlined /><span>{t('mobile.stocktake.nav')}</span></NavLink> : null}
         </nav>
       </div>
     </MobileOperationContext.Provider>

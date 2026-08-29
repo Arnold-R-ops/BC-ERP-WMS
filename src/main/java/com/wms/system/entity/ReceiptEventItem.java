@@ -1,7 +1,10 @@
 package com.wms.system.entity;
 
+import com.wms.system.entity.enums.InventoryQualityStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -79,4 +82,13 @@ public class ReceiptEventItem extends BaseEntity {
 
     @Column(name = "posting_id", nullable = false, length = 120, updatable = false)
     private String postingId;
+
+    @Column(name = "inspection_required", nullable = false, updatable = false)
+    @Builder.Default
+    private Boolean inspectionRequired = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "quality_status_at_receipt", nullable = false, length = 30, updatable = false)
+    @Builder.Default
+    private InventoryQualityStatus qualityStatusAtReceipt = InventoryQualityStatus.AVAILABLE;
 }

@@ -4,11 +4,14 @@ import com.wms.system.dto.receiving.ReceiptEventResponse;
 import com.wms.system.dto.receiving.ReceivingTaskResponse;
 import com.wms.system.dto.receiving.ReceivingTaskLocationResponse;
 import com.wms.system.dto.receiving.SubmitReceivingReceiptRequest;
+import com.wms.system.dto.receivinginspection.RecordReceivingArrivalExceptionRequest;
+import com.wms.system.dto.receivinginspection.ReceivingArrivalExceptionResponse;
 import com.wms.system.entity.enums.ReceivingTaskStatus;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.ReceivingReceiptService;
 import com.wms.system.service.ReceivingTaskService;
 import com.wms.system.service.WarehouseScopeService;
+import com.wms.system.service.inspection.ReceivingArrivalExceptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +36,7 @@ public class ReceivingTaskController {
     private final ReceivingTaskService receivingTaskService;
     private final ReceivingReceiptService receivingReceiptService;
     private final WarehouseScopeService warehouseScopeService;
+    private final ReceivingArrivalExceptionService arrivalExceptionService;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('receiving:view', 'TENANT_ADMIN')")
@@ -89,6 +93,34 @@ public class ReceivingTaskController {
         return ResponseEntity.ok(receivingReceiptService.receive(
             id, idempotencyKey, request, AuthUserResolver.resolveUserId(authentication),
             AuthUserResolver.resolveUsername(authentication)));
+    }
+
+    @GetMapping("/{id}/arrival-exceptions")
+    @PreAuthorize("hasAnyAuthority('receiving:view', 'receiving:execute', 'TENANT_ADMIN')")
+    public ResponseEntity<List<ReceivingArrivalExceptionResponse>> listArrivalExceptions(
+        @PathVariable Long id,
+        Authentication authentication
+    ) {
+        requireTaskAccess(authentication, id);
+        return ResponseEntity.ok(arrivalExceptionService.list(id));
+    }
+
+    @PostMapping("/{id}/arrival-exceptions")
+    @PreAuthorize("hasAnyAuthority('receiving:execute', 'TENANT_ADMIN')")
+    public ResponseEntity<ReceivingArrivalExceptionResponse> recordArrivalException(
+        @PathVariable Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        @Valid @RequestBody RecordReceivingArrivalExceptionRequest request,
+        Authentication authentication
+    ) {
+        requireTaskAccess(authentication, id);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(
+            arrivalExceptionService.record(
+                id, request, idempotencyKey,
+                AuthUserResolver.resolveUserId(authentication),
+                AuthUserResolver.resolveUsername(authentication)
+            )
+        );
     }
 
     private void requireTaskAccess(Authentication authentication, Long taskId) {

@@ -1,6 +1,6 @@
-import { CalendarOutlined, CheckCircleFilled, EditOutlined, InboxOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CalendarOutlined, CheckCircleFilled, EditOutlined, InboxOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { App as AntdApp, Button, Checkbox, Empty, Input, InputNumber, Progress, Select, Skeleton, Tag, Typography } from 'antd';
+import { App as AntdApp, Button, Checkbox, Empty, Form, Input, InputNumber, Modal, Progress, Select, Skeleton, Tag, Typography } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -22,6 +22,10 @@ import {
   type SubmitReceivingReceiptRequest,
 } from '../../api/receiving';
 import { useAuth } from '../../auth/AuthProvider';
+import {
+  inspectionIdempotencyKey, recordArrivalException,
+  type ArrivalDisposition, type ArrivalExceptionType,
+} from '../../api/receivingInspection';
 import { ReceivingPlanOperationsModal } from './ReceivingPlanOperationsModal';
 import { ScanInput } from './ScanInput';
 import { WarehouseOperationSteps } from './WarehouseOperationSteps';
@@ -113,6 +117,14 @@ export function MobileReceivingPage(): JSX.Element {
   const [editingPlan, setEditingPlan] = useState<ReceivingPlan>();
   const [activeItemId, setActiveItemId] = useState<number>();
   const [drafts, setDrafts] = useState<Record<number, ReceiptDraft>>({});
+  const [exceptionOpen, setExceptionOpen] = useState(false);
+  const [exceptionForm] = Form.useForm<{
+    productSkuId?: number;
+    exceptionType: ArrivalExceptionType;
+    disposition: ArrivalDisposition;
+    observedQuantity: number;
+    reasonDetail?: string;
+  }>();
   const idempotencyAttempt = useRef<IdempotencyAttempt>();
   const { session } = useAuth();
   const { online } = useMobileOperation();
@@ -179,6 +191,16 @@ export function MobileReceivingPage(): JSX.Element {
   });
   const planMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ReceivingPlanOperations }) => updateReceivingPlanOperations(id, payload),
+  });
+  const exceptionMutation = useMutation({
+    mutationFn: (payload: {
+      productSkuId?: number;
+      exceptionType: ArrivalExceptionType;
+      disposition: ArrivalDisposition;
+      observedQuantity: number;
+      reasonDetail?: string;
+    }) => recordArrivalException(
+      selectedTaskId as number, payload, inspectionIdempotencyKey('arrival-exception')),
   });
   const selectedLines = (selectedTask?.items ?? []).filter((item) => drafts[item.id]?.selected);
   const selectedCount = selectedLines.length;
@@ -327,6 +349,14 @@ export function MobileReceivingPage(): JSX.Element {
                   <div className="mobile-progress-band"><span>{t('mobile.receiving.selectionProgress', { ready: readyCount, selected: selectedCount, total: totalCount })}</span><Progress percent={readyPercent} showInfo={false} /></div>
                   <ScanInput disabled={!online} label={t('mobile.receiving.scanProduct')} onScan={scanProduct} placeholder={t('mobile.receiving.scanProductPlaceholder')} />
                   <ScanInput disabled={!activeItemId || !online} label={t('mobile.receiving.scanLocation')} onScan={scanLocation} placeholder={t('mobile.receiving.scanLocationPlaceholder')} />
+                  <Button block danger icon={<WarningOutlined />} disabled={!online}
+                    onClick={() => {
+                      exceptionForm.setFieldsValue({
+                        exceptionType: 'DAMAGED', disposition: 'REJECTED_AT_DOCK',
+                        observedQuantity: 1,
+                      });
+                      setExceptionOpen(true);
+                    }}>{t('mobile.receiving.arrivalException')}</Button>
                   <Button block disabled={!online || selectedCount === 0 || readyCount !== selectedCount} loading={receiptMutation.isPending} onClick={() => void submit()} size="large" type="primary">{t('mobile.receiving.submitSelected')}</Button>
                 </>
               )}
@@ -348,6 +378,10 @@ export function MobileReceivingPage(): JSX.Element {
                           {ready ? <CheckCircleFilled /> : <Tag>{t('mobile.receiving.notReady')}</Tag>}
                         </div>
                         <span>{item.skuCode ?? item.barcode ?? '-'}</span>
+                        {item.inspectionRequirement && item.inspectionRequirement !== 'EXEMPT'
+                          ? <Tag color={item.inspectionRequirement === 'REQUIRED' ? 'blue' : 'default'}>
+                            {t('mobile.receiving.inspectionRequirement.' + item.inspectionRequirement)}
+                          </Tag> : null}
                         <div className="mobile-task-primary"><InboxOutlined /> {t('mobile.receiving.remaining')} {item.remainingQuantity}</div>
                         <div className="receiving-line-fields" onClick={(event) => event.stopPropagation()}>
                           <label><span>{t('mobile.receiving.thisQuantity')}</span><InputNumber max={item.remainingQuantity} min={1} onChange={(value) => patchDraft(item.id, { quantity: Number(value ?? 0), selected: true })} precision={0} value={draft?.quantity} /></label>
@@ -372,6 +406,41 @@ export function MobileReceivingPage(): JSX.Element {
         open={editingPlan !== undefined}
         plan={editingPlan}
       />
+      <Modal open={exceptionOpen} title={t('mobile.receiving.arrivalException')}
+        confirmLoading={exceptionMutation.isPending}
+        onCancel={() => setExceptionOpen(false)}
+        onOk={() => void exceptionForm.validateFields().then(async (values) => {
+          await exceptionMutation.mutateAsync(values);
+          message.success(t('mobile.receiving.arrivalExceptionRecorded'));
+          setExceptionOpen(false);
+        }).catch((error) => {
+          if (error instanceof Error) message.error(getErrorMessage(error, t));
+        })}>
+        <Form form={exceptionForm} layout="vertical">
+          <Form.Item label={t('mobile.receiving.exceptionSku')} name="productSkuId">
+            <Select allowClear options={(selectedTask?.items ?? []).map((item) => ({
+              value: item.productSkuId, label: (item.skuCode ?? '-') + ' · ' + (item.productName ?? '-'),
+            }))} />
+          </Form.Item>
+          <Form.Item label={t('mobile.receiving.exceptionType')} name="exceptionType"
+            rules={[{ required: true }]}>
+            <Select options={['SHORT_RECEIPT', 'OVER_RECEIPT', 'WRONG_ITEM', 'DAMAGED', 'EXPIRY_FAILED', 'OTHER']
+              .map((value) => ({ value, label: value }))} />
+          </Form.Item>
+          <Form.Item label={t('mobile.receiving.exceptionDisposition')} name="disposition"
+            rules={[{ required: true }]}>
+            <Select options={['AWAITING_REDELIVERY', 'REJECTED_AT_DOCK', 'RECEIVED_FOR_INSPECTION', 'RECORDED_ONLY']
+              .map((value) => ({ value, label: value }))} />
+          </Form.Item>
+          <Form.Item label={t('mobile.receiving.exceptionQuantity')} name="observedQuantity"
+            rules={[{ required: true }]}>
+            <InputNumber min={1} precision={0} />
+          </Form.Item>
+          <Form.Item label={t('mobile.receiving.exceptionReason')} name="reasonDetail">
+            <Input.TextArea maxLength={500} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </section>
   );
 }

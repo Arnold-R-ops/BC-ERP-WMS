@@ -53,6 +53,24 @@ describe('effective-permission module access', () => {
       .toBe(false);
   });
 
+  it('separates receipt inspection execution from manual quality holds', () => {
+    expect(canAccessModule(
+      'WAREHOUSE_STAFF', 'receivingInspection', ['receiving_inspection:execute']))
+      .toBe(true);
+    expect(canAccessModule(
+      'WAREHOUSE_STAFF', 'receivingInspection', ['inventory_quality:hold']))
+      .toBe(false);
+    expect(canAccessModule(
+      'WAREHOUSE_STAFF', 'warehouseMobile', ['receiving_inspection:execute']))
+      .toBe(false);
+    expect(canAccessModule(
+      'CUSTOM_ROLE', 'receivingInspection', ['receiving_inspection:correct']))
+      .toBe(true);
+    expect(canAccessModule(
+      'CUSTOM_ROLE', 'receivingInspection', ['receiving_inspection:policy']))
+      .toBe(true);
+  });
+
   it('requires a current role even for the dashboard', () => {
     expect(canAccessModule(undefined, 'dashboard', [])).toBe(false);
     expect(canAccessModule('CUSTOM_ROLE', 'dashboard', [])).toBe(true);

@@ -47,6 +47,9 @@ const EmergencyCorrectionPage = lazy(() =>
 const InventoryQualityPage = lazy(() =>
   import('./pages/inventoryQuality/InventoryQualityPage').then((module) => ({ default: module.InventoryQualityPage })),
 );
+const ReceivingInspectionPage = lazy(() =>
+  import('./pages/receivingInspection/ReceivingInspectionPage').then((module) => ({ default: module.ReceivingInspectionPage })),
+);
 const WarehousePage = lazy(() =>
   import('./pages/warehouseSetup/WarehousePage').then((module) => ({ default: module.WarehousePage })),
 );
@@ -110,6 +113,7 @@ const MobilePickingPage = lazy(() =>
 const MobileStocktakePage = lazy(() =>
   loadMobileStocktakePage().then((module) => ({ default: module.MobileStocktakePage })),
 );
+const MobileInspectionPage = (): JSX.Element => <ReceivingInspectionPage compact />;
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -158,6 +162,22 @@ function WarehouseMobileEntry(): JSX.Element {
   return <WarehouseMobileLayout />;
 }
 
+function WarehouseMobileRoute(): JSX.Element {
+  const { session } = useAuth();
+  const allowed = session && (
+    canAccessModule(session.currentRole, 'warehouseMobile', session.permissionCodes)
+    || canAccessModule(session.currentRole, 'receivingInspection', session.permissionCodes)
+  );
+  return allowed ? <WarehouseMobileEntry /> : <AccessDeniedRedirect />;
+}
+
+function WarehouseMobileIndex(): JSX.Element {
+  const { session } = useAuth();
+  const standardOperations = session && canAccessModule(
+    session.currentRole, 'warehouseMobile', session.permissionCodes);
+  return <Navigate replace to={standardOperations ? 'picking' : 'inspection'} />;
+}
+
 function IntegrationEntry(): JSX.Element {
   const { session } = useAuth();
   if (!session) return <Navigate replace to="/login" />;
@@ -175,11 +195,12 @@ function AppRoutes(): JSX.Element {
           <Route element={<LoginPage />} path="/login" />
         </Route>
         <Route element={<ProtectedRoute />}>
-          <Route element={<ModuleRoute module="warehouseMobile"><WarehouseMobileEntry /></ModuleRoute>} path="mobile">
-            <Route element={<Navigate replace to="picking" />} index />
-            <Route element={<MobileReceivingPage />} path="receiving" />
-            <Route element={<MobilePickingPage />} path="picking" />
-            <Route element={<MobileStocktakePage />} path="stocktake" />
+          <Route element={<WarehouseMobileRoute />} path="mobile">
+            <Route element={<WarehouseMobileIndex />} index />
+            <Route element={<ModuleRoute module="warehouseMobile"><MobileReceivingPage /></ModuleRoute>} path="receiving" />
+            <Route element={<ModuleRoute module="receivingInspection"><MobileInspectionPage /></ModuleRoute>} path="inspection" />
+            <Route element={<ModuleRoute module="warehouseMobile"><MobilePickingPage /></ModuleRoute>} path="picking" />
+            <Route element={<ModuleRoute module="warehouseMobile"><MobileStocktakePage /></ModuleRoute>} path="stocktake" />
           </Route>
           <Route element={<AppLayout />}>
             <Route element={<DashboardPage />} index />
@@ -222,6 +243,7 @@ function AppRoutes(): JSX.Element {
             <Route element={<ModuleRoute module="stocktake"><Navigate replace to="stocktake" /></ModuleRoute>} path="inventory-governance" />
             <Route element={<ModuleRoute module="stocktake"><StocktakePage /></ModuleRoute>} path="inventory-governance/stocktake" />
             <Route element={<ModuleRoute module="inventoryQuality"><InventoryQualityPage /></ModuleRoute>} path="inventory-governance/quality" />
+            <Route element={<ModuleRoute module="receivingInspection"><ReceivingInspectionPage /></ModuleRoute>} path="inventory-governance/receiving-inspections" />
             <Route element={<ModuleRoute module="inventoryCorrection"><EmergencyCorrectionPage /></ModuleRoute>} path="inventory-governance/corrections" />
             <Route element={<ModuleRoute module="warehouseSetup"><Navigate replace to="warehouses" /></ModuleRoute>} path="warehouse-setup" />
             <Route element={<ModuleRoute module="warehouseSetup"><WarehousePage /></ModuleRoute>} path="warehouse-setup/warehouses" />

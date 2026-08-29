@@ -99,6 +99,7 @@ public class ReceivingResponseMapper {
                 item.getId(), item.getProductSku().getId(), item.getProductSku().getSkuCode(),
                 item.getProductSku().getBarcode(), item.getProductSku().getName(),
                 item.getProductSku().getExpiryManagementEnabled(),
+                item.getProductSku().getInspectionRequirement(),
                 item.getExpectedQuantity(), item.getReceivedQuantity(),
                 item.getClosedQuantity(), item.remainingQuantity(), item.getProductionDate(),
                 item.getExpiryDate(), item.getExternalBatchCode(), item.getRemark()
@@ -116,6 +117,7 @@ public class ReceivingResponseMapper {
                     item.getProductSku().getId(), item.getProductSku().getSkuCode(),
                     item.getLocation().getId(), item.getLocation().getLocationCode(),
                     item.getInventoryBatch().getId(), item.getBatchCode(), item.getQuantity(),
+                    item.getInspectionRequired(), item.getQualityStatusAtReceipt(),
                     item.getProductionDate(), item.getExpiryDate(), item.getExternalBatchCode()
                 )).toList()
         );

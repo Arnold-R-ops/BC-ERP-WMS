@@ -72,6 +72,8 @@ class OtherInboundReceivingFlowServiceTest {
     @Mock private DomainOutboxService domainOutboxService;
     @Mock private PurchaseAsnService purchaseAsnService;
     @Mock private BackorderService backorderService;
+    @Mock private com.wms.system.service.inspection.ReceivingInspectionPolicyService inspectionPolicyService;
+    @Mock private com.wms.system.service.inspection.ReceivingInspectionTaskFactory inspectionTaskFactory;
 
     private OtherInboundApplicationService applicationService;
     private ReceivingReceiptExecutor receiptExecutor;
@@ -110,7 +112,9 @@ class OtherInboundReceivingFlowServiceTest {
             expiryPolicy,
             purchaseAsnService,
             backorderService,
-            new ReceivingResponseMapper()
+            new ReceivingResponseMapper(),
+            inspectionPolicyService,
+            inspectionTaskFactory
         );
     }
 

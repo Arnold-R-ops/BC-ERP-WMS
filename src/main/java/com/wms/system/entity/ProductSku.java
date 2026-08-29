@@ -504,6 +504,13 @@ public class ProductSku extends BaseEntity {
     @Builder.Default
     private Boolean expiryManagementEnabled = false;
 
+    /** SKU override for the optional tenant receipt-inspection policy. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "inspection_requirement", nullable = false, length = 20)
+    @Builder.Default
+    private com.wms.system.entity.enums.ReceivingInspectionRequirement inspectionRequirement =
+        com.wms.system.entity.enums.ReceivingInspectionRequirement.INHERIT;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "batch_tracking_mode", nullable = false, length = 30)
     @Builder.Default

@@ -13,6 +13,7 @@ export interface ReceivingTaskItem {
   closedQuantity: number;
   remainingQuantity: number;
   expiryManagementEnabled: boolean;
+  inspectionRequirement?: 'INHERIT' | 'REQUIRED' | 'EXEMPT';
   productionDate?: string;
   expiryDate?: string;
   externalBatchCode?: string;
@@ -74,6 +75,8 @@ export interface ReceiptEventLine {
   locationId?: number;
   locationCode?: string;
   quantity?: number;
+  inspectionRequired?: boolean;
+  qualityStatusAtReceipt?: 'AVAILABLE' | 'PENDING_INSPECTION';
   productionDate?: string;
   expiryDate?: string;
   externalBatchCode?: string;

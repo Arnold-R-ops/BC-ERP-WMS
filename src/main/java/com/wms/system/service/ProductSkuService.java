@@ -5,6 +5,7 @@ import com.wms.system.dto.productsku.ProductSkuResponse;
 import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
 import com.wms.system.entity.enums.BatchTrackingMode;
+import com.wms.system.entity.enums.ReceivingInspectionRequirement;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.ProductSkuRepository;
@@ -56,6 +57,9 @@ public class ProductSkuService {
             .packUnit(request.getPackUnit() != null ? request.getPackUnit() : "Box")
             .nearExpiryDays(request.getNearExpiryDays() != null ? request.getNearExpiryDays() : 90)
             .expiryManagementEnabled(Boolean.TRUE.equals(request.getExpiryManagementEnabled()))
+            .inspectionRequirement(request.getInspectionRequirement() == null
+                ? ReceivingInspectionRequirement.INHERIT
+                : request.getInspectionRequirement())
             .supplier(request.getSupplier())
             .description(request.getDescription())
             .batchTrackingMode(request.getBatchTrackingMode() != null
@@ -128,6 +132,9 @@ public class ProductSkuService {
         if (request.getExpiryManagementEnabled() != null) {
             product.setExpiryManagementEnabled(request.getExpiryManagementEnabled());
         }
+        if (request.getInspectionRequirement() != null) {
+            product.setInspectionRequirement(request.getInspectionRequirement());
+        }
         if (request.getSupplier() != null)      product.setSupplier(request.getSupplier());
         if (request.getDescription() != null)   product.setDescription(request.getDescription());
         if (request.getBatchTrackingMode() != null) product.setBatchTrackingMode(request.getBatchTrackingMode());
@@ -189,6 +196,7 @@ public class ProductSkuService {
             .packUnit(product.getPackUnit())
             .nearExpiryDays(product.getNearExpiryDays())
             .expiryManagementEnabled(product.getExpiryManagementEnabled())
+            .inspectionRequirement(product.getInspectionRequirement())
             .categoryId(product.getProduct().getCategory().getId())
             .categoryCode(product.getProduct().getCategory().getCategoryCode())
             .categoryName(product.getProduct().getCategory().getCategoryName())

@@ -13,6 +13,7 @@ export type AppModule =
   | 'stocktake'
   | 'inventoryCorrection'
   | 'inventoryQuality'
+  | 'receivingInspection'
   | 'warehouseMobile'
   | 'warehouseSetup'
   | 'integrations'
@@ -35,6 +36,13 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
   stocktake: ['menu:stocktake'],
   inventoryCorrection: ['menu:inventory-correction'],
   inventoryQuality: ['inventory_quality:view'],
+  receivingInspection: [
+    'receiving_inspection:view',
+    'receiving_inspection:execute',
+    'receiving_inspection:review',
+    'receiving_inspection:correct',
+    'receiving_inspection:policy',
+  ],
   warehouseMobile: ['menu:warehouse-mobile'],
   warehouseSetup: ['menu:warehouse-setup'],
   integrations: ['menu:system', 'menu:integration-reconciliation'],
