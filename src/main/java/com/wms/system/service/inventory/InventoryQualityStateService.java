@@ -200,7 +200,7 @@ public class InventoryQualityStateService {
 
     private ValidatedCommand validate(InventoryQualityTransitionCommand command) {
         if (command == null || command.inventoryBatchId() == null || command.inventoryBatchId() <= 0
-            || command.targetStatus() == null || command.actorId() == null || command.actorId() <= 0) {
+            || command.targetStatus() == null || command.actorId() == null || command.actorId() < 0) {
             throw validationFailure("command");
         }
         return new ValidatedCommand(

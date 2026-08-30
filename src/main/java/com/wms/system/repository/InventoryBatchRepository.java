@@ -395,6 +395,35 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         @Param("active") Boolean active
     );
 
+    /** Due AVAILABLE batches locked for the automatic tenant-local expiry transition. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT b FROM InventoryBatch b
+        JOIN FETCH b.productSku p
+        JOIN FETCH b.location l
+        JOIN FETCH l.warehouse w
+        WHERE b.expiryDate IS NOT NULL
+          AND b.expiryDate < :businessDate
+          AND b.active = true
+          AND b.quantity > 0
+          AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+        ORDER BY b.expiryDate ASC, b.id ASC
+        """)
+    List<InventoryBatch> findDueAvailableForExpiryForUpdate(
+        @Param("businessDate") LocalDate businessDate
+    );
+
+    @Query("""
+        SELECT b.id FROM InventoryBatch b
+        WHERE b.expiryDate IS NOT NULL
+          AND b.expiryDate < :businessDate
+          AND b.active = true
+          AND b.quantity > 0
+          AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+        ORDER BY b.expiryDate ASC, b.id ASC
+        """)
+    List<Long> findDueAvailableIdsForExpiry(@Param("businessDate") LocalDate businessDate);
+
     /**
      * Find soon-to-expire batches (within N days)
      *

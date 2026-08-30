@@ -127,4 +127,15 @@ public class InventoryReservation extends BaseEntity {
         this.status = ReservationStatus.RELEASED;
         return openQty;
     }
+
+    /** Releases only the affected open portion while preserving immutable totals. */
+    public void release(Integer quantity) {
+        if (quantity == null || quantity <= 0 || quantity > getOpenQty()) {
+            throw new IllegalArgumentException("Reservation release quantity is invalid");
+        }
+        this.releasedQty += quantity;
+        this.status = getOpenQty() == 0
+            ? ReservationStatus.RELEASED
+            : ReservationStatus.PARTIALLY_CONSUMED;
+    }
 }

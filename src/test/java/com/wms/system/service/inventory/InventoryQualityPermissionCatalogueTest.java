@@ -18,7 +18,7 @@ class InventoryQualityPermissionCatalogueTest {
     @Mock private SysPermissionRepository repository;
 
     @Test
-    void newTenantReceivesQualityAndInspectionCustomPermissions() {
+    void newTenantReceivesQualityInspectionAndDispositionCustomPermissions() {
         when(repository.existsByCompanyIdAndPermissionCode(eq(88L), anyString()))
             .thenReturn(false);
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -26,7 +26,7 @@ class InventoryQualityPermissionCatalogueTest {
         new InventoryQualityPermissionCatalogue(repository).provisionForTenant(88L);
 
         ArgumentCaptor<SysPermission> captor = ArgumentCaptor.forClass(SysPermission.class);
-        verify(repository, times(10)).save(captor.capture());
+        verify(repository, times(16)).save(captor.capture());
         assertThat(captor.getAllValues()).extracting(SysPermission::getPermissionCode)
             .containsExactly(
                 "inventory_quality:view", "inventory_quality:hold",
@@ -34,13 +34,16 @@ class InventoryQualityPermissionCatalogueTest {
                 "inventory_quality:policy",
                 "receiving_inspection:view", "receiving_inspection:execute",
                 "receiving_inspection:review", "receiving_inspection:correct",
-                "receiving_inspection:policy"
+                "receiving_inspection:policy",
+                "inventory_disposition:view", "inventory_disposition:report",
+                "inventory_disposition:create", "inventory_disposition:execute",
+                "inventory_disposition:review", "inventory_disposition:policy"
             );
         assertThat(captor.getAllValues()).allSatisfy(permission -> {
             assertThat(permission.isCustomAssignable()).isTrue();
             assertThat(permission.getStatus()).isEqualTo("ACTIVE");
         });
-        verify(repository, times(10)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
+        verify(repository, times(16)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
         verifyNoMoreInteractions(repository);
     }
 }

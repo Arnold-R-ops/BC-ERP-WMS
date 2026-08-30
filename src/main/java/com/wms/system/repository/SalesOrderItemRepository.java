@@ -3,10 +3,13 @@ package com.wms.system.repository;
 import com.wms.system.entity.SalesOrderItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+import jakarta.persistence.LockModeType;
 
 /**
  * 销售订单明细数据访问接口
@@ -24,6 +27,10 @@ import java.util.List;
  */
 @Repository
 public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM SalesOrderItem s WHERE s.id = :id")
+    Optional<SalesOrderItem> findByIdForUpdate(@Param("id") Long id);
 
     /**
      * 根据销售订单ID查询明细列表

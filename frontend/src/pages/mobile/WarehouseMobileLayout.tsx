@@ -1,6 +1,7 @@
 import {
   AuditOutlined,
   DesktopOutlined,
+  DeleteOutlined,
   DisconnectOutlined,
   ExportOutlined,
   ExperimentOutlined,
@@ -32,6 +33,8 @@ export function WarehouseMobileLayout(): JSX.Element {
   const { t } = useTranslation();
   const canInspect = canAccessModule(
     session?.currentRole, 'receivingInspection', session?.permissionCodes);
+  const canDispose = canAccessModule(
+    session?.currentRole, 'inventoryDisposition', session?.permissionCodes);
   const canUseStandardOperations = canAccessModule(
     session?.currentRole, 'warehouseMobile', session?.permissionCodes);
 
@@ -135,6 +138,7 @@ export function WarehouseMobileLayout(): JSX.Element {
         <nav aria-label={t('mobile.navigation')} className="mobile-warehouse-nav">
           {canUseStandardOperations ? <NavLink to="/mobile/receiving"><InboxOutlined /><span>{t('mobile.receiving.nav')}</span></NavLink> : null}
           {canInspect ? <NavLink to="/mobile/inspection"><ExperimentOutlined /><span>{t('mobile.inspection.nav')}</span></NavLink> : null}
+          {canDispose ? <NavLink to="/mobile/disposition"><DeleteOutlined /><span>{t('mobile.disposition.nav')}</span></NavLink> : null}
           {canUseStandardOperations ? <NavLink to="/mobile/picking"><ExportOutlined /><span>{t('mobile.picking.nav')}</span></NavLink> : null}
           {canUseStandardOperations ? <NavLink to="/mobile/stocktake"><AuditOutlined /><span>{t('mobile.stocktake.nav')}</span></NavLink> : null}
         </nav>

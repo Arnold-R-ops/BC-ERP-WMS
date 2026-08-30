@@ -126,6 +126,7 @@ const zhCN = {
     emergencyCorrections: '紧急校正',
     inventoryQuality: '质量处理记录',
     receivingInspection: '收货质检记录',
+    inventoryDisposition: '库存处置',
     integrations: '渠道集成',
     integrationConfigs: '店铺配置',
     pendingMappings: '待映射队列',
@@ -203,6 +204,9 @@ const zhCN = {
     },
     inspection: {
       nav: '质检',
+    },
+    disposition: {
+      nav: '处置',
     },
     receiving: {
       nav: '收货',
@@ -1835,6 +1839,12 @@ const zhCN = {
     INVENTORY_QUALITY_REALLOCATION_SHORTAGE: '其他可销售库存不足，无法完整迁移受影响的销售预留，本次未做任何修改',
     INVENTORY_QUALITY_OUTBOUND_STARTED: '受影响的出库任务已经开始作业，不能再迁移预留库存',
     INVENTORY_QUALITY_RELEASE_PENDING: '该质量段已有待审核的解冻申请，请勿重复提交',
+    INVENTORY_DISPOSITION_NOT_FOUND: '库存处置单不存在或不在当前仓库权限范围内',
+    INVENTORY_DISPOSITION_INVALID: '当前库存处置状态或数据不允许此操作，请刷新后重试',
+    INVENTORY_DISPOSITION_POLICY_INVALID: '库存处置策略无效，请检查审批模式和业务时区',
+    INVENTORY_DISPOSITION_SALES_CONFIRMATION_REQUIRED: '该操作会影响销售预留，请先核对改派、欠货和拣货异常影响并确认',
+    INVENTORY_DISPOSITION_QUANTITY_CONFLICT: '处置数量与当前实存或未执行数量冲突，请刷新后重新核对',
+    INVENTORY_DISPOSITION_RESERVED_CONFLICT: '该处置批次重新出现销售预留，实物处置尚未执行，请先处理预留',
     IDEMPOTENCY_KEY_REQUIRED: '本次写入缺少防重复标识，请重新发起操作',
     IDEMPOTENCY_CONFLICT: '该防重复标识已用于其他操作，请开始一次新的操作',
     IDEMPOTENCY_REQUEST_IN_PROGRESS: '相同操作正在处理中，请稍后刷新结果',

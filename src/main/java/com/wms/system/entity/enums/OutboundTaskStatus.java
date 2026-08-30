@@ -40,6 +40,9 @@ public enum OutboundTaskStatus {
      */
     COMPLETED("已完成"),
 
+    /** Blocked because its assigned stock became damaged or date-expired. */
+    QUALITY_EXCEPTION("质量异常待处理"),
+
     /**
      * 已作废：仅用于保留历史测试任务证据并从正常作业队列排除。
      * 不代表完成拣货，也不得产生库存流水。

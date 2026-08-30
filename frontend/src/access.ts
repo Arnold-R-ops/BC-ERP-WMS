@@ -14,6 +14,7 @@ export type AppModule =
   | 'inventoryCorrection'
   | 'inventoryQuality'
   | 'receivingInspection'
+  | 'inventoryDisposition'
   | 'warehouseMobile'
   | 'warehouseSetup'
   | 'integrations'
@@ -42,6 +43,14 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
     'receiving_inspection:review',
     'receiving_inspection:correct',
     'receiving_inspection:policy',
+  ],
+  inventoryDisposition: [
+    'inventory_disposition:view',
+    'inventory_disposition:report',
+    'inventory_disposition:create',
+    'inventory_disposition:execute',
+    'inventory_disposition:review',
+    'inventory_disposition:policy',
   ],
   warehouseMobile: ['menu:warehouse-mobile'],
   warehouseSetup: ['menu:warehouse-setup'],

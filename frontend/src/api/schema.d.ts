@@ -484,6 +484,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory-dispositions/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["policy_2"];
+        put: operations["updatePolicy_4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/sku-mappings/{id}": {
         parameters: {
             query?: never;
@@ -507,7 +523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_10"];
+        get: operations["get_11"];
         put: operations["update_5"];
         post?: never;
         delete: operations["delete_1"];
@@ -556,7 +572,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_2"];
-        put: operations["updatePolicy_4"];
+        put: operations["updatePolicy_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -587,7 +603,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_12"];
+        get: operations["get_13"];
         put: operations["update_6"];
         post?: never;
         delete: operations["delete_2"];
@@ -2292,6 +2308,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory-dispositions/scrap-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createScrapOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/orders/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/orders/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/orders/{id}/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["execute_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/orders/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/damage-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reportDamage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/damage-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["damagePreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/sku-mappings": {
         parameters: {
             query?: never;
@@ -2299,7 +2443,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post: operations["create_9"];
         delete?: never;
@@ -2379,7 +2523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_16"];
+        get: operations["list_17"];
         put?: never;
         post: operations["create_10"];
         delete?: never;
@@ -2411,7 +2555,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_17"];
+        get: operations["list_18"];
         put?: never;
         post: operations["create_11"];
         delete?: never;
@@ -2429,7 +2573,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_2"];
+        post: operations["submit_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2461,7 +2605,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_4"];
+        post: operations["reject_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2477,7 +2621,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_4"];
+        post: operations["approve_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2539,7 +2683,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_19"];
+        get: operations["list_20"];
         put?: never;
         post: operations["create_12"];
         delete?: never;
@@ -3844,6 +3988,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory-dispositions/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_14"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_9"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory-dispositions/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["candidates_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integration/sku-mappings/pending": {
         parameters: {
             query?: never;
@@ -3883,7 +4075,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3899,7 +4091,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_9"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3915,7 +4107,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_11"];
+        get: operations["get_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3963,7 +4155,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_18"];
+        get: operations["list_19"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4332,9 +4524,9 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             active?: boolean;
-            privilegedRole?: boolean;
             assignableToUsers?: boolean;
             systemRole?: boolean;
+            privilegedRole?: boolean;
         };
         RoleGovernanceResult: {
             role?: components["schemas"]["RoleDTO"];
@@ -4522,10 +4714,10 @@ export interface components {
             expiringSoon?: boolean;
             expired?: boolean;
             exhausted?: boolean;
-            /** Format: int64 */
-            daysUntilExpiry?: number;
             /** Format: double */
             usageRate?: number;
+            /** Format: int64 */
+            daysUntilExpiry?: number;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -4550,9 +4742,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            fullyReceived?: boolean;
             /** Format: int32 */
             remainingQuantity?: number;
-            fullyReceived?: boolean;
         };
         PurchaseOrderResponse: {
             /** Format: int64 */
@@ -4947,6 +5139,20 @@ export interface components {
             /** @enum {string} */
             releaseMode?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
             availableModes?: ("DIRECT_WITH_REASON" | "APPROVAL_REQUIRED")[];
+        };
+        UpdateInventoryDispositionPolicyRequest: {
+            /** @enum {string} */
+            reviewMode: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            automaticExpiryEnabled?: boolean;
+            businessTimezone: string;
+            reason: string;
+        };
+        InventoryDispositionPolicyResponse: {
+            /** @enum {string} */
+            reviewMode?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            automaticExpiryEnabled?: boolean;
+            businessTimezone?: string;
+            supportedReviewModes?: ("DIRECT_WITH_REASON" | "APPROVAL_REQUIRED")[];
         };
         ChannelSkuMappingRequest: {
             channel?: string;
@@ -6169,6 +6375,185 @@ export interface components {
         InventoryQualityActionRequest: {
             comment: string;
         };
+        CreateInventoryScrapOrderRequest: {
+            lines: components["schemas"]["InventoryDispositionQuantityRequest"][];
+            reasonCode: string;
+            reasonDetail?: string;
+            externalReference?: string;
+            recallNoticeNumber?: string;
+            saveAsDraft?: boolean;
+        };
+        InventoryDispositionQuantityRequest: {
+            /** Format: int64 */
+            batchId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
+        InventoryDispositionExecutionLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            dispositionLineId?: number;
+            /** Format: int64 */
+            inventoryBatchId?: number;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            quantityBefore?: number;
+            /** Format: int32 */
+            quantityAfter?: number;
+            /** Format: int64 */
+            stockTransactionId?: number;
+            postingId?: string;
+        };
+        InventoryDispositionExecutionResponse: {
+            /** Format: int64 */
+            id?: number;
+            executionNumber?: string;
+            /** Format: int64 */
+            executedBy?: number;
+            executedByName?: string;
+            /** Format: date-time */
+            executedAt?: string;
+            executionNote?: string;
+            lines?: components["schemas"]["InventoryDispositionExecutionLineResponse"][];
+        };
+        InventoryDispositionLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            /** Format: int64 */
+            resultBatchId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            productSkuCode?: string;
+            productName?: string;
+            sourceBatchCode?: string;
+            resultBatchCode?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            executedQuantity?: number;
+            /** Format: int32 */
+            outstandingQuantity?: number;
+            /** Format: int32 */
+            reallocatedReservedQuantity?: number;
+            /** Format: int32 */
+            backorderedQuantity?: number;
+            /** Format: int32 */
+            qualityExceptionQuantity?: number;
+            /** @enum {string} */
+            fromQualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+            /** @enum {string} */
+            toQualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+            /** Format: date */
+            expiryDate?: string;
+        };
+        InventoryDispositionResponse: {
+            /** Format: int64 */
+            id?: number;
+            dispositionNumber?: string;
+            /** @enum {string} */
+            dispositionType?: "DAMAGE_REPORT" | "EXPIRY_MARK" | "SCRAP_DESTROY";
+            /** @enum {string} */
+            status?: "DRAFT" | "COMPLETED" | "PENDING_REVIEW" | "READY_TO_EXECUTE" | "PARTIALLY_EXECUTED" | "REJECTED" | "CANCELLED";
+            /** @enum {string} */
+            reviewModeSnapshot?: "DIRECT_WITH_REASON" | "APPROVAL_REQUIRED";
+            reasonCode?: string;
+            reasonDetail?: string;
+            externalReference?: string;
+            recallNoticeNumber?: string;
+            /** Format: int64 */
+            requestedBy?: number;
+            requestedByName?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedByName?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+            /** Format: int64 */
+            cancelledBy?: number;
+            cancelledByName?: string;
+            /** Format: date-time */
+            cancelledAt?: string;
+            cancelReason?: string;
+            lines?: components["schemas"]["InventoryDispositionLineResponse"][];
+            executions?: components["schemas"]["InventoryDispositionExecutionResponse"][];
+        };
+        InventoryDispositionDecisionRequest: {
+            comment: string;
+        };
+        ExecuteInventoryDispositionRequest: {
+            lines: components["schemas"]["InventoryDispositionExecutionQuantityRequest"][];
+            executionNote?: string;
+        };
+        InventoryDispositionExecutionQuantityRequest: {
+            /** Format: int64 */
+            lineId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
+        ReportInventoryDamageRequest: {
+            lines: components["schemas"]["InventoryDispositionQuantityRequest"][];
+            reasonCode: string;
+            reasonDetail?: string;
+            externalReference?: string;
+            recallNoticeNumber?: string;
+            confirmSalesImpact?: boolean;
+        };
+        InventoryDamageAffectedOrderResponse: {
+            /** Format: int64 */
+            salesOrderId?: number;
+            /** Format: int64 */
+            salesOrderItemId?: number;
+            /** Format: int32 */
+            quantity?: number;
+            impact?: string;
+        };
+        InventoryDamagePreviewLineResponse: {
+            /** Format: int64 */
+            batchId?: number;
+            batchCode?: string;
+            productSkuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            locationCode?: string;
+            /** Format: int32 */
+            onHandQuantity?: number;
+            /** Format: int32 */
+            reservedQuantity?: number;
+            /** Format: int32 */
+            requestedDamageQuantity?: number;
+            /** Format: int32 */
+            reallocatedQuantity?: number;
+            /** Format: int32 */
+            backorderedQuantity?: number;
+            /** Format: int32 */
+            qualityExceptionQuantity?: number;
+            affectedSalesOrders?: components["schemas"]["InventoryDamageAffectedOrderResponse"][];
+        };
+        InventoryDamagePreviewResponse: {
+            confirmationRequired?: boolean;
+            /** Format: int32 */
+            totalReallocatedQuantity?: number;
+            /** Format: int32 */
+            totalBackorderedQuantity?: number;
+            /** Format: int32 */
+            totalQualityExceptionQuantity?: number;
+            lines?: components["schemas"]["InventoryDamagePreviewLineResponse"][];
+        };
         ResolvePendingSkuRequest: {
             action: string;
             /** Format: int64 */
@@ -6477,9 +6862,9 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
+            buttonPermission?: boolean;
             menuPermission?: boolean;
             apiPermission?: boolean;
-            buttonPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
             /** Format: int64 */
@@ -6606,11 +6991,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PageableObject: {
@@ -6804,11 +7189,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PlatformCompanyResponse: {
@@ -6861,11 +7246,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PlatformAuditLogResponse: {
@@ -6895,11 +7280,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PlatformAdminRoleResponse: {
@@ -7049,11 +7434,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         SkuInfoDto: {
@@ -7141,6 +7526,42 @@ export interface components {
             /** Format: date */
             expiryDate?: string;
         };
+        InventoryDispositionCandidateResponse: {
+            /** Format: int64 */
+            batchId?: number;
+            batchCode?: string;
+            externalBatchCode?: string;
+            qualitySegmentNo?: string;
+            /** Format: int64 */
+            qualityParentBatchId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            productSkuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            warehouseId?: number;
+            warehouseName?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            reservedQuantity?: number;
+            /** @enum {string} */
+            qualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            dateExpired?: boolean;
+            /** Format: int64 */
+            daysUntilExpiry?: number;
+            /** Format: int32 */
+            outstandingDispositionQuantity?: number;
+            /** Format: int32 */
+            disposableQuantity?: number;
+        };
         PageRawEventSummary: {
             /** Format: int64 */
             totalElements?: number;
@@ -7152,11 +7573,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         RawEventSummary: {
@@ -8342,6 +8763,50 @@ export interface operations {
             };
         };
     };
+    policy_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionPolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInventoryDispositionPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionPolicyResponse"];
+                };
+            };
+        };
+    };
     update_4: {
         parameters: {
             query?: never;
@@ -8368,7 +8833,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -8500,7 +8965,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_4: {
+    updatePolicy_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -8592,7 +9057,7 @@ export interface operations {
             };
         };
     };
-    get_12: {
+    get_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -11666,7 +12131,219 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    createScrapOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInventoryScrapOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    submit_2: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    reject_4: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryDispositionDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    execute_1: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecuteInventoryDispositionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    cancel_4: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryDispositionDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    approve_4: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryDispositionDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    reportDamage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportInventoryDamageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    damagePreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportInventoryDamageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDamagePreviewResponse"];
+                };
+            };
+        };
+    };
+    list_15: {
         parameters: {
             query?: {
                 channel?: string;
@@ -11808,7 +12485,7 @@ export interface operations {
             };
         };
     };
-    list_16: {
+    list_17: {
         parameters: {
             query?: never;
             header?: never;
@@ -11876,7 +12553,7 @@ export interface operations {
             };
         };
     };
-    list_17: {
+    list_18: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -11922,7 +12599,7 @@ export interface operations {
             };
         };
     };
-    submit_2: {
+    submit_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11974,7 +12651,7 @@ export interface operations {
             };
         };
     };
-    reject_4: {
+    reject_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -12000,7 +12677,7 @@ export interface operations {
             };
         };
     };
-    approve_4: {
+    approve_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -12127,7 +12804,7 @@ export interface operations {
             };
         };
     };
-    list_19: {
+    list_20: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -13971,6 +14648,73 @@ export interface operations {
             };
         };
     };
+    list_14: {
+        parameters: {
+            query?: {
+                type?: "DAMAGE_REPORT" | "EXPIRY_MARK" | "SCRAP_DESTROY";
+                status?: "DRAFT" | "COMPLETED" | "PENDING_REVIEW" | "READY_TO_EXECUTE" | "PARTIALLY_EXECUTED" | "REJECTED" | "CANCELLED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"][];
+                };
+            };
+        };
+    };
+    get_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionResponse"];
+                };
+            };
+        };
+    };
+    candidates_1: {
+        parameters: {
+            query?: {
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryDispositionCandidateResponse"][];
+                };
+            };
+        };
+    };
     pending: {
         parameters: {
             query?: {
@@ -14018,7 +14762,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query?: {
                 channel?: string;
@@ -14043,7 +14787,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -14065,7 +14809,7 @@ export interface operations {
             };
         };
     };
-    get_11: {
+    get_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -14131,7 +14875,7 @@ export interface operations {
             };
         };
     };
-    list_18: {
+    list_19: {
         parameters: {
             query?: never;
             header?: never;

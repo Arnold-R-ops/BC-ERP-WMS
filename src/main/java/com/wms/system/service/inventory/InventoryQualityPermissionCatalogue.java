@@ -72,7 +72,29 @@ public class InventoryQualityPermissionCatalogue {
                 "Create an immutable correction and reinspection chain"),
             new PermissionSeed("receiving_inspection:policy", "配置收货质检策略",
                 "/api/receiving-inspections/policy", "*", SysPermission.RISK_LEVEL_CRITICAL,
-                159, "Configure optional tenant inspection and release review policy")
+                159, "Configure optional tenant inspection and release review policy"),
+            new PermissionSeed("inventory_disposition:view", "查看库存处置",
+                "/api/inventory-dispositions/**", "GET", SysPermission.RISK_LEVEL_NORMAL,
+                160, "View warehouse-scoped damage, expiry and disposal records"),
+            new PermissionSeed("inventory_disposition:report", "登记破损库存",
+                "/api/inventory-dispositions/damage-preview;/api/inventory-dispositions/damage-reports",
+                "POST", SysPermission.RISK_LEVEL_HIGH, 161,
+                "Immediately make damaged stock unavailable with governed sales impact"),
+            new PermissionSeed("inventory_disposition:create", "创建库存处置单",
+                "/api/inventory-dispositions/scrap-orders;/api/inventory-dispositions/orders/*/submit;/api/inventory-dispositions/orders/*/cancel",
+                "POST", SysPermission.RISK_LEVEL_HIGH, 162,
+                "Create, submit or cancel scrap and destruction documents"),
+            new PermissionSeed("inventory_disposition:execute", "执行库存处置",
+                "/api/inventory-dispositions/orders/*/executions", "POST",
+                SysPermission.RISK_LEVEL_CRITICAL, 163,
+                "Confirm physical destruction and atomically post inventory loss"),
+            new PermissionSeed("inventory_disposition:review", "审批库存处置",
+                "/api/inventory-dispositions/orders/*/approve;/api/inventory-dispositions/orders/*/reject",
+                "POST", SysPermission.RISK_LEVEL_CRITICAL, 164,
+                "Approve or reject another user inventory disposition"),
+            new PermissionSeed("inventory_disposition:policy", "配置库存处置策略",
+                "/api/inventory-dispositions/policy", "*", SysPermission.RISK_LEVEL_CRITICAL,
+                165, "Configure optional review, automatic expiry and business timezone")
         );
     }
 

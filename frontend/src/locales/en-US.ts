@@ -126,6 +126,7 @@ const enUS = {
     emergencyCorrections: 'Emergency corrections',
     inventoryQuality: 'Quality handling records',
     receivingInspection: 'Receiving inspection records',
+    inventoryDisposition: 'Inventory disposition',
     integrations: 'Channel integrations',
     integrationConfigs: 'Store configuration',
     pendingMappings: 'Pending mappings',
@@ -203,6 +204,9 @@ const enUS = {
     },
     inspection: {
       nav: 'Inspect',
+    },
+    disposition: {
+      nav: 'Disposal',
     },
     receiving: {
       nav: 'Receive',
@@ -1512,6 +1516,12 @@ const enUS = {
     INVENTORY_QUALITY_REALLOCATION_SHORTAGE: 'There is not enough alternative saleable stock to move every affected reservation. Nothing was changed.',
     INVENTORY_QUALITY_OUTBOUND_STARTED: 'An affected outbound task has already started and its reservation cannot be moved.',
     INVENTORY_QUALITY_RELEASE_PENDING: 'This quality segment already has a pending release request.',
+    INVENTORY_DISPOSITION_NOT_FOUND: 'The inventory disposition was not found or is outside your warehouse scope.',
+    INVENTORY_DISPOSITION_INVALID: 'The disposition state or source inventory no longer allows this operation. Refresh and try again.',
+    INVENTORY_DISPOSITION_POLICY_INVALID: 'The disposition policy is invalid. Check the review mode and business timezone.',
+    INVENTORY_DISPOSITION_SALES_CONFIRMATION_REQUIRED: 'This action affects sales reservations. Review the reallocation, backorder, and picking-exception impact first.',
+    INVENTORY_DISPOSITION_QUANTITY_CONFLICT: 'The disposition quantity conflicts with current on-hand or remaining quantity. Refresh and verify it again.',
+    INVENTORY_DISPOSITION_RESERVED_CONFLICT: 'The disposition batch has new sales reservations. Physical execution was not posted; resolve the reservation first.',
     IDEMPOTENCY_KEY_REQUIRED: 'The duplicate-prevention key is missing. Start the operation again.',
     IDEMPOTENCY_CONFLICT: 'This duplicate-prevention key was used for another operation. Start a new attempt.',
     IDEMPOTENCY_REQUEST_IN_PROGRESS: 'The same operation is still processing. Refresh the result shortly.',

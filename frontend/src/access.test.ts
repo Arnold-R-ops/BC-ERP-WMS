@@ -71,6 +71,18 @@ describe('effective-permission module access', () => {
       .toBe(true);
   });
 
+  it('exposes disposition independently for tenant authors and warehouse executors', () => {
+    expect(canAccessModule(
+      'CUSTOM_ROLE', 'inventoryDisposition', ['inventory_disposition:create']))
+      .toBe(true);
+    expect(canAccessModule(
+      'WAREHOUSE_STAFF', 'inventoryDisposition', ['inventory_disposition:execute']))
+      .toBe(true);
+    expect(canAccessModule(
+      'WAREHOUSE_STAFF', 'inventoryDisposition', ['inventory_quality:hold']))
+      .toBe(false);
+  });
+
   it('requires a current role even for the dashboard', () => {
     expect(canAccessModule(undefined, 'dashboard', [])).toBe(false);
     expect(canAccessModule('CUSTOM_ROLE', 'dashboard', [])).toBe(true);

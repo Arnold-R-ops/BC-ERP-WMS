@@ -58,6 +58,38 @@ public class BackorderService {
         return saved;
     }
 
+    /** Converts a quality-driven reservation release into an auditable backorder. */
+    @Transactional(rollbackFor = Exception.class)
+    public BackorderLine addQualityShortage(Long salesOrderItemId, int quantity, String reason) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorKeys.STOCK_INVALID_QUANTITY,
+                Map.of("quantity", quantity, "operationType", "QUALITY_BACKORDER"));
+        }
+        SalesOrderItem item = salesOrderItemRepository.findByIdForUpdate(salesOrderItemId)
+            .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_ITEM_NOT_FOUND,
+                Map.of("itemId", salesOrderItemId)));
+        int allocated = item.getAllocatedQty() == null ? 0 : item.getAllocatedQty();
+        if (quantity > allocated) {
+            throw new BusinessException(ErrorKeys.INVENTORY_DISPOSITION_INVALID,
+                Map.of("reason", "QUALITY_SHORTAGE_EXCEEDS_ALLOCATED", "itemId", salesOrderItemId));
+        }
+        item.setAllocatedQty(allocated - quantity);
+        item.setBackorderQty((item.getBackorderQty() == null ? 0 : item.getBackorderQty()) + quantity);
+        item.setFulfillmentStatus(item.getAllocatedQty() > 0
+            ? FulfillmentStatus.PARTIALLY_ALLOCATED
+            : FulfillmentStatus.WAITING_INBOUND);
+        salesOrderItemRepository.save(item);
+
+        SalesOrder order = salesOrderRepository.findByIdForUpdate(item.getSalesOrderId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_NOT_FOUND,
+                Map.of("salesOrderId", item.getSalesOrderId())));
+        BackorderLine line = createBackorder(item, quantity, 50, order.getPromisedShipDate());
+        order.setShortageReason(reason);
+        salesOrderRepository.save(order);
+        updateOrderFulfillment(order.getId());
+        return line;
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public int wakeProduct(Long productSkuId) {
         List<BackorderLine> lines = backorderLineRepository.findOpenByProductSkuForWakeup(
