@@ -1,6 +1,5 @@
 package com.wms.system.entity;
 
-import com.wms.system.entity.enums.FulfillmentStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -116,11 +115,6 @@ public class SalesOrderItem extends BaseEntity {
     @Column(name = "cancelled_qty", nullable = false)
     @Builder.Default
     private Integer cancelledQty = 0;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "fulfillment_status", nullable = false, length = 40)
-    @Builder.Default
-    private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.UNALLOCATED;
 
     /**
      * 单价

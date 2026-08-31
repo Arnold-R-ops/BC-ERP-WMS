@@ -1,7 +1,7 @@
-import { DownloadOutlined, EyeOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, EyeOutlined, PlusOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App as AntdApp, Button, Space, Tabs, Tag, Upload } from 'antd';
+import { App as AntdApp, Button, Tabs, Tag, Upload } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -14,7 +14,9 @@ import { paginateArray } from '../../api/pagination';
 import {
   approveSalesOrder,
   cancelSalesOrder,
+  closeSalesOrder,
   createSalesOrder,
+  deleteDraftSalesOrder,
   downloadSalesOrderTemplate,
   importSalesOrderItems,
   listSalesOrders,
@@ -24,7 +26,10 @@ import {
   type SalesOrder,
   type SalesOrderItemPayload,
   type SalesOrderPayload,
-  type SalesOrderStatus,
+  submitSalesOrder,
+  type SalesAllocationStatus,
+  type SalesCommercialStatus,
+  type SalesWarehouseStatus,
   voidSalesOrder,
 } from '../../api/sales';
 import { OrderStatusTag } from '../../components/OrderStatusTag';
@@ -33,12 +38,15 @@ import { formatDateTime, formatMoney } from '../workflowUtils';
 import { SalesApprovalModal } from './SalesApprovalModal';
 import { SalesOrderDrawer, type SalesReasonAction } from './SalesOrderDrawer';
 import { SalesOrderFormDrawer } from './SalesOrderFormDrawer';
+import { SalesPolicyModal } from './SalesPolicyModal';
 
 interface SalesTableParams {
   current?: number;
   pageSize?: number;
   search?: string;
   customerId?: number;
+  allocationStatus?: SalesAllocationStatus;
+  warehouseStatus?: SalesWarehouseStatus;
 }
 
 interface ReasonActionState {
@@ -46,19 +54,20 @@ interface ReasonActionState {
   order: SalesOrder;
 }
 
-const salesStatuses = new Set<SalesOrderStatus>([
+const salesStatuses = new Set<SalesCommercialStatus>([
   'DRAFT',
   'PENDING_APPROVAL',
-  'APPROVED_AWAITING_SHIPMENT',
-  'SHIPPED',
+  'APPROVED',
+  'COMPLETED',
+  'CLOSED',
   'REJECTED',
   'CANCELLED',
   'VOIDED',
 ]);
 
-function readSalesStatus(value: string | null): SalesOrderStatus | undefined {
-  return value && salesStatuses.has(value as SalesOrderStatus)
-    ? value as SalesOrderStatus
+function readSalesStatus(value: string | null): SalesCommercialStatus | undefined {
+  return value && salesStatuses.has(value as SalesCommercialStatus)
+    ? value as SalesCommercialStatus
     : undefined;
 }
 
@@ -70,32 +79,34 @@ function readOrderId(value: string | null): number | undefined {
 export function SalesOrderPage(): JSX.Element {
   const actionRef = useRef<ActionType>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [status, setStatus] = useState<SalesOrderStatus | undefined>(() => readSalesStatus(searchParams.get('status')));
+  const [status, setStatus] = useState<SalesCommercialStatus | undefined>(() => readSalesStatus(searchParams.get('commercialStatus')));
   const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(() => readOrderId(searchParams.get('orderId')));
   const [formOpen, setFormOpen] = useState(false);
   const [initialItems, setInitialItems] = useState<SalesOrderItemPayload[]>();
   const [approvalOrder, setApprovalOrder] = useState<SalesOrder>();
   const [reasonAction, setReasonAction] = useState<ReasonActionState>();
+  const [policyOpen, setPolicyOpen] = useState(false);
   const { i18n, t } = useTranslation();
   const { session } = useAuth();
-  const { message } = AntdApp.useApp();
+  const { message, modal } = AntdApp.useApp();
   const queryClient = useQueryClient();
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers(false) });
   const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'sales:create');
+  const canManagePolicy = hasPermission(session?.currentRole, session?.permissionCodes, 'sales:policy:manage');
 
   useEffect(() => {
     actionRef.current?.reloadAndRest?.();
   }, [status]);
 
   useEffect(() => {
-    setStatus(readSalesStatus(searchParams.get('status')));
+    setStatus(readSalesStatus(searchParams.get('commercialStatus')));
     setSelectedOrderId(readOrderId(searchParams.get('orderId')));
   }, [searchParams]);
 
-  const changeStatus = (nextStatus?: SalesOrderStatus): void => {
+  const changeStatus = (nextStatus?: SalesCommercialStatus): void => {
     const next = new URLSearchParams(searchParams);
-    if (nextStatus) next.set('status', nextStatus);
-    else next.delete('status');
+    if (nextStatus) next.set('commercialStatus', nextStatus);
+    else next.delete('commercialStatus');
     next.delete('orderId');
     setSearchParams(next, { replace: true });
   };
@@ -121,7 +132,7 @@ export function SalesOrderPage(): JSX.Element {
     }
   };
 
-  const createMutation = useMutation({ mutationFn: createSalesOrder });
+  const createMutation = useMutation({ mutationFn: (payload: SalesOrderPayload) => createSalesOrder(payload) });
   const approveMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: SalesApprovalPayload }) => approveSalesOrder(id, payload),
   });
@@ -129,14 +140,17 @@ export function SalesOrderPage(): JSX.Element {
     mutationFn: ({ action, id, reason }: { action: SalesReasonAction; id: number; reason: string }) => {
       if (action === 'reject') return rejectSalesOrder(id, reason);
       if (action === 'cancel') return cancelSalesOrder(id, reason);
+      if (action === 'close') return closeSalesOrder(id, reason);
       return voidSalesOrder(id, reason);
     },
   });
+  const submitMutation = useMutation({ mutationFn: (id: number) => submitSalesOrder(id) });
+  const deleteMutation = useMutation({ mutationFn: (id: number) => deleteDraftSalesOrder(id) });
 
   const saveOrder = async (payload: SalesOrderPayload): Promise<boolean> => {
     try {
       const order = await createMutation.mutateAsync(payload);
-      message.success(t('sales.messages.created', { orderNo: order.orderNo ?? '-' }));
+      message.success(t(payload.saveAsDraft ? 'sales.messages.draftSaved' : 'sales.messages.created', { orderNo: order.orderNo ?? '-' }));
       setFormOpen(false);
       setInitialItems(undefined);
       await refresh();
@@ -145,6 +159,32 @@ export function SalesOrderPage(): JSX.Element {
       message.error(getErrorMessage(error, t));
       return false;
     }
+  };
+
+  const submitDraft = async (order: SalesOrder): Promise<void> => {
+    if (order.id === undefined) return;
+    try {
+      await submitMutation.mutateAsync(order.id);
+      message.success(t('sales.messages.submitted'));
+      await refresh();
+    } catch (error) { message.error(getErrorMessage(error, t)); }
+  };
+
+  const deleteDraft = (order: SalesOrder): void => {
+    if (order.id === undefined) return;
+    modal.confirm({
+      title: t('sales.actions.deleteDraft'),
+      content: t('sales.confirmations.deleteDraft'),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await deleteMutation.mutateAsync(order.id as number);
+          message.success(t('sales.messages.draftDeleted'));
+          closeOrder();
+          await refresh();
+        } catch (error) { message.error(getErrorMessage(error, t)); throw error; }
+      },
+    });
   };
 
   const confirmApproval = async (payload: SalesApprovalPayload): Promise<void> => {
@@ -163,7 +203,10 @@ export function SalesOrderPage(): JSX.Element {
     if (!reasonAction?.order.id) return;
     try {
       await reasonMutation.mutateAsync({ action: reasonAction.action, id: reasonAction.order.id, reason });
-      message.success(t(`sales.messages.${reasonAction.action}ed`));
+      const messageKey: Record<SalesReasonAction, string> = {
+        reject: 'rejected', cancel: 'cancelled', close: 'closed', void: 'voided',
+      };
+      message.success(t(`sales.messages.${messageKey[reasonAction.action]}`));
       setReasonAction(undefined);
       await refresh();
     } catch (error) {
@@ -183,21 +226,22 @@ export function SalesOrderPage(): JSX.Element {
     { title: t('sales.fields.customer'), dataIndex: 'customerName', width: 200, search: false },
     { title: t('sales.fields.channel'), dataIndex: 'channel', width: 105, search: false, render: () => <Tag>-</Tag> },
     { title: t('sales.fields.totalAmount'), dataIndex: 'totalAmount', align: 'right', width: 135, search: false, renderText: (value) => formatMoney(value as number | undefined, i18n.language) },
-    { title: t('sales.fields.status'), dataIndex: 'status', width: 170, search: false, render: (_, order) => <OrderStatusTag description={order.statusDescription} domain="sales" status={order.status} /> },
-    { title: t('sales.fields.fulfillmentStatus'), dataIndex: 'fulfillmentStatus', width: 165, search: false, render: (_, order) => <OrderStatusTag description={order.fulfillmentStatusDescription} domain="sales" status={order.fulfillmentStatus} /> },
+    { title: t('sales.fields.commercialStatus'), dataIndex: 'commercialStatus', width: 150, search: false, render: (_, order) => <OrderStatusTag description={order.commercialStatusDescription} domain="sales" status={order.commercialStatus} /> },
+    { title: t('sales.fields.allocationStatus'), dataIndex: 'allocationStatus', width: 150, valueType: 'select', valueEnum: { UNALLOCATED: { text: t('sales.statuses.UNALLOCATED') }, FULLY_ALLOCATED: { text: t('sales.statuses.FULLY_ALLOCATED') }, PARTIALLY_ALLOCATED: { text: t('sales.statuses.PARTIALLY_ALLOCATED') }, BACKORDERED: { text: t('sales.statuses.BACKORDERED') }, WAITING_INBOUND: { text: t('sales.statuses.WAITING_INBOUND') } }, render: (_, order) => <OrderStatusTag description={order.allocationStatusDescription} domain="sales" status={order.allocationStatus} /> },
+    { title: t('sales.fields.warehouseStatus'), dataIndex: 'warehouseStatus', width: 155, valueType: 'select', valueEnum: { NOT_RELEASED: { text: t('sales.statuses.NOT_RELEASED') }, PENDING_PICK: { text: t('sales.statuses.PENDING_PICK') }, PICKING: { text: t('sales.statuses.PICKING') }, PARTIALLY_SHIPPED: { text: t('sales.statuses.PARTIALLY_SHIPPED') }, SHIPPED: { text: t('sales.statuses.SHIPPED') }, EXCEPTION: { text: t('sales.statuses.EXCEPTION') } }, render: (_, order) => <OrderStatusTag description={order.warehouseStatusDescription} domain="sales" status={order.warehouseStatus} /> },
     { title: t('sales.fields.applicant'), dataIndex: 'applicantName', width: 130, search: false },
     { title: t('common.createdAt'), dataIndex: 'createdAt', width: 180, search: false, renderText: (value) => formatDateTime(value as string | undefined, i18n.language) },
     { title: t('common.actions'), valueType: 'option', width: 100, fixed: 'right', render: (_, order) => [<Button icon={<EyeOutlined />} key="view" onClick={() => openOrder(order.id)} size="small" type="link">{t('common.view')}</Button>] },
   ], [customerOptions, i18n.language, searchParams, t]);
 
-  const tabs = [undefined, 'PENDING_APPROVAL', 'APPROVED_AWAITING_SHIPMENT', 'SHIPPED', 'CANCELLED', 'REJECTED'] as const;
+  const tabs = [undefined, 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'COMPLETED', 'CLOSED', 'CANCELLED', 'REJECTED'] as const;
 
   return (
     <section className="data-page workflow-page">
       <Tabs
         activeKey={status ?? 'ALL'}
         items={tabs.map((tabStatus) => ({ key: tabStatus ?? 'ALL', label: t(`sales.tabs.${tabStatus ?? 'ALL'}`) }))}
-        onChange={(key) => changeStatus(key === 'ALL' ? undefined : key as SalesOrderStatus)}
+        onChange={(key) => changeStatus(key === 'ALL' ? undefined : key as SalesCommercialStatus)}
       />
       <ProTable<SalesOrder, SalesTableParams>
         actionRef={actionRef}
@@ -207,7 +251,7 @@ export function SalesOrderPage(): JSX.Element {
         pagination={{ defaultPageSize: 20, showSizeChanger: true }}
         request={async (params) => {
           try {
-            const orders = await listSalesOrders({ status, customerId: params.customerId });
+            const orders = await listSalesOrders({ commercialStatus: status, allocationStatus: params.allocationStatus, warehouseStatus: params.warehouseStatus, customerId: params.customerId });
             const keyword = params.search?.trim().toLowerCase();
             const filtered = keyword
               ? orders.filter((order) => [order.orderNo, order.customerName].some((value) => value?.toLowerCase().includes(keyword)))
@@ -221,7 +265,9 @@ export function SalesOrderPage(): JSX.Element {
         rowKey="id"
         scroll={{ x: 1490 }}
         search={{ defaultCollapsed: false, labelWidth: 'auto' }}
-        toolBarRender={() => canCreate ? [
+        toolBarRender={() => [
+          ...(canManagePolicy ? [<Button icon={<SettingOutlined />} key="policy" onClick={() => setPolicyOpen(true)}>{t('sales.actions.policy')}</Button>] : []),
+          ...(canCreate ? [
           <Button
             icon={<DownloadOutlined />}
             key="template"
@@ -246,11 +292,12 @@ export function SalesOrderPage(): JSX.Element {
           <Button icon={<PlusOutlined />} key="create" onClick={() => { setInitialItems(undefined); setFormOpen(true); }} type="primary">
             {t('sales.create')}
           </Button>,
-        ] : []}
+          ] : []),
+        ]}
       />
 
       <SalesOrderFormDrawer initialItems={initialItems} loading={createMutation.isPending} onClose={() => { setFormOpen(false); setInitialItems(undefined); }} onSubmit={saveOrder} open={formOpen} />
-      <SalesOrderDrawer orderId={selectedOrderId} onApprove={setApprovalOrder} onClose={closeOrder} onReasonAction={(action, order) => setReasonAction({ action, order })} />
+      <SalesOrderDrawer orderId={selectedOrderId} onApprove={setApprovalOrder} onClose={closeOrder} onDeleteDraft={deleteDraft} onReasonAction={(action, order) => setReasonAction({ action, order })} onSubmit={submitDraft} />
       <SalesApprovalModal loading={approveMutation.isPending} onCancel={() => setApprovalOrder(undefined)} onConfirm={confirmApproval} open={approvalOrder !== undefined} order={approvalOrder} />
       <ReasonModal
         danger
@@ -261,6 +308,7 @@ export function SalesOrderPage(): JSX.Element {
         open={reasonAction !== undefined}
         title={reasonAction ? t(`sales.actions.${reasonAction.action}`) : ''}
       />
+      <SalesPolicyModal onClose={() => setPolicyOpen(false)} onSaved={refresh} open={policyOpen} />
     </section>
   );
 }

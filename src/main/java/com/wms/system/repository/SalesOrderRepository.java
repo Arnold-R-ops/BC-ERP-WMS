@@ -1,7 +1,7 @@
 package com.wms.system.repository;
 
 import com.wms.system.entity.SalesOrder;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -66,7 +66,7 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
      * @param status 订单状态
      * @return 指定状态的所有订单
      */
-    List<SalesOrder> findByStatus(SalesOrderStatus status);
+    List<SalesOrder> findByCommercialStatus(CommercialStatus status);
 
     /**
      * 根据客户ID查询订单列表
@@ -110,14 +110,14 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
      * @param status 订单状态
      * @return 指定客户和状态的所有订单
      */
-    List<SalesOrder> findByCustomerIdAndStatus(Long customerId, SalesOrderStatus status);
+    List<SalesOrder> findByCustomerIdAndCommercialStatus(Long customerId, CommercialStatus status);
 
     /**
      * 查询待审批订单数量
      *
      * @return 待审批订单数量
      */
-    @Query("SELECT COUNT(s) FROM SalesOrder s WHERE s.status = 'PENDING_APPROVAL'")
+    @Query("SELECT COUNT(s) FROM SalesOrder s WHERE s.commercialStatus = 'PENDING_APPROVAL'")
     long countPendingApprovalOrders();
 
     /**

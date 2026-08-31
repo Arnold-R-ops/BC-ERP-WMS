@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.AllocationPolicy;
-import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -84,6 +83,7 @@ public class AllocationService {
     private final OutboundTaskRepository outboundTaskRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final BackorderService backorderService;
+    private final SalesOrderStatusProjectionService statusProjectionService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -105,14 +105,14 @@ public class AllocationService {
         log.info("🚀 Starting intelligent allocation for sales order: salesOrderId={}", salesOrderId);
 
         // 1. Validate sales order exists
-        SalesOrder salesOrder = salesOrderRepository.findById(salesOrderId)
+        SalesOrder salesOrder = salesOrderRepository.findByIdForUpdate(salesOrderId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.SALES_ORDER_NOT_FOUND,
                 Map.of("salesOrderId", salesOrderId)
             ));
 
         log.info("📋 Sales order found: orderNo={}, customerId={}, status={}",
-            salesOrder.getOrderNo(), salesOrder.getCustomerId(), salesOrder.getStatus());
+            salesOrder.getOrderNo(), salesOrder.getCustomerId(), salesOrder.getCommercialStatus());
 
         List<OutboundTask> existingTasks = outboundTaskRepository.findBySalesOrderId(salesOrderId);
         if (!existingTasks.isEmpty()) {
@@ -145,7 +145,6 @@ public class AllocationService {
             item.setRequestedQty(item.getQuantity());
             item.setAllocatedQty(allocatedQty);
             item.setBackorderQty(Math.max(0, item.getQuantity() - allocatedQty));
-            item.setFulfillmentStatus(resolveItemFulfillmentStatus(allocatedQty, item.getBackorderQty()));
             salesOrderItemRepository.save(item);
 
             log.info("✅ Order item allocated: itemId={}, tasksGenerated={}", item.getId(), itemTasks.size());
@@ -155,15 +154,9 @@ public class AllocationService {
 
         boolean hasBackorder = orderItems.stream()
             .anyMatch(item -> item.getBackorderQty() != null && item.getBackorderQty() > 0);
-        boolean hasAllocation = allTasks.stream().anyMatch(task -> task.getPlanQty() != null && task.getPlanQty() > 0);
-        salesOrder.setFulfillmentStatus(hasBackorder
-            ? (hasAllocation ? FulfillmentStatus.PARTIALLY_ALLOCATED : FulfillmentStatus.WAITING_INBOUND)
-            : FulfillmentStatus.RESERVED);
         salesOrder.setShortageReason(hasBackorder ? "Some quantities are waiting for inventory." : null);
-        salesOrder.setFulfillmentVersion(
-            salesOrder.getFulfillmentVersion() == null ? 1L : salesOrder.getFulfillmentVersion() + 1
-        );
         salesOrderRepository.save(salesOrder);
+        statusProjectionService.refreshLocked(salesOrder);
 
         return allTasks;
     }
@@ -257,16 +250,6 @@ public class AllocationService {
 
         List<BatchAllocation> allocationPlan = planPackAwareAllocation(item, product, availableBatches);
         return createOutboundTasks(item, allocationPlan);
-    }
-
-    private FulfillmentStatus resolveItemFulfillmentStatus(int allocatedQty, int backorderQty) {
-        if (backorderQty > 0 && allocatedQty > 0) {
-            return FulfillmentStatus.PARTIALLY_ALLOCATED;
-        }
-        if (backorderQty > 0) {
-            return FulfillmentStatus.WAITING_INBOUND;
-        }
-        return FulfillmentStatus.RESERVED;
     }
 
     /**

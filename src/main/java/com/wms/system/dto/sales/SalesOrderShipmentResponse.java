@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -14,6 +15,19 @@ public class SalesOrderShipmentResponse {
     private String carrier;
     private String trackingUrl;
     private String status;
+
+    private String logisticsStatus;
+
+    private String logisticsStatusDescription;
+
+    private String statusReason;
+
+    private Long statusChangedBy;
+
+    private String statusChangedByName;
+
+    private LocalDateTime statusChangedAt;
+    private List<SalesLogisticsEventResponse> logisticsEvents;
     private LocalDateTime shippedAt;
     private Long createdBy;
     private String createdByName;

@@ -2,7 +2,7 @@ package com.wms.system.repository;
 
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.entity.enums.Zone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -162,7 +162,7 @@ class OutboundTaskRepositoryTest {
                 .orderNo("SO20260129001")
                 .customerId(testCustomer.getId())
                 .totalAmount(new BigDecimal("5000.00"))
-                .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+                .commercialStatus(CommercialStatus.APPROVED)
                 .applicantId(1L)
                 .applicantName("user1")
                 .build();
@@ -171,7 +171,7 @@ class OutboundTaskRepositoryTest {
                 .orderNo("SO20260129002")
                 .customerId(testCustomer.getId())
                 .totalAmount(new BigDecimal("3000.00"))
-                .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+                .commercialStatus(CommercialStatus.APPROVED)
                 .applicantId(1L)
                 .applicantName("user1")
                 .build();

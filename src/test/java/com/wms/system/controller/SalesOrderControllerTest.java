@@ -5,7 +5,9 @@ import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.sales.*;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.service.SalesEntryService;
+import com.wms.system.service.SalesCommandIdempotencyService;
 import com.wms.system.service.SalesSubmissionService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -72,6 +75,15 @@ class SalesOrderControllerTest {
 
     @MockBean
     private SalesSubmissionService salesSubmissionService;
+
+    @MockBean
+    private SalesCommandIdempotencyService commandService;
+
+    @BeforeEach
+    void executeIdempotentCommandSupplier() {
+        lenient().when(commandService.execute(anyString(), anyString(), any(), anyLong(), anyString(), any(), any()))
+            .thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(6)).get());
+    }
 
     @Test
     @WithMockUser(username = "testuser", authorities = {"sales:create"})
@@ -201,8 +213,8 @@ class SalesOrderControllerTest {
             .customerId(1L)
             .customerName("Test Customer")
             .totalAmount(new BigDecimal("1000.00"))
-            .status("APPROVED_AWAITING_SHIPMENT")
-            .statusDescription("宸插鎵?寰呭嚭搴?")
+            .commercialStatus("APPROVED")
+            .commercialStatusDescription("宸插鎵?寰呭嚭搴?")
             .applicantId(1L)
             .applicantName("testuser")
             .createdAt(LocalDateTime.now())
@@ -213,13 +225,14 @@ class SalesOrderControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders")
+                .header("Idempotency-Key", "sales-create-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.orderNo").value("SO202601290001"))
-            .andExpect(jsonPath("$.status").value("APPROVED_AWAITING_SHIPMENT"))
+            .andExpect(jsonPath("$.commercialStatus").value("APPROVED"))
             .andExpect(jsonPath("$.totalAmount").value(1000.00))
             .andExpect(jsonPath("$.customerName").value("Test Customer"));
 
@@ -238,8 +251,8 @@ class SalesOrderControllerTest {
                 .customerId(1L)
                 .customerName("Customer A")
                 .totalAmount(new BigDecimal("1000.00"))
-                .status("APPROVED_AWAITING_SHIPMENT")
-                .statusDescription("宸插鎵?寰呭嚭搴?")
+                .commercialStatus("APPROVED")
+                .commercialStatusDescription("宸插鎵?寰呭嚭搴?")
                 .build(),
             SalesOrderResponse.builder()
                 .id(2L)
@@ -247,12 +260,12 @@ class SalesOrderControllerTest {
                 .customerId(2L)
                 .customerName("Customer B")
                 .totalAmount(new BigDecimal("2000.00"))
-                .status("PENDING_APPROVAL")
-                .statusDescription("寰呭鎵?")
+                .commercialStatus("PENDING_APPROVAL")
+                .commercialStatusDescription("寰呭鎵?")
                 .build()
         );
 
-        when(salesSubmissionService.listSalesOrders(null, null)).thenReturn(responses);
+        when(salesSubmissionService.listSalesOrders(null, null, null, null)).thenReturn(responses);
 
         // When & Then
         mockMvc.perform(get("/api/sales-orders")
@@ -261,11 +274,11 @@ class SalesOrderControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$", hasSize(2)))
             .andExpect(jsonPath("$[0].orderNo").value("SO202601290001"))
-            .andExpect(jsonPath("$[0].status").value("APPROVED_AWAITING_SHIPMENT"))
+            .andExpect(jsonPath("$[0].commercialStatus").value("APPROVED"))
             .andExpect(jsonPath("$[1].orderNo").value("SO202601290002"))
-            .andExpect(jsonPath("$[1].status").value("PENDING_APPROVAL"));
+            .andExpect(jsonPath("$[1].commercialStatus").value("PENDING_APPROVAL"));
 
-        verify(salesSubmissionService).listSalesOrders(null, null);
+        verify(salesSubmissionService).listSalesOrders(null, null, null, null);
     }
 
     @Test
@@ -279,24 +292,24 @@ class SalesOrderControllerTest {
                 .orderNo("SO202601290001")
                 .customerId(1L)
                 .customerName("Customer A")
-                .status("PENDING_APPROVAL")
+                .commercialStatus("PENDING_APPROVAL")
                 .build()
         );
 
-        when(salesSubmissionService.listSalesOrders("PENDING_APPROVAL", 1L))
+        when(salesSubmissionService.listSalesOrders("PENDING_APPROVAL", null, null, 1L))
             .thenReturn(responses);
 
         // When & Then
         mockMvc.perform(get("/api/sales-orders")
-                .param("status", "PENDING_APPROVAL")
+                .param("commercialStatus", "PENDING_APPROVAL")
                 .param("customerId", "1"))
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$", hasSize(1)))
-            .andExpect(jsonPath("$[0].status").value("PENDING_APPROVAL"))
+            .andExpect(jsonPath("$[0].commercialStatus").value("PENDING_APPROVAL"))
             .andExpect(jsonPath("$[0].customerId").value(1));
 
-        verify(salesSubmissionService).listSalesOrders("PENDING_APPROVAL", 1L);
+        verify(salesSubmissionService).listSalesOrders("PENDING_APPROVAL", null, null, 1L);
     }
 
     @Test
@@ -310,8 +323,8 @@ class SalesOrderControllerTest {
             .customerId(1L)
             .customerName("Test Customer")
             .totalAmount(new BigDecimal("1000.00"))
-            .status("APPROVED_AWAITING_SHIPMENT")
-            .statusDescription("宸插鎵?寰呭嚭搴?")
+            .commercialStatus("APPROVED")
+            .commercialStatusDescription("宸插鎵?寰呭嚭搴?")
             .items(Arrays.asList(
                 SalesOrderResponse.SalesOrderItemResponse.builder()
                     .id(1L)
@@ -333,7 +346,7 @@ class SalesOrderControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.orderNo").value("SO202601290001"))
-            .andExpect(jsonPath("$.status").value("APPROVED_AWAITING_SHIPMENT"))
+            .andExpect(jsonPath("$.commercialStatus").value("APPROVED"))
             .andExpect(jsonPath("$.items", hasSize(1)))
             .andExpect(jsonPath("$.items[0].productName").value("ProductSku A"))
             .andExpect(jsonPath("$.items[0].quantity").value(100));
@@ -362,24 +375,25 @@ class SalesOrderControllerTest {
             .customerId(1L)
             .customerName("Test Customer")
             .totalAmount(new BigDecimal("1500.00"))
-            .status("PENDING_APPROVAL")
-            .statusDescription("寰呭鎵?")
+            .commercialStatus("PENDING_APPROVAL")
+            .commercialStatusDescription("寰呭鎵?")
             .build();
 
-        when(salesSubmissionService.updateSalesOrder(eq(1L), any(), anyLong()))
+        when(salesSubmissionService.updateSalesOrder(eq(1L), any(), anyLong(), anyString()))
             .thenReturn(response);
 
         // When & Then
         mockMvc.perform(put("/api/sales-orders/{id}", 1L)
+                .header("Idempotency-Key", "sales-update-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.totalAmount").value(1500.00))
-            .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
+            .andExpect(jsonPath("$.commercialStatus").value("PENDING_APPROVAL"));
 
-        verify(salesSubmissionService).updateSalesOrder(eq(1L), any(), anyLong());
+        verify(salesSubmissionService).updateSalesOrder(eq(1L), any(), anyLong(), anyString());
     }
 
     @Test
@@ -394,8 +408,8 @@ class SalesOrderControllerTest {
         SalesOrderResponse response = SalesOrderResponse.builder()
             .id(1L)
             .orderNo("SO202601290001")
-            .status("APPROVED_AWAITING_SHIPMENT")
-            .statusDescription("宸插鎵?寰呭嚭搴?")
+            .commercialStatus("APPROVED")
+            .commercialStatusDescription("宸插鎵?寰呭嚭搴?")
             .reviewedBy(2L)
             .reviewedByName("manager")
             .reviewedAt(LocalDateTime.now())
@@ -407,12 +421,13 @@ class SalesOrderControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders/{id}/approve", 1L)
+                .header("Idempotency-Key", "sales-approve-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.status").value("APPROVED_AWAITING_SHIPMENT"))
+            .andExpect(jsonPath("$.commercialStatus").value("APPROVED"))
             .andExpect(jsonPath("$.reviewedByName").value("manager"))
             .andExpect(jsonPath("$.reviewComment").value("Approved by manager"));
 
@@ -431,8 +446,8 @@ class SalesOrderControllerTest {
         SalesOrderResponse response = SalesOrderResponse.builder()
             .id(1L)
             .orderNo("SO202601290001")
-            .status("REJECTED")
-            .statusDescription("宸叉嫆缁?")
+            .commercialStatus("REJECTED")
+            .commercialStatusDescription("宸叉嫆缁?")
             .reviewedBy(2L)
             .reviewedByName("manager")
             .reviewedAt(LocalDateTime.now())
@@ -444,12 +459,13 @@ class SalesOrderControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders/{id}/reject", 1L)
+                .header("Idempotency-Key", "sales-reject-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.status").value("REJECTED"))
+            .andExpect(jsonPath("$.commercialStatus").value("REJECTED"))
             .andExpect(jsonPath("$.reviewedByName").value("manager"))
             .andExpect(jsonPath("$.reviewReason").value("Price too low"));
 
@@ -468,23 +484,24 @@ class SalesOrderControllerTest {
         SalesOrderResponse response = SalesOrderResponse.builder()
             .id(1L)
             .orderNo("SO202601290001")
-            .status("CANCELLED")
-            .statusDescription("宸插彇娑?")
+            .commercialStatus("CANCELLED")
+            .commercialStatusDescription("宸插彇娑?")
             .build();
 
-        when(salesSubmissionService.cancelSalesOrder(eq(1L), anyString(), anyLong()))
+        when(salesSubmissionService.cancelSalesOrder(eq(1L), anyString(), anyLong(), anyString()))
             .thenReturn(response);
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders/{id}/cancel", 1L)
+                .header("Idempotency-Key", "sales-cancel-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
-            .andExpect(jsonPath("$.status").value("CANCELLED"));
+            .andExpect(jsonPath("$.commercialStatus").value("CANCELLED"));
 
-        verify(salesSubmissionService).cancelSalesOrder(eq(1L), anyString(), anyLong());
+        verify(salesSubmissionService).cancelSalesOrder(eq(1L), anyString(), anyLong(), anyString());
     }
 
     // ========== V4.4 幂等性防御：重复订单号 ==========
@@ -510,6 +527,7 @@ class SalesOrderControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders")
+                .header("Idempotency-Key", "sales-duplicate-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
@@ -537,6 +555,7 @@ class SalesOrderControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/sales-orders")
+                .header("Idempotency-Key", "sales-forbidden-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())

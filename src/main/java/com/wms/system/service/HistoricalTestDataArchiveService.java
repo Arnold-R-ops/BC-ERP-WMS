@@ -18,9 +18,9 @@ import com.wms.system.entity.SalesOrderItem;
 import com.wms.system.entity.SalesOrderShipment;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.CommercialStatus;
-import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.SalesAllocationStatus;
+import com.wms.system.entity.enums.SalesWarehouseStatus;
 import com.wms.system.entity.enums.ShipmentStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -125,12 +125,11 @@ public class HistoricalTestDataArchiveService {
         }
 
         LocalDateTime archivedAt = LocalDateTime.now();
-        order.setStatus(SalesOrderStatus.VOIDED);
         order.setCommercialStatus(CommercialStatus.VOIDED);
-        order.setFulfillmentStatus(FulfillmentStatus.VOIDED);
+        order.setAllocationStatus(SalesAllocationStatus.UNALLOCATED);
+        order.setWarehouseStatus(SalesWarehouseStatus.NOT_RELEASED);
         appendOrderAudit(order, operatorUsername, request.getReason(), archivedAt);
 
-        evaluation.items().forEach(item -> item.setFulfillmentStatus(FulfillmentStatus.VOIDED));
         evaluation.tasks().forEach(task -> {
             task.setStatus(OutboundTaskStatus.VOIDED);
             task.setArchivedAt(archivedAt);
@@ -178,7 +177,7 @@ public class HistoricalTestDataArchiveService {
         return HistoricalTestDataArchiveResult.builder()
             .salesOrderId(order.getId())
             .orderNo(order.getOrderNo())
-            .orderStatus(order.getStatus().name())
+            .orderStatus(order.getCommercialStatus().name())
             .archivedTaskIds(evaluation.tasks().stream().map(OutboundTask::getId).toList())
             .auditId(audit.getId())
             .archivedAt(archivedAt)
@@ -221,8 +220,8 @@ public class HistoricalTestDataArchiveService {
             .orElse(null);
 
         List<String> blockers = new ArrayList<>();
-        if (order.getStatus() != SalesOrderStatus.APPROVED_AWAITING_SHIPMENT) {
-            blockers.add("ORDER_STATUS_NOT_APPROVED_AWAITING_SHIPMENT");
+        if (order.getCommercialStatus() != CommercialStatus.APPROVED) {
+            blockers.add("ORDER_COMMERCIAL_STATUS_NOT_APPROVED");
         }
         if (registration == null) {
             blockers.add("ORDER_NOT_REGISTERED_AS_HISTORICAL_TEST_DATA");
@@ -297,7 +296,7 @@ public class HistoricalTestDataArchiveService {
         return HistoricalTestDataArchivePreview.builder()
             .salesOrderId(order.getId())
             .orderNo(order.getOrderNo())
-            .orderStatus(order.getStatus().name())
+            .orderStatus(order.getCommercialStatus().name())
             .eligible(evaluation.blockers().isEmpty())
             .blockers(evaluation.blockers())
             .taskIds(evaluation.tasks().stream().map(OutboundTask::getId).toList())
@@ -328,10 +327,11 @@ public class HistoricalTestDataArchiveService {
         root.put("order", map(
             "id", order.getId(),
             "orderNo", order.getOrderNo(),
-            "status", name(order.getStatus()),
             "commercialStatus", name(order.getCommercialStatus()),
-            "fulfillmentStatus", name(order.getFulfillmentStatus()),
-            "fulfillmentVersion", order.getFulfillmentVersion(),
+            "allocationStatus", name(order.getAllocationStatus()),
+            "warehouseStatus", name(order.getWarehouseStatus()),
+            "logisticsStatus", name(order.getLogisticsStatus()),
+            "statusVersion", order.getStatusVersion(),
             "customerId", order.getCustomerId()
         ));
         root.put("items", items.stream().map(item -> map(
@@ -340,7 +340,6 @@ public class HistoricalTestDataArchiveService {
             "quantity", item.getQuantity(),
             "allocatedQty", item.getAllocatedQty(),
             "shippedQty", item.getShippedQty(),
-            "fulfillmentStatus", name(item.getFulfillmentStatus()),
             "remark", item.getRemark()
         )).toList());
         root.put("tasks", tasks.stream().map(task -> map(

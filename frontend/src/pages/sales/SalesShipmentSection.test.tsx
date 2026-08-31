@@ -22,7 +22,7 @@ function renderSection(): void {
       <ConfigProvider>
         <AntdApp>
           <QueryClientProvider client={queryClient}>
-            <SalesShipmentSection canEdit salesOrderId={13} />
+            <SalesShipmentSection canEdit canUpdateLogistics={false} detailedLogisticsEnabled={false} salesOrderId={13} />
           </QueryClientProvider>
         </AntdApp>
       </ConfigProvider>

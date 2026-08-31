@@ -7,7 +7,7 @@ import {
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
-import { Alert, Divider } from 'antd';
+import { Alert, Button, Divider, Space } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listInventoryBatchesByProductSku } from '../../api/inventory';
@@ -82,6 +82,7 @@ export function SalesOrderFormDrawer({
       drawerProps={{ destroyOnHidden: true, maskClosable: false }}
       initialValues={{
         channel: 'MANUAL',
+        saveAsDraft: false,
         items: initialItems?.length
           ? initialItems
           : [{ quantity: 1, unitPrice: 0, rejectNearExpiry: false }],
@@ -94,12 +95,35 @@ export function SalesOrderFormDrawer({
       }}
       open={open}
       submitter={{
-        searchConfig: { resetText: t('common.cancel'), submitText: t('common.create') },
-        submitButtonProps: { loading },
+        render: (props) => (
+          <Space>
+            <Button disabled={loading} onClick={onClose}>{t('common.cancel')}</Button>
+            <Button
+              loading={loading}
+              onClick={() => {
+                props.form?.setFieldValue('saveAsDraft', true);
+                props.form?.submit();
+              }}
+            >
+              {t('sales.actions.saveDraft')}
+            </Button>
+            <Button
+              loading={loading}
+              onClick={() => {
+                props.form?.setFieldValue('saveAsDraft', false);
+                props.form?.submit();
+              }}
+              type="primary"
+            >
+              {t('sales.actions.submit')}
+            </Button>
+          </Space>
+        ),
       }}
       title={t('sales.create')}
       width={900}
     >
+      <ProFormSwitch hidden name="saveAsDraft" />
       {initialItems?.length ? (
         <Alert message={t('sales.import.loaded', { count: initialItems.length })} showIcon type="success" />
       ) : null}

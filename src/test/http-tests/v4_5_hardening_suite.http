@@ -365,10 +365,11 @@ client.global.set("outboundTaskId", response.body[0].id);
 client.global.set("outboundTaskQty", response.body[0].planQty);
 %}
 
-### 19. First outbound confirm should succeed
+### 19. First outbound dispatch should succeed
 # @name firstConfirmOutbound
-POST {{host}}/api/outbound-tasks/{{outboundTaskId}}/confirm
+POST {{host}}/api/outbound-tasks/{{outboundTaskId}}/dispatch
 Authorization: Bearer {{token}}
+Idempotency-Key: v45-dispatch-first-{{$timestamp}}
 Content-Type: application/json
 
 {
@@ -390,10 +391,11 @@ client.assert(response.status === 200, "stock query should succeed after first c
 client.global.set("stockAfterFirstConfirm", response.body.totalStock);
 %}
 
-### 21. Duplicate outbound confirm should be rejected and must not deduct twice
+### 21. Duplicate outbound dispatch with a new command key should be rejected and must not deduct twice
 # @name duplicateConfirmOutbound
-POST {{host}}/api/outbound-tasks/{{outboundTaskId}}/confirm
+POST {{host}}/api/outbound-tasks/{{outboundTaskId}}/dispatch
 Authorization: Bearer {{token}}
+Idempotency-Key: v45-dispatch-duplicate-{{$timestamp}}
 Content-Type: application/json
 
 {

@@ -5,7 +5,7 @@ import com.wms.system.entity.ProductSku;
 import com.wms.system.entity.Product;
 import com.wms.system.entity.SalesOrder;
 import com.wms.system.entity.SalesOrderItem;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,7 +107,7 @@ class SalesOrderItemRepositoryTest {
                 .orderNo("SO20260129001")
                 .customerId(testCustomer.getId())
                 .totalAmount(new BigDecimal("5000.00"))
-                .status(SalesOrderStatus.DRAFT)
+                .commercialStatus(CommercialStatus.DRAFT)
                 .applicantId(1L)
                 .applicantName("Test User")
                 .build();
@@ -116,7 +116,7 @@ class SalesOrderItemRepositoryTest {
                 .orderNo("SO20260129002")
                 .customerId(testCustomer.getId())
                 .totalAmount(new BigDecimal("3000.00"))
-                .status(SalesOrderStatus.PENDING_APPROVAL)
+                .commercialStatus(CommercialStatus.PENDING_APPROVAL)
                 .applicantId(1L)
                 .applicantName("Test User")
                 .build();

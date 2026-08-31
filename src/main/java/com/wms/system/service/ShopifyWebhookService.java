@@ -9,7 +9,8 @@ import com.wms.system.entity.OutboundTask;
 import com.wms.system.entity.SalesOrder;
 import com.wms.system.entity.enums.IdempotencyStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
+import com.wms.system.entity.enums.SalesWarehouseStatus;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.OutboundTaskRepository;
 import com.wms.system.repository.SalesOrderRepository;
@@ -220,7 +221,9 @@ public class ShopifyWebhookService {
             return;
         }
         SalesOrder salesOrder = order.get();
-        if (salesOrder.getStatus() == SalesOrderStatus.SHIPPED) {
+        if (salesOrder.getCommercialStatus() == CommercialStatus.COMPLETED
+            || salesOrder.getCommercialStatus() == CommercialStatus.CLOSED
+            || salesOrder.getWarehouseStatus() == SalesWarehouseStatus.SHIPPED) {
             rawEventService.markManualReview(event.getId(), "Order already shipped");
             return;
         }
@@ -238,7 +241,8 @@ public class ShopifyWebhookService {
             salesSubmissionService.cancelSalesOrder(
                 salesOrder.getId(),
                 "Shopify customer cancellation (orders/cancelled webhook)",
-                1L
+                1L,
+                "SHOPIFY_WEBHOOK"
             );
             rawEventService.markProcessed(event.getId());
         } catch (RuntimeException exception) {

@@ -4,6 +4,8 @@ import com.wms.system.dto.sales.*;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.ExcelTemplateService;
 import com.wms.system.service.SalesEntryService;
+import com.wms.system.service.SalesCommandIdempotencyService;
+import com.wms.system.service.SalesOrderPolicyService;
 import com.wms.system.service.SalesSubmissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Sales Order Controller
@@ -51,6 +54,8 @@ public class SalesOrderController {
 
     private final SalesEntryService salesEntryService;
     private final SalesSubmissionService salesSubmissionService;
+    private final SalesOrderPolicyService policyService;
+    private final SalesCommandIdempotencyService commandService;
 
     /**
      * Download Excel template
@@ -149,6 +154,7 @@ public class SalesOrderController {
     @PostMapping
     @PreAuthorize("hasAnyAuthority('sales:create', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> createSalesOrder(
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody CreateSalesOrderRequest request,
         Authentication authentication
     ) {
@@ -157,13 +163,11 @@ public class SalesOrderController {
         log.info("API调用: createSalesOrder - 用户: {}, 客户ID: {}, 明细数: {}",
             username, request.getCustomerId(), request.getItems().size());
 
-        SalesOrderResponse response = salesSubmissionService.createSalesOrder(
-            request,
-            userId,
-            username
-        );
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_CREATE",
+            request, userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.createSalesOrder(request, userId, username));
 
-        log.info("API响应: createSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        log.info("API响应: createSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -184,12 +188,13 @@ public class SalesOrderController {
     @GetMapping
     @PreAuthorize("hasAnyAuthority('sales:view', 'TENANT_ADMIN')")
     public ResponseEntity<List<SalesOrderResponse>> listSalesOrders(
-        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "commercialStatus", required = false) String commercialStatus,
+        @RequestParam(value = "allocationStatus", required = false) String allocationStatus,
+        @RequestParam(value = "warehouseStatus", required = false) String warehouseStatus,
         @RequestParam(value = "customerId", required = false) Long customerId
     ) {
-        log.info("API调用: listSalesOrders - status: {}, customerId: {}", status, customerId);
-
-        List<SalesOrderResponse> responses = salesSubmissionService.listSalesOrders(status, customerId);
+        List<SalesOrderResponse> responses = salesSubmissionService.listSalesOrders(
+            commercialStatus, allocationStatus, warehouseStatus, customerId);
 
         log.info("API响应: listSalesOrders - 订单数: {}", responses.size());
 
@@ -213,7 +218,7 @@ public class SalesOrderController {
 
         SalesOrderResponse response = salesSubmissionService.getSalesOrder(id);
 
-        log.info("API响应: getSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        log.info("API响应: getSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
 
         return ResponseEntity.ok(response);
     }
@@ -233,6 +238,7 @@ public class SalesOrderController {
     @PreAuthorize("hasAnyAuthority('sales:edit', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> updateSalesOrder(
         @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody UpdateSalesOrderRequest request,
         Authentication authentication
     ) {
@@ -241,10 +247,65 @@ public class SalesOrderController {
         log.info("API调用: updateSalesOrder - id: {}, 用户: {}, 明细数: {}",
             id, username, request.getItems().size());
 
-        SalesOrderResponse response = salesSubmissionService.updateSalesOrder(id, request, userId);
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_UPDATE",
+            Map.of("orderId", id, "request", request), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.updateSalesOrder(id, request, userId, username));
 
-        log.info("API响应: updateSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        log.info("API响应: updateSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
 
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAnyAuthority('sales:create', 'TENANT_ADMIN')")
+    public ResponseEntity<SalesOrderResponse> submitSalesOrder(
+        @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        Authentication authentication
+    ) {
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_SUBMIT",
+            Map.of("orderId", id), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.submitSalesOrder(id, userId, username));
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('sales:edit', 'TENANT_ADMIN')")
+    public ResponseEntity<Void> deleteDraft(
+        @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        Authentication authentication
+    ) {
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
+        commandService.execute(idempotencyKey, "SALES_ORDER_DELETE_DRAFT",
+            Map.of("orderId", id), userId, username, SalesOrderResponse.class, () -> {
+                salesSubmissionService.deleteSalesOrder(id, userId);
+                return null;
+            });
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/policy")
+    @PreAuthorize("hasAnyAuthority('sales:view', 'TENANT_ADMIN')")
+    public ResponseEntity<SalesOrderPolicyResponse> getPolicy() {
+        return ResponseEntity.ok(policyService.getPolicy());
+    }
+
+    @PutMapping("/policy")
+    @PreAuthorize("hasAnyAuthority('sales:policy:manage', 'TENANT_ADMIN')")
+    public ResponseEntity<SalesOrderPolicyResponse> updatePolicy(
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        @Valid @RequestBody UpdateSalesOrderPolicyRequest request,
+        Authentication authentication
+    ) {
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
+        SalesOrderPolicyResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_POLICY_UPDATE",
+            request, userId, username, SalesOrderPolicyResponse.class,
+            () -> policyService.update(request, userId, username));
         return ResponseEntity.ok(response);
     }
 
@@ -263,6 +324,7 @@ public class SalesOrderController {
     @PreAuthorize("hasAnyAuthority('sales:approve', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> approveSalesOrder(
         @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody ApprovalRequest request,
         Authentication authentication
     ) {
@@ -271,17 +333,13 @@ public class SalesOrderController {
         log.info("API调用: approveSalesOrder - id: {}, 审批人: {}, 意见: {}",
             id, username, request.getComment());
 
-        SalesOrderResponse response = salesSubmissionService.approveSalesOrder(
-            id,
-            userId,
-            username,
-            request.getComment(),
-            request.getAllocationPolicy(),
-            request.getRequestedShipDate(),
-            request.getPromisedShipDate()
-        );
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_APPROVE",
+            Map.of("orderId", id, "request", request), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.approveSalesOrder(
+                id, userId, username, request.getComment(), request.getAllocationPolicy(),
+                request.getRequestedShipDate(), request.getPromisedShipDate()));
 
-        log.info("API响应: approveSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        log.info("API响应: approveSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
 
         return ResponseEntity.ok(response);
     }
@@ -301,6 +359,7 @@ public class SalesOrderController {
     @PreAuthorize("hasAnyAuthority('sales:reject', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> rejectSalesOrder(
         @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody ApprovalRequest request,
         Authentication authentication
     ) {
@@ -309,14 +368,11 @@ public class SalesOrderController {
         log.info("API调用: rejectSalesOrder - id: {}, 审批人: {}, 原因: {}",
             id, username, request.getReason());
 
-        SalesOrderResponse response = salesSubmissionService.rejectSalesOrder(
-            id,
-            userId,
-            username,
-            request.getReason()
-        );
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_REJECT",
+            Map.of("orderId", id, "request", request), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.rejectSalesOrder(id, userId, username, request.getReason()));
 
-        log.info("API响应: rejectSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        log.info("API响应: rejectSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
 
         return ResponseEntity.ok(response);
     }
@@ -336,6 +392,7 @@ public class SalesOrderController {
     @PreAuthorize("hasAnyAuthority('sales:cancel', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> cancelSalesOrder(
         @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody CancelOrderRequest request,
         Authentication authentication
     ) {
@@ -344,13 +401,13 @@ public class SalesOrderController {
         log.info("API调用: cancelSalesOrder - id: {}, 操作人: {}, 原因: {}",
             id, username, request.getReason());
 
-        SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(
-            id,
-            request.getReason(),
-            userId
-        );
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_CANCEL",
+            Map.of("orderId", id, "request", request), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.cancelSalesOrder(id, request.getReason(), userId, username));
 
-        log.info("API响应: cancelSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        if (response != null) {
+            log.info("API响应: cancelSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -370,6 +427,7 @@ public class SalesOrderController {
     @PreAuthorize("hasAnyAuthority('sales:void', 'TENANT_ADMIN')")
     public ResponseEntity<SalesOrderResponse> voidSalesOrder(
         @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody CancelOrderRequest request,
         Authentication authentication
     ) {
@@ -378,14 +436,30 @@ public class SalesOrderController {
         log.info("API调用: voidSalesOrder - id: {}, 操作人: {}, 原因: {}",
             id, username, request.getReason());
 
-        SalesOrderResponse response = salesSubmissionService.voidSalesOrder(
-            id,
-            request.getReason(),
-            userId
-        );
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_VOID",
+            Map.of("orderId", id, "request", request), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.voidSalesOrder(id, request.getReason(), userId, username));
 
-        log.info("API响应: voidSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getStatus());
+        if (response != null) {
+            log.info("API响应: voidSalesOrder - 订单号: {}, 状态: {}", response.getOrderNo(), response.getCommercialStatus());
+        }
 
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/close")
+    @PreAuthorize("hasAnyAuthority('sales:close', 'TENANT_ADMIN')")
+    public ResponseEntity<SalesOrderResponse> closeSalesOrder(
+        @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        @Valid @RequestBody CancelOrderRequest request,
+        Authentication authentication
+    ) {
+        Long userId = AuthUserResolver.resolveUserId(authentication);
+        String username = AuthUserResolver.resolveUsername(authentication);
+        SalesOrderResponse response = commandService.execute(idempotencyKey, "SALES_ORDER_CLOSE",
+            Map.of("orderId", id, "request", request), userId, username, SalesOrderResponse.class,
+            () -> salesSubmissionService.closeSalesOrder(id, request.getReason(), userId, username));
         return ResponseEntity.ok(response);
     }
 }

@@ -1,9 +1,10 @@
 package com.wms.system.controller;
 
-import com.wms.system.dto.outbound.ConfirmPickingRequest;
+import com.wms.system.dto.outbound.ConfirmDispatchRequest;
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.security.AuthUserResolver;
 import com.wms.system.service.OutboundService;
+import com.wms.system.service.SalesCommandIdempotencyService;
 import com.wms.system.service.WarehouseScopeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class OutboundTaskController {
 
     private final OutboundService outboundService;
     private final WarehouseScopeService warehouseScopeService;
+    private final SalesCommandIdempotencyService idempotencyService;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('outbound:view', 'TENANT_ADMIN')")
@@ -52,46 +54,56 @@ public class OutboundTaskController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/confirm")
+    @PostMapping("/{id}/dispatch")
     @PreAuthorize("hasAnyAuthority('outbound:pick', 'TENANT_ADMIN')")
-    public ResponseEntity<OutboundTaskResponse> confirmPicking(
+    public ResponseEntity<OutboundTaskResponse> confirmDispatch(
         @PathVariable("id") Long id,
-        @Valid @RequestBody ConfirmPickingRequest request,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        @Valid @RequestBody ConfirmDispatchRequest request,
         Authentication authentication
     ) {
         Long userId = AuthUserResolver.resolveUserId(authentication);
         String username = AuthUserResolver.resolveUsername(authentication);
 
-        log.info("API call: confirmPicking - taskId={}, actualQty={}, operator={}",
+        log.info("API call: confirmDispatch - taskId={}, actualQty={}, operator={}",
             id, request.getActualQty(), username);
 
         if (warehouseScopeService.isWarehouseStaff(authentication)) {
             requireTaskAccess(authentication, outboundService.getOutboundTask(id));
         }
 
-        OutboundTaskResponse response = outboundService.confirmPicking(
-            id,
-            request.getActualQty(),
-            request.getLocationId(),
-            request.getSkuCode(),
-            request.getBatchCode(),
+        OutboundTaskResponse response = idempotencyService.execute(
+            idempotencyKey,
+            "SALES_OUTBOUND_DISPATCH",
+            java.util.Map.of("taskId", id, "request", request),
             userId,
-            username
+            username,
+            OutboundTaskResponse.class,
+            () -> outboundService.confirmDispatch(
+                id,
+                request.getActualQty(),
+                request.getLocationId(),
+                request.getSkuCode(),
+                request.getBatchCode(),
+                userId,
+                username
+            )
         );
 
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/batch-confirm")
+    @PostMapping("/batch-dispatch")
     @PreAuthorize("hasAnyAuthority('outbound:pick', 'TENANT_ADMIN')")
-    public ResponseEntity<List<OutboundTaskResponse>> batchConfirmPicking(
+    public ResponseEntity<List<OutboundTaskResponse>> batchConfirmDispatch(
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @RequestBody List<Long> taskIds,
         Authentication authentication
     ) {
         Long userId = AuthUserResolver.resolveUserId(authentication);
         String username = AuthUserResolver.resolveUsername(authentication);
 
-        log.info("API call: batchConfirmPicking - taskIds={}, operator={}", taskIds, username);
+        log.info("API call: batchConfirmDispatch - taskIds={}, operator={}", taskIds, username);
 
         if (warehouseScopeService.isWarehouseStaff(authentication)) {
             taskIds.stream()
@@ -99,11 +111,17 @@ public class OutboundTaskController {
                 .forEach(task -> requireTaskAccess(authentication, task));
         }
 
-        List<OutboundTaskResponse> responses = outboundService.batchConfirmPicking(
+        OutboundTaskResponse[] responseArray = idempotencyService.execute(
+            idempotencyKey,
+            "SALES_OUTBOUND_BATCH_DISPATCH",
             taskIds,
             userId,
-            username
+            username,
+            OutboundTaskResponse[].class,
+            () -> outboundService.batchConfirmDispatch(taskIds, userId, username)
+                .toArray(OutboundTaskResponse[]::new)
         );
+        List<OutboundTaskResponse> responses = java.util.Arrays.asList(responseArray);
 
         return ResponseEntity.ok(responses);
     }

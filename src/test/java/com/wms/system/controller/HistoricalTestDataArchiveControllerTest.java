@@ -46,7 +46,7 @@ class HistoricalTestDataArchiveControllerTest {
         when(archiveService.preview(13L)).thenReturn(HistoricalTestDataArchivePreview.builder()
             .salesOrderId(13L)
             .orderNo("SO-V4.4-TEST-13")
-            .orderStatus("APPROVED_AWAITING_SHIPMENT")
+            .orderStatus("APPROVED")
             .eligible(true)
             .blockers(List.of())
             .taskIds(List.of(1L, 2L))

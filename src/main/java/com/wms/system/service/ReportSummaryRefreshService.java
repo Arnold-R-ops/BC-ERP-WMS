@@ -76,22 +76,22 @@ public class ReportSummaryRefreshService {
                 company_id,
                 created_at::date AS summary_date,
                 COUNT(*) FILTER (
-                    WHERE status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
                 ) AS total_order_count,
                 COALESCE(
                     SUM(total_amount) FILTER (
-                        WHERE status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                        WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
                     ),
                     0.00
                 ) AS total_amount,
-                COUNT(*) FILTER (WHERE status = 'DRAFT') AS draft_count,
-                COUNT(*) FILTER (WHERE status = 'PENDING_APPROVAL') AS pending_approval_count,
-                COUNT(*) FILTER (WHERE status = 'APPROVED_AWAITING_SHIPMENT')
+                COUNT(*) FILTER (WHERE commercial_status = 'DRAFT') AS draft_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'PENDING_APPROVAL') AS pending_approval_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'APPROVED')
                     AS approved_awaiting_shipment_count,
-                COUNT(*) FILTER (WHERE status = 'SHIPPED') AS shipped_count,
-                COUNT(*) FILTER (WHERE status = 'REJECTED') AS rejected_count,
-                COUNT(*) FILTER (WHERE status = 'CANCELLED') AS cancelled_count,
-                COUNT(*) FILTER (WHERE status = 'VOIDED') AS voided_count,
+                COUNT(*) FILTER (WHERE warehouse_status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'REJECTED') AS rejected_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'CANCELLED') AS cancelled_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'VOIDED') AS voided_count,
                 CURRENT_TIMESTAMP AS refreshed_at,
                 CURRENT_TIMESTAMP AS created_at,
                 CURRENT_TIMESTAMP AS updated_at
@@ -185,7 +185,7 @@ public class ReportSummaryRefreshService {
                   FROM sales_orders so
                   WHERE so.company_id = cfs.company_id
                     AND so.customer_id = cfs.customer_id
-                    AND so.status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    AND so.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
               )
             """;
 
@@ -222,7 +222,7 @@ public class ReportSummaryRefreshService {
                   ON sales_order_item.sales_order_id = sales_order.id
                  AND sales_order_item.company_id = sales_order.company_id
                 WHERE sales_order.company_id = ?
-                  AND sales_order.status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                  AND sales_order.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
                 GROUP BY
                     sales_order.company_id,
                     sales_order.customer_id,
@@ -288,7 +288,7 @@ public class ReportSummaryRefreshService {
                   WHERE sales_order.company_id = customer_product.company_id
                     AND sales_order.customer_id = customer_product.customer_id
                     AND sales_order_item.product_sku_id = customer_product.product_sku_id
-                    AND sales_order.status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    AND sales_order.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
               )
             """;
 
@@ -317,22 +317,22 @@ public class ReportSummaryRefreshService {
                 company_id,
                 created_at::date AS summary_date,
                 COUNT(*) FILTER (
-                    WHERE status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
                 ) AS total_order_count,
                 COALESCE(
                     SUM(total_amount) FILTER (
-                        WHERE status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                        WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
                     ),
                     0.00
                 ) AS total_amount,
-                COUNT(*) FILTER (WHERE status = 'DRAFT') AS draft_count,
-                COUNT(*) FILTER (WHERE status = 'PENDING_APPROVAL') AS pending_approval_count,
-                COUNT(*) FILTER (WHERE status = 'APPROVED_AWAITING_SHIPMENT')
+                COUNT(*) FILTER (WHERE commercial_status = 'DRAFT') AS draft_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'PENDING_APPROVAL') AS pending_approval_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'APPROVED')
                     AS approved_awaiting_shipment_count,
-                COUNT(*) FILTER (WHERE status = 'SHIPPED') AS shipped_count,
-                COUNT(*) FILTER (WHERE status = 'REJECTED') AS rejected_count,
-                COUNT(*) FILTER (WHERE status = 'CANCELLED') AS cancelled_count,
-                COUNT(*) FILTER (WHERE status = 'VOIDED') AS voided_count,
+                COUNT(*) FILTER (WHERE warehouse_status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'REJECTED') AS rejected_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'CANCELLED') AS cancelled_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'VOIDED') AS voided_count,
                 CURRENT_TIMESTAMP AS refreshed_at,
                 CURRENT_TIMESTAMP AS created_at,
                 CURRENT_TIMESTAMP AS updated_at

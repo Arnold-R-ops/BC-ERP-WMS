@@ -25,6 +25,10 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateSalesOrderRequest {
 
+    /** True stores an unsubmitted draft; false submits through the tenant review policy. */
+    @Builder.Default
+    private Boolean saveAsDraft = false;
+
     /**
      * 客户ID
      */

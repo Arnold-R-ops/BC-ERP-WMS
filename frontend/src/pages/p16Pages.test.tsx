@@ -92,7 +92,8 @@ describe('P1.6 page boundaries', () => {
       />,
     );
     await waitFor(() => expect(listCustomers).toHaveBeenCalledWith(true, 'CLIENT'));
-    expect(await screen.findByText('本次收货信息')).toBeVisible();
+    expect(await screen.findByRole('button', { name: '保存草稿' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '提交订单' })).toBeVisible();
   });
 
   it('renders the reconciliation control without running an external operation', async () => {

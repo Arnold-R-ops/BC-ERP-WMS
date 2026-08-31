@@ -1,4 +1,4 @@
-import { CheckOutlined, CloseOutlined, DeleteOutlined, StopOutlined } from '@ant-design/icons';
+import { CheckOutlined, CloseOutlined, DeleteOutlined, SendOutlined, StopOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Descriptions, Drawer, Dropdown, Space, Steps, Table, type MenuProps, type TableColumnsType } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -10,20 +10,24 @@ import { OrderStatusTag } from '../../components/OrderStatusTag';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
 import { SalesShipmentSection } from './SalesShipmentSection';
 
-export type SalesReasonAction = 'reject' | 'cancel' | 'void';
+export type SalesReasonAction = 'reject' | 'cancel' | 'close' | 'void';
 
 interface SalesOrderDrawerProps {
   orderId?: number;
   onApprove: (order: SalesOrder) => void;
   onClose: () => void;
+  onDeleteDraft: (order: SalesOrder) => void;
   onReasonAction: (action: SalesReasonAction, order: SalesOrder) => void;
+  onSubmit: (order: SalesOrder) => void;
 }
 
 export function SalesOrderDrawer({
   orderId,
   onApprove,
   onClose,
+  onDeleteDraft,
   onReasonAction,
+  onSubmit,
 }: SalesOrderDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
   const { session } = useAuth();
@@ -57,17 +61,26 @@ export function SalesOrderDrawer({
     { title: t('common.remark'), dataIndex: 'remark', width: 220 },
   ];
 
-  const terminalStatuses = new Set(['SHIPPED', 'REJECTED', 'CANCELLED', 'VOIDED']);
-  const canApprove = order?.status === 'PENDING_APPROVAL'
+  const actions = new Set(order?.allowedActions ?? []);
+  const canSubmit = actions.has('SUBMIT')
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:create');
+  const canApprove = actions.has('APPROVE')
     && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:approve');
-  const canReject = order?.status === 'PENDING_APPROVAL'
+  const canReject = actions.has('REJECT')
     && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:reject');
-  const canCancel = Boolean(order?.status && !terminalStatuses.has(order.status))
+  const canCancel = actions.has('CANCEL')
     && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:cancel');
-  const canVoid = order?.status !== 'VOIDED'
+  const canCloseRemainder = actions.has('CLOSE')
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:close');
+  const canVoid = actions.has('VOID')
     && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:void');
+  const canDeleteDraft = actions.has('DELETE')
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:edit');
   const canEditShipments = hasPermission(session?.currentRole, session?.permissionCodes, 'sales:edit')
-    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:shipment:edit');
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:shipment:edit')
+    && ['APPROVED', 'COMPLETED', 'CLOSED'].includes(order?.commercialStatus ?? '');
+  const canUpdateLogistics = actions.has('UPDATE_LOGISTICS')
+    && hasPermission(session?.currentRole, session?.permissionCodes, 'sales:logistics:update');
   const moreItems: NonNullable<MenuProps['items']> = order
     ? [
       canReject
@@ -76,8 +89,14 @@ export function SalesOrderDrawer({
       canCancel
         ? { key: 'cancel', icon: <StopOutlined />, label: t('sales.actions.cancel') }
         : null,
+      canCloseRemainder
+        ? { key: 'close', icon: <StopOutlined />, label: t('sales.actions.close') }
+        : null,
       canVoid
         ? { key: 'void', icon: <DeleteOutlined />, danger: true, label: t('sales.actions.void') }
+        : null,
+      canDeleteDraft
+        ? { key: 'deleteDraft', icon: <DeleteOutlined />, danger: true, label: t('sales.actions.deleteDraft') }
         : null,
     ].filter(Boolean) as NonNullable<MenuProps['items']>
     : [];
@@ -92,11 +111,19 @@ export function SalesOrderDrawer({
               {t('sales.actions.approve')}
             </Button>
           )}
+          {canSubmit && (
+            <Button icon={<SendOutlined />} onClick={() => onSubmit(order)} type="primary">
+              {t('sales.actions.submit')}
+            </Button>
+          )}
           {moreItems.length > 0 && (
             <Dropdown
               menu={{
                 items: moreItems,
-                onClick: ({ key }) => onReasonAction(key as SalesReasonAction, order),
+                onClick: ({ key }) => {
+                  if (key === 'deleteDraft') onDeleteDraft(order);
+                  else onReasonAction(key as SalesReasonAction, order);
+                },
               }}
             >
               <Button>{t('common.more')}</Button>
@@ -119,11 +146,14 @@ export function SalesOrderDrawer({
             className="workflow-descriptions"
             column={{ xs: 1, sm: 2, lg: 3 }}
             items={[
-              { key: 'status', label: t('sales.fields.status'), children: <OrderStatusTag description={order.statusDescription} domain="sales" status={order.status} /> },
+              { key: 'commercial', label: t('sales.fields.commercialStatus'), children: <OrderStatusTag description={order.commercialStatusDescription} domain="sales" status={order.commercialStatus} /> },
+              { key: 'allocation', label: t('sales.fields.allocationStatus'), children: <OrderStatusTag description={order.allocationStatusDescription} domain="sales" status={order.allocationStatus} /> },
+              { key: 'warehouse', label: t('sales.fields.warehouseStatus'), children: <OrderStatusTag description={order.warehouseStatusDescription} domain="sales" status={order.warehouseStatus} /> },
+              ...(order.detailedLogisticsEnabled ? [{ key: 'logistics', label: t('sales.fields.logisticsStatus'), children: <OrderStatusTag description={order.logisticsStatusDescription} domain="sales" status={order.logisticsStatus} /> }] : []),
               { key: 'customer', label: t('sales.fields.customer'), children: order.customerName ?? '-' },
               { key: 'amount', label: t('sales.fields.totalAmount'), children: formatMoney(order.totalAmount, i18n.language) },
-              { key: 'commercial', label: t('sales.fields.commercialStatus'), children: <OrderStatusTag description={order.commercialStatusDescription} domain="sales" status={order.commercialStatus} /> },
-              { key: 'fulfillment', label: t('sales.fields.fulfillmentStatus'), children: <OrderStatusTag description={order.fulfillmentStatusDescription} domain="sales" status={order.fulfillmentStatus} /> },
+              { key: 'approvalMode', label: t('sales.fields.approvalMode'), children: order.approvalModeSnapshot ? t(`sales.approvalModes.${order.approvalModeSnapshot}`) : '-' },
+              { key: 'nextRole', label: t('sales.fields.nextResponsibleRole'), children: t(`sales.responsibleRoles.${order.nextResponsibleRole ?? 'NONE'}`) },
               { key: 'policy', label: t('sales.fields.allocationPolicy'), children: order.allocationPolicy ? t(`sales.policies.${order.allocationPolicy}`, { defaultValue: order.allocationPolicy }) : '-' },
               { key: 'requested', label: t('sales.fields.requestedShipDate'), children: formatDate(order.requestedShipDate, i18n.language) },
               { key: 'promised', label: t('sales.fields.promisedShipDate'), children: formatDate(order.promisedShipDate, i18n.language) },
@@ -136,11 +166,11 @@ export function SalesOrderDrawer({
 
           <Steps
             className="workflow-timeline"
-            current={order.status === 'SHIPPED' ? 2 : order.reviewedAt ? 1 : 0}
+            current={order.warehouseStatus === 'SHIPPED' ? 2 : order.commercialStatus === 'APPROVED' || order.commercialStatus === 'COMPLETED' || order.commercialStatus === 'CLOSED' ? 1 : 0}
             items={[
               { title: t('sales.timeline.created'), description: formatDateTime(order.createdAt, i18n.language) },
               { title: t('sales.timeline.reviewed'), description: order.reviewedAt ? `${order.reviewedByName ?? '-'} · ${formatDateTime(order.reviewedAt, i18n.language)}` : t('common.pending') },
-              { title: t('sales.timeline.shipped'), description: order.status === 'SHIPPED' ? formatDateTime(order.updatedAt, i18n.language) : t('common.pending') },
+              { title: t('sales.timeline.shipped'), description: order.warehouseStatus === 'SHIPPED' ? formatDateTime(order.updatedAt, i18n.language) : t('common.pending') },
             ]}
             responsive
             size="small"
@@ -154,7 +184,7 @@ export function SalesOrderDrawer({
             scroll={{ x: 1170 }}
             size="small"
           />
-          {order.id !== undefined && <SalesShipmentSection canEdit={canEditShipments} salesOrderId={order.id} />}
+          {order.id !== undefined && <SalesShipmentSection canEdit={canEditShipments} canUpdateLogistics={canUpdateLogistics} detailedLogisticsEnabled={order.detailedLogisticsEnabled === true} salesOrderId={order.id} />}
         </>
       )}
     </Drawer>

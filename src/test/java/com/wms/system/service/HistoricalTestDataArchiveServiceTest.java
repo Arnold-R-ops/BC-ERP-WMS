@@ -14,9 +14,7 @@ import com.wms.system.entity.SalesOrderItem;
 import com.wms.system.entity.SalesOrderShipment;
 import com.wms.system.entity.StockTransaction;
 import com.wms.system.entity.enums.CommercialStatus;
-import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.entity.enums.ShipmentStatus;
 import com.wms.system.entity.enums.SourceType;
 import com.wms.system.entity.enums.TransactionType;
@@ -86,9 +84,7 @@ class HistoricalTestDataArchiveServiceTest {
             .customerId(7L)
             .applicantId(1L)
             .applicantName("tester")
-            .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
             .commercialStatus(CommercialStatus.APPROVED)
-            .fulfillmentStatus(FulfillmentStatus.RESERVED)
             .reviewReason("V4.4测试历史订单")
             .auditLog("[]")
             .build();
@@ -105,7 +101,6 @@ class HistoricalTestDataArchiveServiceTest {
             .shippedQty(0)
             .backorderQty(0)
             .cancelledQty(0)
-            .fulfillmentStatus(FulfillmentStatus.RESERVED)
             .remark("V4.4测试商品明细")
             .build();
 
@@ -188,8 +183,8 @@ class HistoricalTestDataArchiveServiceTest {
 
         HistoricalTestDataArchiveResult result = service.archive(13L, request, 9L, "admin");
 
-        assertThat(order.getStatus()).isEqualTo(SalesOrderStatus.VOIDED);
-        assertThat(item.getFulfillmentStatus()).isEqualTo(FulfillmentStatus.VOIDED);
+        assertThat(order.getCommercialStatus()).isEqualTo(CommercialStatus.VOIDED);
+        assertThat(item.getAllocatedQty()).isEqualTo(5);
         assertThat(task.getStatus()).isEqualTo(OutboundTaskStatus.VOIDED);
         assertThat(task.getArchivedBy()).isEqualTo(9L);
         assertThat(result.getArchivedTaskIds()).containsExactly(1L);

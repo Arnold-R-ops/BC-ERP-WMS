@@ -5,7 +5,6 @@ const statusColors: Record<string, string> = {
   ORDERING: 'processing',
   PENDING_APPROVAL: 'gold',
   APPROVED_PLAN: 'blue',
-  APPROVED_AWAITING_SHIPMENT: 'cyan',
   IN_TRANSIT: 'cyan',
   AWAITING_RECEIVAL: 'purple',
   PARTIALLY_RECEIVED: 'orange',

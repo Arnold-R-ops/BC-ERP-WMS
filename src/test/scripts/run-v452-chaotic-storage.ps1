@@ -253,11 +253,13 @@ $tasks = Invoke-Api GET "/api/outbound-tasks?salesOrderId=$($salesOrder.body.id)
 $taskArray = @($tasks.body)
 Assert-Check "allocation creates one fragment task" ($tasks.status -eq 200 -and $taskArray.Count -eq 1 -and $taskArray[0].locationId -eq $fragmentLocation.body.id) $tasks
 
-$confirmTask = Invoke-Api POST "/api/outbound-tasks/$($taskArray[0].id)/confirm" @{
+$dispatchAuth = $auth.Clone()
+$dispatchAuth["Idempotency-Key"] = "v452-dispatch-$RunId-$($taskArray[0].id)"
+$confirmTask = Invoke-Api POST "/api/outbound-tasks/$($taskArray[0].id)/dispatch" @{
     actualQty = 3
     locationId = $fragmentLocation.body.id
     skuCode = $visualSku.skuCode
-} $auth
+} $dispatchAuth
 Assert-Check "LOCATION_VISUAL confirm succeeds without batchCode" ($confirmTask.status -eq 200 -and $confirmTask.body.status -eq "COMPLETED") $confirmTask
 
 $fragmentFinal = Invoke-Api GET "/api/locations/$($fragmentLocation.body.id)" $null $auth

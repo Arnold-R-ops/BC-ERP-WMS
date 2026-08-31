@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 说明：
  * - 存储出库任务信息
  * - 由智能分配算法生成
- * - 仓库员确认拣货后扣减库存
+ * - 当前基础流程由仓库员确认发货后扣减库存
  *
  * 核心字段：
  * - salesOrderId: 销售订单ID
@@ -28,8 +28,8 @@ import java.time.LocalDateTime;
  *
  * 业务流程：
  * 1. 智能分配算法生成出库任务（status = PENDING）
- * 2. 仓库员确认拣货（status = PICKING）
- * 3. 仓库员完成拣货（status = COMPLETED，扣减库存）
+ * 2. 仓库员核对实际发货数量
+ * 3. 仓库员确认发货（status = COMPLETED，扣减库存）
  *
  * 状态流转：
  * PENDING → PICKING → COMPLETED
@@ -141,7 +141,7 @@ public class OutboundTask extends BaseEntity {
      * 实际出库数量
      *
      * 说明：
-     * - 仓库员确认拣货后填写的实际数量
+     * - 仓库员确认发货时填写的实际数量
      * - 通常等于 planQty，但可能因为实际情况有差异
      * - 默认值：0（未拣货）
      */
@@ -203,12 +203,12 @@ public class OutboundTask extends BaseEntity {
     // ========== 便利方法 ==========
 
     /**
-     * 判断是否可以确认拣货
+     * 判断是否可以确认发货
      *
      * @return true 如果状态为 PENDING 或 PICKING
      */
-    public boolean canConfirmPicking() {
-        return status != null && status.canConfirmPicking();
+    public boolean canConfirmDispatch() {
+        return status != null && status.canConfirmDispatch();
     }
 
     /**

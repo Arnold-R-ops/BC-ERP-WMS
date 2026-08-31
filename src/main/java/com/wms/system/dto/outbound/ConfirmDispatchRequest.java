@@ -8,26 +8,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 确认拣货请求 DTO
- *
- * V3.7 架构：出库任务管理
- *
- * @author WMS Team
- * @since 2026-01-28
- * @version 3.7 (Smart Sales and Outbound System)
- */
+/** Confirm physical dispatch and deduct the shipped inventory atomically. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfirmPickingRequest {
-
-    /**
-     * 实际出库数量
-     */
+public class ConfirmDispatchRequest {
     @NotNull(message = "实际出库数量不能为空")
-    @Min(value = 0, message = "实际出库数量不能为负数")
+    @Min(value = 1, message = "实际出库数量必须大于零")
     private Integer actualQty;
 
     private Long locationId;
@@ -38,9 +26,6 @@ public class ConfirmPickingRequest {
     @Size(max = 100)
     private String batchCode;
 
-    /**
-     * 备注
-     */
     @Size(max = 500, message = "备注长度不能超过 500 个字符")
     private String remark;
 }

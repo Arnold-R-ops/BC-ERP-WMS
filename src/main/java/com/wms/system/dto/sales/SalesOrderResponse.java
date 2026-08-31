@@ -50,23 +50,25 @@ public class SalesOrderResponse {
      */
     private BigDecimal totalAmount;
 
-    /**
-     * 订单状态
-     */
-    private String status;
-
-    /**
-     * 订单状态描述
-     */
-    private String statusDescription;
-
     private String commercialStatus;
 
     private String commercialStatusDescription;
 
-    private String fulfillmentStatus;
+    private String allocationStatus;
 
-    private String fulfillmentStatusDescription;
+    private String allocationStatusDescription;
+
+    private String warehouseStatus;
+
+    private String warehouseStatusDescription;
+
+    private String logisticsStatus;
+
+    private String logisticsStatusDescription;
+
+    private String approvalModeSnapshot;
+
+    private Boolean detailedLogisticsEnabled;
 
     private String allocationPolicy;
 
@@ -76,7 +78,19 @@ public class SalesOrderResponse {
 
     private String shortageReason;
 
-    private Long fulfillmentVersion;
+    private Long statusVersion;
+
+    private String statusReason;
+
+    private Long statusChangedBy;
+
+    private String statusChangedByName;
+
+    private LocalDateTime statusChangedAt;
+
+    private String nextResponsibleRole;
+
+    private List<String> allowedActions;
 
     private String channel;
 
@@ -193,10 +207,6 @@ public class SalesOrderResponse {
         private Integer backorderQty;
 
         private Integer cancelledQty;
-
-        private String fulfillmentStatus;
-
-        private String fulfillmentStatusDescription;
 
         /**
          * 单价

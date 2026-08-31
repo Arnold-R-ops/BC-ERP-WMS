@@ -5,7 +5,8 @@ import com.wms.system.dto.sales.CreateSalesOrderRequest;
 import com.wms.system.dto.sales.SalesOrderResponse;
 import com.wms.system.dto.sales.UpdateSalesOrderRequest;
 import com.wms.system.entity.*;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
+import com.wms.system.entity.enums.SalesApprovalMode;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
@@ -71,13 +72,25 @@ class SalesSubmissionServiceTest {
     private ProductSkuOperationalPolicy productSkuOperationalPolicy = new ProductSkuOperationalPolicy();
 
     @Mock
-    private SystemConfigService systemConfigService;
-
-    @Mock
     private AllocationService allocationService;
 
     @Mock
     private InventoryReservationService inventoryReservationService;
+
+    @Mock
+    private SalesOrderShipmentRepository salesOrderShipmentRepository;
+
+    @Mock
+    private BackorderLineRepository backorderLineRepository;
+
+    @Mock
+    private StockTransactionRepository stockTransactionRepository;
+
+    @Mock
+    private SalesOrderPolicyService policyService;
+
+    @Mock
+    private SalesOrderStatusProjectionService statusProjectionService;
 
     @Mock
     private ObjectMapper objectMapper;
@@ -90,6 +103,12 @@ class SalesSubmissionServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(policyService.approvalMode()).thenReturn(SalesApprovalMode.RISK_BASED);
+        lenient().when(policyService.approvalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
+        lenient().when(policyService.detailedLogisticsEnabled()).thenReturn(false);
+        lenient().when(statusProjectionService.refreshLocked(any(SalesOrder.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
         // Create test product
         testProduct = ProductSku.builder()
                 .skuCode(com.wms.system.support.TestCatalogFactory.nextSkuCode())
@@ -133,9 +152,7 @@ class SalesSubmissionServiceTest {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
-        when(allocationService.allocateInventory(1L)).thenReturn(new ArrayList<>());
 
         // When
         SalesOrderResponse response = salesSubmissionService.createSalesOrder(request, 1L, "Test User");
@@ -175,7 +192,6 @@ class SalesSubmissionServiceTest {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
 
         // When
@@ -183,11 +199,11 @@ class SalesSubmissionServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("PENDING_APPROVAL");
+        assertThat(response.getCommercialStatus()).isEqualTo("PENDING_APPROVAL");
 
         ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
         verify(salesOrderRepository, atLeastOnce()).save(orderCaptor.capture());
-        assertThat(orderCaptor.getValue().getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(orderCaptor.getValue().getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
 
         verify(allocationService, never()).allocateInventory(anyLong());
     }
@@ -217,7 +233,6 @@ class SalesSubmissionServiceTest {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("1000.00"));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
 
         // When
@@ -225,7 +240,7 @@ class SalesSubmissionServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("PENDING_APPROVAL");
+        assertThat(response.getCommercialStatus()).isEqualTo("PENDING_APPROVAL");
 
         verify(allocationService, never()).allocateInventory(anyLong());
     }
@@ -255,16 +270,14 @@ class SalesSubmissionServiceTest {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
-        when(allocationService.allocateInventory(1L)).thenReturn(new ArrayList<>());
 
         // When
         SalesOrderResponse response = salesSubmissionService.createSalesOrder(request, 1L, "Test User");
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("APPROVED_AWAITING_SHIPMENT");
+        assertThat(response.getCommercialStatus()).isEqualTo("APPROVED");
 
         verify(allocationService).allocateInventory(1L);
     }
@@ -306,7 +319,6 @@ class SalesSubmissionServiceTest {
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
 
         SalesOrderResponse response = salesSubmissionService.createChannelOrderPendingApproval(
@@ -318,11 +330,11 @@ class SalesSubmissionServiceTest {
             "#9002"
         );
 
-        assertThat(response.getStatus()).isEqualTo("PENDING_APPROVAL");
+        assertThat(response.getCommercialStatus()).isEqualTo("PENDING_APPROVAL");
         ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
         verify(salesOrderRepository, atLeastOnce()).save(orderCaptor.capture());
         SalesOrder savedOrder = orderCaptor.getAllValues().get(orderCaptor.getAllValues().size() - 1);
-        assertThat(savedOrder.getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(savedOrder.getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
         assertThat(savedOrder.getExternalOrderId()).isEqualTo("9002");
         assertThat(savedOrder.getChannel()).isEqualTo("SHOPIFY");
         assertThat(savedOrder.getConsigneeName()).isEqualTo("Jane Receiver");
@@ -388,27 +400,27 @@ class SalesSubmissionServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.PENDING_APPROVAL)
+            .commercialStatus(CommercialStatus.PENDING_APPROVAL)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(allocationService.allocateInventory(1L)).thenReturn(new ArrayList<>());
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
+        when(statusProjectionService.refresh(1L)).thenReturn(order);
 
         // When
         SalesOrderResponse response = salesSubmissionService.approveSalesOrder(1L, 1L, "Manager", "Approved", null, null, null);
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("APPROVED_AWAITING_SHIPMENT");
+        assertThat(response.getCommercialStatus()).isEqualTo("APPROVED");
         assertThat(response.getReviewComment()).isEqualTo("Approved");
 
         ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
         verify(salesOrderRepository).save(orderCaptor.capture());
-        assertThat(orderCaptor.getValue().getStatus()).isEqualTo(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT);
+        assertThat(orderCaptor.getValue().getCommercialStatus()).isEqualTo(CommercialStatus.APPROVED);
 
         verify(allocationService).allocateInventory(1L);
     }
@@ -423,11 +435,11 @@ class SalesSubmissionServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.PENDING_APPROVAL)
+            .commercialStatus(CommercialStatus.PENDING_APPROVAL)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
@@ -437,12 +449,12 @@ class SalesSubmissionServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("REJECTED");
+        assertThat(response.getCommercialStatus()).isEqualTo("REJECTED");
         assertThat(response.getReviewComment()).isEqualTo("Price too low");
 
         ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
         verify(salesOrderRepository).save(orderCaptor.capture());
-        assertThat(orderCaptor.getValue().getStatus()).isEqualTo(SalesOrderStatus.REJECTED);
+        assertThat(orderCaptor.getValue().getCommercialStatus()).isEqualTo(CommercialStatus.REJECTED);
 
         verify(allocationService, never()).allocateInventory(anyLong());
     }
@@ -457,7 +469,7 @@ class SalesSubmissionServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.DRAFT)
+            .commercialStatus(CommercialStatus.DRAFT)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
@@ -470,18 +482,16 @@ class SalesSubmissionServiceTest {
         itemData.setUnitPrice(new BigDecimal("15.00"));
         request.setItems(List.of(itemData));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(salesOrderItemRepository.saveAll(org.mockito.ArgumentMatchers.<SalesOrderItem>anyList()))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        when(systemConfigService.getSalesApprovalAmountThreshold()).thenReturn(new BigDecimal("10000.00"));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
-        when(allocationService.allocateInventory(1L)).thenReturn(new ArrayList<>());
 
         // When
-        SalesOrderResponse response = salesSubmissionService.updateSalesOrder(1L, request, 1L);
+        SalesOrderResponse response = salesSubmissionService.updateSalesOrder(1L, request, 1L, "operator");
 
         // Then
         assertThat(response).isNotNull();
@@ -534,17 +544,17 @@ class SalesSubmissionServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.SHIPPED)
+            .commercialStatus(CommercialStatus.COMPLETED)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
         UpdateSalesOrderRequest request = new UpdateSalesOrderRequest();
         request.setItems(new ArrayList<>());
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
 
         // When & Then
-        assertThatThrownBy(() -> salesSubmissionService.updateSalesOrder(1L, request, 1L))
+        assertThatThrownBy(() -> salesSubmissionService.updateSalesOrder(1L, request, 1L, "operator"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.SALES_ORDER_CANNOT_MODIFY);
 
@@ -561,14 +571,14 @@ class SalesSubmissionServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.DRAFT)
+            .commercialStatus(CommercialStatus.DRAFT)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
 
         // When
-        SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(1L, "Customer request", 1L);
+        SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(1L, "Customer request", 1L, "sales-user");
 
         // Then: DRAFT orders are physically deleted on cancel (V4.2.1 data strategy)
         assertThat(response).isNull();
@@ -581,29 +591,29 @@ class SalesSubmissionServiceTest {
     @Test
     @DisplayName("case-11")
     void testCancelSalesOrder_ReleaseInventory() {
-        // Given: Order in APPROVED_AWAITING_SHIPMENT status
+        // Given: Order in APPROVED commercial status
         SalesOrder order = SalesOrder.builder()
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+            .commercialStatus(CommercialStatus.APPROVED)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(new ArrayList<>());
 
         // When
-        SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(1L, "Customer request", 1L);
+        SalesOrderResponse response = salesSubmissionService.cancelSalesOrder(1L, "Customer request", 1L, "sales-user");
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("CANCELLED");
+        assertThat(response.getCommercialStatus()).isEqualTo("CANCELLED");
 
         verify(inventoryReservationService).releaseOpenReservationsForOrder(1L); // Release reservations
-        verify(outboundTaskRepository).deleteBySalesOrderId(1L); // Should release inventory
+        verify(outboundTaskRepository).findBySalesOrderIdForUpdate(1L);
     }
 }
 

@@ -1,6 +1,7 @@
 package com.wms.system.entity;
 
 import com.wms.system.entity.enums.ShipmentStatus;
+import com.wms.system.entity.enums.SalesLogisticsStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -45,6 +46,23 @@ public class SalesOrderShipment extends BaseEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private ShipmentStatus status = ShipmentStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "logistics_status", nullable = false, length = 30)
+    @Builder.Default
+    private SalesLogisticsStatus logisticsStatus = SalesLogisticsStatus.LABEL_CREATED;
+
+    @Column(name = "status_reason", length = 500)
+    private String statusReason;
+
+    @Column(name = "status_changed_by")
+    private Long statusChangedBy;
+
+    @Column(name = "status_changed_by_name", length = 100)
+    private String statusChangedByName;
+
+    @Column(name = "status_changed_at")
+    private LocalDateTime statusChangedAt;
 
     @Column(name = "shipped_at")
     private LocalDateTime shippedAt;

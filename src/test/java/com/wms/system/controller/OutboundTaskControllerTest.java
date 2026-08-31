@@ -2,9 +2,11 @@ package com.wms.system.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
-import com.wms.system.dto.outbound.ConfirmPickingRequest;
+import com.wms.system.dto.outbound.ConfirmDispatchRequest;
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.service.OutboundService;
+import com.wms.system.service.SalesCommandIdempotencyService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -38,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 2. List outbound tasks with filters
  * 3. Get outbound task details
  * 4. Confirm picking
- * 5. Batch confirm picking
+ * 5. Batch confirm dispatch
  *
  * @author WMS Team
  * @since 2026-01-29
@@ -59,6 +62,15 @@ class OutboundTaskControllerTest {
 
     @MockBean
     private OutboundService outboundService;
+
+    @MockBean
+    private SalesCommandIdempotencyService commandService;
+
+    @BeforeEach
+    void executeIdempotentCommandSupplier() {
+        lenient().when(commandService.execute(anyString(), anyString(), any(), anyLong(), anyString(), any(), any()))
+            .thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(6)).get());
+    }
 
     @Test
     @WithMockUser(username = "testuser", authorities = {"outbound:view"})
@@ -198,9 +210,9 @@ class OutboundTaskControllerTest {
     @Test
     @WithMockUser(username = "warehouse_staff", authorities = {"outbound:pick"})
     @DisplayName("case-5")
-    void testConfirmPicking() throws Exception {
+    void testConfirmDispatch() throws Exception {
         // Given
-        ConfirmPickingRequest request = ConfirmPickingRequest.builder()
+        ConfirmDispatchRequest request = ConfirmDispatchRequest.builder()
             .actualQty(100)
             .remark("Picked successfully")
             .build();
@@ -226,11 +238,12 @@ class OutboundTaskControllerTest {
             .remark("Picked successfully")
             .build();
 
-        when(outboundService.confirmPicking(eq(1L), eq(100), isNull(), isNull(), isNull(), anyLong(), anyString()))
+        when(outboundService.confirmDispatch(eq(1L), eq(100), isNull(), isNull(), isNull(), anyLong(), anyString()))
             .thenReturn(response);
 
         // When & Then
-        mockMvc.perform(post("/api/outbound-tasks/{id}/confirm", 1L)
+        mockMvc.perform(post("/api/outbound-tasks/{id}/dispatch", 1L)
+                .header("Idempotency-Key", "dispatch-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
@@ -242,15 +255,15 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$.pickedAt").exists())
             .andExpect(jsonPath("$.remark").value("Picked successfully"));
 
-        verify(outboundService).confirmPicking(eq(1L), eq(100), isNull(), isNull(), isNull(), anyLong(), anyString());
+        verify(outboundService).confirmDispatch(eq(1L), eq(100), isNull(), isNull(), isNull(), anyLong(), anyString());
     }
 
     @Test
     @WithMockUser(username = "warehouse_staff", authorities = {"outbound:pick"})
     @DisplayName("case-6")
-    void testConfirmPickingPartialQuantity() throws Exception {
+    void testConfirmDispatchPartialQuantity() throws Exception {
         // Given
-        ConfirmPickingRequest request = ConfirmPickingRequest.builder()
+        ConfirmDispatchRequest request = ConfirmDispatchRequest.builder()
             .actualQty(80)
             .remark("Only 80 available")
             .build();
@@ -269,11 +282,12 @@ class OutboundTaskControllerTest {
             .remark("Only 80 available")
             .build();
 
-        when(outboundService.confirmPicking(eq(1L), eq(80), isNull(), isNull(), isNull(), anyLong(), anyString()))
+        when(outboundService.confirmDispatch(eq(1L), eq(80), isNull(), isNull(), isNull(), anyLong(), anyString()))
             .thenReturn(response);
 
         // When & Then
-        mockMvc.perform(post("/api/outbound-tasks/{id}/confirm", 1L)
+        mockMvc.perform(post("/api/outbound-tasks/{id}/dispatch", 1L)
+                .header("Idempotency-Key", "dispatch-partial-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
@@ -281,13 +295,13 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$.actualQty").value(80))
             .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        verify(outboundService).confirmPicking(eq(1L), eq(80), isNull(), isNull(), isNull(), anyLong(), anyString());
+        verify(outboundService).confirmDispatch(eq(1L), eq(80), isNull(), isNull(), isNull(), anyLong(), anyString());
     }
 
     @Test
     @WithMockUser(username = "warehouse_staff", authorities = {"outbound:pick"})
     @DisplayName("case-7")
-    void testBatchConfirmPicking() throws Exception {
+    void testBatchConfirmDispatch() throws Exception {
         // Given
         List<Long> taskIds = Arrays.asList(1L, 2L, 3L);
 
@@ -327,11 +341,12 @@ class OutboundTaskControllerTest {
                 .build()
         );
 
-        when(outboundService.batchConfirmPicking(eq(taskIds), anyLong(), anyString()))
+        when(outboundService.batchConfirmDispatch(eq(taskIds), anyLong(), anyString()))
             .thenReturn(responses);
 
         // When & Then
-        mockMvc.perform(post("/api/outbound-tasks/batch-confirm")
+        mockMvc.perform(post("/api/outbound-tasks/batch-dispatch")
+                .header("Idempotency-Key", "dispatch-batch-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(taskIds)))
             .andDo(print())
@@ -344,44 +359,46 @@ class OutboundTaskControllerTest {
             .andExpect(jsonPath("$[2].id").value(3))
             .andExpect(jsonPath("$[2].status").value("COMPLETED"));
 
-        verify(outboundService).batchConfirmPicking(eq(taskIds), anyLong(), anyString());
+        verify(outboundService).batchConfirmDispatch(eq(taskIds), anyLong(), anyString());
     }
 
     @Test
     @WithMockUser(username = "testuser", authorities = {"outbound:view"})
     @DisplayName("case-8")
-    void testConfirmPickingWithoutPermission() throws Exception {
+    void testConfirmDispatchWithoutPermission() throws Exception {
         // Given
-        ConfirmPickingRequest request = ConfirmPickingRequest.builder()
+        ConfirmDispatchRequest request = ConfirmDispatchRequest.builder()
             .actualQty(100)
             .build();
 
         // When & Then
-        mockMvc.perform(post("/api/outbound-tasks/{id}/confirm", 1L)
+        mockMvc.perform(post("/api/outbound-tasks/{id}/dispatch", 1L)
+                .header("Idempotency-Key", "dispatch-forbidden-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isForbidden());
 
-        verify(outboundService, never()).confirmPicking(anyLong(), anyInt(), any(), any(), any(), anyLong(), anyString());
+        verify(outboundService, never()).confirmDispatch(anyLong(), anyInt(), any(), any(), any(), anyLong(), anyString());
     }
 
     @Test
     @WithMockUser(username = "warehouse_staff", authorities = {"outbound:pick"})
     @DisplayName("case-9")
-    void testConfirmPickingInvalidRequest() throws Exception {
+    void testConfirmDispatchInvalidRequest() throws Exception {
         // Given
-        ConfirmPickingRequest request = ConfirmPickingRequest.builder()
+        ConfirmDispatchRequest request = ConfirmDispatchRequest.builder()
             .actualQty(-10)
             .build();
 
         // When & Then
-        mockMvc.perform(post("/api/outbound-tasks/{id}/confirm", 1L)
+        mockMvc.perform(post("/api/outbound-tasks/{id}/dispatch", 1L)
+                .header("Idempotency-Key", "dispatch-invalid-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
             .andExpect(status().isBadRequest());
 
-        verify(outboundService, never()).confirmPicking(anyLong(), anyInt(), any(), any(), any(), anyLong(), anyString());
+        verify(outboundService, never()).confirmDispatch(anyLong(), anyInt(), any(), any(), any(), anyLong(), anyString());
     }
 }

@@ -470,10 +470,11 @@ client.assert(response.body[0].locationId === Number(client.global.get("fragment
 client.global.set("fragmentTaskId", response.body[0].id);
 %}
 
-### 23. LOCATION_VISUAL confirm: no batchCode required; locationId + skuCode is enough
+### 23. LOCATION_VISUAL dispatch: no batchCode required; locationId + skuCode is enough
 # @name confirmVisualOutbound
-POST {{host}}/api/outbound-tasks/{{fragmentTaskId}}/confirm
+POST {{host}}/api/outbound-tasks/{{fragmentTaskId}}/dispatch
 Authorization: Bearer {{token}}
+Idempotency-Key: v452-dispatch-visual-{{$timestamp}}
 Content-Type: application/json
 
 {

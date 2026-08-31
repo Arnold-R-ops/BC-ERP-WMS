@@ -4,7 +4,7 @@ import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.BatchTrackingMode;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.entity.enums.InventoryQualityStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.*;
  * 5. Confirm picking check order completion
  * 6. Confirm picking invalid status
  * 7. Confirm picking exceed plan qty
- * 8. Batch confirm picking success
+ * 8. Batch confirm dispatch success
  *
  * @author WMS Team
  * @since 2026-01-29
@@ -73,6 +73,9 @@ class OutboundServiceTest {
 
     @Mock
     private LocationOccupancyService locationOccupancyService;
+
+    @Mock
+    private SalesOrderStatusProjectionService statusProjectionService;
 
     @InjectMocks
     private OutboundService outboundService;
@@ -127,8 +130,9 @@ class OutboundServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+            .commercialStatus(CommercialStatus.APPROVED)
             .build();
+        lenient().when(statusProjectionService.refresh(1L)).thenReturn(testOrder);
 
         // Create test outbound task
         testTask = OutboundTask.builder()
@@ -143,11 +147,11 @@ class OutboundServiceTest {
             .build();
     }
 
-    // ========== Test 1: Confirm Picking Success ==========
+    // ========== Test 1: Confirm Dispatch Success ==========
 
     @Test
     @DisplayName("case-2")
-    void testConfirmPicking_Success() {
+    void testConfirmDispatch_Success() {
         // Given
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
@@ -158,13 +162,9 @@ class OutboundServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class)))
             .thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        OutboundTaskResponse response = outboundService.confirmPicking(1L, 50, 1L, "Operator");
+        OutboundTaskResponse response = outboundService.confirmDispatch(1L, 50, 1L, "Operator");
 
         // Then
         assertThat(response).isNotNull();
@@ -182,7 +182,7 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("case-3")
-    void testConfirmPicking_DeductInventory() {
+    void testConfirmDispatch_DeductInventory() {
         // Given
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
@@ -193,13 +193,9 @@ class OutboundServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class)))
             .thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        outboundService.confirmPicking(1L, 50, 1L, "Operator");
+        outboundService.confirmDispatch(1L, 50, 1L, "Operator");
 
         // Then
         ArgumentCaptor<InventoryBatch> batchCaptor = ArgumentCaptor.forClass(InventoryBatch.class);
@@ -211,7 +207,7 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("case-4")
-    void testConfirmPicking_RecordTransaction() {
+    void testConfirmDispatch_RecordTransaction() {
         // Given
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
@@ -222,13 +218,9 @@ class OutboundServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class)))
             .thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        outboundService.confirmPicking(1L, 50, 1L, "Operator");
+        outboundService.confirmDispatch(1L, 50, 1L, "Operator");
 
         // Then
         ArgumentCaptor<StockTransaction> transactionCaptor = ArgumentCaptor.forClass(StockTransaction.class);
@@ -241,7 +233,7 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("case-5")
-    void testConfirmPicking_MarkBatchInactive() {
+    void testConfirmDispatch_MarkBatchInactive() {
         // Given: Batch has exactly 50 quantity
         testBatch.setQuantity(50);
 
@@ -254,13 +246,9 @@ class OutboundServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class)))
             .thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        outboundService.confirmPicking(1L, 50, 1L, "Operator");
+        outboundService.confirmDispatch(1L, 50, 1L, "Operator");
 
         // Then
         ArgumentCaptor<InventoryBatch> batchCaptor = ArgumentCaptor.forClass(InventoryBatch.class);
@@ -273,7 +261,7 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("case-6")
-    void testConfirmPicking_CheckOrderCompletion() {
+    void testConfirmDispatch_CheckOrderCompletion() {
         // Given: All tasks completed
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
@@ -284,32 +272,25 @@ class OutboundServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class)))
             .thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(2L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(2L);
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-
         // When
-        outboundService.confirmPicking(1L, 50, 1L, "Operator");
+        outboundService.confirmDispatch(1L, 50, 1L, "Operator");
 
         // Then
-        ArgumentCaptor<SalesOrder> orderCaptor = ArgumentCaptor.forClass(SalesOrder.class);
-        verify(salesOrderRepository).save(orderCaptor.capture());
-        assertThat(orderCaptor.getValue().getStatus()).isEqualTo(SalesOrderStatus.SHIPPED);
+        verify(statusProjectionService).refresh(1L);
     }
 
     // ========== Test 6: Invalid Status ==========
 
     @Test
     @DisplayName("case-7")
-    void testConfirmPicking_InvalidStatus() {
+    void testConfirmDispatch_InvalidStatus() {
         // Given: Task already completed
         testTask.setStatus(OutboundTaskStatus.COMPLETED);
 
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
 
         // When & Then
-        assertThatThrownBy(() -> outboundService.confirmPicking(1L, 50, 1L, "Operator"))
+        assertThatThrownBy(() -> outboundService.confirmDispatch(1L, 50, 1L, "Operator"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED);
 
@@ -321,12 +302,12 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("case-8")
-    void testConfirmPicking_ExceedPlanQty() {
+    void testConfirmDispatch_ExceedPlanQty() {
         // Given: Actual qty exceeds plan qty
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
 
         // When & Then
-        assertThatThrownBy(() -> outboundService.confirmPicking(1L, 100, 1L, "Operator"))
+        assertThatThrownBy(() -> outboundService.confirmDispatch(1L, 100, 1L, "Operator"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.OUTBOUND_ACTUAL_QTY_EXCEEDS_PLAN);
 
@@ -336,14 +317,14 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("quality-held inventory cannot be shipped")
-    void confirmPickingRejectsNonSaleableBatch() {
+    void confirmDispatchRejectsNonSaleableBatch() {
         testBatch.setQualityStatus(InventoryQualityStatus.QUARANTINED);
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(outboundTaskRepository.save(any(OutboundTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
 
-        assertThatThrownBy(() -> outboundService.confirmPicking(1L, 10, 1L, "Operator"))
+        assertThatThrownBy(() -> outboundService.confirmDispatch(1L, 10, 1L, "Operator"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.INVENTORY_BATCH_NOT_SALEABLE);
 
@@ -351,11 +332,11 @@ class OutboundServiceTest {
         verify(stockTransactionRepository, never()).save(any());
     }
 
-    // ========== Test 8: Batch Confirm Picking ==========
+    // ========== Test 8: Batch Confirm Dispatch ==========
 
     @Test
     @DisplayName("case-9")
-    void testBatchConfirmPicking_Success() {
+    void testBatchConfirmDispatch_Success() {
         // Given: 2 tasks
         OutboundTask task1 = OutboundTask.builder()
             .id(1L)
@@ -389,13 +370,8 @@ class OutboundServiceTest {
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class)))
             .thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(2L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(2L);
-        when(salesOrderRepository.save(any(SalesOrder.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-
         // When
-        List<OutboundTaskResponse> responses = outboundService.batchConfirmPicking(
+        List<OutboundTaskResponse> responses = outboundService.batchConfirmDispatch(
             Arrays.asList(1L, 2L), 1L, "Operator"
         );
 
@@ -411,7 +387,7 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("LOCATION_VISUAL accepts the immutable internal skuCode")
-    void confirmPicking_LocationVisual_AcceptsSkuCode() {
+    void confirmDispatch_LocationVisual_AcceptsSkuCode() {
         testProduct.setBatchTrackingMode(BatchTrackingMode.LOCATION_VISUAL);
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(outboundTaskRepository.save(any(OutboundTask.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -420,11 +396,7 @@ class OutboundServiceTest {
         when(inventoryBatchRepository.save(any(InventoryBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
         when(stockTransactionRepository.save(any(StockTransaction.class))).thenReturn(new StockTransaction());
-        when(outboundTaskRepository.countTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(outboundTaskRepository.countCompletedTasksBySalesOrderId(1L)).thenReturn(1L);
-        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        OutboundTaskResponse response = outboundService.confirmPicking(
+        OutboundTaskResponse response = outboundService.confirmDispatch(
             1L, 50, 1L, "SKU00000001", null, 1L, "Operator"
         );
 
@@ -434,12 +406,12 @@ class OutboundServiceTest {
 
     @Test
     @DisplayName("LOCATION_VISUAL no longer treats barcode as skuCode")
-    void confirmPicking_LocationVisual_RejectsBarcodeInSkuCodeField() {
+    void confirmDispatch_LocationVisual_RejectsBarcodeInSkuCodeField() {
         testProduct.setBatchTrackingMode(BatchTrackingMode.LOCATION_VISUAL);
         when(outboundTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
 
-        assertThatThrownBy(() -> outboundService.confirmPicking(
+        assertThatThrownBy(() -> outboundService.confirmDispatch(
             1L, 50, 1L, "TEST001", null, 1L, "Operator"
         ))
             .isInstanceOf(BusinessException.class)

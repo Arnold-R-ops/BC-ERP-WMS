@@ -9,7 +9,7 @@ import com.wms.system.dto.shopify.ShopifyOrderDto;
 import com.wms.system.dto.shopify.ShopifyOrdersResponse;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.Zone;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.entity.enums.CustomerSource;
 import com.wms.system.entity.enums.CustomerType;
 import com.wms.system.repository.*;
@@ -311,7 +311,7 @@ class ShopifyIntegrationE2ETest {
         Optional<SalesOrder> salesOrder = salesOrderRepository.findByExternalOrderId("67890");
         assertThat(salesOrder).isPresent();
         assertThat(salesOrder.get().getCustomerId()).isEqualTo(existingCustomer.getId());
-        assertThat(salesOrder.get().getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(salesOrder.get().getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
         assertThat(outboundTaskRepository.findBySalesOrderId(salesOrder.get().getId())).isEmpty();
         assertThat(inventoryBatchRepository.findById(testBatch.getId()))
                 .get()
@@ -396,7 +396,7 @@ class ShopifyIntegrationE2ETest {
         assertThat(consumer.getCreditLimit()).isEqualByComparingTo(BigDecimal.ZERO);
 
         SalesOrder salesOrder = salesOrderRepository.findByExternalOrderId("25000").orElseThrow();
-        assertThat(salesOrder.getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(salesOrder.getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
         assertThat(salesOrder.getConsigneeName()).isEqualTo("Retail Receiver");
         assertThat(salesOrder.getShipAddress1()).isEqualTo("25 Retail Road");
         assertThat(salesOrder.getShipCountryCode()).isEqualTo("GB");

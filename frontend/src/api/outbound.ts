@@ -2,7 +2,7 @@ import type { components } from './schema';
 import { apiRequest } from './http';
 
 export type OutboundTask = components['schemas']['OutboundTaskResponse'];
-export type ConfirmPickingPayload = components['schemas']['ConfirmPickingRequest'];
+export type ConfirmDispatchPayload = components['schemas']['ConfirmDispatchRequest'];
 export type OutboundTaskStatus = 'PENDING' | 'PICKING' | 'COMPLETED';
 
 export interface OutboundTaskListParams {
@@ -30,19 +30,28 @@ export async function getOutboundTask(id: number): Promise<OutboundTask> {
   return apiRequest<OutboundTask>(`/api/outbound-tasks/${id}`);
 }
 
-export async function confirmOutboundTask(
+function commandKey(operation: string, resource: number | string): string {
+  const suffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `sales-outbound-${operation}-${resource}-${suffix}`;
+}
+
+export async function dispatchOutboundTask(
   id: number,
-  payload: ConfirmPickingPayload,
+  payload: ConfirmDispatchPayload,
 ): Promise<OutboundTask> {
-  return apiRequest<OutboundTask>(`/api/outbound-tasks/${id}/confirm`, {
+  return apiRequest<OutboundTask>(`/api/outbound-tasks/${id}/dispatch`, {
     method: 'POST',
+    headers: { 'Idempotency-Key': commandKey('dispatch', id) },
     body: payload,
   });
 }
 
-export async function batchConfirmOutboundTasks(taskIds: number[]): Promise<OutboundTask[]> {
-  return apiRequest<OutboundTask[]>('/api/outbound-tasks/batch-confirm', {
+export async function batchDispatchOutboundTasks(taskIds: number[]): Promise<OutboundTask[]> {
+  return apiRequest<OutboundTask[]>('/api/outbound-tasks/batch-dispatch', {
     method: 'POST',
+    headers: { 'Idempotency-Key': commandKey('batch-dispatch', taskIds.join('-')) },
     body: taskIds,
   });
 }

@@ -3,7 +3,7 @@ package com.wms.system.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
@@ -80,6 +80,9 @@ class AllocationServiceTest {
     private BackorderService backorderService;
 
     @Mock
+    private SalesOrderStatusProjectionService statusProjectionService;
+
+    @Mock
     private ObjectMapper objectMapper;
 
     @InjectMocks
@@ -119,7 +122,7 @@ class AllocationServiceTest {
             .id(1L)
             .orderNo("SO20260129001")
             .customerId(1L)
-            .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+            .commercialStatus(CommercialStatus.APPROVED)
             .totalAmount(new BigDecimal("100.00"))
             .build();
 
@@ -137,7 +140,7 @@ class AllocationServiceTest {
 
         InventoryBatch batch1 = createBatch(1L, "BATCH001", 15, LocalDate.now().plusMonths(2));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -163,7 +166,7 @@ class AllocationServiceTest {
         testProduct.setEnabled(false);
         SalesOrderItem item = createOrderItem(1L, 1L, 10);
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
 
@@ -188,7 +191,7 @@ class AllocationServiceTest {
         InventoryBatch batch2 = createBatch(2L, "BATCH002", 8, LocalDate.now().plusMonths(3));
         InventoryBatch batch3 = createBatch(3L, "BATCH003", 5, LocalDate.now().plusMonths(2));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
@@ -228,7 +231,7 @@ class AllocationServiceTest {
             LocalDate.now().plusMonths(2)
         );
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
@@ -261,7 +264,7 @@ class AllocationServiceTest {
         InventoryBatch fullBoxBatch1 = createBatch(2L, "BATCH002", 12, LocalDate.now().plusMonths(2));
         InventoryBatch fullBoxBatch2 = createBatch(3L, "BATCH003", 24, LocalDate.now().plusMonths(3));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -295,7 +298,7 @@ class AllocationServiceTest {
         InventoryBatch nearExpiryBatch = createBatch(1L, "BATCH001", 20, LocalDate.now().plusDays(20)); // Near expiry
         InventoryBatch freshBatch = createBatch(2L, "BATCH002", 15, LocalDate.now().plusMonths(3)); // Fresh
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -323,7 +326,7 @@ class AllocationServiceTest {
         InventoryBatch batch1 = createBatch(1L, "BATCH001", 20, LocalDate.now().plusMonths(1));
         InventoryBatch batch2 = createBatch(2L, "BATCH002", 10, LocalDate.now().plusMonths(2));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -349,7 +352,7 @@ class AllocationServiceTest {
         InventoryBatch batch2 = createBatch(2L, "BATCH002", 10, LocalDate.now().plusMonths(1)); // Expires first
         InventoryBatch batch3 = createBatch(3L, "BATCH003", 10, LocalDate.now().plusMonths(2));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -378,7 +381,7 @@ class AllocationServiceTest {
         InventoryBatch looseBatch = createBatch(1L, "BATCH001", 8, LocalDate.now().plusMonths(1));
         InventoryBatch fullBoxBatch = createBatch(2L, "BATCH002", 24, LocalDate.now().plusMonths(2));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -407,7 +410,7 @@ class AllocationServiceTest {
 
         InventoryBatch fullBoxBatch = createBatch(1L, "BATCH001", 24, LocalDate.now().plusMonths(1));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -434,7 +437,7 @@ class AllocationServiceTest {
 
         InventoryBatch batch1 = createBatch(1L, "BATCH001", 30, LocalDate.now().plusMonths(1));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(Arrays.asList(item1, item2));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -459,7 +462,7 @@ class AllocationServiceTest {
     @DisplayName("case-11")
     void testAllocateInventory_SalesOrderNotFound() {
         // Given
-        when(salesOrderRepository.findById(999L)).thenReturn(Optional.empty());
+        when(salesOrderRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> allocationService.allocateInventory(999L))
@@ -475,7 +478,7 @@ class AllocationServiceTest {
         // Given
         SalesOrderItem item = createOrderItem(1L, 999L, 10);
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -494,7 +497,7 @@ class AllocationServiceTest {
         SalesOrderItem item = createOrderItem(1L, 1L, 10);
         item.setSpecifiedBatchIds("[999]");
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
@@ -522,7 +525,7 @@ class AllocationServiceTest {
         InventoryBatch inactiveBatch = createBatch(1L, "BATCH001", 20, LocalDate.now().plusMonths(1));
         inactiveBatch.setActive(false);
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(objectMapper.readValue(
@@ -550,7 +553,7 @@ class AllocationServiceTest {
         InventoryBatch fullBoxBatch1 = createBatch(2L, "BATCH002", 12, LocalDate.now().plusMonths(2));
         InventoryBatch fullBoxBatch2 = createBatch(3L, "BATCH003", 24, LocalDate.now().plusMonths(3));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -579,7 +582,7 @@ class AllocationServiceTest {
         InventoryBatch oldBatch = createBatch(1L, "BATCH-OLD", 50, LocalDate.now().plusMonths(1));
         InventoryBatch freshBatch = createBatch(2L, "BATCH-FRESH", 100, LocalDate.now().plusMonths(6));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -602,7 +605,7 @@ class AllocationServiceTest {
         SalesOrderItem item = createOrderItem(1L, 1L, 48);
         InventoryBatch mixedBatch = createBatch(1L, "BATCH-MIXED", 50, LocalDate.now().plusMonths(1));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))
@@ -633,7 +636,7 @@ class AllocationServiceTest {
         InventoryBatch freshBatch1 = createBatch(3L, "BATCH003", 12, LocalDate.now().plusMonths(2));
         InventoryBatch freshBatch2 = createBatch(4L, "BATCH004", 12, LocalDate.now().plusMonths(3));
 
-        when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testOrder));
         when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
         when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(inventoryBatchRepository.findSaleableByProductSkuIdOrderByExpiryDateAsc(1L))

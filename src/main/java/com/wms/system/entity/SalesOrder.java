@@ -2,8 +2,10 @@ package com.wms.system.entity;
 
 import com.wms.system.entity.enums.AllocationPolicy;
 import com.wms.system.entity.enums.CommercialStatus;
-import com.wms.system.entity.enums.FulfillmentStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.SalesAllocationStatus;
+import com.wms.system.entity.enums.SalesApprovalMode;
+import com.wms.system.entity.enums.SalesLogisticsStatus;
+import com.wms.system.entity.enums.SalesWarehouseStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -29,18 +31,22 @@ import java.time.LocalDateTime;
  * - orderNo: 订单编号（唯一标识）
  * - customerId: 客户ID
  * - totalAmount: 订单总金额
- * - status: 订单状态
+ * - commercialStatus: 业务主状态
+ * - allocationStatus: 库存分配状态
+ * - warehouseStatus: 仓库执行状态
+ * - logisticsStatus: 物流状态
  * - reviewReason: 审批原因
  *
  * 审批流程：
- * 1. 单价低于最低限价 → 触发审批
- * 2. 订单总额超过审批阈值 → 触发审批
- * 3. 经理审批通过 → 进入分配
- * 4. 经理拒绝 → 订单终止
+ * 1. DIRECT：提交即批准并进入分配
+ * 2. RISK_BASED：低价或超额时触发审批
+ * 3. ALWAYS：所有提交均进入审批
+ * 4. 审批通过后进入分配，驳回则终止
  *
  * 状态流转：
- * DRAFT → PENDING_APPROVAL → APPROVED_AWAITING_SHIPMENT → SHIPPED
+ * DRAFT → PENDING_APPROVAL → APPROVED → COMPLETED
  *                          ↘ REJECTED
+ * APPROVED → CANCELLED（未发货）或 CLOSED（部分发货后关闭剩余数量）
  *
  * @author WMS Team
  * @since 2026-01-28
@@ -56,7 +62,9 @@ import java.time.LocalDateTime;
     name = "sales_orders",
     indexes = {
         @Index(name = "idx_sales_order_no", columnList = "order_no"),
-        @Index(name = "idx_sales_status", columnList = "status"),
+        @Index(name = "idx_sales_commercial_status", columnList = "commercial_status"),
+        @Index(name = "idx_sales_allocation_status", columnList = "allocation_status"),
+        @Index(name = "idx_sales_warehouse_status", columnList = "warehouse_status"),
         @Index(name = "idx_sales_customer", columnList = "customer_id"),
         @Index(name = "idx_sales_applicant", columnList = "applicant_id"),
         @Index(name = "idx_sales_created_at", columnList = "created_at")
@@ -115,37 +123,35 @@ public class SalesOrder extends BaseEntity {
     @Builder.Default
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    /**
-     * 订单状态
-     *
-     * 状态说明：
-     * - DRAFT: 草稿
-     * - PENDING_APPROVAL: 待审批
-     * - APPROVED_AWAITING_SHIPMENT: 已批准待发货
-     * - SHIPPED: 已发货
-     * - REJECTED: 已拒绝
-     * - CANCELLED: 已取消
-     */
-    @NotNull(message = "订单状态不能为空")
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private SalesOrderStatus status;
-
-    /**
-     * V4.5 commercial state: order-intent lifecycle.
-     */
+    /** Business acceptance lifecycle; never describes inventory or warehouse work. */
     @Enumerated(EnumType.STRING)
     @Column(name = "commercial_status", nullable = false, length = 40)
     @Builder.Default
     private CommercialStatus commercialStatus = CommercialStatus.DRAFT;
 
-    /**
-     * V4.5 fulfillment state: warehouse execution lifecycle.
-     */
+    /** Inventory commitment summary derived from reservation and shortage facts. */
     @Enumerated(EnumType.STRING)
-    @Column(name = "fulfillment_status", nullable = false, length = 40)
+    @Column(name = "allocation_status", nullable = false, length = 40)
     @Builder.Default
-    private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.UNALLOCATED;
+    private SalesAllocationStatus allocationStatus = SalesAllocationStatus.UNALLOCATED;
+
+    /** Warehouse execution summary derived from outbound tasks. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "warehouse_status", nullable = false, length = 40)
+    @Builder.Default
+    private SalesWarehouseStatus warehouseStatus = SalesWarehouseStatus.NOT_RELEASED;
+
+    /** Carrier-facing progress, independent from warehouse execution. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "logistics_status", nullable = false, length = 40)
+    @Builder.Default
+    private SalesLogisticsStatus logisticsStatus = SalesLogisticsStatus.NOT_CREATED;
+
+    /** Review policy captured when the order is submitted. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_mode_snapshot", nullable = false, length = 30)
+    @Builder.Default
+    private SalesApprovalMode approvalModeSnapshot = SalesApprovalMode.DIRECT;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "allocation_policy", nullable = false, length = 30)
@@ -161,9 +167,23 @@ public class SalesOrder extends BaseEntity {
     @Column(name = "shortage_reason", length = 500)
     private String shortageReason;
 
-    @Column(name = "fulfillment_version", nullable = false)
+    @Version
+    @Column(name = "status_version", nullable = false)
     @Builder.Default
-    private Long fulfillmentVersion = 0L;
+    private Long statusVersion = 0L;
+
+    @Size(max = 500, message = "状态原因长度不能超过 500 个字符")
+    @Column(name = "status_reason", length = 500)
+    private String statusReason;
+
+    @Column(name = "status_changed_by")
+    private Long statusChangedBy;
+
+    @Column(name = "status_changed_by_name", length = 100)
+    private String statusChangedByName;
+
+    @Column(name = "status_changed_at")
+    private LocalDateTime statusChangedAt;
 
     /**
      * 审批原因
@@ -312,7 +332,7 @@ public class SalesOrder extends BaseEntity {
      * 审批通过时间（V4.2 新增）
      *
      * 说明：
-     * - 仅在 status → APPROVED_AWAITING_SHIPMENT 时由 Service 写入
+     * - 仅在 commercial_status → APPROVED 时由 Service 写入
      * - 与 reviewedAt 区分：reviewedAt 在审批人操作时写入（含拒绝），
      *   approvedAt 仅在通过时写入
      *
@@ -329,7 +349,7 @@ public class SalesOrder extends BaseEntity {
      * 发货完成时间（V4.2 新增）
      *
      * 说明：
-     * - 在 status → SHIPPED 时由出库服务（OutboundService）写入
+     * - 在 commercial_status → COMPLETED 时由状态投影服务写入
      * - null 表示订单尚未完成发货
      *
      * BI 用途：
@@ -349,16 +369,17 @@ public class SalesOrder extends BaseEntity {
      * @return true 如果状态为 DRAFT 或 PENDING_APPROVAL
      */
     public boolean canModify() {
-        return status != null && status.canModify();
+        return commercialStatus != null && commercialStatus.canModify();
     }
 
     /**
      * 判断是否可以取消订单
      *
-     * @return true 如果状态为 DRAFT, PENDING_APPROVAL, 或 APPROVED_AWAITING_SHIPMENT
+     * @return true 如果状态为 PENDING_APPROVAL 或 APPROVED
      */
     public boolean canCancel() {
-        return status != null && status.canCancel();
+        return commercialStatus == CommercialStatus.PENDING_APPROVAL
+            || commercialStatus == CommercialStatus.APPROVED;
     }
 
     /**
@@ -367,15 +388,15 @@ public class SalesOrder extends BaseEntity {
      * @return true 如果状态为 PENDING_APPROVAL
      */
     public boolean canApprove() {
-        return status != null && status.canApprove();
+        return commercialStatus != null && commercialStatus.canApprove();
     }
 
     /**
      * 判断是否已完成（不可修改）
      *
-     * @return true 如果状态为 SHIPPED, REJECTED, 或 CANCELLED
+     * @return true 如果业务主状态已经终结
      */
     public boolean isFinalized() {
-        return status != null && status.isFinalized();
+        return commercialStatus != null && commercialStatus.isTerminal();
     }
 }

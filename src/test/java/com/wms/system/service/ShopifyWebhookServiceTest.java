@@ -8,7 +8,7 @@ import com.wms.system.entity.OutboundTask;
 import com.wms.system.entity.SalesOrder;
 import com.wms.system.entity.enums.IdempotencyStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.OutboundTaskRepository;
 import com.wms.system.repository.SalesOrderRepository;
@@ -230,7 +230,7 @@ class ShopifyWebhookServiceTest {
     void cancelled_NotPicked_AutoCancelled() throws Exception {
         stubCancelledCommon();
         SalesOrder order = SalesOrder.builder()
-            .id(100L).orderNo("SO-1").status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT).build();
+            .id(100L).orderNo("SO-1").commercialStatus(CommercialStatus.APPROVED).build();
         when(salesOrderRepository.findByExternalOrderId("12345")).thenReturn(Optional.of(order));
 
         OutboundTask pendingTask = mock(OutboundTask.class);
@@ -240,7 +240,7 @@ class ShopifyWebhookServiceTest {
         var outcome = webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.ACCEPTED);
-        verify(salesSubmissionService).cancelSalesOrder(eq(100L), anyString(), eq(1L));
+        verify(salesSubmissionService).cancelSalesOrder(eq(100L), anyString(), eq(1L), eq("SHOPIFY_WEBHOOK"));
         verify(rawEventService).markProcessed(7L);
     }
 
@@ -248,7 +248,7 @@ class ShopifyWebhookServiceTest {
     void cancelled_PickingStarted_ManualReview() throws Exception {
         stubCancelledCommon();
         SalesOrder order = SalesOrder.builder()
-            .id(100L).orderNo("SO-1").status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT).build();
+            .id(100L).orderNo("SO-1").commercialStatus(CommercialStatus.APPROVED).build();
         when(salesOrderRepository.findByExternalOrderId("12345")).thenReturn(Optional.of(order));
 
         OutboundTask pickingTask = mock(OutboundTask.class);
@@ -257,7 +257,7 @@ class ShopifyWebhookServiceTest {
 
         webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
-        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
+        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong(), anyString());
         verify(rawEventService).markManualReview(eq(7L), anyString());
     }
 
@@ -265,12 +265,12 @@ class ShopifyWebhookServiceTest {
     void cancelled_Shipped_ManualReview() throws Exception {
         stubCancelledCommon();
         SalesOrder order = SalesOrder.builder()
-            .id(100L).orderNo("SO-1").status(SalesOrderStatus.SHIPPED).build();
+            .id(100L).orderNo("SO-1").commercialStatus(CommercialStatus.COMPLETED).build();
         when(salesOrderRepository.findByExternalOrderId("12345")).thenReturn(Optional.of(order));
 
         webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
-        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
+        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong(), anyString());
         verify(rawEventService).markManualReview(eq(7L), anyString());
     }
 
@@ -281,7 +281,7 @@ class ShopifyWebhookServiceTest {
 
         webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
-        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
+        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong(), anyString());
         verify(rawEventService).markSkipped(eq(7L), anyString());
     }
 
@@ -289,10 +289,10 @@ class ShopifyWebhookServiceTest {
     void cancelled_AutoCancelFails_FallsBackToManualReview() throws Exception {
         stubCancelledCommon();
         SalesOrder order = SalesOrder.builder()
-            .id(100L).orderNo("SO-1").status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT).build();
+            .id(100L).orderNo("SO-1").commercialStatus(CommercialStatus.APPROVED).build();
         when(salesOrderRepository.findByExternalOrderId("12345")).thenReturn(Optional.of(order));
         when(outboundTaskRepository.findBySalesOrderId(100L)).thenReturn(List.of());
-        when(salesSubmissionService.cancelSalesOrder(anyLong(), anyString(), anyLong()))
+        when(salesSubmissionService.cancelSalesOrder(anyLong(), anyString(), anyLong(), anyString()))
             .thenThrow(new RuntimeException("state conflict"));
 
         var outcome = webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
@@ -327,6 +327,6 @@ class ShopifyWebhookServiceTest {
         webhookService.handle(SHOP, "refunds/create", "wh-4", sign(refundBody, SECRET), refundBody);
 
         verify(rawEventService).markSkipped(eq(7L), anyString());
-        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
+        verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong(), anyString());
     }
 }

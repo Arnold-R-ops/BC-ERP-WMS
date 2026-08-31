@@ -7,8 +7,8 @@ import i18n from '../../locales/i18n';
 
 vi.mock('../../api/outbound', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../api/outbound')>(),
-  batchConfirmOutboundTasks: vi.fn(),
-  confirmOutboundTask: vi.fn(),
+  batchDispatchOutboundTasks: vi.fn(),
+  dispatchOutboundTask: vi.fn(),
   listOutboundTasks: vi.fn(),
 }));
 
@@ -17,7 +17,7 @@ vi.mock('../../api/productSkus', async (importOriginal) => ({
   getProductSku: vi.fn(),
 }));
 
-import { confirmOutboundTask, listOutboundTasks } from '../../api/outbound';
+import { dispatchOutboundTask, listOutboundTasks } from '../../api/outbound';
 import { getProductSku } from '../../api/productSkus';
 import { OutboundTaskPage } from './OutboundTaskPage';
 
@@ -71,12 +71,12 @@ describe('outbound task workspace', () => {
     await waitFor(() => expect(listOutboundTasks).toHaveBeenCalledWith({ status: 'PENDING' }));
 
     const rowConfirmButton = screen
-      .getAllByRole('button', { name: /确认出库/ })
+      .getAllByRole('button', { name: /确认发货/ })
       .find((button) => button.closest('td'));
     expect(rowConfirmButton).toBeDefined();
     fireEvent.click(rowConfirmButton as HTMLButtonElement);
     expect(await screen.findByText('该 SKU 使用批次标签追踪。扫描标签后才能确认扣减。')).toBeInTheDocument();
     expect(await screen.findByPlaceholderText('扫描或输入实物批次码')).toBeInTheDocument();
-    expect(confirmOutboundTask).not.toHaveBeenCalled();
+    expect(dispatchOutboundTask).not.toHaveBeenCalled();
   });
 });

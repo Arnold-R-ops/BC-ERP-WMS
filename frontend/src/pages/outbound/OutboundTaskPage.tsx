@@ -7,10 +7,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
 import {
-  batchConfirmOutboundTasks,
-  confirmOutboundTask,
+  batchDispatchOutboundTasks,
+  dispatchOutboundTask,
   listOutboundTasks,
-  type ConfirmPickingPayload,
+  type ConfirmDispatchPayload,
   type OutboundTask,
   type OutboundTaskStatus,
 } from '../../api/outbound';
@@ -46,16 +46,16 @@ export function OutboundTaskPage(): JSX.Element {
   }, [status]);
 
   const singleMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ConfirmPickingPayload }) => confirmOutboundTask(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: ConfirmDispatchPayload }) => dispatchOutboundTask(id, payload),
   });
-  const batchMutation = useMutation({ mutationFn: batchConfirmOutboundTasks });
+  const batchMutation = useMutation({ mutationFn: batchDispatchOutboundTasks });
 
   const refresh = (): void => {
     setSelectedRowKeys([]);
     actionRef.current?.reload();
   };
 
-  const submitSingle = async (payload: ConfirmPickingPayload): Promise<void> => {
+  const submitSingle = async (payload: ConfirmDispatchPayload): Promise<void> => {
     if (confirmTask?.id === undefined) return;
     try {
       await singleMutation.mutateAsync({ id: confirmTask.id, payload });
@@ -160,7 +160,7 @@ export function OutboundTaskPage(): JSX.Element {
           <Button
             disabled={selectedRowKeys.length === 0}
             icon={<CheckSquareOutlined />}
-            key="batch-confirm"
+            key="batch-dispatch"
             loading={batchMutation.isPending}
             onClick={submitBatch}
             type="primary"

@@ -158,6 +158,22 @@ export interface paths {
         get: operations["getSalesOrder"];
         put: operations["updateSalesOrder"];
         post?: never;
+        delete: operations["deleteDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales-orders/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPolicy"];
+        put: operations["updatePolicy"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -204,7 +220,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["policy"];
-        put: operations["updatePolicy"];
+        put: operations["updatePolicy_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -251,8 +267,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getPolicy"];
-        put: operations["updatePolicy_1"];
+        get: operations["getPolicy_1"];
+        put: operations["updatePolicy_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -395,8 +411,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getPolicy_1"];
-        put: operations["updatePolicy_2"];
+        get: operations["getPolicy_2"];
+        put: operations["updatePolicy_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -476,7 +492,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["policy_1"];
-        put: operations["updatePolicy_3"];
+        put: operations["updatePolicy_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -492,7 +508,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["policy_2"];
-        put: operations["updatePolicy_4"];
+        put: operations["updatePolicy_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -571,8 +587,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getPolicy_2"];
-        put: operations["updatePolicy_5"];
+        get: operations["getPolicy_3"];
+        put: operations["updatePolicy_6"];
         post?: never;
         delete?: never;
         options?: never;
@@ -980,6 +996,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales-orders/{salesOrderId}/shipments/{shipmentId}/logistics-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateLogisticsStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales-orders/{id}/void": {
         parameters: {
             query?: never;
@@ -996,6 +1028,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales-orders/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitSalesOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales-orders/{id}/reject": {
         parameters: {
             query?: never;
@@ -1006,6 +1054,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["rejectSalesOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales-orders/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["closeSalesOrder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2068,7 +2132,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/outbound-tasks/{id}/confirm": {
+    "/api/outbound-tasks/{id}/dispatch": {
         parameters: {
             query?: never;
             header?: never;
@@ -2077,14 +2141,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirmPicking"];
+        post: operations["confirmDispatch"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/outbound-tasks/batch-confirm": {
+    "/api/outbound-tasks/batch-dispatch": {
         parameters: {
             query?: never;
             header?: never;
@@ -2093,7 +2157,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["batchConfirmPicking"];
+        post: operations["batchConfirmDispatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4368,6 +4432,20 @@ export interface components {
             shippedAt?: string;
             remark?: string;
         };
+        SalesLogisticsEventResponse: {
+            /** Format: int64 */
+            id?: number;
+            fromStatus?: string;
+            toStatus?: string;
+            toStatusDescription?: string;
+            source?: string;
+            reason?: string;
+            /** Format: int64 */
+            changedBy?: number;
+            changedByName?: string;
+            /** Format: date-time */
+            changedAt?: string;
+        };
         SalesOrderShipmentResponse: {
             /** Format: int64 */
             id?: number;
@@ -4377,6 +4455,15 @@ export interface components {
             carrier?: string;
             trackingUrl?: string;
             status?: string;
+            logisticsStatus?: string;
+            logisticsStatusDescription?: string;
+            statusReason?: string;
+            /** Format: int64 */
+            statusChangedBy?: number;
+            statusChangedByName?: string;
+            /** Format: date-time */
+            statusChangedAt?: string;
+            logisticsEvents?: components["schemas"]["SalesLogisticsEventResponse"][];
             /** Format: date-time */
             shippedAt?: string;
             /** Format: int64 */
@@ -4429,8 +4516,6 @@ export interface components {
             backorderQty?: number;
             /** Format: int32 */
             cancelledQty?: number;
-            fulfillmentStatus?: string;
-            fulfillmentStatusDescription?: string;
             unitPrice?: number;
             subtotal?: number;
             rejectNearExpiry?: boolean;
@@ -4445,12 +4530,16 @@ export interface components {
             customerId?: number;
             customerName?: string;
             totalAmount?: number;
-            status?: string;
-            statusDescription?: string;
             commercialStatus?: string;
             commercialStatusDescription?: string;
-            fulfillmentStatus?: string;
-            fulfillmentStatusDescription?: string;
+            allocationStatus?: string;
+            allocationStatusDescription?: string;
+            warehouseStatus?: string;
+            warehouseStatusDescription?: string;
+            logisticsStatus?: string;
+            logisticsStatusDescription?: string;
+            approvalModeSnapshot?: string;
+            detailedLogisticsEnabled?: boolean;
             allocationPolicy?: string;
             /** Format: date */
             requestedShipDate?: string;
@@ -4458,7 +4547,15 @@ export interface components {
             promisedShipDate?: string;
             shortageReason?: string;
             /** Format: int64 */
-            fulfillmentVersion?: number;
+            statusVersion?: number;
+            statusReason?: string;
+            /** Format: int64 */
+            statusChangedBy?: number;
+            statusChangedByName?: string;
+            /** Format: date-time */
+            statusChangedAt?: string;
+            nextResponsibleRole?: string;
+            allowedActions?: string[];
             channel?: string;
             externalOrderId?: string;
             externalOrderNo?: string;
@@ -4485,6 +4582,20 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        UpdateSalesOrderPolicyRequest: {
+            /** @enum {string} */
+            approvalMode: "DIRECT" | "RISK_BASED" | "ALWAYS";
+            approvalAmountThreshold: number;
+            detailedLogisticsEnabled?: boolean;
+            reason: string;
+        };
+        SalesOrderPolicyResponse: {
+            /** @enum {string} */
+            approvalMode?: "DIRECT" | "RISK_BASED" | "ALWAYS";
+            approvalAmountThreshold?: number;
+            detailedLogisticsEnabled?: boolean;
+            approvalModes?: ("DIRECT" | "RISK_BASED" | "ALWAYS")[];
         };
         RolePackageDraftRequest: {
             roleName: string;
@@ -4524,8 +4635,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             active?: boolean;
-            assignableToUsers?: boolean;
             systemRole?: boolean;
+            assignableToUsers?: boolean;
             privilegedRole?: boolean;
         };
         RoleGovernanceResult: {
@@ -4711,13 +4822,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            expiringSoon?: boolean;
-            expired?: boolean;
-            exhausted?: boolean;
             /** Format: double */
             usageRate?: number;
             /** Format: int64 */
             daysUntilExpiry?: number;
+            expiringSoon?: boolean;
+            exhausted?: boolean;
+            expired?: boolean;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -4742,9 +4853,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            fullyReceived?: boolean;
             /** Format: int32 */
             remainingQuantity?: number;
+            fullyReceived?: boolean;
         };
         PurchaseOrderResponse: {
             /** Format: int64 */
@@ -5470,6 +5581,7 @@ export interface components {
             remark?: string;
         };
         CreateSalesOrderRequest: {
+            saveAsDraft?: boolean;
             /** Format: int64 */
             customerId: number;
             items: components["schemas"]["CreateSalesOrderItemRequest"][];
@@ -5482,6 +5594,11 @@ export interface components {
             shipProvince?: string;
             shipZip?: string;
             shipCountryCode?: string;
+        };
+        UpdateSalesLogisticsStatusRequest: {
+            /** @enum {string} */
+            status: "NOT_CREATED" | "LABEL_CREATED" | "HANDED_TO_CARRIER" | "IN_TRANSIT" | "DELIVERED" | "EXCEPTION" | "RETURNED";
+            reason: string;
         };
         CancelOrderRequest: {
             reason: string;
@@ -6136,7 +6253,7 @@ export interface components {
             /** Format: date-time */
             publishedAt?: string;
         };
-        ConfirmPickingRequest: {
+        ConfirmDispatchRequest: {
             /** Format: int32 */
             actualQty: number;
             /** Format: int64 */
@@ -6862,9 +6979,9 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
+            apiPermission?: boolean;
             buttonPermission?: boolean;
             menuPermission?: boolean;
-            apiPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
             /** Format: int64 */
@@ -6981,10 +7098,12 @@ export interface components {
             refreshedAt?: string;
         };
         PageCustomerFactListItemResponse: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerFactListItemResponse"][];
@@ -6994,20 +7113,18 @@ export interface components {
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageableObject: {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
+            /** Format: int32 */
+            pageNumber?: number;
             unpaged?: boolean;
             /** Format: int32 */
             pageSize?: number;
             paged?: boolean;
-            /** Format: int32 */
-            pageNumber?: number;
         };
         SortObject: {
             direction?: string;
@@ -7179,10 +7296,12 @@ export interface components {
             remark?: string;
         };
         PagePlatformCompanyResponse: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformCompanyResponse"][];
@@ -7192,8 +7311,6 @@ export interface components {
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PlatformCompanyResponse: {
@@ -7236,10 +7353,12 @@ export interface components {
             expiresAt?: string;
         };
         PagePlatformAuditLogResponse: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAuditLogResponse"][];
@@ -7249,8 +7368,6 @@ export interface components {
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PlatformAuditLogResponse: {
@@ -7270,10 +7387,12 @@ export interface components {
             };
         };
         PagePlatformAdminSummaryResponse: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAdminSummaryResponse"][];
@@ -7283,8 +7402,6 @@ export interface components {
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PlatformAdminRoleResponse: {
@@ -7424,10 +7541,12 @@ export interface components {
             furthestExpiryDate?: string;
         };
         PageInventorySummaryDto: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["InventorySummaryDto"][];
@@ -7437,8 +7556,6 @@ export interface components {
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         SkuInfoDto: {
@@ -7563,10 +7680,12 @@ export interface components {
             disposableQuantity?: number;
         };
         PageRawEventSummary: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["RawEventSummary"][];
@@ -7576,8 +7695,6 @@ export interface components {
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         RawEventSummary: {
@@ -7967,7 +8084,9 @@ export interface operations {
     update_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 salesOrderId: number;
                 shipmentId: number;
@@ -8016,7 +8135,9 @@ export interface operations {
     updateSalesOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -8035,6 +8156,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+        };
+    };
+    deleteDraft: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderPolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSalesOrderPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderPolicyResponse"];
                 };
             };
         };
@@ -8111,7 +8300,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy: {
+    updatePolicy_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8231,7 +8420,7 @@ export interface operations {
             };
         };
     };
-    getPolicy: {
+    getPolicy_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8251,7 +8440,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_1: {
+    updatePolicy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8535,7 +8724,7 @@ export interface operations {
             };
         };
     };
-    getPolicy_1: {
+    getPolicy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8555,7 +8744,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_2: {
+    updatePolicy_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8739,7 +8928,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_3: {
+    updatePolicy_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8783,7 +8972,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_4: {
+    updatePolicy_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -8945,7 +9134,7 @@ export interface operations {
             };
         };
     };
-    getPolicy_2: {
+    getPolicy_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8965,7 +9154,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_5: {
+    updatePolicy_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9699,7 +9888,9 @@ export interface operations {
     listSalesOrders: {
         parameters: {
             query?: {
-                status?: string;
+                commercialStatus?: string;
+                allocationStatus?: string;
+                warehouseStatus?: string;
                 customerId?: number;
             };
             header?: never;
@@ -9722,7 +9913,9 @@ export interface operations {
     createSalesOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9768,7 +9961,9 @@ export interface operations {
     create_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 salesOrderId: number;
             };
@@ -9794,7 +9989,9 @@ export interface operations {
     voidShipment: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 salesOrderId: number;
                 shipmentId: number;
@@ -9814,10 +10011,41 @@ export interface operations {
             };
         };
     };
+    updateLogisticsStatus: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                salesOrderId: number;
+                shipmentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSalesLogisticsStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderShipmentResponse"];
+                };
+            };
+        };
+    };
     voidSalesOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -9840,10 +10068,36 @@ export interface operations {
             };
         };
     };
+    submitSalesOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+        };
+    };
     rejectSalesOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -9866,10 +10120,40 @@ export interface operations {
             };
         };
     };
+    closeSalesOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+        };
+    };
     cancelSalesOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -9895,7 +10179,9 @@ export interface operations {
     approveSalesOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -11730,10 +12016,12 @@ export interface operations {
             };
         };
     };
-    confirmPicking: {
+    confirmDispatch: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -11741,7 +12029,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ConfirmPickingRequest"];
+                "application/json": components["schemas"]["ConfirmDispatchRequest"];
             };
         };
         responses: {
@@ -11756,10 +12044,12 @@ export interface operations {
             };
         };
     };
-    batchConfirmPicking: {
+    batchConfirmDispatch: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };

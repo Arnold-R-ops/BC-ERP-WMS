@@ -8,7 +8,7 @@ import com.wms.system.dto.shopify.ShopifyLineItemDto;
 import com.wms.system.dto.shopify.ShopifyOrderDto;
 import com.wms.system.dto.shopify.ShopifyOrdersResponse;
 import com.wms.system.entity.*;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.integration.ShopifyApiClient;
@@ -142,7 +142,7 @@ class ShopifyIntegrationServiceTest {
                 .id(1L)
                 .orderNo("SO20260205001")
                 .customerId(customer.getId())
-                .status(SalesOrderStatus.DRAFT)
+                .commercialStatus(CommercialStatus.DRAFT)
                 .totalAmount(BigDecimal.valueOf(999.90))
                 .applicantId(1L)
                 .applicantName("Shopify Integration")

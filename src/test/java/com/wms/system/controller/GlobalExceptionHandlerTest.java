@@ -132,7 +132,7 @@ class GlobalExceptionHandlerTest {
                         ErrorKeys.SALES_ORDER_INVALID_STATUS,
                         Map.of(
                                 "salesOrderId", 26L,
-                                "currentStatus", "APPROVED_AWAITING_SHIPMENT",
+                                "currentStatus", "APPROVED",
                                 "requiredStatus", "PENDING_APPROVAL"
                         )
                 )

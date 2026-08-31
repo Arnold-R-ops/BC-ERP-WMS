@@ -117,7 +117,7 @@ export function DashboardPage(): JSX.Element {
 
   const pendingSalesQuery = useQuery({
     enabled: canViewSales,
-    queryFn: () => listSalesOrders({ status: 'PENDING_APPROVAL' }),
+    queryFn: () => listSalesOrders({ commercialStatus: 'PENDING_APPROVAL' }),
     queryKey: [...SALES_ORDERS_QUERY_KEY, 'dashboard', 'PENDING_APPROVAL'],
   });
   const pendingSkuQuery = useQuery({
@@ -252,10 +252,10 @@ export function DashboardPage(): JSX.Element {
       render: (value: number | undefined) => formatMoney(value, i18n.language),
     },
     {
-      dataIndex: 'status',
-      title: t('sales.fields.status'),
+      dataIndex: 'commercialStatus',
+      title: t('sales.fields.commercialStatus'),
       width: 125,
-      render: (_, order) => <OrderStatusTag description={order.statusDescription} domain="sales" status={order.status} />,
+      render: (_, order) => <OrderStatusTag description={order.commercialStatusDescription} domain="sales" status={order.commercialStatus} />,
     },
     {
       dataIndex: 'createdAt',

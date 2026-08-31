@@ -152,7 +152,7 @@ class ShopifyReconciliationServiceTest {
             .build();
         SalesOrderResponse response = new SalesOrderResponse();
         response.setId(501L);
-        response.setStatus("PENDING_APPROVAL");
+        response.setCommercialStatus("PENDING_APPROVAL");
 
         when(rawEventService.requireById(201L)).thenReturn(event);
         when(salesOrderRepository.findByExternalOrderId("9002")).thenReturn(Optional.empty());

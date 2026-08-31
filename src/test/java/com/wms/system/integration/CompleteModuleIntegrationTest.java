@@ -5,7 +5,7 @@ import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.customer.CreateCustomerRequest;
 import com.wms.system.dto.sales.CreateSalesOrderRequest;
 import com.wms.system.entity.*;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;

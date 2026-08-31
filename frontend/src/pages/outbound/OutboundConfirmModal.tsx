@@ -2,7 +2,7 @@ import { Alert, Descriptions, Form, Input, InputNumber, Modal, Spin } from 'antd
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ConfirmPickingPayload, OutboundTask } from '../../api/outbound';
+import type { ConfirmDispatchPayload, OutboundTask } from '../../api/outbound';
 import { getProductSku, PRODUCT_SKUS_QUERY_KEY } from '../../api/productSkus';
 
 interface ConfirmFormValues {
@@ -13,7 +13,7 @@ interface ConfirmFormValues {
 interface OutboundConfirmModalProps {
   loading: boolean;
   onCancel: () => void;
-  onConfirm: (payload: ConfirmPickingPayload) => Promise<void>;
+  onConfirm: (payload: ConfirmDispatchPayload) => Promise<void>;
   open: boolean;
   task?: OutboundTask;
 }
@@ -47,7 +47,7 @@ export function OutboundConfirmModal({
       return;
     }
 
-    const payload: ConfirmPickingPayload = trackingMode === 'LOCATION_VISUAL'
+    const payload: ConfirmDispatchPayload = trackingMode === 'LOCATION_VISUAL'
       ? {
         actualQty: values.actualQty,
         locationId: task.locationId,

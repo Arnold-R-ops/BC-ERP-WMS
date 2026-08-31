@@ -3,7 +3,7 @@ package com.wms.system.service;
 import com.wms.system.dto.v45.BackorderLineResponse;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.BackorderStatus;
-import com.wms.system.entity.enums.FulfillmentStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -30,6 +30,7 @@ public class BackorderService {
     private final InventoryReservationRepository inventoryReservationRepository;
     private final OutboundTaskRepository outboundTaskRepository;
     private final DomainOutboxService domainOutboxService;
+    private final SalesOrderStatusProjectionService statusProjectionService;
 
     @Transactional(rollbackFor = Exception.class)
     public BackorderLine createBackorder(SalesOrderItem item, int shortageQty, int priority, LocalDate promisedDate) {
@@ -75,9 +76,6 @@ public class BackorderService {
         }
         item.setAllocatedQty(allocated - quantity);
         item.setBackorderQty((item.getBackorderQty() == null ? 0 : item.getBackorderQty()) + quantity);
-        item.setFulfillmentStatus(item.getAllocatedQty() > 0
-            ? FulfillmentStatus.PARTIALLY_ALLOCATED
-            : FulfillmentStatus.WAITING_INBOUND);
         salesOrderItemRepository.save(item);
 
         SalesOrder order = salesOrderRepository.findByIdForUpdate(item.getSalesOrderId())
@@ -86,7 +84,7 @@ public class BackorderService {
         BackorderLine line = createBackorder(item, quantity, 50, order.getPromisedShipDate());
         order.setShortageReason(reason);
         salesOrderRepository.save(order);
-        updateOrderFulfillment(order.getId());
+        statusProjectionService.refreshLocked(order);
         return line;
     }
 
@@ -104,6 +102,14 @@ public class BackorderService {
             }
             SalesOrderItem item = salesOrderItemRepository.findById(line.getSalesOrderItemId())
                 .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_ITEM_NOT_FOUND, Map.of("itemId", line.getSalesOrderItemId())));
+            SalesOrder order = salesOrderRepository.findById(item.getSalesOrderId())
+                .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_NOT_FOUND,
+                    Map.of("salesOrderId", item.getSalesOrderId())));
+            if (order.getCommercialStatus() != CommercialStatus.APPROVED) {
+                line.setStatus(BackorderStatus.CANCELLED);
+                backorderLineRepository.save(line);
+                continue;
+            }
 
             int allocated = reserveAvailable(item, line.getRemainingQty());
             if (allocated <= 0) {
@@ -115,9 +121,8 @@ public class BackorderService {
 
             item.setAllocatedQty((item.getAllocatedQty() == null ? 0 : item.getAllocatedQty()) + allocated);
             item.setBackorderQty(Math.max(0, (item.getBackorderQty() == null ? 0 : item.getBackorderQty()) - allocated));
-            item.setFulfillmentStatus(item.getBackorderQty() > 0 ? FulfillmentStatus.BACKORDERED : FulfillmentStatus.RESERVED);
             salesOrderItemRepository.save(item);
-            updateOrderFulfillment(item.getSalesOrderId());
+            updateOrderProjection(item.getSalesOrderId());
 
             createdTasks++;
             domainOutboxService.append("BACKORDER_ALLOCATED", "BackorderLine", line.getId(), Map.of(
@@ -186,17 +191,10 @@ public class BackorderService {
         return requestedQty - remaining;
     }
 
-    private void updateOrderFulfillment(Long salesOrderId) {
-        SalesOrder order = salesOrderRepository.findById(salesOrderId)
+    private void updateOrderProjection(Long salesOrderId) {
+        SalesOrder order = salesOrderRepository.findByIdForUpdate(salesOrderId)
             .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_NOT_FOUND, Map.of("salesOrderId", salesOrderId)));
-        List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderId(salesOrderId);
-        boolean anyBackorder = items.stream().anyMatch(item -> item.getBackorderQty() != null && item.getBackorderQty() > 0);
-        boolean anyAllocated = items.stream().anyMatch(item -> item.getAllocatedQty() != null && item.getAllocatedQty() > 0);
-        order.setFulfillmentStatus(anyBackorder
-            ? (anyAllocated ? FulfillmentStatus.PARTIALLY_ALLOCATED : FulfillmentStatus.WAITING_INBOUND)
-            : FulfillmentStatus.RESERVED);
-        order.setFulfillmentVersion(order.getFulfillmentVersion() == null ? 1L : order.getFulfillmentVersion() + 1);
-        salesOrderRepository.save(order);
+        statusProjectionService.refreshLocked(order);
     }
 
     private BackorderLineResponse toResponse(BackorderLine line) {

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.entity.enums.Zone;
 import com.wms.system.repository.*;
 import com.wms.system.security.SecurityUser;
@@ -149,6 +149,13 @@ class ApiEndpointTestSuite {
     }
 
     private void ensureSalesApprovalConfig() {
+        systemConfigRepository.findByConfigKey("sales.order.approval.mode")
+            .orElseGet(() -> systemConfigRepository.save(SystemConfig.builder()
+                .configKey("sales.order.approval.mode")
+                .configValue("RISK_BASED")
+                .configType(SystemConfig.ConfigType.STRING.name())
+                .description("Use the review workflow exercised by this integration suite")
+                .build()));
         systemConfigRepository.findByConfigKey("sales.approval.amount_threshold")
             .orElseGet(() -> systemConfigRepository.save(SystemConfig.builder()
                 .configKey("sales.approval.amount_threshold")
@@ -815,6 +822,7 @@ class ApiEndpointTestSuite {
             ));
 
             mockMvc.perform(post("/api/sales-orders")
+                    .header("Idempotency-Key", "api-sales-create-" + nextId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andDo(print())
@@ -832,15 +840,16 @@ class ApiEndpointTestSuite {
 
             JsonNode orderJson = createSalesOrderApi(customer.getId(), product.getId(), new BigDecimal("20000.00"), 5);
             long orderId = orderJson.path("id").asLong();
-            assertEquals("PENDING_APPROVAL", orderJson.path("status").asText());
+            assertEquals("PENDING_APPROVAL", orderJson.path("commercialStatus").asText());
 
             String approveRequest = json(Map.of("comment", "approved by test"));
             mockMvc.perform(post("/api/sales-orders/" + orderId + "/approve")
+                    .header("Idempotency-Key", "api-sales-approve-" + nextId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(approveRequest))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("APPROVED_AWAITING_SHIPMENT"));
+                .andExpect(jsonPath("$.commercialStatus").value("APPROVED"));
         }
 
         @Test
@@ -868,11 +877,12 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"outbound:pick"})
-        void testConfirmPicking() throws Exception {
+        void testConfirmDispatch() throws Exception {
             OutboundTask task = createPendingOutboundTask(5);
             String req = json(Map.of("actualQty", 5));
 
-            mockMvc.perform(post("/api/outbound-tasks/" + task.getId() + "/confirm")
+            mockMvc.perform(post("/api/outbound-tasks/" + task.getId() + "/dispatch")
+                    .header("Idempotency-Key", "api-dispatch-" + task.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(req))
                 .andDo(print())
@@ -882,13 +892,14 @@ class ApiEndpointTestSuite {
 
         @Test
         @WithMockUser(username = "warehouse", authorities = {"outbound:pick"})
-        void testBatchConfirmPicking() throws Exception {
+        void testBatchConfirmDispatch() throws Exception {
             OutboundTask task1 = createPendingOutboundTask(3);
             OutboundTask task2 = createPendingOutboundTask(4);
 
             String batchRequest = json(List.of(task1.getId(), task2.getId()));
 
-            mockMvc.perform(post("/api/outbound-tasks/batch-confirm")
+            mockMvc.perform(post("/api/outbound-tasks/batch-dispatch")
+                    .header("Idempotency-Key", "api-batch-dispatch-" + task1.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(batchRequest))
                 .andDo(print())
@@ -1078,6 +1089,7 @@ class ApiEndpointTestSuite {
         ));
 
         MvcResult result = mockMvc.perform(post("/api/sales-orders")
+                .header("Idempotency-Key", "api-sales-helper-create-" + nextId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request))
             .andExpect(status().isCreated())
@@ -1111,7 +1123,7 @@ class ApiEndpointTestSuite {
             .orderNo(nextOrderNo())
             .customerId(customer.getId())
             .totalAmount(new BigDecimal(planQty).multiply(new BigDecimal("12.50")))
-            .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+            .commercialStatus(CommercialStatus.APPROVED)
             .applicantId(salesUser.getId())
             .applicantName(salesUser.getUsername())
             .channel("MANUAL")

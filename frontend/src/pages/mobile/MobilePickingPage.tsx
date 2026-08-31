@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
 import {
-  confirmOutboundTask,
+  dispatchOutboundTask,
   listOutboundTasks,
   OUTBOUND_TASKS_QUERY_KEY,
-  type ConfirmPickingPayload,
+  type ConfirmDispatchPayload,
   type OutboundTask,
 } from '../../api/outbound';
 import { ScanInput } from './ScanInput';
@@ -50,7 +50,7 @@ export function MobilePickingPage(): JSX.Element {
   const trackingMode = activeTask?.batchTrackingMode;
 
   const confirmMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ConfirmPickingPayload }) => confirmOutboundTask(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: ConfirmDispatchPayload }) => dispatchOutboundTask(id, payload),
   });
 
   const scanLocation = (code: string): void => {
@@ -74,7 +74,7 @@ export function MobilePickingPage(): JSX.Element {
 
   const confirm = async (): Promise<void> => {
     if (!activeTask?.id || !trackingMode || !online || !locationVerified || !identityVerified) return;
-    const payload: ConfirmPickingPayload = trackingMode === 'LOCATION_VISUAL'
+    const payload: ConfirmDispatchPayload = trackingMode === 'LOCATION_VISUAL'
       ? { actualQty, locationId: activeTask.locationId, skuCode: activeTask.productSkuCode }
       : { actualQty, batchCode: activeTask.batchCode };
     try {

@@ -123,6 +123,14 @@ class SalesOutboundE2ETest {
             .build();
         systemConfigRepository.save(minPriceConfig);
 
+        SystemConfig approvalModeConfig = SystemConfig.builder()
+            .configKey("sales.order.approval.mode")
+            .configValue("RISK_BASED")
+            .configType(SystemConfig.ConfigType.STRING.name())
+            .description("Exercise the optional sales approval workflow")
+            .build();
+        systemConfigRepository.save(approvalModeConfig);
+
         SystemConfig thresholdConfig = SystemConfig.builder()
             .configKey("sales.approval.amount_threshold")
             .configValue("50000.00")
@@ -227,7 +235,7 @@ class SalesOutboundE2ETest {
 
         // Verify: Order created with PENDING_APPROVAL status
         assertThat(orderResponse).isNotNull();
-        assertThat(orderResponse.getStatus()).isEqualTo("PENDING_APPROVAL");
+        assertThat(orderResponse.getCommercialStatus()).isEqualTo("PENDING_APPROVAL");
         assertThat(orderResponse.getTotalAmount()).isEqualByComparingTo(new BigDecimal("800.00"));
         assertThat(orderResponse.getReviewReason()).contains(testProduct.getName());
 
@@ -243,7 +251,7 @@ class SalesOutboundE2ETest {
         );
 
         // Verify: Order approved and status changed
-        assertThat(approvedOrder.getStatus()).isEqualTo("APPROVED_AWAITING_SHIPMENT");
+        assertThat(approvedOrder.getCommercialStatus()).isEqualTo("APPROVED");
         assertThat(approvedOrder.getReviewedByName()).containsIgnoringCase("manager");
         assertThat(approvedOrder.getReviewComment()).isEqualTo("Price approved for this customer");
 
@@ -262,7 +270,7 @@ class SalesOutboundE2ETest {
         assertThat(allocatedBatch.getQuantity()).isEqualTo(200);
 
         // Step 5: Warehouse staff confirms picking
-        outboundService.confirmPicking(
+        outboundService.confirmDispatch(
             task.getId(),
             100,
             3L,
@@ -278,7 +286,7 @@ class SalesOutboundE2ETest {
 
         // Step 7: Verify order status updated to SHIPPED
         SalesOrder shippedOrder = salesOrderRepository.findById(approvedOrder.getId()).orElseThrow();
-        assertThat(shippedOrder.getStatus()).isEqualTo(SalesOrderStatus.SHIPPED);
+        assertThat(shippedOrder.getCommercialStatus()).isEqualTo(CommercialStatus.COMPLETED);
 
         // Step 8: Verify inventory deducted
         InventoryBatch finalBatch = inventoryBatchRepository.findById(testBatch.getId()).orElseThrow();
@@ -322,7 +330,7 @@ class SalesOutboundE2ETest {
         );
 
         // Verify: Order auto-approved
-        assertThat(orderResponse.getStatus()).isEqualTo("APPROVED_AWAITING_SHIPMENT");
+        assertThat(orderResponse.getCommercialStatus()).isEqualTo("APPROVED");
         assertThat(orderResponse.getTotalAmount()).isEqualByComparingTo(new BigDecimal("750.00"));
 
         // Step 2: Verify outbound tasks generated immediately
@@ -331,11 +339,11 @@ class SalesOutboundE2ETest {
 
         // Step 3: Confirm picking
         OutboundTask task = tasks.get(0);
-        outboundService.confirmPicking(task.getId(), 50, 3L, "warehouse_staff");
+        outboundService.confirmDispatch(task.getId(), 50, 3L, "warehouse_staff");
 
         // Step 4: Verify order shipped
         SalesOrder shippedOrder = salesOrderRepository.findById(orderResponse.getId()).orElseThrow();
-        assertThat(shippedOrder.getStatus()).isEqualTo(SalesOrderStatus.SHIPPED);
+        assertThat(shippedOrder.getCommercialStatus()).isEqualTo(CommercialStatus.COMPLETED);
 
         // Step 5: Verify inventory deducted
         InventoryBatch finalBatch = inventoryBatchRepository.findById(testBatch.getId()).orElseThrow();
@@ -364,7 +372,7 @@ class SalesOutboundE2ETest {
             "sales_staff"
         );
 
-        assertThat(orderResponse.getStatus()).isEqualTo("PENDING_APPROVAL");
+        assertThat(orderResponse.getCommercialStatus()).isEqualTo("PENDING_APPROVAL");
 
         // Step 2: Manager rejects the order
         SalesOrderResponse rejectedOrder = salesSubmissionService.rejectSalesOrder(
@@ -375,7 +383,7 @@ class SalesOutboundE2ETest {
         );
 
         // Verify: Order rejected
-        assertThat(rejectedOrder.getStatus()).isEqualTo("REJECTED");
+        assertThat(rejectedOrder.getCommercialStatus()).isEqualTo("REJECTED");
         assertThat(rejectedOrder.getReviewReason()).contains(testProduct.getName());
         assertThat(rejectedOrder.getReviewComment()).isEqualTo("Price too low, not acceptable");
 
@@ -415,7 +423,7 @@ class SalesOutboundE2ETest {
         List<OutboundTask> tasks = outboundTaskRepository.findBySalesOrderId(orderResponse.getId());
         OutboundTask task = tasks.get(0);
 
-        outboundService.confirmPicking(
+        outboundService.confirmDispatch(
             task.getId(),
             80,  // Only 80 picked instead of 100
             3L,
@@ -498,7 +506,7 @@ class SalesOutboundE2ETest {
 
         // Step 3: Confirm picking for all tasks
         for (OutboundTask task : tasks) {
-            outboundService.confirmPicking(
+            outboundService.confirmDispatch(
                 task.getId(),
                 task.getPlanQty(),
                 3L,
@@ -508,7 +516,7 @@ class SalesOutboundE2ETest {
 
         // Step 4: Verify order shipped
         SalesOrder shippedOrder = salesOrderRepository.findById(orderResponse.getId()).orElseThrow();
-        assertThat(shippedOrder.getStatus()).isEqualTo(SalesOrderStatus.SHIPPED);
+        assertThat(shippedOrder.getCommercialStatus()).isEqualTo(CommercialStatus.COMPLETED);
 
         // Step 5: Verify both inventories deducted
         InventoryBatch finalBatch1 = inventoryBatchRepository.findById(testBatch.getId()).orElseThrow();

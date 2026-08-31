@@ -383,10 +383,14 @@ Assert-Check $scenario "duplicate approval is rejected" ($approve2.status -in @(
 $taskList = Invoke-Api GET "/api/outbound-tasks?salesOrderId=$($idemOrder.id)" $null $Auth
 Assert-Check $scenario "approval generated outbound task" ($taskList.status -eq 200 -and @($taskList.body).Count -ge 1) @{ status = $taskList.status; body = $taskList.body }
 $task = @($taskList.body)[0]
-$confirm1 = Invoke-Api POST "/api/outbound-tasks/$($task.id)/confirm" @{ actualQty = $task.planQty } $Auth
+$dispatchAuth1 = $Auth.Clone()
+$dispatchAuth1["Idempotency-Key"] = "v45-dispatch-first-$RunId-$($task.id)"
+$confirm1 = Invoke-Api POST "/api/outbound-tasks/$($task.id)/dispatch" @{ actualQty = $task.planQty } $dispatchAuth1
 Assert-Check $scenario "first outbound confirm succeeds" ($confirm1.status -eq 200 -and $confirm1.body.status -eq "COMPLETED") @{ status = $confirm1.status; body = $confirm1.body }
 $stockAfterFirst = Invoke-Api GET "/api/inventory/total-stock/$($productSku2.id)" $null $Auth
-$confirm2 = Invoke-Api POST "/api/outbound-tasks/$($task.id)/confirm" @{ actualQty = $task.planQty } $Auth
+$dispatchAuth2 = $Auth.Clone()
+$dispatchAuth2["Idempotency-Key"] = "v45-dispatch-duplicate-$RunId-$($task.id)"
+$confirm2 = Invoke-Api POST "/api/outbound-tasks/$($task.id)/dispatch" @{ actualQty = $task.planQty } $dispatchAuth2
 $stockAfterReplay = Invoke-Api GET "/api/inventory/total-stock/$($productSku2.id)" $null $Auth
 Assert-Check $scenario "duplicate outbound confirm is rejected" ($confirm2.status -in @(400,409)) @{ status = $confirm2.status; body = $confirm2.body }
 Assert-Check $scenario "duplicate outbound confirm does not deduct stock twice" ([int]$stockAfterReplay.body.totalStock -eq [int]$stockAfterFirst.body.totalStock) @{ afterFirst = $stockAfterFirst.body; afterReplay = $stockAfterReplay.body }

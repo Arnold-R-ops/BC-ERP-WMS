@@ -2,7 +2,7 @@ package com.wms.system.repository;
 
 import com.wms.system.entity.Customer;
 import com.wms.system.entity.SalesOrder;
-import com.wms.system.entity.enums.SalesOrderStatus;
+import com.wms.system.entity.enums.CommercialStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,12 +28,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 婵犵數鍋炲娆擃敄閸儲鍎?SalesOrderRepository 闂備焦鐪归崝宀€鈧凹鍘介弲璺侯吋婢跺﹤鐝樻繝銏ｆ硾妤犵鈻撴导瀛樺€甸悷娆忓閻擃垳绱掗悩闈涙灈鐎殿喖顭锋俊鐑解€﹂幋婵囩暠闂備礁鎼崐浠嬶綖婢跺本鍏滈柛顐ｆ礃閺?
  * 1. findByOrderNo() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅù锝囧劋婵ジ鏌曡箛鏇炐㈢紒鈧€ｎ剛纾介柛灞剧〒婢ь亞鎲搁弶鎸庡仴鐎殿喖顭锋俊鐑解€﹂幋婵囩暠闂佽崵濮抽梽宥夊垂閻熸壆鏆?
  * 2. existsByOrderNo() - 婵犵妲呴崑鈧柛瀣崌閺岋紕浠︾拠鎻掑Г濡炪倖鎸哥紞濠傜暦閿熺姴鍗抽柣妯虹仛閵囨繈姊洪崨濠勬噰闁衡偓閸楃倣锝夊箹娴ｆ瓕袝闂佹寧娲嶉崑鎾绘煟鎺抽崝鎴濈暦?
- * 3. findByStatus() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅ〒姘ｅ亾闁诡喒鏅犻幊婊呭枈濡桨澹曟繛杈剧到濠€閬嶅矗閳ь剟鏌ｉ悩鍙夊偍闁搞劌銈搁、妯裤亹閹烘垹顢呴梺鍝勬川閸嬫盯鎮樺▎鎾村仩?
+ * 3. findByCommercialStatus() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅ〒姘ｅ亾闁诡喒鏅犻幊婊呭枈濡桨澹曟繛杈剧到濠€閬嶅矗閳ь剟鏌ｉ悩鍙夊偍闁搞劌銈搁、妯裤亹閹烘垹顢呴梺鍝勬川閸嬫盯鎮樺▎鎾村仩?
  * 4. findByCustomerId() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅù锝堛€€閸嬫捇鐛崹顔句痪闂佺硶鏅滈弶鐤嶉梻浣告惈鐞氼偊宕曢幘顕呮晪婵°倕鍟刊濂告煏韫囨洖孝缂佲偓鐎ｎ喗鐓曢柟鐑樻惄濞堟瑩鏌?
  * 5. findByApplicantId() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅ〒姘ｅ亾闁诡喚鏅埀顒€婀辨刊顓㈠吹閻愯鐟邦煥閸涱垱袨D闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暞婵ジ鏌曡箛鏇炐㈢紒鈧€ｎ喗鐓曢柟鐑樻惄濞堟瑩鏌?
  * 6. findByReviewedBy() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅù锝堛€€閸嬫捇宕楁径濠傗拤婵犮垼顫夌敮妤冪矉瀹ュ洤濮柟鍨殜閺岋紕浠︾拠鎻掑Г濡炪倖娲橀〃鍫ュ箯鐎ｎ喖顫呴柣妯垮皺椤︿即姊洪崨濠傜瑲妞ゃ劌顦垫俊?
  * 7. findByCreatedAtBetween() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅ〒姘ｅ亾鐎殿噮鍣ｅ畷濂稿即閻曞倻鍚归梻浣藉亹閸樠囧疮椤愨挌娲锤濡も偓閽冪喖鏌曟径妯煎帥闁搞倕瀚伴幃瑙勬媴闂堟稓浠奸悗瑙勬礈閸犳牕鐣峰顑╂棃宕熼埞鎯т壕?
- * 8. findByCustomerIdAndStatus() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅù锝堛€€閸嬫捇鐛崹顔句痪闂佺硶鏅滈弶鐤嶉梻浣告啞缁矂鎯夐崗鍏煎弿闁归棿绀佺粻鎴澝归敐鍛础闁告瑢鍋撻梺鑽ゅТ濞层垽宕规總鍓叉晣鐟滅増甯掔涵鈧梺鍝勬川閸嬫盯鎮樺▎鎾村仩?
+ * 8. findByCustomerIdAndCommercialStatus() - 闂備礁鎼粔鐑斤綖婢跺﹦鏆ゅù锝堛€€閸嬫捇鐛崹顔句痪闂佺硶鏅滈弶鐤嶉梻浣告啞缁矂鎯夐崗鍏煎弿闁归棿绀佺粻鎴澝归敐鍛础闁告瑢鍋撻梺鑽ゅТ濞层垽宕规總鍓叉晣鐟滅増甯掔涵鈧梺鍝勬川閸嬫盯鎮樺▎鎾村仩?
  * 9. countPendingApprovalOrders() - 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈傚亾妞ゆ洏鍎靛畷銊╊敇瑜嶉幃渚€姊洪崷顓熸毄妞ゃ垹锕、妯裤亹閹烘垹顢呴梺鍝勬川閸犳劕鈻撻崼鏇熲拺?
  *
  * @author WMS Team
@@ -87,7 +87,7 @@ class SalesOrderRepositoryTest {
                 .orderNo("SO20260129001")
                 .customerId(testCustomer1.getId())
                 .totalAmount(new BigDecimal("30000.00"))
-                .status(SalesOrderStatus.DRAFT)
+                .commercialStatus(CommercialStatus.DRAFT)
                 .applicantId(1L)
                 .applicantName("Alice")
                 .build();
@@ -97,7 +97,7 @@ class SalesOrderRepositoryTest {
                 .orderNo("SO20260129002")
                 .customerId(testCustomer1.getId())
                 .totalAmount(new BigDecimal("60000.00"))
-                .status(SalesOrderStatus.PENDING_APPROVAL)
+                .commercialStatus(CommercialStatus.PENDING_APPROVAL)
                 .reviewReason("Needs manager approval")
                 .applicantId(1L)
                 .applicantName("Alice")
@@ -108,7 +108,7 @@ class SalesOrderRepositoryTest {
                 .orderNo("SO20260129003")
                 .customerId(testCustomer2.getId())
                 .totalAmount(new BigDecimal("40000.00"))
-                .status(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT)
+                .commercialStatus(CommercialStatus.APPROVED)
                 .applicantId(2L)
                 .applicantName("Bob")
                 .reviewedBy(3L)
@@ -121,7 +121,7 @@ class SalesOrderRepositoryTest {
                 .orderNo("SO20260129004")
                 .customerId(testCustomer2.getId())
                 .totalAmount(new BigDecimal("25000.00"))
-                .status(SalesOrderStatus.SHIPPED)
+                .commercialStatus(CommercialStatus.COMPLETED)
                 .applicantId(2L)
                 .applicantName("Bob")
                 .reviewedBy(3L)
@@ -145,7 +145,7 @@ class SalesOrderRepositoryTest {
         // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勫畝鈧壕濂告煙閹屽殶濞?
         assertThat(found).isPresent();
         assertThat(found.get().getOrderNo()).isEqualTo("SO20260129001");
-        assertThat(found.get().getStatus()).isEqualTo(SalesOrderStatus.DRAFT);
+        assertThat(found.get().getCommercialStatus()).isEqualTo(CommercialStatus.DRAFT);
         assertThat(found.get().getTotalAmount()).isEqualByComparingTo("30000.00");
     }
 
@@ -183,19 +183,19 @@ class SalesOrderRepositoryTest {
     @DisplayName("case-6")
     void testFindByStatus_PendingApproval() {
         // When: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈傚亾妞ゆ洏鍎靛畷銊╊敇瑜嶉幃渚€姊洪崷顓熸毄妞ゃ垹锕、妯裤亹閹烘垹顢?
-        List<SalesOrder> orders = salesOrderRepository.findByStatus(SalesOrderStatus.PENDING_APPROVAL);
+        List<SalesOrder> orders = salesOrderRepository.findByCommercialStatus(CommercialStatus.PENDING_APPROVAL);
 
         // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠哄搫鐝?1 濠电偞鍨堕幖鈺傜濠婂懏顐介柣鏃囥€€閸嬫捇宕楁径濠傗拤婵犮垼顫夌敮鐐哄箯鐎ｎ喖顫呴柣妯垮皺椤?
         assertThat(orders).hasSize(1);
         assertThat(orders.get(0).getOrderNo()).isEqualTo("SO20260129002");
-        assertThat(orders.get(0).getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(orders.get(0).getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
     }
 
     @Test
     @DisplayName("case-7")
     void testFindByStatus_ApprovedAwaitingShipment() {
         // When: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈傚亾妞ゆ柨绻樺畷锝嗗緞婵犲孩顥滈梻浣告啞閸ㄩ潧螞濡ゅ啯顐介柣鏃傚帶閻鏌熸潏鍓хɑ鐟滅増鐩幃瑙勬媴闂堟稓浠奸悗?
-        List<SalesOrder> orders = salesOrderRepository.findByStatus(SalesOrderStatus.APPROVED_AWAITING_SHIPMENT);
+        List<SalesOrder> orders = salesOrderRepository.findByCommercialStatus(CommercialStatus.APPROVED);
 
         // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠哄搫鐝?1 濠电偞鍨堕幖鈺傜濠婂牆绀勯柨鐔哄Т缁犮儵鏌ｉ悢鍛婄凡婵炲懏鐟ч埀顒€鐏氬姗€骞婃惔銈冧汗闁稿本绮嶇€氳崵鎲搁幋锔绘晣鐟滅増甯掔涵鈧?
         assertThat(orders).hasSize(1);
@@ -206,7 +206,7 @@ class SalesOrderRepositoryTest {
     @DisplayName("case-8")
     void testFindByStatus_NoMatch() {
         // When: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈傚亾妞ゆ柨绻樺畷锝嗗緞婵犲嫬绲剧紓鍌氬€烽悞锔炬崲閸℃侗鏁囩憸鐗堝笒绾偓?
-        List<SalesOrder> orders = salesOrderRepository.findByStatus(SalesOrderStatus.REJECTED);
+        List<SalesOrder> orders = salesOrderRepository.findByCommercialStatus(CommercialStatus.REJECTED);
 
         // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩椤撶喍姘﹂梺鍝勫€圭€笛呯矆閳ь剛绱撴担姝屽闁圭⒈鍋婂畷褰掝敂閸℃ê浠?
         assertThat(orders).isEmpty();
@@ -287,16 +287,16 @@ class SalesOrderRepositoryTest {
     @DisplayName("case-14")
     void testFindByCustomerIdAndStatus() {
         // When: 闂備礁鎼悮顐﹀磿閹绢噮鏁嬫俊銈呭暊閸嬫捇鐛崹顔句痪闂?闂備焦鐪归崝宀€鈧凹鍓涘▎銏ゆ偄鐞涒€充壕闁稿繐顦晶鎻掝熆鐟欏嫬绗ч柟宄邦儔婵偓闁绘灏欓ˇ?
-        List<SalesOrder> orders = salesOrderRepository.findByCustomerIdAndStatus(
+        List<SalesOrder> orders = salesOrderRepository.findByCustomerIdAndCommercialStatus(
                 testCustomer1.getId(),
-                SalesOrderStatus.PENDING_APPROVAL
+                CommercialStatus.PENDING_APPROVAL
         );
 
         // Then: 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠哄搫鐝?1 濠电偞鍨堕幖鈺傜閿濆鏁囩憸鐗堝笒绾偓?
         assertThat(orders).hasSize(1);
         assertThat(orders.get(0).getOrderNo()).isEqualTo("SO20260129002");
         assertThat(orders.get(0).getCustomerId()).isEqualTo(testCustomer1.getId());
-        assertThat(orders.get(0).getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(orders.get(0).getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
     }
 
     @Test
@@ -317,7 +317,7 @@ class SalesOrderRepositoryTest {
                 .orderNo("SO20260129005")
                 .customerId(testCustomer2.getId())
                 .totalAmount(new BigDecimal("70000.00"))
-                .status(SalesOrderStatus.PENDING_APPROVAL)
+                .commercialStatus(CommercialStatus.PENDING_APPROVAL)
                 .reviewReason("Needs manager approval")
                 .applicantId(2L)
                 .applicantName("Bob")
@@ -340,7 +340,7 @@ class SalesOrderRepositoryTest {
                 .orderNo("SO20260129006")
                 .customerId(testCustomer1.getId())
                 .totalAmount(new BigDecimal("35000.00"))
-                .status(SalesOrderStatus.DRAFT)
+                .commercialStatus(CommercialStatus.DRAFT)
                 .applicantId(1L)
                 .applicantName("Alice")
                 .build();
@@ -368,7 +368,7 @@ class SalesOrderRepositoryTest {
         SalesOrder order = salesOrderRepository.findByOrderNo("SO20260129001").orElseThrow();
 
         // When: 濠电儑绲藉ù鍌炲窗濡ゅ懎鏋侀柤娴嬫櫆婵ジ鏌曡箛鏇炐㈢紒鈧€ｎ喗鐓熸俊顖氱仢閻撴劙鏌嶈閸忔稑顪冮幒鏃€瀚婚柣鏂款殠閸ゆ鏌涘☉鍗炲季闁告埃鍋撻梻?
-        order.setStatus(SalesOrderStatus.PENDING_APPROVAL);
+        order.setCommercialStatus(CommercialStatus.PENDING_APPROVAL);
         order.setReviewReason("Updated review reason");
         salesOrderRepository.save(order);
 
@@ -378,7 +378,7 @@ class SalesOrderRepositoryTest {
 
         // Then: 濠德板€楁慨鎾儗娓氣偓閹焦寰勯幇顒€宓嗛柣搴㈢⊕钃遍柣鎾亾闂備胶鎳撻悺銊╁礉閺囩喐鍙?
         SalesOrder reloaded = salesOrderRepository.findByOrderNo("SO20260129001").orElseThrow();
-        assertThat(reloaded.getStatus()).isEqualTo(SalesOrderStatus.PENDING_APPROVAL);
+        assertThat(reloaded.getCommercialStatus()).isEqualTo(CommercialStatus.PENDING_APPROVAL);
         assertThat(reloaded.getReviewReason()).isEqualTo("Updated review reason");
     }
 

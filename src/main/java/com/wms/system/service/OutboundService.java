@@ -3,9 +3,7 @@ package com.wms.system.service;
 import com.wms.system.dto.outbound.OutboundTaskResponse;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.BatchTrackingMode;
-import com.wms.system.entity.enums.FulfillmentStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
-import com.wms.system.entity.enums.SalesOrderStatus;
 import com.wms.system.entity.enums.SourceType;
 import com.wms.system.entity.enums.TransactionType;
 import com.wms.system.exception.BusinessException;
@@ -32,11 +30,11 @@ import java.util.stream.Collectors;
 /**
  * Outbound Service (出库服务)
  *
- * V3.7 Architecture: Warehouse Picking Confirmation and Inventory Deduction
+ * V3.7 Architecture: Physical Dispatch Confirmation and Inventory Deduction
  *
  * Core Responsibilities:
- * 1. Confirm picking for single task (confirmPicking)
- * 2. Batch confirm picking for multiple tasks (batchConfirmPicking)
+ * 1. Confirm physical dispatch for one task (confirmDispatch)
+ * 2. Atomically confirm dispatch for multiple tasks (batchConfirmDispatch)
  * 3. Deduct inventory from batches (deductInventory)
  * 4. Record stock transactions (recordStockTransaction)
  * 5. Check order completion status (checkOrderCompletion)
@@ -48,7 +46,7 @@ import java.util.stream.Collectors;
  * 4. Deduct inventory from batch (with optimistic locking)
  * 5. Record stock transaction (source_type = SALE_OUT)
  * 6. Check if all tasks for the order are completed
- * 7. If all completed, update sales order status to SHIPPED
+ * 7. Rebuild the order's warehouse and commercial projections
  *
  * Important Notes:
  * - This is where actual inventory deduction happens (not in AllocationService)
@@ -74,13 +72,14 @@ public class OutboundService {
     private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final LocationOccupancyService locationOccupancyService;
+    private final SalesOrderStatusProjectionService statusProjectionService;
 
     /**
-     * ⭐ Confirm Picking for Single Task (确认单个拣货任务)
+     * ⭐ Confirm Physical Dispatch for Single Task (确认单个任务发货)
      *
      * Business Flow:
      * 1. Validate task exists
-     * 2. Validate task status = PENDING or PICKING (use canConfirmPicking())
+     * 2. Validate task status = PENDING or PICKING (use canConfirmDispatch())
      * 3. Validate actualQty <= planQty (cannot exceed planned quantity)
      * 4. Update task:
      *    - Set actual_qty = actualQty
@@ -98,7 +97,7 @@ public class OutboundService {
      *    - Set quantity = actualQty
      *    - Set operator_id and operator_name
      * 7. Check Order Completion:
-     *    - If all tasks for the sales order are COMPLETED, update sales_order.status = SHIPPED
+     *    - Rebuild warehouse status and complete the commercial order when all effective quantity shipped
      * 8. Return OutboundTaskResponse
      *
      * @param taskId Task ID
@@ -108,13 +107,13 @@ public class OutboundService {
      * @return OutboundTaskResponse Task response DTO
      * @throws BusinessException if task not found, invalid status, or insufficient stock
      */
-    public OutboundTaskResponse confirmPicking(
+    public OutboundTaskResponse confirmDispatch(
         Long taskId,
         Integer actualQty,
         Long operatorId,
         String operatorName
     ) {
-        return confirmPicking(taskId, actualQty, null, null, null, operatorId, operatorName);
+        return confirmDispatch(taskId, actualQty, null, null, null, operatorId, operatorName);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -123,7 +122,7 @@ public class OutboundService {
         maxAttempts = 3,
         backoff = @Backoff(delay = 1000)
     )
-    public OutboundTaskResponse confirmPicking(
+    public OutboundTaskResponse confirmDispatch(
         Long taskId,
         Integer actualQty,
         Long scannedLocationId,
@@ -132,7 +131,7 @@ public class OutboundService {
         Long operatorId,
         String operatorName
     ) {
-        log.info("Confirming picking: taskId={}, actualQty={}, operatorId={}, operatorName={}",
+        log.info("Confirming dispatch: taskId={}, actualQty={}, operatorId={}, operatorName={}",
             taskId, actualQty, operatorId, operatorName);
 
         // 1. Validate task exists
@@ -143,7 +142,7 @@ public class OutboundService {
             ));
 
         // 2. Validate task status (must be PENDING or PICKING)
-        if (!task.canConfirmPicking()) {
+        if (!task.canConfirmDispatch()) {
             log.error("Invalid task status: taskId={}, currentStatus={}", taskId, task.getStatus());
 
             if (task.getStatus() == OutboundTaskStatus.COMPLETED) {
@@ -169,7 +168,7 @@ public class OutboundService {
                 ErrorKeys.STOCK_INVALID_QUANTITY,
                 Map.of(
                     "quantity", actualQty == null ? "null" : actualQty,
-                    "operationType", "PICKING_CONFIRMATION"
+                    "operationType", "DISPATCH_CONFIRMATION"
                 )
             );
         }
@@ -284,10 +283,10 @@ public class OutboundService {
     }
 
     /**
-     * ⭐ Batch Confirm Picking (批量确认拣货)
+     * ⭐ Batch Confirm Dispatch (批量确认发货)
      *
      * Business Flow:
-     * - For each taskId, call confirmPicking with planQty as actualQty
+     * - For each taskId, call confirmDispatch with planQty as actualQty
      * - Use @Transactional to ensure atomicity
      * - Return List<OutboundTaskResponse>
      *
@@ -298,12 +297,12 @@ public class OutboundService {
      * @throws BusinessException if any task fails validation
      */
     @Transactional(rollbackFor = Exception.class)
-    public List<OutboundTaskResponse> batchConfirmPicking(
+    public List<OutboundTaskResponse> batchConfirmDispatch(
         List<Long> taskIds,
         Long operatorId,
         String operatorName
     ) {
-        log.info("Batch confirming picking: taskIds={}, operatorId={}, operatorName={}",
+        log.info("Batch confirming dispatch: taskIds={}, operatorId={}, operatorName={}",
             taskIds, operatorId, operatorName);
 
         if (taskIds == null || taskIds.isEmpty()) {
@@ -323,8 +322,8 @@ public class OutboundService {
                     Map.of("taskId", taskId)
                 ));
 
-            // Confirm picking with planQty as actualQty
-            OutboundTaskResponse response = confirmPicking(
+            // Confirm dispatch with planQty as actualQty
+            OutboundTaskResponse response = confirmDispatch(
                 taskId,
                 task.getPlanQty(),
                 operatorId,
@@ -486,9 +485,6 @@ public class OutboundService {
 
         int shippedQty = (item.getShippedQty() == null ? 0 : item.getShippedQty()) + actualQty;
         item.setShippedQty(shippedQty);
-        item.setFulfillmentStatus(shippedQty >= item.getQuantity()
-            ? FulfillmentStatus.SHIPPED
-            : FulfillmentStatus.PARTIALLY_SHIPPED);
         salesOrderItemRepository.save(item);
     }
 
@@ -563,50 +559,16 @@ public class OutboundService {
      *
      * Business Logic:
      * - Query all tasks for the sales order
-     * - If all tasks are COMPLETED, update sales_order.status = SHIPPED
+     * - Rebuild all derived sales status layers from authoritative facts
      *
      * @param salesOrderId Sales order ID
      */
     private void checkOrderCompletion(Long salesOrderId) {
         log.info("Checking order completion: salesOrderId={}", salesOrderId);
 
-        // 1. Get sales order
-        SalesOrder salesOrder = salesOrderRepository.findById(salesOrderId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.SALES_ORDER_NOT_FOUND,
-                Map.of("salesOrderId", salesOrderId)
-            ));
-
-        // 2. Count total tasks and completed tasks
-        long totalTasks = outboundTaskRepository.countTasksBySalesOrderId(salesOrderId);
-        long completedTasks = outboundTaskRepository.countCompletedTasksBySalesOrderId(salesOrderId);
-
-        log.info("Order completion status: salesOrderId={}, totalTasks={}, completedTasks={}",
-            salesOrderId, totalTasks, completedTasks);
-
-        // 3. If all tasks completed, update order status to SHIPPED
-        if (totalTasks > 0 && completedTasks == totalTasks) {
-            salesOrder.setStatus(SalesOrderStatus.SHIPPED);
-            salesOrder.setFulfillmentStatus(FulfillmentStatus.SHIPPED);
-            salesOrder.setShippedAt(LocalDateTime.now());
-            salesOrder.setFulfillmentVersion(
-                salesOrder.getFulfillmentVersion() == null ? 1L : salesOrder.getFulfillmentVersion() + 1
-            );
-            SalesOrder savedOrder = salesOrderRepository.save(salesOrder);
-
-            log.info("Order completed and shipped: salesOrderId={}, orderNo={}, status={}",
-                savedOrder.getId(), savedOrder.getOrderNo(), savedOrder.getStatus());
-        } else {
-            if (completedTasks > 0) {
-                salesOrder.setFulfillmentStatus(FulfillmentStatus.PARTIALLY_SHIPPED);
-                salesOrder.setFulfillmentVersion(
-                    salesOrder.getFulfillmentVersion() == null ? 1L : salesOrder.getFulfillmentVersion() + 1
-                );
-                salesOrderRepository.save(salesOrder);
-            }
-            log.info("Order not yet completed: salesOrderId={}, remaining tasks={}",
-                salesOrderId, totalTasks - completedTasks);
-        }
+        SalesOrder projected = statusProjectionService.refresh(salesOrderId);
+        log.info("Sales order projection refreshed after dispatch: salesOrderId={}, commercialStatus={}, warehouseStatus={}",
+            salesOrderId, projected.getCommercialStatus(), projected.getWarehouseStatus());
     }
 
     /**

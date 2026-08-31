@@ -17,7 +17,7 @@ public enum OutboundTaskStatus {
      *
      * 说明：
      * - 库存已预占（plan_qty）
-     * - 等待仓库员确认拣货
+     * - 等待仓库员确认发货
      */
     PENDING("待拣货"),
 
@@ -60,11 +60,11 @@ public enum OutboundTaskStatus {
     }
 
     /**
-     * 判断是否可以确认拣货
+     * 判断是否可以确认发货
      *
      * @return true 如果状态为 PENDING 或 PICKING
      */
-    public boolean canConfirmPicking() {
+    public boolean canConfirmDispatch() {
         return this == PENDING || this == PICKING;
     }
 
