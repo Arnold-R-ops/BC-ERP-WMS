@@ -7,6 +7,7 @@ import {
   ExperimentOutlined,
   InboxOutlined,
   LogoutOutlined,
+  RollbackOutlined,
   WifiOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Tooltip } from 'antd';
@@ -37,6 +38,8 @@ export function WarehouseMobileLayout(): JSX.Element {
     session?.currentRole, 'inventoryDisposition', session?.permissionCodes);
   const canUseStandardOperations = canAccessModule(
     session?.currentRole, 'warehouseMobile', session?.permissionCodes);
+  const canHandleReturns = canAccessModule(
+    session?.currentRole, 'rmaWarehouse', session?.permissionCodes);
 
   useEffect(() => {
     let active = true;
@@ -139,6 +142,7 @@ export function WarehouseMobileLayout(): JSX.Element {
           {canUseStandardOperations ? <NavLink to="/mobile/receiving"><InboxOutlined /><span>{t('mobile.receiving.nav')}</span></NavLink> : null}
           {canInspect ? <NavLink to="/mobile/inspection"><ExperimentOutlined /><span>{t('mobile.inspection.nav')}</span></NavLink> : null}
           {canDispose ? <NavLink to="/mobile/disposition"><DeleteOutlined /><span>{t('mobile.disposition.nav')}</span></NavLink> : null}
+          {canHandleReturns ? <NavLink to="/mobile/returns"><RollbackOutlined /><span>{t('mobile.returns.nav')}</span></NavLink> : null}
           {canUseStandardOperations ? <NavLink to="/mobile/picking"><ExportOutlined /><span>{t('mobile.picking.nav')}</span></NavLink> : null}
           {canUseStandardOperations ? <NavLink to="/mobile/stocktake"><AuditOutlined /><span>{t('mobile.stocktake.nav')}</span></NavLink> : null}
         </nav>

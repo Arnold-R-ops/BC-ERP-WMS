@@ -6,6 +6,7 @@ import com.wms.system.entity.enums.SalesAllocationStatus;
 import com.wms.system.entity.enums.SalesApprovalMode;
 import com.wms.system.entity.enums.SalesLogisticsStatus;
 import com.wms.system.entity.enums.SalesWarehouseStatus;
+import com.wms.system.entity.enums.SalesOrderPurpose;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -96,6 +97,15 @@ public class SalesOrder extends BaseEntity {
     @Size(max = 30, message = "订单编号长度不能超过 30 个字符")
     @Column(name = "order_no", nullable = false, length = 30)
     private String orderNo;
+
+    /** Replacement orders use the ordinary sales workflow but are excluded from new-sales revenue. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_purpose", nullable = false, length = 30)
+    @Builder.Default
+    private SalesOrderPurpose orderPurpose = SalesOrderPurpose.NORMAL;
+
+    @Column(name = "source_rma_id")
+    private Long sourceRmaId;
 
     /**
      * 客户ID

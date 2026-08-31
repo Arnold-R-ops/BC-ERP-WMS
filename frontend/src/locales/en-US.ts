@@ -115,6 +115,7 @@ const enUS = {
     suppliers: 'Suppliers',
     inventory: 'Inventory',
     sales: 'Sales orders',
+    rmas: 'Sales returns',
     analytics: 'Business analytics',
     salesAnalytics: 'Sales overview',
     customerAnalytics: 'Customer purchasing',
@@ -207,6 +208,9 @@ const enUS = {
     },
     disposition: {
       nav: 'Disposal',
+    },
+    returns: {
+      nav: 'Returns',
     },
     receiving: {
       nav: 'Receive',

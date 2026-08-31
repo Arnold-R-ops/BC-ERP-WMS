@@ -94,7 +94,23 @@ public class InventoryQualityPermissionCatalogue {
                 "Approve or reject another user inventory disposition"),
             new PermissionSeed("inventory_disposition:policy", "配置库存处置策略",
                 "/api/inventory-dispositions/policy", "*", SysPermission.RISK_LEVEL_CRITICAL,
-                165, "Configure optional review, automatic expiry and business timezone")
+                165, "Configure optional review, automatic expiry and business timezone"),
+            new PermissionSeed("rma:view", "查看销售退货", "/api/rmas/**", "GET",
+                SysPermission.RISK_LEVEL_NORMAL, 166, "View tenant-side RMA business details"),
+            new PermissionSeed("rma:create", "创建和关闭销售退货", "/api/rmas;/api/rmas/*/cancel;/api/rmas/*/close-remainder", "POST",
+                SysPermission.RISK_LEVEL_HIGH, 167, "Create linked RMA cases and close authorised remainders"),
+            new PermissionSeed("rma:approve", "审批销售退货", "/api/rmas/*/approve;/api/rmas/*/reject", "POST",
+                SysPermission.RISK_LEVEL_HIGH, 168, "Approve or reject another user's RMA"),
+            new PermissionSeed("rma:receive", "执行退货收货", "/api/rma-warehouse/tasks/**", "*",
+                SysPermission.RISK_LEVEL_HIGH, 169, "Receive authorised returns within assigned warehouse scope"),
+            new PermissionSeed("rma:inspect", "执行退货质检", "/api/rma-warehouse/tasks/*/inspections", "POST",
+                SysPermission.RISK_LEVEL_HIGH, 170, "Inspect return stock and choose an individual quantity disposition"),
+            new PermissionSeed("rma:resolve", "处理退款或换货", "/api/rmas/*/refund-eligibility;/api/rmas/*/resolution;/api/rmas/*/refund-confirmation", "POST",
+                SysPermission.RISK_LEVEL_HIGH, 171, "Request and confirm externally executed refunds or create replacement orders"),
+            new PermissionSeed("rma:policy", "配置销售退货策略", "/api/rmas/policy", "*",
+                SysPermission.RISK_LEVEL_HIGH, 172, "Configure optional RMA approval and risk features"),
+            new PermissionSeed("rma:advance-resolution", "提前退款或换货", "/api/rmas/*/resolution", "POST",
+                SysPermission.RISK_LEVEL_HIGH, 173, "Permit resolution before receipt and inspection when the tenant switch is enabled")
         );
     }
 

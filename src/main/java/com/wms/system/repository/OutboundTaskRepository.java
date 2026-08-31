@@ -30,6 +30,10 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface OutboundTaskRepository extends JpaRepository<OutboundTask, Long> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM OutboundTask o WHERE o.id = :id")
+    Optional<OutboundTask> findByIdForUpdate(@Param("id") Long id);
+
     Optional<OutboundTask> findByReservationId(Long reservationId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -115,6 +115,7 @@ const zhCN = {
     suppliers: '供应商',
     inventory: '库存查询',
     sales: '销售订单',
+    rmas: '销售退货',
     analytics: '经营分析',
     salesAnalytics: '销售概览',
     customerAnalytics: '客户采购分析',
@@ -207,6 +208,9 @@ const zhCN = {
     },
     disposition: {
       nav: '处置',
+    },
+    returns: {
+      nav: '退货',
     },
     receiving: {
       nav: '收货',

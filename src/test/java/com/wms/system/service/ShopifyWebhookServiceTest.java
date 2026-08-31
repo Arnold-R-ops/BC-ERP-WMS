@@ -6,9 +6,12 @@ import com.wms.system.entity.IdempotencyRequest;
 import com.wms.system.entity.IntegrationConfig;
 import com.wms.system.entity.OutboundTask;
 import com.wms.system.entity.SalesOrder;
+import com.wms.system.entity.SalesReturnChannelCase;
 import com.wms.system.entity.enums.IdempotencyStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.CommercialStatus;
+import com.wms.system.entity.enums.RmaChannelCaseStatus;
+import com.wms.system.service.rma.RmaChannelCaseService;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.OutboundTaskRepository;
 import com.wms.system.repository.SalesOrderRepository;
@@ -74,6 +77,9 @@ class ShopifyWebhookServiceTest {
 
     @Mock
     private SalesSubmissionService salesSubmissionService;
+
+    @Mock
+    private RmaChannelCaseService rmaChannelCaseService;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -317,16 +323,19 @@ class ShopifyWebhookServiceTest {
     }
 
     @Test
-    void refund_RecordedOnly() throws Exception {
+    void refund_MatchedCaseCreatedWithoutAutomaticStockOrMoney() throws Exception {
         stubKnownShop();
         when(rawEventService.webhookAlreadyReceived(anyString())).thenReturn(false);
         String refundBody = "{\"id\":555,\"order_id\":12345}";
         when(rawEventService.recordWebhook(anyString(), anyString(), eq(ChannelRawEvent.TYPE_REFUND),
             anyString(), anyString(), anyString())).thenReturn(event);
+        when(rmaChannelCaseService.ingestRefund(eq("SHOPIFY"), eq(SHOP), eq("555"),
+            eq("12345"), eq(event))).thenReturn(SalesReturnChannelCase.builder()
+                .id(9L).status(RmaChannelCaseStatus.MATCHED_PENDING).build());
 
         webhookService.handle(SHOP, "refunds/create", "wh-4", sign(refundBody, SECRET), refundBody);
 
-        verify(rawEventService).markSkipped(eq(7L), anyString());
+        verify(rawEventService).markProcessed(7L);
         verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong(), anyString());
     }
 }

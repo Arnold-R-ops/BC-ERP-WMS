@@ -7,13 +7,16 @@ import com.wms.system.entity.IdempotencyRequest;
 import com.wms.system.entity.IntegrationConfig;
 import com.wms.system.entity.OutboundTask;
 import com.wms.system.entity.SalesOrder;
+import com.wms.system.entity.SalesReturnChannelCase;
 import com.wms.system.entity.enums.IdempotencyStatus;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.CommercialStatus;
 import com.wms.system.entity.enums.SalesWarehouseStatus;
+import com.wms.system.entity.enums.RmaChannelCaseStatus;
 import com.wms.system.repository.IntegrationConfigRepository;
 import com.wms.system.repository.OutboundTaskRepository;
 import com.wms.system.repository.SalesOrderRepository;
+import com.wms.system.service.rma.RmaChannelCaseService;
 import com.wms.system.tenant.context.RequestSurface;
 import com.wms.system.tenant.context.TenantContext;
 import com.wms.system.tenant.context.TenantContextHolder;
@@ -59,6 +62,7 @@ public class ShopifyWebhookService {
     private final SalesOrderRepository salesOrderRepository;
     private final OutboundTaskRepository outboundTaskRepository;
     private final SalesSubmissionService salesSubmissionService;
+    private final RmaChannelCaseService rmaChannelCaseService;
     private final ObjectMapper objectMapper;
 
     public enum WebhookOutcome { ACCEPTED, DUPLICATE, SIGNATURE_INVALID, UNKNOWN_SHOP }
@@ -194,7 +198,15 @@ public class ShopifyWebhookService {
                 ChannelRawEvent event = rawEventService.recordWebhook(
                     CHANNEL, config.getStoreUrl(), ChannelRawEvent.TYPE_REFUND,
                     node.path("order_id").asText(null), rawBody, webhookId);
-                rawEventService.markSkipped(event.getId(), "Refund retained for future RMA processing");
+                SalesReturnChannelCase channelCase = rmaChannelCaseService.ingestRefund(
+                    CHANNEL, config.getCanonicalStoreIdentifier(), externalId,
+                    node.path("order_id").asText(null), event);
+                if (channelCase.getStatus() == RmaChannelCaseStatus.MATCHED_PENDING) {
+                    rawEventService.markProcessed(event.getId());
+                } else {
+                    rawEventService.markManualReview(event.getId(),
+                        "Refund retained as unmatched RMA channel case");
+                }
             }
             default -> {
                 ChannelRawEvent event = rawEventService.recordWebhook(

@@ -98,6 +98,7 @@ public class ReportSummaryRefreshService {
             FROM sales_orders
             WHERE company_id = ?
               AND created_at::date = ?
+              AND order_purpose = 'NORMAL'
             GROUP BY company_id, created_at::date
             ON CONFLICT (company_id, summary_date)
             DO UPDATE SET
@@ -142,7 +143,8 @@ public class ReportSummaryRefreshService {
                     ) AS previous_created_at
                 FROM sales_orders
                 WHERE company_id = ?
-                  AND status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                  AND commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                  AND order_purpose = 'NORMAL'
             )
             SELECT
                 company_id,
@@ -186,6 +188,7 @@ public class ReportSummaryRefreshService {
                   WHERE so.company_id = cfs.company_id
                     AND so.customer_id = cfs.customer_id
                     AND so.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    AND so.order_purpose = 'NORMAL'
               )
             """;
 
@@ -223,6 +226,7 @@ public class ReportSummaryRefreshService {
                  AND sales_order_item.company_id = sales_order.company_id
                 WHERE sales_order.company_id = ?
                   AND sales_order.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                  AND sales_order.order_purpose = 'NORMAL'
                 GROUP BY
                     sales_order.company_id,
                     sales_order.customer_id,
@@ -289,6 +293,7 @@ public class ReportSummaryRefreshService {
                     AND sales_order.customer_id = customer_product.customer_id
                     AND sales_order_item.product_sku_id = customer_product.product_sku_id
                     AND sales_order.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    AND sales_order.order_purpose = 'NORMAL'
               )
             """;
 
@@ -338,6 +343,7 @@ public class ReportSummaryRefreshService {
                 CURRENT_TIMESTAMP AS updated_at
             FROM sales_orders
             WHERE company_id = ?
+              AND order_purpose = 'NORMAL'
             GROUP BY company_id, created_at::date
             ON CONFLICT (company_id, summary_date)
             DO UPDATE SET
@@ -366,6 +372,7 @@ public class ReportSummaryRefreshService {
                   FROM sales_orders so
                   WHERE so.company_id = sds.company_id
                     AND so.created_at::date = sds.summary_date
+                    AND so.order_purpose = 'NORMAL'
               )
             """;
 
