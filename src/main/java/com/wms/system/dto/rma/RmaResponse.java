@@ -1,6 +1,7 @@
 package com.wms.system.dto.rma;
 
 import com.wms.system.entity.enums.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -52,6 +53,7 @@ public record RmaResponse(
     List<Inspection> inspections,
     List<Event> events
 ) {
+    @Schema(name = "RmaLineResponse")
     public record Line(
         Long id,
         Long salesOrderItemId,
@@ -74,6 +76,7 @@ public record RmaResponse(
         BigDecimal unitPriceSnapshot
     ) { }
 
+    @Schema(name = "RmaTaskResponse")
     public record Task(
         Long id,
         Long version,
@@ -88,6 +91,7 @@ public record RmaResponse(
         String warehouseRemark
     ) { }
 
+    @Schema(name = "RmaReceiptResponse")
     public record Receipt(
         Long id,
         String receiptNumber,
@@ -98,6 +102,7 @@ public record RmaResponse(
         List<ReceiptLine> lines
     ) { }
 
+    @Schema(name = "RmaReceiptLineResponse")
     public record ReceiptLine(
         Long id,
         Long rmaLineId,
@@ -110,6 +115,7 @@ public record RmaResponse(
         Integer inspectedQuantity
     ) { }
 
+    @Schema(name = "RmaInspectionResponse")
     public record Inspection(
         Long id,
         String inspectionNumber,
@@ -120,6 +126,7 @@ public record RmaResponse(
         List<InspectionLine> lines
     ) { }
 
+    @Schema(name = "RmaInspectionLineResponse")
     public record InspectionLine(
         Long id,
         Long receiptLineId,
@@ -131,6 +138,7 @@ public record RmaResponse(
         InventoryQualityStatus resultQualityStatus
     ) { }
 
+    @Schema(name = "RmaEventResponse")
     public record Event(Long id, String eventType, String payloadJson, Long actorId,
                         String actorName, LocalDateTime occurredAt) { }
 }

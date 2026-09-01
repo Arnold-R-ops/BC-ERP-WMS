@@ -32,6 +32,9 @@ const SalesOrderPage = lazy(() =>
 const RmaPage = lazy(() =>
   import('./pages/rma/RmaPage').then((module) => ({ default: module.RmaPage })),
 );
+const TransferPage = lazy(() =>
+  import('./pages/transfers/TransferPage').then((module) => ({ default: module.TransferPage })),
+);
 const PurchaseOrderPage = lazy(() =>
   import('./pages/purchasing/PurchaseOrderPage').then((module) => ({ default: module.PurchaseOrderPage })),
 );
@@ -124,6 +127,9 @@ const MobileDispositionPage = (): JSX.Element => <InventoryDispositionPage compa
 const MobileRmaPage = lazy(() =>
   import('./pages/mobile/MobileRmaPage').then((module) => ({ default: module.MobileRmaPage })),
 );
+const MobileTransferPage = lazy(() =>
+  import('./pages/mobile/MobileTransferPage').then((module) => ({ default: module.MobileTransferPage })),
+);
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -179,6 +185,7 @@ function WarehouseMobileRoute(): JSX.Element {
     || canAccessModule(session.currentRole, 'receivingInspection', session.permissionCodes)
     || canAccessModule(session.currentRole, 'inventoryDisposition', session.permissionCodes)
     || canAccessModule(session.currentRole, 'rmaWarehouse', session.permissionCodes)
+    || canAccessModule(session.currentRole, 'transferWarehouse', session.permissionCodes)
   );
   return allowed ? <WarehouseMobileEntry /> : <AccessDeniedRedirect />;
 }
@@ -191,7 +198,9 @@ function WarehouseMobileIndex(): JSX.Element {
     session.currentRole, 'receivingInspection', session.permissionCodes);
   const canReturn = session && canAccessModule(
     session.currentRole, 'rmaWarehouse', session.permissionCodes);
-  return <Navigate replace to={standardOperations ? 'picking' : canInspect ? 'inspection' : canReturn ? 'returns' : 'disposition'} />;
+  const canTransfer = session && canAccessModule(
+    session.currentRole, 'transferWarehouse', session.permissionCodes);
+  return <Navigate replace to={standardOperations ? 'picking' : canInspect ? 'inspection' : canReturn ? 'returns' : canTransfer ? 'transfers' : 'disposition'} />;
 }
 
 function IntegrationEntry(): JSX.Element {
@@ -217,6 +226,7 @@ function AppRoutes(): JSX.Element {
             <Route element={<ModuleRoute module="receivingInspection"><MobileInspectionPage /></ModuleRoute>} path="inspection" />
             <Route element={<ModuleRoute module="inventoryDisposition"><MobileDispositionPage /></ModuleRoute>} path="disposition" />
             <Route element={<ModuleRoute module="rmaWarehouse"><MobileRmaPage /></ModuleRoute>} path="returns" />
+            <Route element={<ModuleRoute module="transferWarehouse"><MobileTransferPage /></ModuleRoute>} path="transfers" />
             <Route element={<ModuleRoute module="warehouseMobile"><MobilePickingPage /></ModuleRoute>} path="picking" />
             <Route element={<ModuleRoute module="warehouseMobile"><MobileStocktakePage /></ModuleRoute>} path="stocktake" />
           </Route>
@@ -244,6 +254,7 @@ function AppRoutes(): JSX.Element {
               path="sales"
             />
             <Route element={<ModuleRoute module="rma"><RmaPage /></ModuleRoute>} path="rmas" />
+            <Route element={<ModuleRoute module="transfer"><TransferPage /></ModuleRoute>} path="transfers" />
             <Route element={<ModuleRoute module="analytics"><Navigate replace to="sales" /></ModuleRoute>} path="analytics" />
             <Route element={<ModuleRoute module="analytics"><SalesAnalyticsPage /></ModuleRoute>} path="analytics/sales" />
             <Route element={<ModuleRoute module="analytics"><CustomerAnalyticsPage /></ModuleRoute>} path="analytics/customers" />

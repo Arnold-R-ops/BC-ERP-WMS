@@ -18,7 +18,7 @@ class InventoryQualityPermissionCatalogueTest {
     @Mock private SysPermissionRepository repository;
 
     @Test
-    void newTenantReceivesQualityInspectionDispositionAndRmaCustomPermissions() {
+    void newTenantReceivesQualityInspectionDispositionRmaAndTransferCustomPermissions() {
         when(repository.existsByCompanyIdAndPermissionCode(eq(88L), anyString()))
             .thenReturn(false);
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -26,7 +26,7 @@ class InventoryQualityPermissionCatalogueTest {
         new InventoryQualityPermissionCatalogue(repository).provisionForTenant(88L);
 
         ArgumentCaptor<SysPermission> captor = ArgumentCaptor.forClass(SysPermission.class);
-        verify(repository, times(24)).save(captor.capture());
+        verify(repository, times(31)).save(captor.capture());
         assertThat(captor.getAllValues()).extracting(SysPermission::getPermissionCode)
             .containsExactly(
                 "inventory_quality:view", "inventory_quality:hold",
@@ -39,13 +39,25 @@ class InventoryQualityPermissionCatalogueTest {
                 "inventory_disposition:create", "inventory_disposition:execute",
                 "inventory_disposition:review", "inventory_disposition:policy",
                 "rma:view", "rma:create", "rma:approve", "rma:receive",
-                "rma:inspect", "rma:resolve", "rma:policy", "rma:advance-resolution"
+                "rma:inspect", "rma:resolve", "rma:policy", "rma:advance-resolution",
+                "transfer:view", "transfer:create", "transfer:approve", "transfer:dispatch",
+                "transfer:receive", "transfer:close", "transfer:policy"
             );
         assertThat(captor.getAllValues()).allSatisfy(permission -> {
             assertThat(permission.isCustomAssignable()).isTrue();
             assertThat(permission.getStatus()).isEqualTo("ACTIVE");
+            assertThat(permission.getRiskLevel()).isNotEqualTo(SysPermission.RISK_LEVEL_CRITICAL);
         });
-        verify(repository, times(24)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
+        assertThat(captor.getAllValues().stream()
+            .filter(permission -> java.util.Set.of(
+                "transfer:create", "transfer:approve", "transfer:close", "transfer:policy")
+                .contains(permission.getPermissionCode())).toList())
+            .hasSize(4)
+            .allSatisfy(permission -> {
+                assertThat(permission.getResourcePath()).isEqualTo("/api/transfers/**");
+                assertThat(permission.getHttpMethod()).isEqualTo("*");
+            });
+        verify(repository, times(31)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
         verifyNoMoreInteractions(repository);
     }
 }

@@ -183,7 +183,7 @@ public class ReceivingInspectionService {
                         request.reasonDetail(), actorId, actorName, ++ordinal);
                     resultLine.setPassedBatch(passedBatch);
                     line.setPassedQuantity(line.getPassedQuantity() + passed);
-                    backorderService.wakeProduct(line.getProductSku().getId());
+                    wakeBackorder(line);
                 }
             }
             line.setPendingQuantity(line.getPendingQuantity() - total);
@@ -265,7 +265,7 @@ public class ReceivingInspectionService {
                     comment, actorId, actorName, ++ordinal);
                 resultLine.setPassedBatch(passedBatch);
                 taskLine.setPassedQuantity(taskLine.getPassedQuantity() + passed);
-                backorderService.wakeProduct(taskLine.getProductSku().getId());
+                wakeBackorder(taskLine);
             } else {
                 taskLine.setPendingQuantity(taskLine.getPendingQuantity() + passed);
             }
@@ -457,6 +457,18 @@ public class ReceivingInspectionService {
             task.setStatus(ReceivingInspectionTaskStatus.PENDING);
             task.setCompletedAt(null);
         }
+    }
+
+    private void wakeBackorder(ReceivingInspectionTaskLine line) {
+        TransferReceiptLine transferLine = line.getTransferReceiptLine();
+        if (transferLine != null
+            && transferLine.getTransferLine().getBackorderLineId() != null) {
+            backorderService.wakeBackorderAtWarehouse(
+                transferLine.getTransferLine().getBackorderLineId(),
+                transferLine.getReceipt().getTransferOrder().getDestinationWarehouse().getId());
+            return;
+        }
+        backorderService.wakeProduct(line.getProductSku().getId());
     }
 
     private ReceivingInspectionResultResponse replayResult(

@@ -22,6 +22,10 @@ public class InventorySummaryDto {
     private List<String> warehouseNames;
     private String displayQuantity;
     private Integer totalQuantity;
+    /** Dispatched between warehouses and not yet received or closed as shortage. */
+    private Integer inTransitQuantity;
+    /** Company-owned physical stock: warehouse OnHand plus in-transit quantity. */
+    private Integer companyOwnedQuantity;
     private Integer reservedQuantity;
     private Integer availableQuantity;
     private String displayAvailableQuantity;

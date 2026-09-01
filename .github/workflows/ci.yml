@@ -144,9 +144,15 @@ jobs:
             target/ci-verification/flyway-first-start.log \
             target/ci-verification/flyway-first-health.json
 
-          history="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -At -v ON_ERROR_STOP=1 \
-            -c "SELECT string_agg(type || ':' || version, ',' ORDER BY installed_rank) FROM flyway_schema_history")"
-          test "$history" = "SQL_BASELINE:4.71,SQL:4.72"
+          baseline_version="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -At -v ON_ERROR_STOP=1 \
+            -c "SELECT version FROM flyway_schema_history WHERE type='SQL_BASELINE' ORDER BY installed_rank LIMIT 1")"
+          test "$baseline_version" = "4.71"
+          latest_version="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -At -v ON_ERROR_STOP=1 \
+            -c "SELECT version FROM flyway_schema_history WHERE success ORDER BY installed_rank DESC LIMIT 1")"
+          test "$latest_version" = "4.84"
+          failed_migrations="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -At -v ON_ERROR_STOP=1 \
+            -c "SELECT count(*) FROM flyway_schema_history WHERE NOT success")"
+          test "$failed_migrations" = "0"
           history_before="$(psql -h 127.0.0.1 -U wms_ci_app -d wms_db_migration -F '|' -At -v ON_ERROR_STOP=1 \
             -c "SELECT installed_rank, version, type, script, COALESCE(checksum::text, ''), success FROM flyway_schema_history ORDER BY installed_rank")"
           printf '%s\n' "$history_before" > target/ci-verification/flyway-history-before-restart.txt

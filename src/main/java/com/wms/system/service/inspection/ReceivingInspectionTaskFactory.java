@@ -51,6 +51,44 @@ public class ReceivingInspectionTaskFactory {
         return taskRepository.saveAndFlush(task);
     }
 
+    /** Creates executable inspection work in the same transfer-receipt transaction. */
+    public ReceivingInspectionTask createForTransferReceipt(TransferReceipt receipt) {
+        var eligible = receipt.getLines().stream()
+            .filter(line -> line.getDisposition() == TransferReceiptDisposition.AVAILABLE)
+            .filter(line -> line.getDestinationBatch().getQualityStatus()
+                == InventoryQualityStatus.PENDING_INSPECTION)
+            .toList();
+        if (eligible.isEmpty()) return null;
+        TransferOrder transfer = receipt.getTransferOrder();
+        ReceivingInspectionTask task = ReceivingInspectionTask.builder()
+            .taskNumber(number("IQT"))
+            .sourceType(ReceivingInspectionSourceType.TRANSFER_RECEIPT)
+            .transferReceipt(receipt)
+            .warehouse(transfer.getDestinationWarehouse())
+            .sourceReference(transfer.getTransferNumber())
+            .status(ReceivingInspectionTaskStatus.PENDING)
+            .reviewModeSnapshot(policyService.reviewMode())
+            .createdBy(receipt.getReceivedBy())
+            .createdByName(receipt.getReceivedByName())
+            .build();
+        for (TransferReceiptLine line : eligible) {
+            InventoryBatch batch = line.getDestinationBatch();
+            task.addLine(ReceivingInspectionTaskLine.builder()
+                .transferReceiptLine(line)
+                .productSku(batch.getProductSku())
+                .sourceBatch(batch)
+                .location(line.getLocation())
+                .skuCode(batch.getProductSku().getSkuCode())
+                .productName(batch.getProductSku().getName())
+                .batchCode(batch.getBatchCode())
+                .locationCode(line.getLocation().getLocationCode())
+                .plannedQuantity(line.getQuantity())
+                .pendingQuantity(line.getQuantity())
+                .build());
+        }
+        return taskRepository.saveAndFlush(task);
+    }
+
     private String safeReference(ReceivingTask task) {
         if (task.getReceivingPlan() != null
             && task.getReceivingPlan().getPurchaseOrder() != null) {

@@ -1,6 +1,7 @@
 package com.wms.system.dto.receivinginspection;
 
 import com.wms.system.entity.enums.ReceivingInspectionMethod;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -14,6 +15,7 @@ public record SubmitReceivingInspectionRequest(
     @Size(max = 500) String reasonDetail,
     @NotEmpty List<@Valid Line> lines
 ) {
+    @Schema(name = "SubmitReceivingInspectionLineRequest")
     public record Line(
         @NotNull @Positive Long inspectionTaskLineId,
         @NotNull @Min(0) Integer passedQuantity,

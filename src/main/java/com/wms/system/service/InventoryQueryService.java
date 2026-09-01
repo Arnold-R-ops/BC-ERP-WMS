@@ -71,6 +71,7 @@ public class InventoryQueryService {
 
     private InventorySummaryDto buildInventorySummary(InventoryBatchRepository.InventorySummaryRow row) {
         int totalQuantity = numberToInt(row.getTotalQuantity());
+        int inTransitQuantity = numberToInt(row.getInTransitQuantity());
         int reservedQuantity = numberToInt(row.getTotalReservedQuantity());
         int availableQuantity = numberToInt(row.getTotalAvailableQuantity());
         int conversionRate = Math.max(numberToInt(row.getConversionRate()), 1);
@@ -90,6 +91,8 @@ public class InventoryQueryService {
             .warehouseNames(parseWarehouseNames(row.getWarehouseNames()))
             .displayQuantity(formatQuantity(totalQuantity, conversionRate, row.getPackUnit()))
             .totalQuantity(totalQuantity)
+            .inTransitQuantity(inTransitQuantity)
+            .companyOwnedQuantity(totalQuantity + inTransitQuantity)
             .reservedQuantity(reservedQuantity)
             .availableQuantity(availableQuantity)
             .displayAvailableQuantity(formatQuantity(availableQuantity, conversionRate, row.getPackUnit()))

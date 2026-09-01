@@ -43,6 +43,10 @@ public class ReceivingInspectionTask extends BaseEntity {
     private ReceivingTask receivingTask;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transfer_receipt_id", updatable = false)
+    private TransferReceipt transferReceipt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "correction_of_result_id", updatable = false)
     private ReceivingInspectionResult correctionOfResult;
 

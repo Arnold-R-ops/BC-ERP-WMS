@@ -2,6 +2,7 @@ package com.wms.system.dto.rma;
 
 import com.wms.system.entity.enums.RmaStatutoryBasis;
 import com.wms.system.entity.enums.RmaType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -22,5 +23,6 @@ public record CreateRmaRequest(
     Long channelCaseId,
     @NotEmpty List<@Valid Line> lines
 ) {
+    @Schema(name = "CreateRmaLineRequest")
     public record Line(@NotNull Long outboundTaskId, @NotNull @Min(1) Integer quantity) { }
 }

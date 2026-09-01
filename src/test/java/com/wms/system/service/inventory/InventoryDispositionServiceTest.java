@@ -8,6 +8,7 @@ import com.wms.system.repository.*;
 import com.wms.system.service.*;
 import com.wms.system.service.idempotency.IdempotencyClaim;
 import com.wms.system.service.idempotency.IdempotencyClaimDecision;
+import com.wms.system.service.transfer.TransferAllocationCoordinator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,6 +43,7 @@ class InventoryDispositionServiceTest {
     @Mock private LocationOccupancyService locationOccupancyService;
     @Mock private IdempotencyService idempotencyService;
     @Mock private DomainOutboxService outboxService;
+    @Mock private TransferAllocationCoordinator transferAllocationCoordinator;
 
     private InventoryDispositionService service;
 
@@ -51,7 +54,7 @@ class InventoryDispositionServiceTest {
             orderRepository, lineRepository, executionRepository, executionLineRepository,
             impactRepository, qualityStateService, policyService, postingService,
             backorderService, locationOccupancyService, idempotencyService,
-            outboxService, new ObjectMapper()
+            outboxService, new ObjectMapper(), transferAllocationCoordinator
         );
     }
 
@@ -76,6 +79,23 @@ class InventoryDispositionServiceTest {
             assertThat(line.affectedSalesOrders()).singleElement()
                 .satisfies(impact -> assertThat(impact.impact()).isEqualTo("QUALITY_EXCEPTION"));
         });
+    }
+
+    @Test
+    void damagePreviewDoesNotReportEvacuableTransferReservationAsSalesImpact() {
+        InventoryBatch source = batch(1L, 100, 30, InventoryQualityStatus.AVAILABLE);
+        when(batchRepository.findAllById(List.of(1L))).thenReturn(List.of(source));
+        when(transferAllocationCoordinator.openReservedQuantities(List.of(1L)))
+            .thenReturn(Map.of(1L, 30));
+
+        var preview = service.previewDamage(damageRequest(100), null);
+
+        assertThat(preview.confirmationRequired()).isFalse();
+        assertThat(preview.totalReallocatedQuantity()).isZero();
+        assertThat(preview.totalBackorderedQuantity()).isZero();
+        assertThat(preview.totalQualityExceptionQuantity()).isZero();
+        assertThat(preview.lines()).singleElement()
+            .satisfies(line -> assertThat(line.affectedSalesOrders()).isEmpty());
     }
 
     @Test

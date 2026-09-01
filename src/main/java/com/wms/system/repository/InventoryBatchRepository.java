@@ -52,6 +52,46 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b WHERE b.id IN :batchIds ORDER BY b.id")
     List<InventoryBatch> findAllByIdForPosting(@Param("batchIds") Collection<Long> batchIds);
 
+    /** Warehouse-scoped FEFO stock locked for transfer allocation. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT b FROM InventoryBatch b
+        JOIN FETCH b.productSku p
+        JOIN FETCH b.location l
+        JOIN FETCH l.warehouse w
+        WHERE w.id = :warehouseId
+          AND p.id = :productSkuId
+          AND b.active = true
+          AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+          AND b.quantity > b.reservedQuantity
+          AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)
+        ORDER BY CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END,
+          b.expiryDate ASC, b.entryDate ASC, b.quantity ASC, b.id ASC
+        """)
+    List<InventoryBatch> findTransferCandidatesForUpdate(
+        @Param("warehouseId") Long warehouseId,
+        @Param("productSkuId") Long productSkuId
+    );
+
+    @Query("""
+        SELECT b FROM InventoryBatch b
+        JOIN FETCH b.productSku p
+        JOIN FETCH b.location l
+        JOIN FETCH l.warehouse w
+        WHERE w.id = :warehouseId
+          AND p.id = :productSkuId
+          AND b.active = true
+          AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+          AND b.quantity > b.reservedQuantity
+          AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)
+        ORDER BY CASE WHEN b.expiryDate IS NULL THEN 1 ELSE 0 END,
+          b.expiryDate ASC, b.entryDate ASC, b.quantity ASC, b.id ASC
+        """)
+    List<InventoryBatch> findTransferCandidates(
+        @Param("warehouseId") Long warehouseId,
+        @Param("productSkuId") Long productSkuId
+    );
+
     @Query("""
         SELECT b FROM InventoryBatch b
         JOIN FETCH b.productSku p
@@ -99,6 +139,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         Number getConversionRate();
         Number getSafetyStock();
         Number getTotalQuantity();
+        Number getInTransitQuantity();
         Number getTotalReservedQuantity();
         Number getTotalAvailableQuantity();
         Number getPendingInspectionQuantity();
@@ -136,6 +177,13 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 p.conversion_rate AS "conversionRate",
                 p.safety_stock AS "safetyStock",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity ELSE 0 END), 0) AS "totalQuantity",
+                COALESCE((
+                    SELECT SUM(tdl.quantity - tdl.received_quantity - tdl.shortage_closed_quantity)
+                    FROM transfer_dispatch_line tdl
+                    JOIN transfer_order_line tol
+                      ON tol.company_id = tdl.company_id AND tol.id = tdl.transfer_line_id
+                    WHERE tdl.company_id = :companyId AND tol.product_sku_id = p.id
+                ), 0) AS "inTransitQuantity",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.reserved_quantity ELSE 0 END), 0) AS "totalReservedQuantity",
                 COALESCE(SUM(CASE
                     WHEN b.quality_status = 'AVAILABLE'

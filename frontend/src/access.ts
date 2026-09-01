@@ -7,6 +7,7 @@ export type AppModule =
   | 'inventory'
   | 'sales'
   | 'rma'
+  | 'transfer'
   | 'analytics'
   | 'purchasing'
   | 'inbound'
@@ -17,6 +18,7 @@ export type AppModule =
   | 'receivingInspection'
   | 'inventoryDisposition'
   | 'rmaWarehouse'
+  | 'transferWarehouse'
   | 'warehouseMobile'
   | 'warehouseSetup'
   | 'integrations'
@@ -33,6 +35,7 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
   inventory: ['menu:inventory'],
   sales: ['menu:sales'],
   rma: ['rma:view', 'rma:create', 'rma:approve', 'rma:resolve', 'rma:policy'],
+  transfer: ['transfer:view', 'transfer:create', 'transfer:approve', 'transfer:close', 'transfer:policy'],
   analytics: ['menu:reports'],
   purchasing: ['menu:purchase'],
   inbound: ['other_inbound:manage'],
@@ -56,6 +59,7 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
     'inventory_disposition:policy',
   ],
   rmaWarehouse: ['rma:receive', 'rma:inspect'],
+  transferWarehouse: ['transfer:dispatch', 'transfer:receive'],
   warehouseMobile: ['menu:warehouse-mobile'],
   warehouseSetup: ['menu:warehouse-setup'],
   integrations: ['menu:system', 'menu:integration-reconciliation'],

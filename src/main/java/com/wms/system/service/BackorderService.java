@@ -135,6 +135,56 @@ public class BackorderService {
         return createdTasks;
     }
 
+    /**
+     * Re-attempts one explicitly linked demand using saleable stock from the
+     * transfer destination warehouse only. In-transit quantity is never read.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int wakeBackorderAtWarehouse(Long backorderLineId, Long warehouseId) {
+        BackorderLine line = backorderLineRepository.findByIdForUpdate(backorderLineId)
+            .orElseThrow(() -> new BusinessException(ErrorKeys.RESOURCE_NOT_FOUND,
+                Map.of("resourceType", "backorderLineId", "resourceId", backorderLineId)));
+        if (!line.isOpenForAllocation() || line.getRemainingQty() <= 0) return 0;
+        SalesOrderItem item = salesOrderItemRepository.findById(line.getSalesOrderItemId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_ITEM_NOT_FOUND,
+                Map.of("itemId", line.getSalesOrderItemId())));
+        SalesOrder order = salesOrderRepository.findById(item.getSalesOrderId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.SALES_ORDER_NOT_FOUND,
+                Map.of("salesOrderId", item.getSalesOrderId())));
+        if (order.getCommercialStatus() != CommercialStatus.APPROVED) {
+            line.setStatus(BackorderStatus.CANCELLED);
+            backorderLineRepository.save(line);
+            return 0;
+        }
+        int allocated = reserveAvailableAtWarehouse(item, line.getRemainingQty(), warehouseId);
+        if (allocated <= 0) return 0;
+        line.allocate(allocated);
+        backorderLineRepository.save(line);
+        item.setAllocatedQty((item.getAllocatedQty() == null ? 0 : item.getAllocatedQty()) + allocated);
+        item.setBackorderQty(Math.max(0,
+            (item.getBackorderQty() == null ? 0 : item.getBackorderQty()) - allocated));
+        salesOrderItemRepository.save(item);
+        updateOrderProjection(item.getSalesOrderId());
+        domainOutboxService.append("BACKORDER_ALLOCATED", "BackorderLine", line.getId(), Map.of(
+            "schemaVersion", 2, "backorderId", line.getId(), "warehouseId", warehouseId,
+            "allocatedQty", allocated, "remainingQty", line.getRemainingQty()));
+        return allocated;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void markWaitingInbound(Long backorderLineId, LocalDate promisedDate) {
+        BackorderLine line = backorderLineRepository.findByIdForUpdate(backorderLineId)
+            .orElseThrow(() -> new BusinessException(ErrorKeys.RESOURCE_NOT_FOUND,
+                Map.of("resourceType", "backorderLineId", "resourceId", backorderLineId)));
+        if (!line.isOpenForAllocation() || line.getRemainingQty() <= 0) {
+            throw new BusinessException(ErrorKeys.VALIDATION_FAILED,
+                Map.of("reason", "BACKORDER_LINK_INVALID", "resourceId", backorderLineId));
+        }
+        line.setPromisedDate(promisedDate);
+        backorderLineRepository.save(line);
+        updateOrderProjection(line.getSalesOrderId());
+    }
+
     @Transactional(readOnly = true)
     public List<BackorderLineResponse> listByOrder(Long salesOrderId) {
         return backorderLineRepository.findBySalesOrderId(salesOrderId).stream().map(this::toResponse).toList();
@@ -186,6 +236,33 @@ public class BackorderService {
                 .remark(String.format("Backorder reserved from batch %s", savedBatch.getBatchCode()))
                 .build();
             outboundTaskRepository.save(task);
+            remaining -= toReserve;
+        }
+        return requestedQty - remaining;
+    }
+
+    private int reserveAvailableAtWarehouse(SalesOrderItem item, int requestedQty, Long warehouseId) {
+        int remaining = requestedQty;
+        List<InventoryBatch> batches = inventoryBatchRepository
+            .findTransferCandidatesForUpdate(warehouseId, item.getProductSkuId());
+        for (InventoryBatch batch : batches) {
+            if (remaining <= 0) break;
+            int toReserve = Math.min(remaining, batch.getAvailableQuantity());
+            if (toReserve <= 0) continue;
+            batch.reserveQuantity(toReserve);
+            InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
+            InventoryReservation reservation = InventoryReservation.builder()
+                .salesOrderId(item.getSalesOrderId()).salesOrderItemId(item.getId())
+                .inventoryBatchId(savedBatch.getId()).productSkuId(item.getProductSkuId())
+                .locationId(savedBatch.getLocation().getId()).reservedQty(toReserve)
+                .sourceType("TRANSFER_BACKORDER").build();
+            reservation = inventoryReservationRepository.save(reservation);
+            outboundTaskRepository.save(OutboundTask.builder()
+                .salesOrderId(item.getSalesOrderId()).salesOrderItemId(item.getId())
+                .assignedBatchId(savedBatch.getId()).reservationId(reservation.getId())
+                .locationId(savedBatch.getLocation().getId()).planQty(toReserve).actualQty(0)
+                .status(OutboundTaskStatus.PENDING)
+                .remark("Transfer-linked backorder reserved at destination warehouse").build());
             remaining -= toReserve;
         }
         return requestedQty - remaining;

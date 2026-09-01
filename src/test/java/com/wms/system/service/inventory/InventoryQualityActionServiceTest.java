@@ -12,6 +12,7 @@ import com.wms.system.repository.*;
 import com.wms.system.service.IdempotencyService;
 import com.wms.system.service.idempotency.IdempotencyClaim;
 import com.wms.system.service.idempotency.IdempotencyClaimDecision;
+import com.wms.system.service.transfer.TransferAllocationCoordinator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -39,6 +41,7 @@ class InventoryQualityActionServiceTest {
     @Mock private InventoryQualityStateService stateService;
     @Mock private InventoryQualityPolicyService policyService;
     @Mock private IdempotencyService idempotencyService;
+    @Mock private TransferAllocationCoordinator transferAllocationCoordinator;
 
     private InventoryQualityActionService service;
 
@@ -47,7 +50,7 @@ class InventoryQualityActionServiceTest {
         service = new InventoryQualityActionService(
             batchRepository, reservationRepository, outboundTaskRepository,
             actionRepository, lineRepository, moveRepository, stateService,
-            policyService, idempotencyService, new ObjectMapper()
+            policyService, idempotencyService, new ObjectMapper(), transferAllocationCoordinator
         );
     }
 
@@ -102,6 +105,23 @@ class InventoryQualityActionServiceTest {
 
         assertThat(preview.executable()).isFalse();
         assertThat(preview.totalShortageQuantity()).isEqualTo(10);
+    }
+
+    @Test
+    void previewDoesNotMisclassifyEvacuableTransferReservationAsSalesShortage() {
+        InventoryBatch source = batch(1L, 100, 30);
+        when(batchRepository.findAllById(any())).thenReturn(List.of(source));
+        when(transferAllocationCoordinator.openReservedQuantities(List.of(1L)))
+            .thenReturn(Map.of(1L, 30));
+
+        var preview = service.previewHold(holdRequest(100), null);
+
+        assertThat(preview.executable()).isTrue();
+        assertThat(preview.confirmationRequired()).isFalse();
+        assertThat(preview.totalReservationQuantityToReallocate()).isZero();
+        assertThat(preview.totalShortageQuantity()).isZero();
+        assertThat(preview.lines()).singleElement()
+            .satisfies(line -> assertThat(line.affectedSalesOrders()).isEmpty());
     }
 
     @Test

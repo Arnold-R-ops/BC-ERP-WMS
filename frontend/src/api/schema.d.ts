@@ -84,7 +84,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/suppliers/{id}": {
+    "/api/transfers/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -93,6 +93,54 @@ export interface paths {
         };
         get: operations["get"];
         put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["policy"];
+        put: operations["updatePolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfer-warehouse/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put: operations["update_2"];
         post?: never;
         delete: operations["delete"];
         options?: never;
@@ -140,7 +188,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update_1"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -172,7 +220,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy"];
-        put: operations["updatePolicy"];
+        put: operations["updatePolicy_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -203,8 +251,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["policy"];
-        put: operations["updatePolicy_1"];
+        get: operations["policy_1"];
+        put: operations["updatePolicy_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -219,8 +267,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
-        put: operations["update_2"];
+        get: operations["get_4"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -251,8 +299,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["policy_1"];
-        put: operations["updatePolicy_2"];
+        get: operations["policy_2"];
+        put: operations["updatePolicy_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -267,7 +315,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_11"];
         put: operations["replace"];
         post?: never;
         delete?: never;
@@ -300,7 +348,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_1"];
-        put: operations["updatePolicy_3"];
+        put: operations["updatePolicy_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -315,7 +363,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_6"];
+        get: operations["get_8"];
         put: operations["updateDraft_1"];
         post?: never;
         delete?: never;
@@ -331,8 +379,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_7"];
-        put: operations["update_3"];
+        get: operations["get_9"];
+        put: operations["update_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -444,7 +492,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_2"];
-        put: operations["updatePolicy_4"];
+        put: operations["updatePolicy_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -459,8 +507,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_9"];
-        put: operations["update_4"];
+        get: operations["get_11"];
+        put: operations["update_6"];
         post?: never;
         delete?: never;
         options?: never;
@@ -523,8 +571,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["policy_2"];
-        put: operations["updatePolicy_5"];
+        get: operations["policy_3"];
+        put: operations["updatePolicy_6"];
         post?: never;
         delete?: never;
         options?: never;
@@ -539,8 +587,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["policy_3"];
-        put: operations["updatePolicy_6"];
+        get: operations["policy_4"];
+        put: operations["updatePolicy_7"];
         post?: never;
         delete?: never;
         options?: never;
@@ -556,7 +604,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update_5"];
+        put: operations["update_7"];
         post?: never;
         delete?: never;
         options?: never;
@@ -571,8 +619,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_13"];
-        put: operations["update_6"];
+        get: operations["get_15"];
+        put: operations["update_8"];
         post?: never;
         delete: operations["delete_1"];
         options?: never;
@@ -620,7 +668,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPolicy_3"];
-        put: operations["updatePolicy_7"];
+        put: operations["updatePolicy_8"];
         post?: never;
         delete?: never;
         options?: never;
@@ -651,8 +699,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_15"];
-        put: operations["update_7"];
+        get: operations["get_17"];
+        put: operations["update_9"];
         post?: never;
         delete: operations["delete_2"];
         options?: never;
@@ -884,7 +932,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/suppliers": {
+    "/api/transfers": {
         parameters: {
             query?: never;
             header?: never;
@@ -894,6 +942,182 @@ export interface paths {
         get: operations["list"];
         put?: never;
         post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voidOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/reallocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reallocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/close-shortage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["closeShortage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/close-remainder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["closeRemainder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfer-warehouse/tasks/{id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["receive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfer-warehouse/tasks/{id}/dispatches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["dispatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
+        put?: never;
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1003,9 +1227,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_3"];
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1275,9 +1499,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_4"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1309,7 +1533,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject"];
+        post: operations["reject_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1373,7 +1597,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel"];
+        post: operations["cancel_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1389,7 +1613,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve"];
+        post: operations["approve_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1405,7 +1629,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["receive_1"];
+        post: operations["receive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1453,7 +1677,7 @@ export interface paths {
         };
         get: operations["listReceipts"];
         put?: never;
-        post: operations["receive_2"];
+        post: operations["receive_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1485,7 +1709,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit"];
+        post: operations["submit_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1501,7 +1725,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_1"];
+        post: operations["reject_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1517,7 +1741,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_1"];
+        post: operations["approve_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1549,7 +1773,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_2"];
+        post: operations["reject_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1565,7 +1789,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_1"];
+        post: operations["cancel_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1581,7 +1805,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_2"];
+        post: operations["approve_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1629,7 +1853,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["voidOrder"];
+        post: operations["voidOrder_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1645,7 +1869,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_1"];
+        post: operations["submit_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1661,7 +1885,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_3"];
+        post: operations["reject_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1677,7 +1901,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_2"];
+        post: operations["cancel_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1691,9 +1915,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_10"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1725,7 +1949,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_3"];
+        post: operations["approve_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1821,7 +2045,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_3"];
+        post: operations["cancel_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1835,9 +2059,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_12"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1901,7 +2125,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2203,9 +2427,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_13"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2251,9 +2475,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_12"];
+        get: operations["list_14"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2267,9 +2491,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_13"];
+        get: operations["list_15"];
         put?: never;
-        post: operations["create_8"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2363,9 +2587,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_14"];
+        get: operations["list_16"];
         put?: never;
-        post: operations["create_9"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2429,7 +2653,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_4"];
+        post: operations["cancel_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2541,7 +2765,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_4"];
+        post: operations["reject_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2557,7 +2781,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_4"];
+        post: operations["approve_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2589,7 +2813,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_2"];
+        post: operations["submit_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2605,7 +2829,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_5"];
+        post: operations["reject_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2637,7 +2861,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_5"];
+        post: operations["cancel_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2653,7 +2877,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_5"];
+        post: operations["approve_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2699,9 +2923,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_17"];
+        get: operations["list_19"];
         put?: never;
-        post: operations["create_10"];
+        post: operations["create_11"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2779,9 +3003,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_19"];
+        get: operations["list_21"];
         put?: never;
-        post: operations["create_11"];
+        post: operations["create_12"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2811,9 +3035,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_20"];
+        get: operations["list_22"];
         put?: never;
-        post: operations["create_12"];
+        post: operations["create_13"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2829,7 +3053,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_3"];
+        post: operations["submit_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2861,7 +3085,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject_6"];
+        post: operations["reject_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2877,7 +3101,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve_6"];
+        post: operations["approve_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2939,9 +3163,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_22"];
+        get: operations["list_24"];
         put?: never;
-        post: operations["create_13"];
+        post: operations["create_14"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3124,6 +3348,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transfers/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["references"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfers/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["batches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfer-warehouse/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transfer-warehouse/tasks/{id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["locations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stocktake/tasks/{id}": {
         parameters: {
             query?: never;
@@ -3291,7 +3579,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3323,7 +3611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3403,7 +3691,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3419,7 +3707,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3467,7 +3755,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3483,7 +3771,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_4"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3499,7 +3787,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3515,7 +3803,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_5"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3531,7 +3819,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3691,7 +3979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_8"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4267,7 +4555,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_15"];
+        get: operations["list_17"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4283,7 +4571,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_10"];
+        get: operations["get_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4299,7 +4587,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_16"];
+        get: operations["list_18"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4315,7 +4603,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_11"];
+        get: operations["get_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4379,7 +4667,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_18"];
+        get: operations["list_20"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4395,7 +4683,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_12"];
+        get: operations["get_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4411,7 +4699,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_14"];
+        get: operations["get_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4459,7 +4747,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_21"];
+        get: operations["list_23"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4637,6 +4925,361 @@ export interface components {
         ChangeMyPasswordRequest: {
             oldPassword: string;
             newPassword: string;
+        };
+        CreateTransferLineRequest: {
+            /** Format: int64 */
+            productSkuId: number;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int64 */
+            preferredBatchId?: number;
+            /** Format: int64 */
+            backorderLineId?: number;
+        };
+        UpdateTransferRequest: {
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            sourceWarehouseId: number;
+            /** Format: int64 */
+            destinationWarehouseId: number;
+            reason: string;
+            /** Format: date-time */
+            estimatedArrivalAt?: string;
+            lines: components["schemas"]["CreateTransferLineRequest"][];
+        };
+        TransferAllocationResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            batchCode?: string;
+            externalBatchCode?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            allocatedQuantity?: number;
+            /** Format: int32 */
+            consumedQuantity?: number;
+            /** Format: int32 */
+            releasedQuantity?: number;
+            /** Format: int32 */
+            remainingQuantity?: number;
+            /** @enum {string} */
+            status?: "ACTIVE" | "PARTIALLY_CONSUMED" | "CONSUMED" | "PARTIALLY_RELEASED" | "RELEASED";
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+        };
+        TransferDispatchLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            transferLineId?: number;
+            /** Format: int64 */
+            allocationId?: number;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            sourceBatchCode?: string;
+            externalBatchCode?: string;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            damagedQuantity?: number;
+            /** Format: int32 */
+            quarantinedQuantity?: number;
+            /** Format: int32 */
+            shortageClosedQuantity?: number;
+            /** Format: int32 */
+            openQuantity?: number;
+        };
+        TransferDispatchResponse: {
+            /** Format: int64 */
+            id?: number;
+            dispatchNumber?: string;
+            handoverReference?: string;
+            /** Format: date-time */
+            estimatedArrivalAt?: string;
+            warehouseRemark?: string;
+            /** Format: int64 */
+            dispatchedBy?: number;
+            dispatchedByName?: string;
+            /** Format: date-time */
+            dispatchedAt?: string;
+            lines?: components["schemas"]["TransferDispatchLineResponse"][];
+        };
+        TransferEventResponse: {
+            /** Format: int64 */
+            id?: number;
+            eventType?: string;
+            payloadJson?: string;
+            /** Format: int64 */
+            actorId?: number;
+            actorName?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+        };
+        TransferOrderLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            preferredBatchId?: number;
+            /** Format: int64 */
+            backorderLineId?: number;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: int32 */
+            allocatedQuantity?: number;
+            /** Format: int32 */
+            dispatchedQuantity?: number;
+            /** Format: int32 */
+            inTransitQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            damagedQuantity?: number;
+            /** Format: int32 */
+            quarantinedQuantity?: number;
+            /** Format: int32 */
+            closedUnshippedQuantity?: number;
+            /** Format: int32 */
+            shortageClosedQuantity?: number;
+            allocations?: components["schemas"]["TransferAllocationResponse"][];
+        };
+        TransferReceiptLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            dispatchLineId?: number;
+            /** Format: int64 */
+            transferLineId?: number;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int64 */
+            destinationBatchId?: number;
+            destinationBatchCode?: string;
+            /** @enum {string} */
+            disposition?: "AVAILABLE" | "DAMAGED" | "QUARANTINED";
+            /** Format: int32 */
+            quantity?: number;
+        };
+        TransferReceiptResponse: {
+            /** Format: int64 */
+            id?: number;
+            receiptNumber?: string;
+            /** Format: int64 */
+            receivedBy?: number;
+            receivedByName?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            remark?: string;
+            lines?: components["schemas"]["TransferReceiptLineResponse"][];
+        };
+        TransferResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            transferNumber?: string;
+            /** Format: int64 */
+            sourceWarehouseId?: number;
+            sourceWarehouseCode?: string;
+            sourceWarehouseName?: string;
+            /** Format: int64 */
+            destinationWarehouseId?: number;
+            destinationWarehouseCode?: string;
+            destinationWarehouseName?: string;
+            /** @enum {string} */
+            businessStatus?: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
+            /** @enum {string} */
+            outboundStatus?: "NOT_RELEASED" | "PENDING" | "PARTIAL" | "DISPATCHED" | "CLOSED";
+            /** @enum {string} */
+            inboundStatus?: "NOT_IN_TRANSIT" | "IN_TRANSIT" | "PARTIAL_RECEIPT" | "RECEIVED" | "EXCEPTION" | "CLOSED";
+            /** @enum {string} */
+            approvalModeSnapshot?: "DIRECT" | "ALWAYS";
+            receivingInspectionSnapshot?: boolean;
+            reason?: string;
+            /** Format: date-time */
+            estimatedArrivalAt?: string;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: int32 */
+            allocatedQuantity?: number;
+            /** Format: int32 */
+            dispatchedQuantity?: number;
+            /** Format: int32 */
+            inTransitQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            damagedQuantity?: number;
+            /** Format: int32 */
+            quarantinedQuantity?: number;
+            /** Format: int32 */
+            closedQuantity?: number;
+            /** Format: int64 */
+            requestedBy?: number;
+            requestedByName?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            reviewedByName?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewComment?: string;
+            /** Format: date-time */
+            terminatedAt?: string;
+            terminationReason?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            lines?: components["schemas"]["TransferOrderLineResponse"][];
+            dispatches?: components["schemas"]["TransferDispatchResponse"][];
+            receipts?: components["schemas"]["TransferReceiptResponse"][];
+            events?: components["schemas"]["TransferEventResponse"][];
+        };
+        UpdateTransferPolicyRequest: {
+            /** @enum {string} */
+            approvalMode: "DIRECT" | "ALWAYS";
+            receivingInspectionEnabled?: boolean;
+            reason: string;
+        };
+        TransferPolicyResponse: {
+            /** @enum {string} */
+            approvalMode?: "DIRECT" | "ALWAYS";
+            receivingInspectionEnabled?: boolean;
+        };
+        UpdateTransferTaskRequest: {
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            priority?: number;
+            /** Format: date-time */
+            expectedFrom?: string;
+            /** Format: date-time */
+            expectedTo?: string;
+            assignee?: string;
+            teamName?: string;
+            operationArea?: string;
+            warehouseRemark?: string;
+        };
+        TransferWarehouseAllocationResponse: {
+            /** Format: int64 */
+            allocationId?: number;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            sourceBatchCode?: string;
+            externalBatchCode?: string;
+            /** Format: int64 */
+            sourceLocationId?: number;
+            sourceLocationCode?: string;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            remainingQuantity?: number;
+        };
+        TransferWarehouseDispatchLineResponse: {
+            /** Format: int64 */
+            dispatchLineId?: number;
+            dispatchNumber?: string;
+            /** Format: int64 */
+            transferLineId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            sourceBatchCode?: string;
+            externalBatchCode?: string;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            dispatchedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            openQuantity?: number;
+        };
+        TransferWarehouseTaskLineResponse: {
+            /** Format: int64 */
+            transferLineId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: int32 */
+            allocatedQuantity?: number;
+            /** Format: int32 */
+            dispatchedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            inTransitQuantity?: number;
+            allocations?: components["schemas"]["TransferWarehouseAllocationResponse"][];
+        };
+        TransferWarehouseTaskResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            version?: number;
+            taskNumber?: string;
+            /** @enum {string} */
+            direction?: "OUTBOUND" | "INBOUND";
+            /** @enum {string} */
+            status?: "EXPECTED" | "PENDING" | "PARTIAL" | "COMPLETED" | "EXCEPTION" | "CLOSED";
+            /** Format: int32 */
+            priority?: number;
+            /** Format: date-time */
+            expectedFrom?: string;
+            /** Format: date-time */
+            expectedTo?: string;
+            assignee?: string;
+            teamName?: string;
+            operationArea?: string;
+            warehouseRemark?: string;
+            /** Format: int64 */
+            transferId?: number;
+            transferNumber?: string;
+            /** Format: int64 */
+            sourceWarehouseId?: number;
+            sourceWarehouseName?: string;
+            /** Format: int64 */
+            destinationWarehouseId?: number;
+            destinationWarehouseName?: string;
+            /** @enum {string} */
+            businessStatus?: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
+            /** @enum {string} */
+            outboundStatus?: "NOT_RELEASED" | "PENDING" | "PARTIAL" | "DISPATCHED" | "CLOSED";
+            /** @enum {string} */
+            inboundStatus?: "NOT_IN_TRANSIT" | "IN_TRANSIT" | "PARTIAL_RECEIPT" | "RECEIVED" | "EXCEPTION" | "CLOSED";
+            /** Format: date-time */
+            estimatedArrivalAt?: string;
+            lines?: components["schemas"]["TransferWarehouseTaskLineResponse"][];
+            dispatchLines?: components["schemas"]["TransferWarehouseDispatchLineResponse"][];
         };
         UpdateSupplierRequest: {
             name: string;
@@ -4875,8 +5518,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             active?: boolean;
-            privilegedRole?: boolean;
             assignableToUsers?: boolean;
+            privilegedRole?: boolean;
             systemRole?: boolean;
         };
         RoleGovernanceResult: {
@@ -4921,19 +5564,7 @@ export interface components {
             operationArea?: string;
             warehouseRemark?: string;
         };
-        Line: {
-            /** Format: int64 */
-            rmaLineId?: number;
-            /** Format: int64 */
-            productSkuId?: number;
-            skuCode?: string;
-            productName?: string;
-            /** Format: int32 */
-            expectedQuantity?: number;
-            /** Format: int32 */
-            receivedQuantity?: number;
-        };
-        ReceiptLine: {
+        RmaWarehouseReceiptLineResponse: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
@@ -4952,6 +5583,18 @@ export interface components {
             quantity?: number;
             /** Format: int32 */
             inspectedQuantity?: number;
+        };
+        RmaWarehouseTaskLineResponse: {
+            /** Format: int64 */
+            rmaLineId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int32 */
+            expectedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
         };
         RmaWarehouseTaskResponse: {
             /** Format: int64 */
@@ -4975,8 +5618,8 @@ export interface components {
             teamName?: string;
             operationArea?: string;
             warehouseRemark?: string;
-            lines?: components["schemas"]["Line"][];
-            receiptLines?: components["schemas"]["ReceiptLine"][];
+            lines?: components["schemas"]["RmaWarehouseTaskLineResponse"][];
+            receiptLines?: components["schemas"]["RmaWarehouseReceiptLineResponse"][];
         };
         UpdateReceivingPlanOperationsRequest: {
             /** Format: int64 */
@@ -5150,13 +5793,13 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            expired?: boolean;
+            exhausted?: boolean;
+            expiringSoon?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
             /** Format: double */
             usageRate?: number;
-            exhausted?: boolean;
-            expiringSoon?: boolean;
+            expired?: boolean;
         };
         PurchaseOrderItemResponse: {
             /** Format: int64 */
@@ -5815,6 +6458,64 @@ export interface components {
             temporaryPassword?: string;
             mustChangePassword?: boolean;
         };
+        CreateTransferRequest: {
+            /** Format: int64 */
+            sourceWarehouseId: number;
+            /** Format: int64 */
+            destinationWarehouseId: number;
+            reason: string;
+            /** Format: date-time */
+            estimatedArrivalAt?: string;
+            lines: components["schemas"]["CreateTransferLineRequest"][];
+        };
+        TransferReasonRequest: {
+            /** Format: int64 */
+            version: number;
+            reason: string;
+        };
+        TransferDecisionRequest: {
+            /** Format: int64 */
+            version: number;
+            comment: string;
+        };
+        CloseTransferShortageRequest: {
+            /** Format: int64 */
+            version: number;
+            reason: string;
+            /** @enum {boolean} */
+            confirmed: true;
+        };
+        ReceiveTransferLineRequest: {
+            /** Format: int64 */
+            dispatchLineId: number;
+            /** Format: int64 */
+            locationId: number;
+            /** @enum {string} */
+            disposition: "AVAILABLE" | "DAMAGED" | "QUARANTINED";
+            /** Format: int32 */
+            quantity: number;
+        };
+        ReceiveTransferRequest: {
+            /** Format: int64 */
+            version: number;
+            remark?: string;
+            lines: components["schemas"]["ReceiveTransferLineRequest"][];
+        };
+        DispatchTransferLineRequest: {
+            /** Format: int64 */
+            allocationId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
+        DispatchTransferRequest: {
+            /** Format: int64 */
+            version: number;
+            handoverReference?: string;
+            /** Format: date-time */
+            estimatedArrivalAt?: string;
+            warehouseRemark?: string;
+            lines: components["schemas"]["DispatchTransferLineRequest"][];
+        };
         CreateSupplierRequest: {
             code: string;
             name: string;
@@ -5995,6 +6696,12 @@ export interface components {
             description: string;
             permissionIds: number[];
         };
+        CreateRmaLineRequest: {
+            /** Format: int64 */
+            outboundTaskId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
         CreateRmaRequest: {
             /** Format: int64 */
             salesOrderId: number;
@@ -6014,9 +6721,9 @@ export interface components {
             returnTrackingNo?: string;
             /** Format: int64 */
             channelCaseId?: number;
-            lines: components["schemas"]["Line"][];
+            lines: components["schemas"]["CreateRmaLineRequest"][];
         };
-        Event: {
+        RmaEventResponse: {
             /** Format: int64 */
             id?: number;
             eventType?: string;
@@ -6027,19 +6734,7 @@ export interface components {
             /** Format: date-time */
             occurredAt?: string;
         };
-        Inspection: {
-            /** Format: int64 */
-            id?: number;
-            inspectionNumber?: string;
-            /** Format: int64 */
-            inspectedBy?: number;
-            inspectedByName?: string;
-            /** Format: date-time */
-            inspectedAt?: string;
-            reasonDetail?: string;
-            lines?: components["schemas"]["InspectionLine"][];
-        };
-        InspectionLine: {
+        RmaInspectionLineResponse: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
@@ -6056,7 +6751,73 @@ export interface components {
             /** @enum {string} */
             resultQualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
         };
-        Receipt: {
+        RmaInspectionResponse: {
+            /** Format: int64 */
+            id?: number;
+            inspectionNumber?: string;
+            /** Format: int64 */
+            inspectedBy?: number;
+            inspectedByName?: string;
+            /** Format: date-time */
+            inspectedAt?: string;
+            reasonDetail?: string;
+            lines?: components["schemas"]["RmaInspectionLineResponse"][];
+        };
+        RmaLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            salesOrderItemId?: number;
+            /** Format: int64 */
+            outboundTaskId?: number;
+            /** Format: int64 */
+            originalBatchId?: number;
+            originalBatchCode?: string;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int32 */
+            shippedQuantity?: number;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: int32 */
+            authorizedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            inspectedQuantity?: number;
+            /** Format: int32 */
+            restockQuantity?: number;
+            /** Format: int32 */
+            damagedQuantity?: number;
+            /** Format: int32 */
+            quarantineQuantity?: number;
+            /** Format: int32 */
+            rejectedQuantity?: number;
+            /** Format: int32 */
+            refundEligibleQuantity?: number;
+            unitPriceSnapshot?: number;
+        };
+        RmaReceiptLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            rmaLineId?: number;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int64 */
+            returnBatchId?: number;
+            returnBatchCode?: string;
+            /** @enum {string} */
+            qualityStatus?: "AVAILABLE" | "PENDING_INSPECTION" | "QUARANTINED" | "DAMAGED" | "EXPIRED" | "RECALL_HOLD" | "RETURN_INSPECTION";
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int32 */
+            inspectedQuantity?: number;
+        };
+        RmaReceiptResponse: {
             /** Format: int64 */
             id?: number;
             receiptNumber?: string;
@@ -6066,7 +6827,7 @@ export interface components {
             /** Format: date-time */
             receivedAt?: string;
             remark?: string;
-            lines?: components["schemas"]["ReceiptLine"][];
+            lines?: components["schemas"]["RmaReceiptLineResponse"][];
         };
         RmaResponse: {
             /** Format: int64 */
@@ -6129,13 +6890,13 @@ export interface components {
             /** Format: date-time */
             reviewedAt?: string;
             reviewComment?: string;
-            lines?: components["schemas"]["Line"][];
-            task?: components["schemas"]["Task"];
-            receipts?: components["schemas"]["Receipt"][];
-            inspections?: components["schemas"]["Inspection"][];
-            events?: components["schemas"]["Event"][];
+            lines?: components["schemas"]["RmaLineResponse"][];
+            task?: components["schemas"]["RmaTaskResponse"];
+            receipts?: components["schemas"]["RmaReceiptResponse"][];
+            inspections?: components["schemas"]["RmaInspectionResponse"][];
+            events?: components["schemas"]["RmaEventResponse"][];
         };
-        Task: {
+        RmaTaskResponse: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
@@ -6172,9 +6933,15 @@ export interface components {
         RmaDecisionRequest: {
             comment: string;
         };
+        RmaRefundEligibilityLineRequest: {
+            /** Format: int64 */
+            rmaLineId: number;
+            /** Format: int32 */
+            eligibleQuantity: number;
+        };
         SetRmaRefundEligibilityRequest: {
             reason: string;
-            lines: components["schemas"]["Line"][];
+            lines: components["schemas"]["RmaRefundEligibilityLineRequest"][];
         };
         ConfirmRmaRefundRequest: {
             reference: string;
@@ -6186,13 +6953,29 @@ export interface components {
         RmaReasonRequest: {
             reason: string;
         };
+        ReceiveRmaLineRequest: {
+            /** Format: int64 */
+            rmaLineId: number;
+            /** Format: int64 */
+            locationId: number;
+            /** Format: int32 */
+            quantity: number;
+        };
         ReceiveRmaRequest: {
             remark?: string;
-            lines: components["schemas"]["Line"][];
+            lines: components["schemas"]["ReceiveRmaLineRequest"][];
+        };
+        InspectRmaLineRequest: {
+            /** Format: int64 */
+            receiptLineId: number;
+            /** @enum {string} */
+            disposition: "RESTOCK_AVAILABLE" | "DAMAGED" | "QUARANTINE" | "REJECT_CUSTOMER";
+            /** Format: int32 */
+            quantity: number;
         };
         InspectRmaRequest: {
             reasonDetail?: string;
-            lines: components["schemas"]["Line"][];
+            lines: components["schemas"]["InspectRmaLineRequest"][];
         };
         RefreshResult: {
             /** Format: int32 */
@@ -6294,6 +7077,14 @@ export interface components {
             /** Format: date-time */
             recordedAt?: string;
         };
+        SubmitReceivingInspectionLineRequest: {
+            /** Format: int64 */
+            inspectionTaskLineId: number;
+            /** Format: int32 */
+            passedQuantity: number;
+            /** Format: int32 */
+            quarantinedQuantity: number;
+        };
         SubmitReceivingInspectionRequest: {
             /** @enum {string} */
             inspectionMethod: "FULL" | "SAMPLING";
@@ -6303,7 +7094,23 @@ export interface components {
             defectQuantity: number;
             reasonCode: string;
             reasonDetail?: string;
-            lines: components["schemas"]["Line"][];
+            lines: components["schemas"]["SubmitReceivingInspectionLineRequest"][];
+        };
+        ReceivingInspectionResultLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            inspectionTaskLineId?: number;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            /** Format: int32 */
+            passedQuantity?: number;
+            /** Format: int32 */
+            quarantinedQuantity?: number;
+            /** Format: int64 */
+            passedBatchId?: number;
+            /** Format: int64 */
+            quarantinedBatchId?: number;
         };
         ReceivingInspectionResultResponse: {
             /** Format: int64 */
@@ -6332,7 +7139,7 @@ export interface components {
             /** Format: date-time */
             reviewedAt?: string;
             reviewComment?: string;
-            lines?: components["schemas"]["Line"][];
+            lines?: components["schemas"]["ReceivingInspectionResultLineResponse"][];
         };
         ReceivingInspectionReviewRequest: {
             comment: string;
@@ -6347,12 +7154,36 @@ export interface components {
             reason: string;
             confirmReservationReallocation?: boolean;
         };
+        ReceivingInspectionTaskLineResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            skuCode?: string;
+            productName?: string;
+            /** Format: int64 */
+            sourceBatchId?: number;
+            batchCode?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            plannedQuantity?: number;
+            /** Format: int32 */
+            pendingQuantity?: number;
+            /** Format: int32 */
+            pendingReviewQuantity?: number;
+            /** Format: int32 */
+            passedQuantity?: number;
+            /** Format: int32 */
+            quarantinedQuantity?: number;
+        };
         ReceivingInspectionTaskResponse: {
             /** Format: int64 */
             id?: number;
             taskNumber?: string;
             /** @enum {string} */
-            sourceType?: "RECEIPT" | "REINSPECTION";
+            sourceType?: "RECEIPT" | "TRANSFER_RECEIPT" | "REINSPECTION";
             sourceReference?: string;
             /** Format: int64 */
             warehouseId?: number;
@@ -6368,7 +7199,7 @@ export interface components {
             completedAt?: string;
             /** Format: int64 */
             correctionOfResultId?: number;
-            lines?: components["schemas"]["Line"][];
+            lines?: components["schemas"]["ReceivingInspectionTaskLineResponse"][];
             results?: components["schemas"]["ReceivingInspectionResultResponse"][];
         };
         PurchaseRemainderClosureActionRequest: {
@@ -7434,6 +8265,57 @@ export interface components {
             reservationsChanged?: boolean;
             stockTransactionsCreated?: boolean;
         };
+        BackorderRef: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            salesOrderId?: number;
+            /** Format: int64 */
+            productSkuId?: number;
+            /** Format: int32 */
+            remainingQuantity?: number;
+            /** Format: date */
+            promisedDate?: string;
+        };
+        SkuRef: {
+            /** Format: int64 */
+            id?: number;
+            skuCode?: string;
+            name?: string;
+            barcode?: string;
+        };
+        TransferReferencesResponse: {
+            warehouses?: components["schemas"]["WarehouseRef"][];
+            skus?: components["schemas"]["SkuRef"][];
+            backorders?: components["schemas"]["BackorderRef"][];
+        };
+        WarehouseRef: {
+            /** Format: int64 */
+            id?: number;
+            code?: string;
+            name?: string;
+        };
+        TransferBatchCandidateResponse: {
+            /** Format: int64 */
+            id?: number;
+            batchCode?: string;
+            externalBatchCode?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            availableQuantity?: number;
+            /** Format: date */
+            productionDate?: string;
+            /** Format: date */
+            expiryDate?: string;
+        };
+        TransferLocationResponse: {
+            /** Format: int64 */
+            id?: number;
+            locationCode?: string;
+            locationName?: string;
+        };
         StocktakeItemDetailResponse: {
             /** Format: int64 */
             id?: number;
@@ -7498,8 +8380,8 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
-            menuPermission?: boolean;
             buttonPermission?: boolean;
+            menuPermission?: boolean;
             apiPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
@@ -7636,18 +8518,18 @@ export interface components {
             refreshedAt?: string;
         };
         PageCustomerFactListItemResponse: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
-            first?: boolean;
-            last?: boolean;
+            /** Format: int32 */
+            totalPages?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerFactListItemResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -7834,18 +8716,18 @@ export interface components {
             remark?: string;
         };
         PagePlatformCompanyResponse: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
-            first?: boolean;
-            last?: boolean;
+            /** Format: int32 */
+            totalPages?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformCompanyResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -7891,18 +8773,18 @@ export interface components {
             expiresAt?: string;
         };
         PagePlatformAuditLogResponse: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
-            first?: boolean;
-            last?: boolean;
+            /** Format: int32 */
+            totalPages?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAuditLogResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -7925,18 +8807,18 @@ export interface components {
             };
         };
         PagePlatformAdminSummaryResponse: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
-            first?: boolean;
-            last?: boolean;
+            /** Format: int32 */
+            totalPages?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformAdminSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -8057,6 +8939,10 @@ export interface components {
             /** Format: int32 */
             totalQuantity?: number;
             /** Format: int32 */
+            inTransitQuantity?: number;
+            /** Format: int32 */
+            companyOwnedQuantity?: number;
+            /** Format: int32 */
             reservedQuantity?: number;
             /** Format: int32 */
             availableQuantity?: number;
@@ -8079,18 +8965,18 @@ export interface components {
             furthestExpiryDate?: string;
         };
         PageInventorySummaryDto: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
-            first?: boolean;
-            last?: boolean;
+            /** Format: int32 */
+            totalPages?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["InventorySummaryDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -8218,18 +9104,18 @@ export interface components {
             disposableQuantity?: number;
         };
         PageRawEventSummary: {
-            /** Format: int32 */
-            totalPages?: number;
             /** Format: int64 */
             totalElements?: number;
-            first?: boolean;
-            last?: boolean;
+            /** Format: int32 */
+            totalPages?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["RawEventSummary"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
@@ -8524,12 +9410,158 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SupplierResponse"];
+                    "*/*": components["schemas"]["TransferResponse"];
                 };
             };
         };
     };
     update: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    policy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferPolicyResponse"];
+                };
+            };
+        };
+    };
+    updatePolicy: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTransferPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferPolicyResponse"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferWarehouseTaskResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTransferTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferWarehouseTaskResponse"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8619,7 +9651,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_3: {
         parameters: {
             query?: never;
             header: {
@@ -8740,7 +9772,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy: {
+    updatePolicy_1: {
         parameters: {
             query?: never;
             header: {
@@ -8792,7 +9824,7 @@ export interface operations {
             };
         };
     };
-    policy: {
+    policy_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8812,7 +9844,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_1: {
+    updatePolicy_2: {
         parameters: {
             query?: never;
             header: {
@@ -8838,7 +9870,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8860,7 +9892,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_4: {
         parameters: {
             query?: never;
             header: {
@@ -8914,7 +9946,7 @@ export interface operations {
             };
         };
     };
-    policy_1: {
+    policy_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8934,7 +9966,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_2: {
+    updatePolicy_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8958,7 +9990,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -9074,7 +10106,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_3: {
+    updatePolicy_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9098,7 +10130,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -9146,7 +10178,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -9168,7 +10200,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9378,7 +10410,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_4: {
+    updatePolicy_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9402,7 +10434,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -9424,7 +10456,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9542,7 +10574,7 @@ export interface operations {
             };
         };
     };
-    policy_2: {
+    policy_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9562,7 +10594,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_5: {
+    updatePolicy_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9586,7 +10618,7 @@ export interface operations {
             };
         };
     };
-    policy_3: {
+    policy_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9606,7 +10638,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_6: {
+    updatePolicy_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -9630,7 +10662,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -9656,7 +10688,7 @@ export interface operations {
             };
         };
     };
-    get_13: {
+    get_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -9678,7 +10710,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -9788,7 +10820,7 @@ export interface operations {
             };
         };
     };
-    updatePolicy_7: {
+    updatePolicy_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -9880,7 +10912,7 @@ export interface operations {
             };
         };
     };
-    get_15: {
+    get_17: {
         parameters: {
             query?: never;
             header?: never;
@@ -9902,7 +10934,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -10331,6 +11363,332 @@ export interface operations {
     };
     list: {
         parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    voidOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    reallocate: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    closeShortage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseTransferShortageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    closeRemainder: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+        };
+    };
+    receive_1: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiveTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferWarehouseTaskResponse"];
+                };
+            };
+        };
+    };
+    dispatch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DispatchTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferWarehouseTaskResponse"];
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
             query?: {
                 activeOnly?: boolean;
             };
@@ -10351,7 +11709,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -10570,7 +11928,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -10592,7 +11950,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header: {
@@ -11043,7 +12401,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_4: {
         parameters: {
             query?: {
                 salesOrderId?: number;
@@ -11065,7 +12423,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header: {
@@ -11119,7 +12477,7 @@ export interface operations {
             };
         };
     };
-    reject: {
+    reject_1: {
         parameters: {
             query?: never;
             header: {
@@ -11231,7 +12589,7 @@ export interface operations {
             };
         };
     };
-    cancel: {
+    cancel_1: {
         parameters: {
             query?: never;
             header: {
@@ -11259,7 +12617,7 @@ export interface operations {
             };
         };
     };
-    approve: {
+    approve_1: {
         parameters: {
             query?: never;
             header: {
@@ -11287,7 +12645,7 @@ export interface operations {
             };
         };
     };
-    receive_1: {
+    receive_2: {
         parameters: {
             query?: never;
             header: {
@@ -11385,7 +12743,7 @@ export interface operations {
             };
         };
     };
-    receive_2: {
+    receive_3: {
         parameters: {
             query?: never;
             header: {
@@ -11463,7 +12821,7 @@ export interface operations {
             };
         };
     };
-    submit: {
+    submit_1: {
         parameters: {
             query?: never;
             header: {
@@ -11491,7 +12849,7 @@ export interface operations {
             };
         };
     };
-    reject_1: {
+    reject_2: {
         parameters: {
             query?: never;
             header: {
@@ -11519,7 +12877,7 @@ export interface operations {
             };
         };
     };
-    approve_1: {
+    approve_2: {
         parameters: {
             query?: never;
             header: {
@@ -11573,7 +12931,7 @@ export interface operations {
             };
         };
     };
-    reject_2: {
+    reject_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11599,7 +12957,7 @@ export interface operations {
             };
         };
     };
-    cancel_1: {
+    cancel_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -11625,7 +12983,7 @@ export interface operations {
             };
         };
     };
-    approve_2: {
+    approve_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11724,7 +13082,7 @@ export interface operations {
             };
         };
     };
-    voidOrder: {
+    voidOrder_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -11750,7 +13108,7 @@ export interface operations {
             };
         };
     };
-    submit_1: {
+    submit_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -11776,7 +13134,7 @@ export interface operations {
             };
         };
     };
-    reject_3: {
+    reject_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -11802,7 +13160,7 @@ export interface operations {
             };
         };
     };
-    cancel_2: {
+    cancel_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11828,7 +13186,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -11850,7 +13208,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -11902,7 +13260,7 @@ export interface operations {
             };
         };
     };
-    approve_3: {
+    approve_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -12058,7 +13416,7 @@ export interface operations {
             };
         };
     };
-    cancel_3: {
+    cancel_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -12084,7 +13442,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_12: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -12106,7 +13464,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -12228,7 +13586,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -12692,7 +14050,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -12712,7 +14070,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -12780,7 +14138,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_14: {
         parameters: {
             query: {
                 platformUserId: number;
@@ -12802,7 +14160,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -12826,7 +14184,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_15: {
         parameters: {
             query?: {
                 status?: string;
@@ -12852,7 +14210,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -13004,7 +14362,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_16: {
         parameters: {
             query: {
                 status?: "DRAFT" | "CONFIRMED" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED" | "VOIDED";
@@ -13027,7 +14385,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -13129,7 +14487,7 @@ export interface operations {
             };
         };
     };
-    cancel_4: {
+    cancel_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -13303,7 +14661,7 @@ export interface operations {
             };
         };
     };
-    reject_4: {
+    reject_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -13329,7 +14687,7 @@ export interface operations {
             };
         };
     };
-    approve_4: {
+    approve_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -13381,7 +14739,7 @@ export interface operations {
             };
         };
     };
-    submit_2: {
+    submit_3: {
         parameters: {
             query?: never;
             header: {
@@ -13405,7 +14763,7 @@ export interface operations {
             };
         };
     };
-    reject_5: {
+    reject_6: {
         parameters: {
             query?: never;
             header: {
@@ -13461,7 +14819,7 @@ export interface operations {
             };
         };
     };
-    cancel_5: {
+    cancel_6: {
         parameters: {
             query?: never;
             header: {
@@ -13489,7 +14847,7 @@ export interface operations {
             };
         };
     };
-    approve_5: {
+    approve_6: {
         parameters: {
             query?: never;
             header: {
@@ -13567,7 +14925,7 @@ export interface operations {
             };
         };
     };
-    list_17: {
+    list_19: {
         parameters: {
             query?: {
                 channel?: string;
@@ -13589,7 +14947,7 @@ export interface operations {
             };
         };
     };
-    create_10: {
+    create_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -13709,7 +15067,7 @@ export interface operations {
             };
         };
     };
-    list_19: {
+    list_21: {
         parameters: {
             query?: never;
             header?: never;
@@ -13729,7 +15087,7 @@ export interface operations {
             };
         };
     };
-    create_11: {
+    create_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -13777,7 +15135,7 @@ export interface operations {
             };
         };
     };
-    list_20: {
+    list_22: {
         parameters: {
             query?: {
                 status?: "DRAFT" | "PENDING_REVIEW" | "PENDING_APPROVAL" | "APPROVED" | "APPLIED" | "REJECTED" | "CANCELLED";
@@ -13799,7 +15157,7 @@ export interface operations {
             };
         };
     };
-    create_12: {
+    create_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -13823,7 +15181,7 @@ export interface operations {
             };
         };
     };
-    submit_3: {
+    submit_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -13875,7 +15233,7 @@ export interface operations {
             };
         };
     };
-    reject_6: {
+    reject_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -13901,7 +15259,7 @@ export interface operations {
             };
         };
     };
-    approve_6: {
+    approve_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -14028,7 +15386,7 @@ export interface operations {
             };
         };
     };
-    list_22: {
+    list_24: {
         parameters: {
             query?: {
                 enabledOnly?: boolean;
@@ -14050,7 +15408,7 @@ export interface operations {
             };
         };
     };
-    create_13: {
+    create_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -14322,6 +15680,93 @@ export interface operations {
             };
         };
     };
+    references: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferReferencesResponse"];
+                };
+            };
+        };
+    };
+    batches: {
+        parameters: {
+            query: {
+                warehouseId: number;
+                productSkuId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferBatchCandidateResponse"][];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
+                direction?: "OUTBOUND" | "INBOUND";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferWarehouseTaskResponse"][];
+                };
+            };
+        };
+    };
+    locations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransferLocationResponse"][];
+                };
+            };
+        };
+    };
     getStocktakeTask: {
         parameters: {
             query?: never;
@@ -14540,7 +15985,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -14582,7 +16027,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_5: {
         parameters: {
             query?: {
                 status?: "EXPECTED" | "PARTIAL" | "RECEIVED" | "CLOSED";
@@ -14702,7 +16147,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_6: {
         parameters: {
             query?: {
                 status?: "PENDING" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CLOSED" | "CANCELLED";
@@ -14724,7 +16169,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -14790,7 +16235,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_7: {
         parameters: {
             query?: {
                 status?: "PENDING" | "IN_PROGRESS" | "PENDING_REVIEW" | "COMPLETED";
@@ -14812,7 +16257,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -14834,7 +16279,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_8: {
         parameters: {
             query?: {
                 status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -14856,7 +16301,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -14878,7 +16323,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -15095,7 +16540,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -15891,7 +17336,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_17: {
         parameters: {
             query?: {
                 type?: "HOLD" | "RELEASE";
@@ -15914,7 +17359,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -15936,7 +17381,7 @@ export interface operations {
             };
         };
     };
-    list_16: {
+    list_18: {
         parameters: {
             query?: {
                 type?: "DAMAGE_REPORT" | "EXPIRY_MARK" | "SCRAP_DESTROY";
@@ -15959,7 +17404,7 @@ export interface operations {
             };
         };
     };
-    get_11: {
+    get_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -16050,7 +17495,7 @@ export interface operations {
             };
         };
     };
-    list_18: {
+    list_20: {
         parameters: {
             query?: {
                 channel?: string;
@@ -16075,7 +17520,7 @@ export interface operations {
             };
         };
     };
-    get_12: {
+    get_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -16097,7 +17542,7 @@ export interface operations {
             };
         };
     };
-    get_14: {
+    get_16: {
         parameters: {
             query?: never;
             header?: never;
@@ -16163,7 +17608,7 @@ export interface operations {
             };
         };
     };
-    list_21: {
+    list_23: {
         parameters: {
             query?: never;
             header?: never;

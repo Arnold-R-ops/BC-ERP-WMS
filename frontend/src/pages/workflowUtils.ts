@@ -1,4 +1,4 @@
-export type WorkflowDomain = 'sales' | 'purchasing' | 'inbound' | 'outbound';
+export type WorkflowDomain = 'sales' | 'purchasing' | 'inbound' | 'outbound' | 'transfers';
 
 const statusColors: Record<string, string> = {
   DRAFT: 'default',
@@ -8,6 +8,8 @@ const statusColors: Record<string, string> = {
   IN_TRANSIT: 'cyan',
   AWAITING_RECEIVAL: 'purple',
   PARTIALLY_RECEIVED: 'orange',
+  PARTIAL_RECEIPT: 'orange',
+  PARTIAL: 'orange',
   PARTIALLY_ALLOCATED: 'orange',
   WAITING_INBOUND: 'gold',
   PENDING: 'gold',
@@ -17,6 +19,11 @@ const statusColors: Record<string, string> = {
   REVIEWING: 'gold',
   PENDING_REVIEW: 'gold',
   APPROVED: 'blue',
+  DISPATCHED: 'green',
+  RECEIVED: 'green',
+  NOT_RELEASED: 'default',
+  NOT_IN_TRANSIT: 'default',
+  EXCEPTION: 'red',
   APPLIED: 'green',
   COMPLETED: 'green',
   SHIPPED: 'green',
@@ -38,7 +45,7 @@ export function formatMoney(value: number | undefined, locale: string): string {
   }).format(value ?? 0);
 }
 
-export function formatDate(value: string | undefined, locale: string): string {
+export function formatDate(value: string | null | undefined, locale: string): string {
   if (!value) {
     return '-';
   }
@@ -48,7 +55,7 @@ export function formatDate(value: string | undefined, locale: string): string {
     : new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date);
 }
 
-export function formatDateTime(value: string | undefined, locale: string): string {
+export function formatDateTime(value: string | null | undefined, locale: string): string {
   if (!value) {
     return '-';
   }

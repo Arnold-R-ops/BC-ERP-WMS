@@ -1,5 +1,6 @@
 package com.wms.system.dto.rma;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -10,5 +11,6 @@ public record SetRmaRefundEligibilityRequest(
     @NotBlank @Size(max = 500) String reason,
     @NotEmpty List<@Valid Line> lines
 ) {
+    @Schema(name = "RmaRefundEligibilityLineRequest")
     public record Line(@NotNull Long rmaLineId, @NotNull @Min(0) Integer eligibleQuantity) { }
 }

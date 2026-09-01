@@ -1,6 +1,7 @@
 package com.wms.system.dto.receivinginspection;
 
 import com.wms.system.entity.enums.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ public record ReceivingInspectionResultResponse(
     String reviewComment,
     List<Line> lines
 ) {
+    @Schema(name = "ReceivingInspectionResultLineResponse")
     public record Line(
         Long id,
         Long inspectionTaskLineId,

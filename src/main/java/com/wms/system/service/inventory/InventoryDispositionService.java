@@ -10,6 +10,7 @@ import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
 import com.wms.system.service.*;
 import com.wms.system.service.idempotency.*;
+import com.wms.system.service.transfer.TransferAllocationCoordinator;
 import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -73,6 +74,7 @@ public class InventoryDispositionService {
     private final IdempotencyService idempotencyService;
     private final DomainOutboxService outboxService;
     private final ObjectMapper objectMapper;
+    private final TransferAllocationCoordinator transferAllocationCoordinator;
 
     @Transactional(readOnly = true)
     public List<InventoryDispositionCandidateResponse> candidates(
@@ -128,6 +130,9 @@ public class InventoryDispositionService {
         InventoryDispositionResponse replay = replayOrder(claim, idempotencyKey, fingerprint, DAMAGE_OPERATION);
         if (replay != null) return replay;
 
+        transferAllocationCoordinator.evacuate(
+            request.lines().stream().map(InventoryDispositionQuantityRequest::batchId).toList(),
+            "INVENTORY_DAMAGE_REPORT", actorId, actorName);
         MarkPlan plan = buildMarkPlan(
             request.lines(), InventoryQualityStatus.DAMAGED, allowedWarehouseIds, true);
         if (plan.salesImpactQuantity() > 0 && !request.confirmSalesImpact()) {
@@ -167,6 +172,8 @@ public class InventoryDispositionService {
         InventoryDispositionResponse replay = replayOrder(claim, key, fingerprint, EXPIRY_OPERATION);
         if (replay != null) return false;
 
+        transferAllocationCoordinator.evacuate(List.of(batchId), "INVENTORY_EXPIRY_MARK",
+            SYSTEM_ACTOR_ID, SYSTEM_ACTOR_NAME);
         MarkPlan plan = buildMarkPlan(lines, InventoryQualityStatus.EXPIRED, null, true);
         InventoryDispositionOrder order = saveOrder(
             InventoryDispositionType.EXPIRY_MARK,
@@ -534,13 +541,16 @@ public class InventoryDispositionService {
         Map<Long, List<InventoryReservation>> byBatch = reservations.stream()
             .filter(InventoryReservation::hasOpenQuantity)
             .collect(Collectors.groupingBy(InventoryReservation::getInventoryBatchId));
+        Map<Long, Integer> transferReserved = lock ? Map.of()
+            : transferAllocationCoordinator.openReservedQuantities(ids);
         Map<Long, Integer> remainingCapacity = new HashMap<>();
         Set<Long> excluded = new LinkedHashSet<>(ids);
         List<MarkPlanLine> planned = new ArrayList<>();
 
         for (InventoryBatch source : sources.stream().sorted(Comparator.comparing(InventoryBatch::getId)).toList()) {
             int markQuantity = requested.get(source.getId());
-            int authoritativeReserved = value(source.getReservedQuantity());
+            int authoritativeReserved = Math.max(0, value(source.getReservedQuantity())
+                - transferReserved.getOrDefault(source.getId(), 0));
             int impactNeeded = source.getQualityStatus() == InventoryQualityStatus.AVAILABLE
                 ? Math.max(0, markQuantity - (source.getQuantity() - authoritativeReserved))
                 : 0;

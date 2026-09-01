@@ -1,7 +1,7 @@
 import { App as AntdApp, ConfigProvider } from 'antd';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../auth/AuthProvider';
 import { writeAuthSession } from '../auth/storage';
 import '../locales/i18n';
@@ -39,6 +39,8 @@ describe('responsive application navigation', () => {
       username: 'warehouse-user',
     });
   });
+
+  afterEach(() => cleanup());
 
   it('opens a permission-filtered drawer and routes to receiving', async () => {
     render(
@@ -110,6 +112,48 @@ describe('responsive application navigation', () => {
 
     expect(await screen.findByText('correction destination')).toBeVisible();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    'transfer:view',
+    'transfer:create',
+    'transfer:approve',
+    'transfer:close',
+    'transfer:policy',
+  ])('shows and routes to tenant transfer management with %s', async (permissionCode) => {
+    writeAuthSession({
+      availableRoles: ['CUSTOM_ROLE'],
+      currentRole: 'CUSTOM_ROLE',
+      permissionCodes: [permissionCode],
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000,
+      mustChangePassword: false,
+      token: 'transfer-token',
+      tokenType: 'Bearer',
+      username: 'transfer-user',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ConfigProvider>
+          <AntdApp>
+            <AuthProvider>
+              <Routes>
+                <Route element={<AppLayout />}><Route element={<div>dashboard body</div>} index /></Route>
+                <Route element={<div>transfer destination</div>} path="/transfers" />
+              </Routes>
+            </AuthProvider>
+          </AntdApp>
+        </ConfigProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const drawer = await screen.findByRole('dialog');
+    expect(within(drawer).getByText('调拨管理')).toBeVisible();
+    expect(within(drawer).queryByText('采购管理')).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('仓库作业')).not.toBeInTheDocument();
+    fireEvent.click(within(drawer).getByText('调拨管理'));
+    expect(await screen.findByText('transfer destination')).toBeVisible();
   });
 
   it('groups the desktop account controls and opens the account menu', async () => {

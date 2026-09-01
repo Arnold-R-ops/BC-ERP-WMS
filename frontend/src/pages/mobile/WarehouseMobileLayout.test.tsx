@@ -7,7 +7,7 @@ import i18n from '../../locales/i18n';
 vi.mock('../../auth/AuthProvider', () => ({
   useAuth: () => ({
     logout: vi.fn(),
-    session: { currentRole: 'WAREHOUSE_STAFF', username: 'warehouse-user' },
+    session: { currentRole: 'WAREHOUSE_STAFF', username: 'warehouse-user', permissionCodes: ['transfer:dispatch'] },
   }),
 }));
 
@@ -51,6 +51,7 @@ describe('warehouse mobile offline boundary', () => {
     renderLayout();
 
     expect(screen.getByText(/network is unavailable/i)).toBeVisible();
+    expect(screen.getByRole('link', { name: /transfers/i })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Submit inventory change' })).toBeDisabled();
   });
 

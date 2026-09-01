@@ -116,6 +116,7 @@ const enUS = {
     inventory: 'Inventory',
     sales: 'Sales orders',
     rmas: 'Sales returns',
+    transfers: 'Transfers',
     analytics: 'Business analytics',
     salesAnalytics: 'Sales overview',
     customerAnalytics: 'Customer purchasing',
@@ -211,6 +212,9 @@ const enUS = {
     },
     returns: {
       nav: 'Returns',
+    },
+    transfers: {
+      nav: 'Transfers',
     },
     receiving: {
       nav: 'Receive',
@@ -739,6 +743,27 @@ const enUS = {
       notice: 'Approval is optional and ordinary tenants default to direct processing. Turning detailed logistics off keeps carrier data and retained history.',
       approvalMode: 'Sales approval mode', amountThreshold: 'Risk amount threshold', detailedLogistics: 'Enable detailed logistics',
       reason: 'Change reason', reasonRequired: 'Enter a change reason', messages: { saved: 'Sales policy saved' },
+    },
+  },
+  transfers: {
+    statuses: {
+      DRAFT: 'Draft',
+      PENDING_APPROVAL: 'Pending approval',
+      APPROVED: 'Approved',
+      REJECTED: 'Rejected',
+      COMPLETED: 'Completed',
+      CLOSED: 'Closed',
+      CANCELLED: 'Cancelled',
+      VOIDED: 'Voided',
+      NOT_RELEASED: 'Not released',
+      PENDING: 'Pending dispatch',
+      PARTIAL: 'Partially dispatched',
+      DISPATCHED: 'Fully dispatched',
+      NOT_IN_TRANSIT: 'Not in transit',
+      IN_TRANSIT: 'In transit',
+      PARTIAL_RECEIPT: 'Partially received',
+      RECEIVED: 'Fully received',
+      EXCEPTION: 'Discrepancy',
     },
   },
   purchasing: {

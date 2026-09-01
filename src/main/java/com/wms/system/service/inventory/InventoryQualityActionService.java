@@ -11,6 +11,7 @@ import com.wms.system.repository.*;
 import com.wms.system.service.IdempotencyService;
 import com.wms.system.service.idempotency.IdempotencyClaim;
 import com.wms.system.service.idempotency.IdempotencyClaimDecision;
+import com.wms.system.service.transfer.TransferAllocationCoordinator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +53,7 @@ public class InventoryQualityActionService {
     private final InventoryQualityPolicyService policyService;
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
+    private final TransferAllocationCoordinator transferAllocationCoordinator;
 
     @Transactional(readOnly = true)
     public List<InventoryQualityCandidateResponse> candidates(
@@ -105,6 +107,9 @@ public class InventoryQualityActionService {
         InventoryQualityActionResponse replay = replay(claim, idempotencyKey, fingerprint, HOLD_OPERATION);
         if (replay != null) return replay;
 
+        transferAllocationCoordinator.evacuate(
+            request.lines().stream().map(InventoryQualityQuantityRequest::batchId).toList(),
+            "INVENTORY_QUALITY_HOLD", actorId, actorName);
         HoldPlan plan = buildHoldPlan(request, allowedWarehouseIds, true);
         if (plan.totalShortage() > 0) {
             throw new BusinessException(ErrorKeys.INVENTORY_QUALITY_REALLOCATION_SHORTAGE,
@@ -295,13 +300,16 @@ public class InventoryQualityActionService {
         Map<Long, List<InventoryReservation>> byBatch = reservations.stream()
             .filter(InventoryReservation::hasOpenQuantity)
             .collect(Collectors.groupingBy(InventoryReservation::getInventoryBatchId));
+        Map<Long, Integer> transferReserved = lock ? Map.of()
+            : transferAllocationCoordinator.openReservedQuantities(sourceIds);
         Set<Long> excluded = new LinkedHashSet<>(sourceIds);
         Map<Long, Integer> remainingCandidateCapacity = new HashMap<>();
         List<HoldPlanLine> planned = new ArrayList<>();
 
         for (InventoryBatch source : sources.stream().sorted(Comparator.comparing(InventoryBatch::getId)).toList()) {
             int holdQuantity = requested.get(source.getId());
-            int authoritativeReserved = value(source.getReservedQuantity());
+            int authoritativeReserved = Math.max(0, value(source.getReservedQuantity())
+                - transferReserved.getOrDefault(source.getId(), 0));
             int reallocationNeeded = Math.max(0, holdQuantity - (source.getQuantity() - authoritativeReserved));
             List<MovableReservation> movable = new ArrayList<>();
             int movableQty = 0;

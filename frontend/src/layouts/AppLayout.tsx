@@ -28,6 +28,7 @@ import {
   TeamOutlined,
   ThunderboltOutlined,
   TruckOutlined,
+  SwapOutlined,
   UserOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons';
@@ -79,6 +80,7 @@ const menuDefinitions: MenuDefinition[] = [
   { path: '/inventory', module: 'inventory', nameKey: 'menu.inventory', icon: <DatabaseOutlined />, delivered: true },
   { path: '/sales', module: 'sales', nameKey: 'menu.sales', icon: <ShoppingCartOutlined />, delivered: true },
   { path: '/rmas', module: 'rma', nameKey: 'menu.rmas', icon: <RollbackOutlined />, delivered: true },
+  { path: '/transfers', module: 'transfer', nameKey: 'menu.transfers', icon: <SwapOutlined />, delivered: true },
   { path: '/purchasing', module: 'purchasing', nameKey: 'menu.purchasing', icon: <TruckOutlined />, delivered: true },
   { path: '/inbound', module: 'inbound', nameKey: 'menu.inbound', icon: <InboxOutlined />, delivered: true },
   { path: '/outbound', module: 'outbound', nameKey: 'menu.outbound', icon: <ExportOutlined />, delivered: true },
@@ -89,6 +91,7 @@ const menuDefinitions: MenuDefinition[] = [
       { path: '/mobile/inspection', module: 'receivingInspection', nameKey: 'mobile.inspection.nav', icon: <ExperimentOutlined />, delivered: true },
       { path: '/mobile/disposition', module: 'inventoryDisposition', nameKey: 'mobile.disposition.nav', icon: <DeleteOutlined />, delivered: true },
       { path: '/mobile/returns', module: 'rmaWarehouse', nameKey: 'mobile.returns.nav', icon: <RollbackOutlined />, delivered: true },
+      { path: '/mobile/transfers', module: 'transferWarehouse', nameKey: 'mobile.transfers.nav', icon: <SwapOutlined />, delivered: true },
       { path: '/mobile/picking', module: 'warehouseMobile', nameKey: 'mobile.picking.nav', icon: <ExportOutlined />, delivered: true },
       { path: '/mobile/stocktake', module: 'warehouseMobile', nameKey: 'mobile.stocktake.nav', icon: <AuditOutlined />, delivered: true },
     ],

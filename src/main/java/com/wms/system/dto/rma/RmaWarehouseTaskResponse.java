@@ -1,6 +1,7 @@
 package com.wms.system.dto.rma;
 
 import com.wms.system.entity.enums.RmaTaskStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,8 +25,10 @@ public record RmaWarehouseTaskResponse(
     List<Line> lines,
     List<ReceiptLine> receiptLines
 ) {
+    @Schema(name = "RmaWarehouseTaskLineResponse")
     public record Line(Long rmaLineId, Long productSkuId, String skuCode, String productName,
                        Integer expectedQuantity, Integer receivedQuantity) { }
+    @Schema(name = "RmaWarehouseReceiptLineResponse")
     public record ReceiptLine(Long id, Long rmaLineId, Long productSkuId, String skuCode,
                               String productName, Long locationId, String locationCode,
                               Long returnBatchId, String returnBatchCode,

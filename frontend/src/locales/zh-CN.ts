@@ -116,6 +116,7 @@ const zhCN = {
     inventory: '库存查询',
     sales: '销售订单',
     rmas: '销售退货',
+    transfers: '调拨管理',
     analytics: '经营分析',
     salesAnalytics: '销售概览',
     customerAnalytics: '客户采购分析',
@@ -211,6 +212,9 @@ const zhCN = {
     },
     returns: {
       nav: '退货',
+    },
+    transfers: {
+      nav: '调拨',
     },
     receiving: {
       nav: '收货',
@@ -874,6 +878,27 @@ const zhCN = {
       reason: '修改原因',
       reasonRequired: '请输入修改原因',
       messages: { saved: '销售策略已保存' },
+    },
+  },
+  transfers: {
+    statuses: {
+      DRAFT: '草稿',
+      PENDING_APPROVAL: '待审批',
+      APPROVED: '已批准',
+      REJECTED: '已驳回',
+      COMPLETED: '已完成',
+      CLOSED: '已关闭',
+      CANCELLED: '已取消',
+      VOIDED: '已作废',
+      NOT_RELEASED: '未下发',
+      PENDING: '待调出',
+      PARTIAL: '部分调出',
+      DISPATCHED: '全部调出',
+      NOT_IN_TRANSIT: '未在途',
+      IN_TRANSIT: '在途',
+      PARTIAL_RECEIPT: '部分调入',
+      RECEIVED: '全部调入',
+      EXCEPTION: '差异异常',
     },
   },
   purchasing: {

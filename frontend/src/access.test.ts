@@ -83,6 +83,18 @@ describe('effective-permission module access', () => {
       .toBe(false);
   });
 
+  it('separates tenant transfer management from warehouse transfer execution', () => {
+    expect(canAccessModule('CUSTOM_ROLE', 'transfer', ['transfer:view'])).toBe(true);
+    expect(canAccessModule('CUSTOM_ROLE', 'transfer', ['transfer:create'])).toBe(true);
+    expect(canAccessModule('CUSTOM_ROLE', 'transfer', ['transfer:approve'])).toBe(true);
+    expect(canAccessModule('CUSTOM_ROLE', 'transfer', ['transfer:close'])).toBe(true);
+    expect(canAccessModule('CUSTOM_ROLE', 'transfer', ['transfer:policy'])).toBe(true);
+    expect(canAccessModule('CUSTOM_ROLE', 'transferWarehouse', ['transfer:view'])).toBe(false);
+    expect(canAccessModule('WAREHOUSE_STAFF', 'transferWarehouse', ['transfer:dispatch'])).toBe(true);
+    expect(canAccessModule('WAREHOUSE_STAFF', 'transferWarehouse', ['transfer:receive'])).toBe(true);
+    expect(canAccessModule('WAREHOUSE_STAFF', 'transfer', ['transfer:dispatch'])).toBe(false);
+  });
+
   it('requires a current role even for the dashboard', () => {
     expect(canAccessModule(undefined, 'dashboard', [])).toBe(false);
     expect(canAccessModule('CUSTOM_ROLE', 'dashboard', [])).toBe(true);

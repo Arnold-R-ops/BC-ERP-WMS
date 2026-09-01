@@ -2749,7 +2749,7 @@ input {
   width: min(100%, 760px);
   min-height: calc(100dvh - 68px);
   margin: 0 auto;
-  padding: 24px 20px calc(98px + env(safe-area-inset-bottom));
+  padding: 24px 20px calc(132px + env(safe-area-inset-bottom));
 }
 
 .mobile-operation-page {
@@ -3246,7 +3246,7 @@ button.mobile-task-card:disabled {
   left: 0;
   display: grid;
   min-height: 68px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 6px max(10px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   border-top: 1px solid #d2dddb;
   background: rgba(255, 255, 255, 0.98);
@@ -3295,7 +3295,7 @@ button.mobile-task-card:disabled {
     left: 0;
     width: auto;
     min-height: 58px;
-    grid-template-columns: repeat(3, minmax(150px, 220px));
+    grid-template-columns: repeat(7, minmax(110px, 160px));
     justify-content: center;
     padding: 7px 24px;
     border-right: 0;
@@ -3343,6 +3343,85 @@ button.mobile-task-card:disabled {
   }
 }
 
+.transfer-form-header-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.transfer-form-line,
+.transfer-reallocation-row,
+.transfer-receipt-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #d8e1df;
+  background: #f8faf9;
+  border-radius: 6px;
+}
+
+.transfer-form-line-fields {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(220px, 1.25fr) minmax(120px, 0.55fr) minmax(250px, 1.3fr) minmax(230px, 1fr);
+  gap: 0 12px;
+}
+
+.transfer-form-line .ant-form-item,
+.transfer-reallocation-row .ant-form-item,
+.transfer-receipt-line .ant-form-item {
+  margin-bottom: 0;
+}
+
+.transfer-form-line .ant-input-number,
+.transfer-receipt-line .ant-input-number {
+  width: 100%;
+}
+
+.transfer-mobile-meta {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #d8e1df;
+  background: #f7faf9;
+  border-radius: 6px;
+  color: #405653;
+  font-size: 13px;
+}
+
+.transfer-dispatch-metadata {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 12px;
+  margin-top: 12px;
+}
+
+.transfer-dispatch-metadata .ant-form-item:last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .transfer-form-header-grid,
+  .transfer-form-line-fields,
+  .transfer-dispatch-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .transfer-dispatch-metadata .ant-form-item:last-child {
+    grid-column: auto;
+  }
+
+  .transfer-form-line,
+  .transfer-reallocation-row,
+  .transfer-receipt-line {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 560px) {
   .shipment-meta-grid,
   .shipment-line,
@@ -3368,7 +3447,7 @@ button.mobile-task-card:disabled {
   }
 
   .mobile-warehouse-main {
-    padding: 18px 14px calc(92px + env(safe-area-inset-bottom));
+    padding: 18px 14px calc(132px + env(safe-area-inset-bottom));
   }
 
   .mobile-online-state span,

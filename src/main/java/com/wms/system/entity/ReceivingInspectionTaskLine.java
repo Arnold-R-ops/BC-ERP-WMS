@@ -28,6 +28,10 @@ public class ReceivingInspectionTaskLine extends BaseEntity {
     @JoinColumn(name = "receipt_event_item_id", updatable = false)
     private ReceiptEventItem receiptEventItem;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transfer_receipt_line_id", updatable = false)
+    private TransferReceiptLine transferReceiptLine;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_sku_id", nullable = false, updatable = false)
     private ProductSku productSku;
