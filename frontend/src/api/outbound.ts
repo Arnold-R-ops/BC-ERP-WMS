@@ -12,6 +12,11 @@ export interface OutboundTaskListParams {
 
 export const OUTBOUND_TASKS_QUERY_KEY = ['outbound-tasks'] as const;
 
+export interface OutboundCommandAttempt {
+  fingerprint: string;
+  key: string;
+}
+
 export async function listOutboundTasks(
   params: OutboundTaskListParams = {},
 ): Promise<OutboundTask[]> {
@@ -30,28 +35,44 @@ export async function getOutboundTask(id: number): Promise<OutboundTask> {
   return apiRequest<OutboundTask>(`/api/outbound-tasks/${id}`);
 }
 
-function commandKey(operation: string, resource: number | string): string {
+export function createOutboundIdempotencyKey(operation: string, resource: number | string): string {
   const suffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `sales-outbound-${operation}-${resource}-${suffix}`;
 }
 
+export function resolveOutboundCommandAttempt(
+  current: OutboundCommandAttempt | undefined,
+  operation: string,
+  resource: number | string,
+  payload: object,
+): OutboundCommandAttempt {
+  const fingerprint = JSON.stringify({ operation, resource, payload });
+  return current?.fingerprint === fingerprint
+    ? current
+    : { fingerprint, key: createOutboundIdempotencyKey(operation, resource) };
+}
+
 export async function dispatchOutboundTask(
   id: number,
   payload: ConfirmDispatchPayload,
+  idempotencyKey = createOutboundIdempotencyKey('dispatch', id),
 ): Promise<OutboundTask> {
   return apiRequest<OutboundTask>(`/api/outbound-tasks/${id}/dispatch`, {
     method: 'POST',
-    headers: { 'Idempotency-Key': commandKey('dispatch', id) },
+    headers: { 'Idempotency-Key': idempotencyKey },
     body: payload,
   });
 }
 
-export async function batchDispatchOutboundTasks(taskIds: number[]): Promise<OutboundTask[]> {
+export async function batchDispatchOutboundTasks(
+  taskIds: number[],
+  idempotencyKey = createOutboundIdempotencyKey('batch-dispatch', taskIds.join('-')),
+): Promise<OutboundTask[]> {
   return apiRequest<OutboundTask[]>('/api/outbound-tasks/batch-dispatch', {
     method: 'POST',
-    headers: { 'Idempotency-Key': commandKey('batch-dispatch', taskIds.join('-')) },
+    headers: { 'Idempotency-Key': idempotencyKey },
     body: taskIds,
   });
 }

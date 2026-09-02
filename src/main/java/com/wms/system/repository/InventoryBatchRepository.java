@@ -52,6 +52,33 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT b FROM InventoryBatch b WHERE b.id IN :batchIds ORDER BY b.id")
     List<InventoryBatch> findAllByIdForPosting(@Param("batchIds") Collection<Long> batchIds);
 
+    /**
+     * Selects active batches for the monthly stocktake without loading the
+     * tenant's entire append-only stock ledger into application memory.
+     */
+    @Query("""
+        SELECT b FROM InventoryBatch b
+        JOIN FETCH b.productSku p
+        JOIN FETCH b.location l
+        JOIN FETCH l.warehouse w
+        WHERE b.companyId = :companyId
+          AND w.id = :warehouseId
+          AND b.active = true
+          AND EXISTS (
+            SELECT t.id FROM StockTransaction t
+            WHERE t.companyId = :companyId
+              AND t.productSku.id = p.id
+              AND t.createdAt > :since
+          )
+        ORDER BY b.id
+        """)
+    List<InventoryBatch> findMonthlyStocktakeCandidates(
+        @Param("companyId") Long companyId,
+        @Param("warehouseId") Long warehouseId,
+        @Param("since") LocalDateTime since,
+        Pageable pageable
+    );
+
     /** Warehouse-scoped FEFO stock locked for transfer allocation. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

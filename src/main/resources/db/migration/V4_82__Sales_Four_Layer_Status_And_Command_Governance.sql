@@ -14,6 +14,16 @@ ALTER TABLE public.sales_orders
     ADD COLUMN status_changed_by_name VARCHAR(100),
     ADD COLUMN status_changed_at TIMESTAMP(6) WITHOUT TIME ZONE;
 
+-- The order, outbound-task and shipment tables all use FORCE RLS. Derive the
+-- new status layers inside one tenant scope at a time so related facts remain
+-- visible without ever weakening row-level security.
+DO $sales_status_backfill$
+DECLARE
+    company_record RECORD;
+BEGIN
+    FOR company_record IN SELECT id FROM public.tenants ORDER BY id LOOP
+        PERFORM set_config('app.company_id', company_record.id::TEXT, TRUE);
+
 UPDATE public.sales_orders sales_order
 SET commercial_status = CASE sales_order.status
         WHEN 'DRAFT' THEN 'DRAFT'
@@ -80,7 +90,13 @@ SET commercial_status = CASE sales_order.status
         ELSE 'NOT_CREATED'
     END,
     approval_mode_snapshot = 'RISK_BASED',
-    status_changed_at = COALESCE(sales_order.updated_at, CURRENT_TIMESTAMP);
+    status_changed_at = COALESCE(sales_order.updated_at, CURRENT_TIMESTAMP)
+WHERE sales_order.company_id = company_record.id;
+    END LOOP;
+
+    PERFORM set_config('app.company_id', '', TRUE);
+END
+$sales_status_backfill$;
 
 ALTER TABLE public.sales_orders
     ALTER COLUMN allocation_status SET DEFAULT 'UNALLOCATED',
@@ -142,11 +158,24 @@ ALTER TABLE public.sales_order_shipments
     ADD COLUMN status_changed_by_name VARCHAR(100),
     ADD COLUMN status_changed_at TIMESTAMP(6) WITHOUT TIME ZONE;
 
-UPDATE public.sales_order_shipments
-SET logistics_status = CASE WHEN shipped_at IS NULL THEN 'LABEL_CREATED' ELSE 'HANDED_TO_CARRIER' END,
-    status_changed_by = created_by,
-    status_changed_by_name = created_by_name,
-    status_changed_at = COALESCE(shipped_at, created_at);
+DO $sales_shipment_status_backfill$
+DECLARE
+    company_record RECORD;
+BEGIN
+    FOR company_record IN SELECT id FROM public.tenants ORDER BY id LOOP
+        PERFORM set_config('app.company_id', company_record.id::TEXT, TRUE);
+
+        UPDATE public.sales_order_shipments
+        SET logistics_status = CASE WHEN shipped_at IS NULL THEN 'LABEL_CREATED' ELSE 'HANDED_TO_CARRIER' END,
+            status_changed_by = created_by,
+            status_changed_by_name = created_by_name,
+            status_changed_at = COALESCE(shipped_at, created_at)
+        WHERE company_id = company_record.id;
+    END LOOP;
+
+    PERFORM set_config('app.company_id', '', TRUE);
+END
+$sales_shipment_status_backfill$;
 
 ALTER TABLE public.sales_order_shipments
     ALTER COLUMN logistics_status SET DEFAULT 'LABEL_CREATED',
@@ -185,15 +214,28 @@ CREATE TABLE public.sales_shipment_logistics_events (
     CONSTRAINT ck_sales_logistics_events_source CHECK (source IN ('BASIC','MANUAL','MIGRATION'))
 );
 
-INSERT INTO public.sales_shipment_logistics_events (
-    company_id, sales_order_id, shipment_id, from_status, to_status, source,
-    reason, changed_by, changed_by_name, changed_at, created_at, updated_at
-)
-SELECT company_id, sales_order_id, id, 'NOT_CREATED', logistics_status, 'MIGRATION',
-       'V4.82 baseline from existing shipment evidence', created_by,
-       COALESCE(NULLIF(btrim(created_by_name), ''), 'MIGRATION_V4_82'),
-       status_changed_at, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-FROM public.sales_order_shipments;
+DO $sales_shipment_event_backfill$
+DECLARE
+    company_record RECORD;
+BEGIN
+    FOR company_record IN SELECT id FROM public.tenants ORDER BY id LOOP
+        PERFORM set_config('app.company_id', company_record.id::TEXT, TRUE);
+
+        INSERT INTO public.sales_shipment_logistics_events (
+            company_id, sales_order_id, shipment_id, from_status, to_status, source,
+            reason, changed_by, changed_by_name, changed_at, created_at, updated_at
+        )
+        SELECT company_id, sales_order_id, id, 'NOT_CREATED', logistics_status, 'MIGRATION',
+               'V4.82 baseline from existing shipment evidence', created_by,
+               COALESCE(NULLIF(btrim(created_by_name), ''), 'MIGRATION_V4_82'),
+               status_changed_at, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        FROM public.sales_order_shipments
+        WHERE company_id = company_record.id;
+    END LOOP;
+
+    PERFORM set_config('app.company_id', '', TRUE);
+END
+$sales_shipment_event_backfill$;
 
 CREATE INDEX idx_sales_logistics_events_shipment
     ON public.sales_shipment_logistics_events(company_id, shipment_id, id);

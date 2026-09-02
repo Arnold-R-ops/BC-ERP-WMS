@@ -3,9 +3,13 @@ package com.wms.system.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wms.system.config.TestSecurityConfig;
 import com.wms.system.dto.stocktake.*;
+import com.wms.system.service.StocktakeReviewCommandService;
 import com.wms.system.service.StocktakeService;
+import com.wms.system.service.WarehouseScopeService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,6 +68,18 @@ class StocktakeControllerTest {
     @MockBean
     private StocktakeService stocktakeService;
 
+    @MockBean
+    private StocktakeReviewCommandService stocktakeReviewCommandService;
+
+    @MockBean
+    private WarehouseScopeService warehouseScopeService;
+
+    @BeforeEach
+    void setUpWarehouseScope() {
+        lenient().when(warehouseScopeService.filterAccessible(any(), anyList(), any()))
+            .thenAnswer(invocation -> invocation.getArgument(1));
+    }
+
     @Test
     @WithMockUser(username = "testuser", authorities = {"stocktake:create"})
     @DisplayName("case-2")
@@ -110,7 +126,14 @@ class StocktakeControllerTest {
             .andExpect(jsonPath("$.totalItems").value(100))
             .andExpect(jsonPath("$.progress").value(0));
 
-        verify(stocktakeService).createCycleTask(any(), anyLong(), anyString());
+        InOrder createOrder = inOrder(warehouseScopeService, stocktakeService);
+        createOrder.verify(warehouseScopeService).requireAccess(
+            any(),
+            eq(List.of(1L)),
+            eq("WAREHOUSE"),
+            eq(1L)
+        );
+        createOrder.verify(stocktakeService).createCycleTask(any(), anyLong(), anyString());
     }
 
     @Test
@@ -463,11 +486,13 @@ class StocktakeControllerTest {
             .reviewComment("Differences are acceptable")
             .build();
 
-        when(stocktakeService.reviewStocktake(eq(1L), any(), anyLong(), anyString()))
+        when(stocktakeReviewCommandService.review(
+            eq(1L), any(), anyLong(), anyString(), eq("stocktake-review-1")))
             .thenReturn(response);
 
         // When & Then
         mockMvc.perform(post("/api/stocktake/tasks/{id}/review", 1L)
+                .header("Idempotency-Key", "stocktake-review-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
@@ -477,7 +502,8 @@ class StocktakeControllerTest {
             .andExpect(jsonPath("$.reviewedByName").value("manager"))
             .andExpect(jsonPath("$.reviewComment").value("Differences are acceptable"));
 
-        verify(stocktakeService).reviewStocktake(eq(1L), any(), anyLong(), anyString());
+        verify(stocktakeReviewCommandService).review(
+            eq(1L), any(), anyLong(), anyString(), eq("stocktake-review-1"));
     }
 
     @Test
@@ -501,11 +527,13 @@ class StocktakeControllerTest {
             .reviewComment("Too many differences, recount required")
             .build();
 
-        when(stocktakeService.reviewStocktake(eq(1L), any(), anyLong(), anyString()))
+        when(stocktakeReviewCommandService.review(
+            eq(1L), any(), anyLong(), anyString(), eq("stocktake-review-2")))
             .thenReturn(response);
 
         // When & Then
         mockMvc.perform(post("/api/stocktake/tasks/{id}/review", 1L)
+                .header("Idempotency-Key", "stocktake-review-2")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
@@ -514,7 +542,85 @@ class StocktakeControllerTest {
             .andExpect(jsonPath("$.status").value("REJECTED"))
             .andExpect(jsonPath("$.reviewComment").value("Too many differences, recount required"));
 
-        verify(stocktakeService).reviewStocktake(eq(1L), any(), anyLong(), anyString());
+        verify(stocktakeReviewCommandService).review(
+            eq(1L), any(), anyLong(), anyString(), eq("stocktake-review-2"));
+    }
+
+    @Test
+    @WithMockUser(username = "manager", authorities = {"stocktake:review"})
+    @DisplayName("stocktake review requires Idempotency-Key")
+    void reviewRequiresIdempotencyKey() throws Exception {
+        ReviewStocktakeRequest request = ReviewStocktakeRequest.builder()
+            .approved(true)
+            .comment("Approved")
+            .build();
+
+        mockMvc.perform(post("/api/stocktake/tasks/{id}/review", 1L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(stocktakeReviewCommandService);
+    }
+
+    @Test
+    @WithMockUser(username = "warehouse-reviewer", authorities = {"stocktake:review"})
+    @DisplayName("warehouse reviewer is scope-checked before review mutation")
+    void warehouseReviewerScopeCheckedBeforeReview() throws Exception {
+        ReviewStocktakeRequest request = ReviewStocktakeRequest.builder()
+            .approved(false)
+            .comment("Recount")
+            .build();
+        StocktakeTaskResponse task = StocktakeTaskResponse.builder()
+            .id(1L)
+            .taskNo("TK-1")
+            .warehouseId(9L)
+            .status("REVIEWING")
+            .build();
+        when(warehouseScopeService.isWarehouseStaff(any())).thenReturn(true);
+        when(stocktakeService.getStocktakeTask(1L)).thenReturn(task);
+        when(stocktakeReviewCommandService.review(
+            eq(1L), any(), anyLong(), anyString(), eq("scoped-review-1")))
+            .thenReturn(task);
+
+        mockMvc.perform(post("/api/stocktake/tasks/{id}/review", 1L)
+                .header("Idempotency-Key", "scoped-review-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk());
+
+        InOrder order = inOrder(warehouseScopeService, stocktakeService, stocktakeReviewCommandService);
+        order.verify(warehouseScopeService).isWarehouseStaff(any());
+        order.verify(stocktakeService).getStocktakeTask(1L);
+        order.verify(warehouseScopeService).requireAccess(any(), eq(List.of(9L)),
+            eq("STOCKTAKE_TASK"), eq(1L));
+        order.verify(stocktakeReviewCommandService).review(
+            eq(1L), any(), anyLong(), anyString(), eq("scoped-review-1"));
+    }
+
+    @Test
+    @WithMockUser(username = "warehouse-reviewer", authorities = {"stocktake:review"})
+    @DisplayName("warehouse reviewer is scope-checked before review items are returned")
+    void warehouseReviewerScopeCheckedBeforeReviewItems() throws Exception {
+        StocktakeTaskResponse task = StocktakeTaskResponse.builder()
+            .id(1L)
+            .taskNo("TK-1")
+            .warehouseId(9L)
+            .status("REVIEWING")
+            .build();
+        when(warehouseScopeService.isWarehouseStaff(any())).thenReturn(true);
+        when(stocktakeService.getStocktakeTask(1L)).thenReturn(task);
+        when(stocktakeService.getStocktakeItemsForReview(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stocktake/tasks/{id}/review-items", 1L))
+            .andExpect(status().isOk());
+
+        InOrder order = inOrder(warehouseScopeService, stocktakeService);
+        order.verify(warehouseScopeService).isWarehouseStaff(any());
+        order.verify(stocktakeService).getStocktakeTask(1L);
+        order.verify(warehouseScopeService).requireAccess(any(), eq(List.of(9L)),
+            eq("STOCKTAKE_TASK"), eq(1L));
+        order.verify(stocktakeService).getStocktakeItemsForReview(1L);
     }
 
     @Test

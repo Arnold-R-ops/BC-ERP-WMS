@@ -2,6 +2,7 @@ package com.wms.system.controller;
 
 import com.wms.system.dto.stocktake.*;
 import com.wms.system.security.AuthUserResolver;
+import com.wms.system.service.StocktakeReviewCommandService;
 import com.wms.system.service.StocktakeService;
 import com.wms.system.service.WarehouseScopeService;
 import jakarta.validation.Valid;
@@ -47,6 +48,7 @@ import java.util.List;
 public class StocktakeController {
 
     private final StocktakeService stocktakeService;
+    private final StocktakeReviewCommandService stocktakeReviewCommandService;
     private final WarehouseScopeService warehouseScopeService;
 
     /**
@@ -70,6 +72,12 @@ public class StocktakeController {
         log.info("API调用: createStocktakeTask - 用户: {}, 仓库ID: {}, 周期类型: {}",
             username, request.getWarehouseId(), request.getCycleType());
 
+        warehouseScopeService.requireAccess(
+            authentication,
+            java.util.Collections.singletonList(request.getWarehouseId()),
+            "WAREHOUSE",
+            request.getWarehouseId()
+        );
         StocktakeTaskResponse response = stocktakeService.createCycleTask(
             request,
             userId,
@@ -284,9 +292,15 @@ public class StocktakeController {
      */
     @GetMapping("/tasks/{id}/review-items")
     @PreAuthorize("hasAnyAuthority('stocktake:review', 'TENANT_ADMIN')")
-    public ResponseEntity<List<StocktakeItemDetailResponse>> getStocktakeItemsForReview(@PathVariable("id") Long id) {
+    public ResponseEntity<List<StocktakeItemDetailResponse>> getStocktakeItemsForReview(
+        @PathVariable("id") Long id,
+        Authentication authentication
+    ) {
         log.info("API调用: getStocktakeItemsForReview - taskId: {}", id);
 
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, stocktakeService.getStocktakeTask(id));
+        }
         List<StocktakeItemDetailResponse> responses = stocktakeService.getStocktakeItemsForReview(id);
 
         log.info("API响应: getStocktakeItemsForReview - 明细数: {}", responses.size());
@@ -309,6 +323,7 @@ public class StocktakeController {
     @PreAuthorize("hasAnyAuthority('stocktake:review', 'TENANT_ADMIN')")
     public ResponseEntity<StocktakeTaskResponse> reviewStocktake(
         @PathVariable("id") Long id,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody ReviewStocktakeRequest request,
         Authentication authentication
     ) {
@@ -317,11 +332,15 @@ public class StocktakeController {
         log.info("API调用: reviewStocktake - id: {}, approved: {}, 审核人: {}",
             id, request.getApproved(), username);
 
-        StocktakeTaskResponse response = stocktakeService.reviewStocktake(
+        if (warehouseScopeService.isWarehouseStaff(authentication)) {
+            requireTaskAccess(authentication, stocktakeService.getStocktakeTask(id));
+        }
+        StocktakeTaskResponse response = stocktakeReviewCommandService.review(
             id,
             request,
             userId,
-            username
+            username,
+            idempotencyKey
         );
 
         log.info("API响应: reviewStocktake - 任务号: {}, 状态: {}",

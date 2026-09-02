@@ -10,6 +10,7 @@ import {
   updateEmergencyCorrectionPolicy,
 } from './emergencyCorrections';
 import {
+  resolveStocktakeReviewAttempt,
   listStocktakeReviewItems,
   listStocktakeTasks,
   reviewStocktake,
@@ -57,7 +58,7 @@ describe('inventory governance API contracts', () => {
   it('uses the separate review endpoint before posting the review decision', async () => {
     await listStocktakeReviewItems(8);
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ id: 8, status: 'COMPLETED' }));
-    await reviewStocktake(8, { approved: true, comment: 'approved variance' });
+    await reviewStocktake(8, { approved: true, comment: 'approved variance' }, 'stocktake-review-8-key');
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
@@ -73,6 +74,24 @@ describe('inventory governance API contracts', () => {
       approved: true,
       comment: 'approved variance',
     });
+    expect(new Headers(vi.mocked(fetch).mock.calls[1]?.[1]?.headers)
+      .get('Idempotency-Key')).toBe('stocktake-review-8-key');
+  });
+
+  it('reuses the stocktake review key for the same failed intent and rotates for a changed decision', () => {
+    vi.spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce('11111111-1111-4111-8111-111111111111')
+      .mockReturnValueOnce('22222222-2222-4222-8222-222222222222');
+    const approved = { approved: true, comment: 'approved variance' };
+    const first = resolveStocktakeReviewAttempt(undefined, 8, approved);
+    const retry = resolveStocktakeReviewAttempt(first, 8, approved);
+    const changed = resolveStocktakeReviewAttempt(retry, 8, {
+      approved: false,
+      comment: 'recount required',
+    });
+
+    expect(retry).toBe(first);
+    expect(changed.key).not.toBe(first.key);
   });
 
   it('filters the correction approval queue by status', async () => {

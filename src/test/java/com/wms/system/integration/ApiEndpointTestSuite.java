@@ -880,8 +880,11 @@ class ApiEndpointTestSuite {
         void testConfirmDispatch() throws Exception {
             OutboundTask task = createPendingOutboundTask(5);
             String req = json(Map.of("actualQty", 5));
+            var operator = createActorAuthentication("dispatch-operator", "outbound:pick");
 
             mockMvc.perform(post("/api/outbound-tasks/" + task.getId() + "/dispatch")
+                    .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .authentication(operator))
                     .header("Idempotency-Key", "api-dispatch-" + task.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(req))
@@ -897,8 +900,11 @@ class ApiEndpointTestSuite {
             OutboundTask task2 = createPendingOutboundTask(4);
 
             String batchRequest = json(List.of(task1.getId(), task2.getId()));
+            var operator = createActorAuthentication("batch-dispatch-operator", "outbound:pick");
 
             mockMvc.perform(post("/api/outbound-tasks/batch-dispatch")
+                    .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .authentication(operator))
                     .header("Idempotency-Key", "api-batch-dispatch-" + task1.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(batchRequest))
@@ -1011,8 +1017,12 @@ class ApiEndpointTestSuite {
                 "approved", true,
                 "comment", "Stocktake reviewed"
             ));
+            var reviewer = createActorAuthentication("stocktake-reviewer", "stocktake:review");
 
             mockMvc.perform(post("/api/stocktake/tasks/" + taskId + "/review")
+                    .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .authentication(reviewer))
+                    .header("Idempotency-Key", "api-stocktake-review-" + taskId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(reviewRequest))
                 .andDo(print())
@@ -1109,6 +1119,23 @@ class ApiEndpointTestSuite {
             .andExpect(status().isCreated())
             .andReturn();
         return readJson(result);
+    }
+
+    private UsernamePasswordAuthenticationToken createActorAuthentication(
+        String usernamePrefix,
+        String... authorities
+    ) {
+        User actor = userRepository.saveAndFlush(User.builder()
+            .username(usernamePrefix + "-" + nextId())
+            .password(passwordEncoder.encode("password123"))
+            .displayName("API Suite Actor")
+            .enabled(true)
+            .build());
+        List<SimpleGrantedAuthority> grantedAuthorities = java.util.Arrays.stream(authorities)
+            .map(SimpleGrantedAuthority::new)
+            .toList();
+        return new UsernamePasswordAuthenticationToken(
+            new SecurityUser(actor), null, grantedAuthorities);
     }
 
     private OutboundTask createPendingOutboundTask(int planQty) {

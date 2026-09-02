@@ -6,6 +6,9 @@ import com.wms.system.entity.enums.*;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
+import com.wms.system.service.inventory.InventoryPostingCommand;
+import com.wms.system.service.inventory.InventoryPostingResult;
+import com.wms.system.service.inventory.InventoryPostingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -61,9 +63,6 @@ class StocktakeServiceTest {
     private InventoryBatchRepository inventoryBatchRepository;
 
     @Mock
-    private StockTransactionRepository stockTransactionRepository;
-
-    @Mock
     private ProductSkuRepository productSkuRepository;
 
     @Mock
@@ -71,6 +70,12 @@ class StocktakeServiceTest {
 
     @Mock
     private WarehouseRepository warehouseRepository;
+
+    @Mock
+    private InventoryPostingService inventoryPostingService;
+
+    @Mock
+    private LocationOccupancyService locationOccupancyService;
 
     @InjectMocks
     private StocktakeService stocktakeService;
@@ -132,6 +137,18 @@ class StocktakeServiceTest {
             .createdBy(1L)
             .createdByName("Test User")
             .build();
+
+        lenient().when(stocktakeTaskRepository.findByIdForUpdate(1L))
+            .thenReturn(Optional.of(testTask));
+        lenient().when(inventoryPostingService.post(any(InventoryPostingCommand.class)))
+            .thenAnswer(invocation -> {
+                InventoryPostingCommand command = invocation.getArgument(0);
+                return new InventoryPostingResult(
+                    command.inventoryBatchId(), testBatch.getBatchCode(), command.productSkuId(),
+                    command.locationId(), 1L, command.delta(), 100, 100 + command.delta(),
+                    true, 99L, command.context().postingId(), command.context().idempotencyKey()
+                );
+            });
     }
 
     // ========== Test 1: Create Monthly Task ==========
@@ -145,8 +162,9 @@ class StocktakeServiceTest {
         request.setCycleType("MONTHLY");
 
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
-        when(inventoryBatchRepository.findAll()).thenReturn(List.of(testBatch));
-        when(stockTransactionRepository.findAll()).thenReturn(new ArrayList<>());
+        when(inventoryBatchRepository.findMonthlyStocktakeCandidates(
+            anyLong(), eq(1L), any(LocalDateTime.class), any()))
+            .thenReturn(List.of());
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> {
                 StocktakeTask task = invocation.getArgument(0);
@@ -211,19 +229,10 @@ class StocktakeServiceTest {
         request.setWarehouseId(1L);
         request.setCycleType("MONTHLY");
 
-        StockTransaction recentTransaction = StockTransaction.builder()
-            .id(1L)
-            .productSku(testProduct)
-            .location(testLocation)
-            .transactionType(TransactionType.IN)
-            .sourceType(SourceType.PURCHASE_IN)
-            .quantity(50)
-            .build();
-        recentTransaction.setCreatedAt(LocalDateTime.now().minusDays(10));
-
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
-        when(inventoryBatchRepository.findAll()).thenReturn(List.of(testBatch));
-        when(stockTransactionRepository.findAll()).thenReturn(List.of(recentTransaction));
+        when(inventoryBatchRepository.findMonthlyStocktakeCandidates(
+            anyLong(), eq(1L), any(LocalDateTime.class), any()))
+            .thenReturn(List.of(testBatch));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> {
                 StocktakeTask task = invocation.getArgument(0);
@@ -238,7 +247,8 @@ class StocktakeServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        verify(stockTransactionRepository).findAll(); // Should query transactions for smart selection
+        verify(inventoryBatchRepository).findMonthlyStocktakeCandidates(
+            anyLong(), eq(1L), any(LocalDateTime.class), any());
     }
 
     // ========== Test 4: Start Counting Success ==========
@@ -247,7 +257,7 @@ class StocktakeServiceTest {
     @DisplayName("case-5")
     void testStartCounting_Success() {
         // Given
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -271,7 +281,7 @@ class StocktakeServiceTest {
         // Given: Task already in COUNTING status
         testTask.setStatus(StocktakeStatus.COUNTING);
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
 
         // When & Then
         assertThatThrownBy(() -> stocktakeService.startCounting(1L))
@@ -285,8 +295,9 @@ class StocktakeServiceTest {
     @DisplayName("finish counting transitions a counting task to reviewing")
     void testFinishCounting_Success() {
         testTask.setStatus(StocktakeStatus.COUNTING);
+        testTask.setCountedItems(testTask.getTotalItems());
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -301,13 +312,28 @@ class StocktakeServiceTest {
     @DisplayName("finish counting is idempotent after the final count auto-transitions")
     void testFinishCounting_AlreadyReviewing() {
         testTask.setStatus(StocktakeStatus.REVIEWING);
+        testTask.setCountedItems(testTask.getTotalItems());
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
 
         StocktakeTaskResponse response = stocktakeService.finishCounting(1L);
 
         assertThat(response.getStatus()).isEqualTo("REVIEWING");
+        verify(stocktakeTaskRepository, never()).save(any(StocktakeTask.class));
+    }
+
+    @Test
+    @DisplayName("finish counting rejects a task with uncounted items")
+    void finishCountingRejectsUncountedItems() {
+        testTask.setStatus(StocktakeStatus.COUNTING);
+        testTask.setCountedItems(9);
+        when(stocktakeItemRepository.countByTaskIdAndIsCounted(1L, false)).thenReturn(1L);
+
+        assertThatThrownBy(() -> stocktakeService.finishCounting(1L))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT);
+
         verify(stocktakeTaskRepository, never()).save(any(StocktakeTask.class));
     }
 
@@ -335,7 +361,7 @@ class StocktakeServiceTest {
         request.setCountedQty(95);
         request.setRemark("Test count");
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(stocktakeItemRepository.save(any(StocktakeItem.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -357,6 +383,9 @@ class StocktakeServiceTest {
 
         verify(stocktakeItemRepository).save(any(StocktakeItem.class));
         verify(stocktakeTaskRepository).save(any(StocktakeTask.class));
+        var lockOrder = inOrder(stocktakeTaskRepository, stocktakeItemRepository);
+        lockOrder.verify(stocktakeTaskRepository).findByIdForUpdate(1L);
+        lockOrder.verify(stocktakeItemRepository).findById(1L);
     }
 
     // ========== Test 7: Blind Count ==========
@@ -382,7 +411,7 @@ class StocktakeServiceTest {
         SubmitCountRequest request = new SubmitCountRequest();
         request.setCountedQty(95);
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(stocktakeItemRepository.save(any(StocktakeItem.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -423,7 +452,7 @@ class StocktakeServiceTest {
         SubmitCountRequest request = new SubmitCountRequest();
         request.setCountedQty(95);
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(stocktakeItemRepository.save(any(StocktakeItem.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -441,6 +470,43 @@ class StocktakeServiceTest {
         ArgumentCaptor<StocktakeItem> itemCaptor = ArgumentCaptor.forClass(StocktakeItem.class);
         verify(stocktakeItemRepository).save(itemCaptor.capture());
         assertThat(itemCaptor.getValue().getDifferenceQty()).isEqualTo(-5); // 95 - 100 = -5
+    }
+
+    @Test
+    @DisplayName("recounting to zero difference clears task difference statistics")
+    void recountToZeroDifferenceRefreshesTaskStatistics() {
+        testTask.setStatus(StocktakeStatus.COUNTING);
+        testTask.setDifferenceItems(1);
+
+        StocktakeItem item = StocktakeItem.builder()
+            .id(1L)
+            .taskId(1L)
+            .productSkuId(1L)
+            .batchId(1L)
+            .locationId(1L)
+            .snapshotQty(100)
+            .countedQty(95)
+            .differenceQty(-5)
+            .isCounted(true)
+            .build();
+        SubmitCountRequest request = new SubmitCountRequest();
+        request.setCountedQty(100);
+
+        when(stocktakeItemRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(stocktakeItemRepository.save(any(StocktakeItem.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(1L, 0)).thenReturn(0L);
+        when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
+
+        stocktakeService.submitCount(1L, 1L, request, 1L, "Counter");
+
+        verify(stocktakeItemRepository).countByTaskIdAndDifferenceQtyNot(1L, 0);
+        assertThat(testTask.getDifferenceItems()).isZero();
+        assertThat(testTask.getCountedItems()).isZero();
     }
 
     // ========== Test 9: Auto Transition to Reviewing ==========
@@ -468,7 +534,7 @@ class StocktakeServiceTest {
         SubmitCountRequest request = new SubmitCountRequest();
         request.setCountedQty(100);
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(stocktakeTaskRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(stocktakeItemRepository.save(any(StocktakeItem.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -494,6 +560,7 @@ class StocktakeServiceTest {
     void testReviewStocktake_Approve() {
         // Given
         testTask.setStatus(StocktakeStatus.REVIEWING);
+        testTask.setCountedItems(testTask.getTotalItems());
 
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
@@ -511,13 +578,9 @@ class StocktakeServiceTest {
         request.setApproved(true);
         request.setComment("Approved");
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findByTaskId(1L)).thenReturn(List.of(item));
-        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
-        when(inventoryBatchRepository.save(any(InventoryBatch.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-        when(stockTransactionRepository.save(any(StockTransaction.class)))
-            .thenReturn(new StockTransaction());
+        when(inventoryBatchRepository.findAllByIdForPosting(List.of(1L)))
+            .thenReturn(List.of(testBatch));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -530,8 +593,7 @@ class StocktakeServiceTest {
         assertThat(response.getStatus()).isEqualTo("COMPLETED");
         assertThat(response.getReviewedByName()).isEqualTo("Manager");
 
-        verify(inventoryBatchRepository).save(any(InventoryBatch.class));
-        verify(stockTransactionRepository).save(any(StockTransaction.class));
+        verify(inventoryPostingService).post(any(InventoryPostingCommand.class));
     }
 
     // ========== Test 11: Review Reject ==========
@@ -546,7 +608,6 @@ class StocktakeServiceTest {
         request.setApproved(false);
         request.setComment("Need recount");
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
@@ -559,8 +620,31 @@ class StocktakeServiceTest {
         assertThat(response.getStatus()).isEqualTo("COUNTING");
         assertThat(response.getReviewComment()).isEqualTo("Need recount");
 
-        verify(inventoryBatchRepository, never()).save(any(InventoryBatch.class));
-        verify(stockTransactionRepository, never()).save(any(StockTransaction.class));
+        verify(inventoryPostingService, never()).post(any(InventoryPostingCommand.class));
+    }
+
+    @Test
+    @DisplayName("approved review rejects a task with uncounted items")
+    void approvedReviewRejectsUncountedItems() {
+        testTask.setStatus(StocktakeStatus.REVIEWING);
+        testTask.setCountedItems(9);
+        when(stocktakeItemRepository.countByTaskIdAndIsCounted(1L, false)).thenReturn(1L);
+
+        ReviewStocktakeRequest request = new ReviewStocktakeRequest();
+        request.setApproved(true);
+
+        assertThatThrownBy(() -> stocktakeService.reviewStocktake(
+            1L,
+            request,
+            1L,
+            "Manager",
+            "review-incomplete"
+        ))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorKey", ErrorKeys.STOCKTAKE_TASK_CANNOT_REVIEW);
+
+        verify(inventoryPostingService, never()).post(any(InventoryPostingCommand.class));
+        verify(stocktakeTaskRepository, never()).save(any(StocktakeTask.class));
     }
 
     // ========== Test 12: Adjust Inventory Surplus ==========
@@ -570,6 +654,7 @@ class StocktakeServiceTest {
     void testAdjustInventory_Surplus() {
         // Given: Counted 105, snapshot 100 (surplus +5)
         testTask.setStatus(StocktakeStatus.REVIEWING);
+        testTask.setCountedItems(testTask.getTotalItems());
 
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
@@ -586,29 +671,26 @@ class StocktakeServiceTest {
         ReviewStocktakeRequest request = new ReviewStocktakeRequest();
         request.setApproved(true);
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findByTaskId(1L)).thenReturn(List.of(item));
-        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
-        when(inventoryBatchRepository.save(any(InventoryBatch.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-        when(stockTransactionRepository.save(any(StockTransaction.class)))
-            .thenReturn(new StockTransaction());
+        when(inventoryBatchRepository.findAllByIdForPosting(List.of(1L)))
+            .thenReturn(List.of(testBatch));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
 
         // When
-        stocktakeService.reviewStocktake(1L, request, 1L, "Manager");
+        stocktakeService.reviewStocktake(1L, request, 1L, "Manager", "review-command-1");
 
         // Then
-        ArgumentCaptor<InventoryBatch> batchCaptor = ArgumentCaptor.forClass(InventoryBatch.class);
-        verify(inventoryBatchRepository).save(batchCaptor.capture());
-        assertThat(batchCaptor.getValue().getQuantity()).isEqualTo(105); // 100 + 5
-
-        ArgumentCaptor<StockTransaction> transactionCaptor = ArgumentCaptor.forClass(StockTransaction.class);
-        verify(stockTransactionRepository).save(transactionCaptor.capture());
-        assertThat(transactionCaptor.getValue().getTransactionType()).isEqualTo(TransactionType.IN);
-        assertThat(transactionCaptor.getValue().getSourceType()).isEqualTo(SourceType.INVENTORY_GAIN);
+        ArgumentCaptor<InventoryPostingCommand> commandCaptor =
+            ArgumentCaptor.forClass(InventoryPostingCommand.class);
+        verify(inventoryPostingService).post(commandCaptor.capture());
+        InventoryPostingCommand command = commandCaptor.getValue();
+        assertThat(command.delta()).isEqualTo(5);
+        assertThat(command.context().sourceType()).isEqualTo(SourceType.INVENTORY_GAIN);
+        assertThat(command.context().postingId()).isEqualTo("STOCKTAKE:TK-202601-M01:1");
+        assertThat(command.context().idempotencyKey()).startsWith("stocktake-").hasSize(74);
+        verify(locationOccupancyService).refreshLocationStatus(1L);
     }
 
     // ========== Test 13: Adjust Inventory Shortage ==========
@@ -618,6 +700,7 @@ class StocktakeServiceTest {
     void testAdjustInventory_Shortage() {
         // Given: Counted 90, snapshot 100 (shortage -10)
         testTask.setStatus(StocktakeStatus.REVIEWING);
+        testTask.setCountedItems(testTask.getTotalItems());
 
         StocktakeItem item = StocktakeItem.builder()
             .id(1L)
@@ -634,29 +717,25 @@ class StocktakeServiceTest {
         ReviewStocktakeRequest request = new ReviewStocktakeRequest();
         request.setApproved(true);
 
-        when(stocktakeTaskRepository.findById(1L)).thenReturn(Optional.of(testTask));
         when(stocktakeItemRepository.findByTaskId(1L)).thenReturn(List.of(item));
-        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
-        when(inventoryBatchRepository.save(any(InventoryBatch.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-        when(stockTransactionRepository.save(any(StockTransaction.class)))
-            .thenReturn(new StockTransaction());
+        when(inventoryBatchRepository.findAllByIdForPosting(List.of(1L)))
+            .thenReturn(List.of(testBatch));
         when(stocktakeTaskRepository.save(any(StocktakeTask.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
 
         // When
-        stocktakeService.reviewStocktake(1L, request, 1L, "Manager");
+        stocktakeService.reviewStocktake(1L, request, 1L, "Manager", "review-command-2");
 
         // Then
-        ArgumentCaptor<InventoryBatch> batchCaptor = ArgumentCaptor.forClass(InventoryBatch.class);
-        verify(inventoryBatchRepository).save(batchCaptor.capture());
-        assertThat(batchCaptor.getValue().getQuantity()).isEqualTo(90); // 100 - 10
-
-        ArgumentCaptor<StockTransaction> transactionCaptor = ArgumentCaptor.forClass(StockTransaction.class);
-        verify(stockTransactionRepository).save(transactionCaptor.capture());
-        assertThat(transactionCaptor.getValue().getTransactionType()).isEqualTo(TransactionType.OUT);
-        assertThat(transactionCaptor.getValue().getSourceType()).isEqualTo(SourceType.INVENTORY_LOSS);
+        ArgumentCaptor<InventoryPostingCommand> commandCaptor =
+            ArgumentCaptor.forClass(InventoryPostingCommand.class);
+        verify(inventoryPostingService).post(commandCaptor.capture());
+        InventoryPostingCommand command = commandCaptor.getValue();
+        assertThat(command.delta()).isEqualTo(-10);
+        assertThat(command.context().sourceType()).isEqualTo(SourceType.INVENTORY_LOSS);
+        assertThat(command.context().postingId()).isEqualTo("STOCKTAKE:TK-202601-M01:1");
+        verify(locationOccupancyService).refreshLocationStatus(1L);
     }
 }
 

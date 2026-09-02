@@ -52,17 +52,26 @@ class WarehouseTransferMigrationContractTest {
     }
 
     @Test
-    void callbacksPreserveReleasedMigrationChecksumsAndRestorePermissionConstraint() throws Exception {
+    void callbacksConvergePermissionsAndRestoreConstraintOnSuccessOrFailure() throws Exception {
         String before = Files.readString(Path.of(
             "src/main/resources/db/migration/beforeMigrate__assignable_permission_convergence.sql"));
         String after = Files.readString(Path.of(
             "src/main/resources/db/migration/afterMigrate__assignable_permission_convergence.sql"));
+        String afterError = Files.readString(Path.of(
+            "src/main/resources/db/migration/afterMigrateError__assignable_permission_constraint_recovery.sql"));
 
         assertThat(before).contains(
             "DROP CONSTRAINT IF EXISTS ck_sys_permission_critical_not_custom");
         assertThat(after).contains(
             "risk_level = 'HIGH'",
             "risk_level = 'CRITICAL' AND custom_assignable = TRUE",
+            "'purchase:void','purchase:approve_close_remaining'",
+            "ADD CONSTRAINT ck_sys_permission_critical_not_custom",
+            "risk_level <> 'CRITICAL' OR custom_assignable = FALSE"
+        );
+        assertThat(afterError).contains(
+            "risk_level = 'HIGH'",
+            "'purchase:void','purchase:approve_close_remaining'",
             "ADD CONSTRAINT ck_sys_permission_critical_not_custom",
             "risk_level <> 'CRITICAL' OR custom_assignable = FALSE"
         );

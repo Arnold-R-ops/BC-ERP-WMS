@@ -1,5 +1,6 @@
 package com.wms.system.dto.inventory;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,9 @@ public class InventoryReservationResponse {
     private String productName;
     private Long locationId;
     private String locationCode;
+    /** Internal authorization scope; never exposed in the public DTO. */
+    @JsonIgnore
+    private Long warehouseId;
     private Integer reservedQty;
     private Integer consumedQty;
     private Integer releasedQty;

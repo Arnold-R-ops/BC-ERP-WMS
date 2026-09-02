@@ -1,14 +1,16 @@
 import { CheckCircleFilled, EnvironmentOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { App as AntdApp, Button, Empty, InputNumber, Progress, Select, Skeleton, Tag, Typography } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
 import {
   dispatchOutboundTask,
   listOutboundTasks,
   OUTBOUND_TASKS_QUERY_KEY,
+  resolveOutboundCommandAttempt,
   type ConfirmDispatchPayload,
+  type OutboundCommandAttempt,
   type OutboundTask,
 } from '../../api/outbound';
 import { ScanInput } from './ScanInput';
@@ -20,6 +22,7 @@ export function MobilePickingPage(): JSX.Element {
   const [locationVerified, setLocationVerified] = useState(false);
   const [identityVerified, setIdentityVerified] = useState(false);
   const [actualQty, setActualQty] = useState(0);
+  const dispatchAttempt = useRef<OutboundCommandAttempt>();
   const { online } = useMobileOperation();
   const { message } = AntdApp.useApp();
   const { t } = useTranslation();
@@ -42,6 +45,7 @@ export function MobilePickingPage(): JSX.Element {
   }, [activeTask, activeTaskId]);
 
   useEffect(() => {
+    dispatchAttempt.current = undefined;
     setLocationVerified(false);
     setIdentityVerified(false);
     setActualQty(activeTask?.planQty ?? 0);
@@ -50,7 +54,11 @@ export function MobilePickingPage(): JSX.Element {
   const trackingMode = activeTask?.batchTrackingMode;
 
   const confirmMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ConfirmDispatchPayload }) => dispatchOutboundTask(id, payload),
+    mutationFn: ({ id, payload, idempotencyKey }: {
+      id: number;
+      payload: ConfirmDispatchPayload;
+      idempotencyKey: string;
+    }) => dispatchOutboundTask(id, payload, idempotencyKey),
   });
 
   const scanLocation = (code: string): void => {
@@ -77,8 +85,20 @@ export function MobilePickingPage(): JSX.Element {
     const payload: ConfirmDispatchPayload = trackingMode === 'LOCATION_VISUAL'
       ? { actualQty, locationId: activeTask.locationId, skuCode: activeTask.productSkuCode }
       : { actualQty, batchCode: activeTask.batchCode };
+    const attempt = resolveOutboundCommandAttempt(
+      dispatchAttempt.current,
+      'dispatch',
+      activeTask.id,
+      payload,
+    );
+    dispatchAttempt.current = attempt;
     try {
-      await confirmMutation.mutateAsync({ id: activeTask.id, payload });
+      await confirmMutation.mutateAsync({
+        id: activeTask.id,
+        payload,
+        idempotencyKey: attempt.key,
+      });
+      dispatchAttempt.current = undefined;
       message.success(t('mobile.picking.completed'));
       setActiveTaskId(undefined);
       await tasksQuery.refetch();

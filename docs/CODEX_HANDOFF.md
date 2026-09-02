@@ -1,5 +1,7 @@
 # Codex 项目交接
 
+> **历史快照（截至 2026-08-25）**：本文的“当前阶段”、测试数量和 OpenAPI 同步状态不得用于判断当前发布候选。当前唯一收口报告是 `TENANT_ERP_A1_IMPLEMENTATION_REPORT_2026-09-01.md`，接口机器真相是实时导出的 `docs/frontend/openapi.json`。
+
 更新日期：2026-08-25
 
 ## 当前阶段

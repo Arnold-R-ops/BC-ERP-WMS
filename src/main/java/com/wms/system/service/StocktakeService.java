@@ -6,15 +6,24 @@ import com.wms.system.entity.enums.*;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
+import com.wms.system.service.inventory.InventoryPostingCommand;
+import com.wms.system.service.inventory.InventoryPostingService;
+import com.wms.system.service.inventory.PostingContext;
+import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,10 +57,11 @@ public class StocktakeService {
     private final StocktakeTaskRepository stocktakeTaskRepository;
     private final StocktakeItemRepository stocktakeItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final StockTransactionRepository stockTransactionRepository;
     private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final WarehouseRepository warehouseRepository;
+    private final InventoryPostingService inventoryPostingService;
+    private final LocationOccupancyService locationOccupancyService;
 
     private static final int MONTHLY_MAX_BATCHES = 500;
     private static final int RECENT_DAYS_THRESHOLD = 30;
@@ -161,7 +171,11 @@ public class StocktakeService {
     public StocktakeTaskResponse startCounting(Long taskId) {
         log.info("Starting stocktake counting: taskId={}", taskId);
 
-        StocktakeTask task = getTaskById(taskId);
+        // The task row is the leading lock for every count mutation. Review
+        // takes the same lock before reading items, so an already-started
+        // count can neither be omitted from posting nor overwrite COMPLETED
+        // after approval commits.
+        StocktakeTask task = getTaskByIdForUpdate(taskId);
 
         if (!task.canStartCounting()) {
             throw new BusinessException(
@@ -200,7 +214,7 @@ public class StocktakeService {
             taskId, itemId, request.getCountedQty(), countedByName);
 
         // 1. Validate task status
-        StocktakeTask task = getTaskById(taskId);
+        StocktakeTask task = getTaskByIdForUpdate(taskId);
         if (!task.canCount()) {
             throw new BusinessException(
                 ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT,
@@ -239,11 +253,9 @@ public class StocktakeService {
         if (wasNotCounted) {
             task.setCountedItems(task.getCountedItems() + 1);
         }
-        if (savedItem.hasDifference()) {
-            // Recalculate difference items count
-            long differenceCount = stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(taskId, 0);
-            task.setDifferenceItems((int) differenceCount);
-        }
+        // Always recalculate: a recount can also clear an existing difference.
+        long differenceCount = stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(taskId, 0);
+        task.setDifferenceItems((int) differenceCount);
 
         // 6. Auto transition to REVIEWING if all items counted
         if (task.getCountedItems().equals(task.getTotalItems())) {
@@ -269,13 +281,18 @@ public class StocktakeService {
     public StocktakeTaskResponse finishCounting(Long taskId) {
         log.info("Finishing stocktake counting: taskId={}", taskId);
 
-        StocktakeTask task = getTaskById(taskId);
+        StocktakeTask task = getTaskByIdForUpdate(taskId);
 
         // The final count submission can auto-transition the task before the
         // mobile client sends its explicit finish request. Treat REVIEWING as
         // an idempotent success so a delayed or retried confirmation cannot
         // report a false failure after the state change has committed.
         if (task.getStatus() == StocktakeStatus.REVIEWING) {
+            requireAllItemsCounted(
+                task,
+                ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT,
+                "NOT_ALL_ITEMS_COUNTED"
+            );
             log.info("Stocktake already finished counting: taskNo={}", task.getTaskNo());
             return convertToTaskResponse(task);
         }
@@ -286,6 +303,12 @@ public class StocktakeService {
                 Map.of("taskId", taskId, "currentStatus", task.getStatus().name())
             );
         }
+
+        requireAllItemsCounted(
+            task,
+            ErrorKeys.STOCKTAKE_TASK_CANNOT_COUNT,
+            "NOT_ALL_ITEMS_COUNTED"
+        );
 
         task.setStatus(StocktakeStatus.REVIEWING);
         StocktakeTask savedTask = stocktakeTaskRepository.save(task);
@@ -311,15 +334,41 @@ public class StocktakeService {
         Long reviewedBy,
         String reviewedByName
     ) {
+        return reviewStocktake(
+            taskId,
+            request,
+            reviewedBy,
+            reviewedByName,
+            "stocktake-review-task:" + taskId
+        );
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public StocktakeTaskResponse reviewStocktake(
+        Long taskId,
+        ReviewStocktakeRequest request,
+        Long reviewedBy,
+        String reviewedByName,
+        String idempotencyKey
+    ) {
         log.info("Reviewing stocktake: taskId={}, approved={}, reviewedBy={}",
             taskId, request.getApproved(), reviewedByName);
 
-        StocktakeTask task = getTaskById(taskId);
+        String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
+        StocktakeTask task = getTaskByIdForUpdate(taskId);
 
         if (!task.canReview()) {
             throw new BusinessException(
                 ErrorKeys.STOCKTAKE_TASK_CANNOT_REVIEW,
                 Map.of("taskId", taskId, "currentStatus", task.getStatus().name())
+            );
+        }
+
+        if (Boolean.TRUE.equals(request.getApproved())) {
+            requireAllItemsCounted(
+                task,
+                ErrorKeys.STOCKTAKE_TASK_CANNOT_REVIEW,
+                "NOT_ALL_ITEMS_COUNTED"
             );
         }
 
@@ -331,7 +380,12 @@ public class StocktakeService {
 
         if (request.getApproved()) {
             // Approve: adjust inventory and complete task
-            adjustInventory(taskId, reviewedByName);
+            adjustInventory(
+                task,
+                reviewedBy,
+                reviewedByName,
+                normalizedIdempotencyKey
+            );
             task.setStatus(StocktakeStatus.COMPLETED);
             log.info("Stocktake approved and completed: taskNo={}", task.getTaskNo());
         } else {
@@ -341,76 +395,79 @@ public class StocktakeService {
         }
 
         StocktakeTask savedTask = stocktakeTaskRepository.save(task);
-
         return convertToTaskResponse(savedTask);
     }
 
     /**
      * Adjust inventory based on stocktake differences (private method)
      *
-     * @param taskId Task ID
+     * @param task Locked stocktake task
      */
-    private void adjustInventory(Long taskId, String reviewedByName) {
+    private void adjustInventory(
+        StocktakeTask task,
+        Long reviewedBy,
+        String reviewedByName,
+        String idempotencyKey
+    ) {
+        Long taskId = task.getId();
         log.info("Adjusting inventory for stocktake: taskId={}", taskId);
-
-        StocktakeTask task = getTaskById(taskId);
 
         // Get all items with differences
         List<StocktakeItem> items = stocktakeItemRepository.findByTaskId(taskId);
         List<StocktakeItem> differenceItems = items.stream()
             .filter(StocktakeItem::hasDifference)
+            .sorted(Comparator.comparing(StocktakeItem::getBatchId)
+                .thenComparing(StocktakeItem::getId))
             .collect(Collectors.toList());
 
         log.info("Found {} items with differences", differenceItems.size());
 
+        List<Long> batchIds = differenceItems.stream()
+            .map(StocktakeItem::getBatchId)
+            .distinct()
+            .sorted()
+            .toList();
+        List<InventoryBatch> lockedBatches = batchIds.isEmpty()
+            ? List.of()
+            : inventoryBatchRepository.findAllByIdForPosting(batchIds);
+        if (lockedBatches.size() != batchIds.size()) {
+            Long missingBatchId = batchIds.stream()
+                .filter(id -> lockedBatches.stream().noneMatch(batch -> id.equals(batch.getId())))
+                .findFirst()
+                .orElse(null);
+            throw new BusinessException(
+                ErrorKeys.BATCH_NOT_FOUND,
+                Map.of("batchId", missingBatchId == null ? -1L : missingBatchId)
+            );
+        }
+
         for (StocktakeItem item : differenceItems) {
-            // Get batch
-            InventoryBatch batch = inventoryBatchRepository.findById(item.getBatchId())
-                .orElseThrow(() -> new BusinessException(
-                    ErrorKeys.BATCH_NOT_FOUND,
-                    Map.of("batchId", item.getBatchId())
-                ));
-
-            Integer quantityBefore = batch.getQuantity();
             Integer adjustment = item.getDifferenceQty();
-
-            // Adjust batch quantity
-            if (adjustment > 0) {
-                batch.increaseQuantity(adjustment);
-            } else {
-                batch.decreaseQuantity(Math.abs(adjustment));
-            }
-
-            // If quantity becomes zero or negative, mark as inactive
-            if (batch.getQuantity() <= 0) {
-                batch.setActive(false);
-                log.info("Batch marked as inactive due to zero quantity: batchCode={}", batch.getBatchCode());
-            }
-
-            InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
-
-            // Create stock transaction
-            TransactionType transactionType = adjustment > 0 ? TransactionType.IN : TransactionType.OUT;
             SourceType sourceType = adjustment > 0 ? SourceType.INVENTORY_GAIN : SourceType.INVENTORY_LOSS;
+            String postingId = "STOCKTAKE:" + task.getTaskNo() + ":" + item.getId();
+            String childKey = childPostingKey(idempotencyKey, item.getId());
+            inventoryPostingService.post(new InventoryPostingCommand(
+                item.getBatchId(),
+                item.getProductSkuId(),
+                item.getLocationId(),
+                adjustment,
+                new PostingContext(
+                    CompanyScope.currentCompanyId(),
+                    task.getWarehouseId(),
+                    sourceType,
+                    task.getTaskNo(),
+                    adjustment > 0 ? "STOCKTAKE_GAIN" : "STOCKTAKE_LOSS",
+                    String.format("盘点调整 - 任务号: %s, 差异: %+d", task.getTaskNo(), adjustment),
+                    reviewedBy,
+                    reviewedByName,
+                    postingId,
+                    childKey
+                )
+            ));
+            locationOccupancyService.refreshLocationStatus(item.getLocationId());
 
-            StockTransaction transaction = StockTransaction.builder()
-                .productSku(batch.getProductSku())
-                .location(batch.getLocation())
-                .transactionType(transactionType)
-                .sourceType(sourceType)
-                .quantity(Math.abs(adjustment))
-                .quantityBefore(quantityBefore)
-                .quantityAfter(savedBatch.getQuantity())
-                .sourceOrderId(task.getTaskNo())
-                .operatorId(task.getReviewedBy())
-                .operatorName(reviewedByName != null ? reviewedByName : task.getReviewedByName())
-                .remark(String.format("盘点调整 - 任务号: %s, 差异: %+d", task.getTaskNo(), adjustment))
-                .build();
-
-            stockTransactionRepository.save(transaction);
-
-            log.info("Inventory adjusted: batchCode={}, before={}, after={}, adjustment={}",
-                savedBatch.getBatchCode(), quantityBefore, savedBatch.getQuantity(), adjustment);
+            log.info("Inventory posting completed: taskId={}, itemId={}, batchId={}, adjustment={}",
+                taskId, item.getId(), item.getBatchId(), adjustment);
         }
 
         log.info("Inventory adjustment completed: taskId={}, adjustedItems={}", taskId, differenceItems.size());
@@ -499,6 +556,66 @@ public class StocktakeService {
             ));
     }
 
+    private StocktakeTask getTaskByIdForUpdate(Long taskId) {
+        return stocktakeTaskRepository.findByIdForUpdate(taskId)
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.STOCKTAKE_TASK_NOT_FOUND,
+                Map.of("taskId", taskId)
+            ));
+    }
+
+    private void requireAllItemsCounted(
+        StocktakeTask task,
+        String errorKey,
+        String reason
+    ) {
+        long persistedUncounted = stocktakeItemRepository.countByTaskIdAndIsCounted(
+            task.getId(),
+            false
+        );
+        int remainingByTask = Math.max(
+            0,
+            task.getTotalItems() - task.getCountedItems()
+        );
+        long remainingItems = Math.max(persistedUncounted, remainingByTask);
+        if (remainingItems > 0) {
+            throw new BusinessException(
+                errorKey,
+                Map.of(
+                    "taskId", task.getId(),
+                    "currentStatus", task.getStatus().name(),
+                    "reason", reason,
+                    "remainingItems", remainingItems
+                )
+            );
+        }
+    }
+
+    private String normalizeIdempotencyKey(String value) {
+        if (value == null || value.isBlank()) {
+            throw new BusinessException(ErrorKeys.IDEMPOTENCY_KEY_REQUIRED);
+        }
+        String normalized = value.trim();
+        if (normalized.length() > 120) {
+            throw new BusinessException(
+                ErrorKeys.VALIDATION_FAILED,
+                Map.of("field", "Idempotency-Key", "maxLength", 120)
+            );
+        }
+        return normalized;
+    }
+
+    private String childPostingKey(String idempotencyKey, Long itemId) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(
+                (idempotencyKey + ":" + itemId).getBytes(StandardCharsets.UTF_8)
+            );
+            return "stocktake-" + HexFormat.of().formatHex(digest);
+        } catch (Exception exception) {
+            throw new IllegalStateException("SHA-256 unavailable", exception);
+        }
+    }
+
     /**
      * Generate task number
      *
@@ -542,26 +659,12 @@ public class StocktakeService {
      */
     private List<InventoryBatch> selectBatchesForMonthly(Long warehouseId) {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RECENT_DAYS_THRESHOLD);
-
-        // Get batches with recent transactions
-        List<StockTransaction> recentTransactions = stockTransactionRepository.findAll().stream()
-            .filter(t -> t.getCreatedAt().isAfter(thirtyDaysAgo))
-            .collect(Collectors.toList());
-
-        // Extract unique batch IDs from transactions
-        List<Long> recentBatchProductSkuIds = recentTransactions.stream()
-            .map(t -> t.getProductSku().getId())
-            .distinct()
-            .collect(Collectors.toList());
-
-        // Get active batches for these products in the warehouse
-        List<InventoryBatch> batches = inventoryBatchRepository.findAll().stream()
-            .filter(b -> b.getActive())
-            .filter(b -> b.getLocation() != null && b.getLocation().getWarehouse() != null)
-            .filter(b -> b.getLocation().getWarehouse().getId().equals(warehouseId))
-            .filter(b -> recentBatchProductSkuIds.contains(b.getProductSku().getId()))
-            .limit(MONTHLY_MAX_BATCHES)
-            .collect(Collectors.toList());
+        List<InventoryBatch> batches = inventoryBatchRepository.findMonthlyStocktakeCandidates(
+            CompanyScope.currentCompanyId(),
+            warehouseId,
+            thirtyDaysAgo,
+            PageRequest.of(0, MONTHLY_MAX_BATCHES)
+        );
 
         log.info("Selected {} batches for monthly stocktake (recent {} days)", batches.size(), RECENT_DAYS_THRESHOLD);
 

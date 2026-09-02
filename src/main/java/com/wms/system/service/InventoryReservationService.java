@@ -8,11 +8,14 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.InventoryReservationRepository;
+import com.wms.system.repository.SalesOrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +33,7 @@ public class InventoryReservationService {
 
     private final InventoryReservationRepository reservationRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
+    private final SalesOrderRepository salesOrderRepository;
 
     @Transactional(readOnly = true)
     public List<InventoryReservationResponse> listBySalesOrder(Long salesOrderId) {
@@ -46,38 +50,57 @@ public class InventoryReservationService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public InventoryReservationResponse releaseReservation(Long reservationId) {
-        InventoryReservation reservation = reservationRepository.findById(reservationId)
+    public void releaseOpenReservationsForOrder(Long salesOrderId) {
+        // Use the same leading lock order as dispatch: sales order, batches,
+        // reservations. This serializes cancellation/closure against a picker
+        // consuming the same reservation and prevents reserved-stock drift.
+        salesOrderRepository.findByIdForUpdate(salesOrderId)
             .orElseThrow(() -> new BusinessException(
-                ErrorKeys.INVENTORY_RESERVATION_NOT_FOUND,
-                Map.of("reservationId", reservationId)
+                ErrorKeys.SALES_ORDER_NOT_FOUND,
+                Map.of("salesOrderId", salesOrderId)
             ));
 
-        release(reservation);
-        return toResponse(reservationRepository.save(reservation));
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void releaseOpenReservationsForOrder(Long salesOrderId) {
-        List<InventoryReservation> reservations = reservationRepository
+        List<InventoryReservation> snapshot = reservationRepository
             .findBySalesOrderIdAndStatusIn(salesOrderId, OPEN_STATUSES);
+        List<Long> batchIds = snapshot.stream()
+            .map(InventoryReservation::getInventoryBatchId)
+            .distinct()
+            .sorted()
+            .toList();
+        Map<Long, InventoryBatch> lockedBatches = new LinkedHashMap<>();
+        List<InventoryBatch> batches = batchIds.isEmpty()
+            ? List.of()
+            : inventoryBatchRepository.findAllByIdForPosting(batchIds);
+        batches.stream()
+            .sorted(Comparator.comparing(InventoryBatch::getId))
+            .forEach(batch -> lockedBatches.put(batch.getId(), batch));
+
+        List<InventoryReservation> reservations = reservationRepository
+            .findBySalesOrderIdForUpdate(salesOrderId).stream()
+            .filter(InventoryReservation::hasOpenQuantity)
+            .toList();
 
         for (InventoryReservation reservation : reservations) {
-            release(reservation);
+            InventoryBatch batch = lockedBatches.get(reservation.getInventoryBatchId());
+            if (batch == null) {
+                throw new BusinessException(
+                    ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
+                    Map.of(
+                        "salesOrderId", salesOrderId,
+                        "reservationId", reservation.getId(),
+                        "reason", "RESERVATION_SET_CHANGED"
+                    )
+                );
+            }
+            release(reservation, batch);
             reservationRepository.save(reservation);
         }
     }
 
-    private void release(InventoryReservation reservation) {
+    private void release(InventoryReservation reservation, InventoryBatch batch) {
         if (!reservation.hasOpenQuantity()) {
             return;
         }
-
-        InventoryBatch batch = inventoryBatchRepository.findById(reservation.getInventoryBatchId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.BATCH_NOT_FOUND,
-                Map.of("batchId", reservation.getInventoryBatchId())
-            ));
 
         int releasedQty = reservation.releaseRemaining();
         batch.releaseReservedQuantity(releasedQty);
@@ -100,6 +123,11 @@ public class InventoryReservationService {
             .productName(batch != null && batch.getProductSku() != null ? batch.getProductSku().getName() : null)
             .locationId(reservation.getLocationId())
             .locationCode(batch != null ? batch.getLocationCode() : null)
+            .warehouseId(batch != null
+                && batch.getLocation() != null
+                && batch.getLocation().getWarehouse() != null
+                    ? batch.getLocation().getWarehouse().getId()
+                    : null)
             .reservedQty(reservation.getReservedQty())
             .consumedQty(reservation.getConsumedQty())
             .releasedQty(reservation.getReleasedQty())

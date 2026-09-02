@@ -5,24 +5,40 @@
 ALTER TABLE public.product_skus
     ADD COLUMN IF NOT EXISTS inspection_requirement VARCHAR(20);
 
-UPDATE public.product_skus
-SET inspection_requirement = 'INHERIT'
-WHERE inspection_requirement IS NULL;
+ALTER TABLE public.receipt_event_item
+    ADD COLUMN IF NOT EXISTS inspection_required BOOLEAN,
+    ADD COLUMN IF NOT EXISTS quality_status_at_receipt VARCHAR(30);
+
+-- Both source tables already use FORCE ROW LEVEL SECURITY. Backfill inside
+-- one explicit tenant context at a time; never relax FORCE RLS for migration.
+DO $receiving_inspection_backfill$
+DECLARE
+    company_record RECORD;
+BEGIN
+    FOR company_record IN SELECT id FROM public.tenants ORDER BY id LOOP
+        PERFORM set_config('app.company_id', company_record.id::TEXT, TRUE);
+
+        UPDATE public.product_skus
+        SET inspection_requirement = 'INHERIT'
+        WHERE company_id = company_record.id
+          AND inspection_requirement IS NULL;
+
+        UPDATE public.receipt_event_item
+        SET inspection_required = FALSE,
+            quality_status_at_receipt = 'AVAILABLE'
+        WHERE company_id = company_record.id
+          AND (inspection_required IS NULL OR quality_status_at_receipt IS NULL);
+    END LOOP;
+
+    PERFORM set_config('app.company_id', '', TRUE);
+END
+$receiving_inspection_backfill$;
 
 ALTER TABLE public.product_skus
     ALTER COLUMN inspection_requirement SET DEFAULT 'INHERIT',
     ALTER COLUMN inspection_requirement SET NOT NULL,
     ADD CONSTRAINT ck_product_skus_inspection_requirement
         CHECK (inspection_requirement IN ('INHERIT', 'REQUIRED', 'EXEMPT'));
-
-ALTER TABLE public.receipt_event_item
-    ADD COLUMN IF NOT EXISTS inspection_required BOOLEAN,
-    ADD COLUMN IF NOT EXISTS quality_status_at_receipt VARCHAR(30);
-
-UPDATE public.receipt_event_item
-SET inspection_required = FALSE,
-    quality_status_at_receipt = 'AVAILABLE'
-WHERE inspection_required IS NULL OR quality_status_at_receipt IS NULL;
 
 ALTER TABLE public.receipt_event_item
     ALTER COLUMN inspection_required SET DEFAULT FALSE,

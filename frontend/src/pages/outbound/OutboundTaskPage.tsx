@@ -10,7 +10,9 @@ import {
   batchDispatchOutboundTasks,
   dispatchOutboundTask,
   listOutboundTasks,
+  resolveOutboundCommandAttempt,
   type ConfirmDispatchPayload,
+  type OutboundCommandAttempt,
   type OutboundTask,
   type OutboundTaskStatus,
 } from '../../api/outbound';
@@ -37,6 +39,8 @@ export function OutboundTaskPage(): JSX.Element {
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [detailTask, setDetailTask] = useState<OutboundTask>();
   const [confirmTask, setConfirmTask] = useState<OutboundTask>();
+  const singleAttempt = useRef<OutboundCommandAttempt>();
+  const batchAttempt = useRef<OutboundCommandAttempt>();
   const { i18n, t } = useTranslation();
   const { message, modal } = AntdApp.useApp();
 
@@ -46,9 +50,13 @@ export function OutboundTaskPage(): JSX.Element {
   }, [status]);
 
   const singleMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ConfirmDispatchPayload }) => dispatchOutboundTask(id, payload),
+    mutationFn: ({ id, payload, idempotencyKey }: { id: number; payload: ConfirmDispatchPayload; idempotencyKey: string }) =>
+      dispatchOutboundTask(id, payload, idempotencyKey),
   });
-  const batchMutation = useMutation({ mutationFn: batchDispatchOutboundTasks });
+  const batchMutation = useMutation({
+    mutationFn: ({ taskIds, idempotencyKey }: { taskIds: number[]; idempotencyKey: string }) =>
+      batchDispatchOutboundTasks(taskIds, idempotencyKey),
+  });
 
   const refresh = (): void => {
     setSelectedRowKeys([]);
@@ -57,8 +65,20 @@ export function OutboundTaskPage(): JSX.Element {
 
   const submitSingle = async (payload: ConfirmDispatchPayload): Promise<void> => {
     if (confirmTask?.id === undefined) return;
+    const attempt = resolveOutboundCommandAttempt(
+      singleAttempt.current,
+      'dispatch',
+      confirmTask.id,
+      payload,
+    );
+    singleAttempt.current = attempt;
     try {
-      await singleMutation.mutateAsync({ id: confirmTask.id, payload });
+      await singleMutation.mutateAsync({
+        id: confirmTask.id,
+        payload,
+        idempotencyKey: attempt.key,
+      });
+      singleAttempt.current = undefined;
       message.success(t('outbound.messages.confirmed'));
       setConfirmTask(undefined);
       setDetailTask(undefined);
@@ -79,9 +99,20 @@ export function OutboundTaskPage(): JSX.Element {
       content: t('outbound.batch.notice', { count: taskIds.length }),
       okText: t('outbound.actions.batchConfirm'),
       cancelText: t('common.cancel'),
+      onCancel: () => {
+        batchAttempt.current = undefined;
+      },
       onOk: async () => {
+        const attempt = resolveOutboundCommandAttempt(
+          batchAttempt.current,
+          'batch-dispatch',
+          taskIds.join('-'),
+          { taskIds },
+        );
+        batchAttempt.current = attempt;
         try {
-          await batchMutation.mutateAsync(taskIds);
+          await batchMutation.mutateAsync({ taskIds, idempotencyKey: attempt.key });
+          batchAttempt.current = undefined;
           message.success(t('outbound.messages.batchConfirmed', { count: taskIds.length }));
           refresh();
         } catch (error) {
@@ -178,7 +209,10 @@ export function OutboundTaskPage(): JSX.Element {
       />
       <OutboundConfirmModal
         loading={singleMutation.isPending}
-        onCancel={() => setConfirmTask(undefined)}
+        onCancel={() => {
+          singleAttempt.current = undefined;
+          setConfirmTask(undefined);
+        }}
         onConfirm={submitSingle}
         open={confirmTask !== undefined}
         task={confirmTask}

@@ -1,5 +1,7 @@
 # BC ERP-WMS 系统开发文档
 
+> **历史资料，禁止作为当前接口或操作指令。** 本文是 2026-01 的 v3.3 快照，包含已经退役的库存调整、采购直接收货和客户端填写操作人示例。当前接口以 `docs/frontend/openapi.json` 为准，P0 之后的业务口径见 `docs/TENANT_ERP_A1_IMPLEMENTATION_REPORT_2026-09-01.md`。
+
 > 版本：v3.3
 > 更新日期：2026-01-17
 > 作者：WMS Team

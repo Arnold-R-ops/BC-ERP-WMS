@@ -10,10 +10,15 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import jakarta.persistence.LockModeType;
 
 @Repository
 public interface InventoryReservationRepository extends JpaRepository<InventoryReservation, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM InventoryReservation r WHERE r.id = :id")
+    Optional<InventoryReservation> findByIdForUpdate(@Param("id") Long id);
 
     List<InventoryReservation> findBySalesOrderId(Long salesOrderId);
 

@@ -3767,6 +3767,14 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -8038,43 +8046,12 @@
         }
       }
     },
-    "/api/inventory/reservations/{reservationId}/release": {
-      "post": {
-        "tags": [
-          "inventory-reservation-controller"
-        ],
-        "operationId": "release",
-        "parameters": [
-          {
-            "name": "reservationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/InventoryReservationResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/inventory-quality/releases": {
       "post": {
         "tags": [
           "inventory-quality-controller"
         ],
-        "operationId": "release_1",
+        "operationId": "release",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -14394,7 +14371,7 @@
             "format": "int32"
           },
           "unitPrice": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -14678,7 +14655,7 @@
             ]
           },
           "approvalAmountThreshold": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -14845,10 +14822,10 @@
           "active": {
             "type": "boolean"
           },
-          "assignableToUsers": {
+          "privilegedRole": {
             "type": "boolean"
           },
-          "privilegedRole": {
+          "assignableToUsers": {
             "type": "boolean"
           },
           "systemRole": {
@@ -15475,7 +15452,7 @@
             "format": "int32"
           },
           "unitCost": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -15616,12 +15593,6 @@
             "type": "string",
             "format": "date-time"
           },
-          "exhausted": {
-            "type": "boolean"
-          },
-          "expiringSoon": {
-            "type": "boolean"
-          },
           "daysUntilExpiry": {
             "type": "integer",
             "format": "int64"
@@ -15629,6 +15600,12 @@
           "usageRate": {
             "type": "number",
             "format": "double"
+          },
+          "expiringSoon": {
+            "type": "boolean"
+          },
+          "exhausted": {
+            "type": "boolean"
           },
           "expired": {
             "type": "boolean"
@@ -15691,12 +15668,12 @@
             "type": "string",
             "format": "date-time"
           },
+          "fullyReceived": {
+            "type": "boolean"
+          },
           "remainingQuantity": {
             "type": "integer",
             "format": "int32"
-          },
-          "fullyReceived": {
-            "type": "boolean"
           }
         }
       },
@@ -16223,12 +16200,12 @@
             "type": "string"
           },
           "unitPrice": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
           "minSalesPrice": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -17227,16 +17204,16 @@
             "type": "string"
           },
           "vatRate": {
-            "maximum": 100.0,
+            "maximum": 100,
             "exclusiveMaximum": false,
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
           "secondaryTaxRate": {
-            "maximum": 100.0,
+            "maximum": 100,
             "exclusiveMaximum": false,
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -17246,7 +17223,7 @@
             "type": "string"
           },
           "creditLimit": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -18156,7 +18133,7 @@
             "format": "int32"
           },
           "unitPrice": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -19156,7 +19133,7 @@
             ]
           },
           "refundAmount": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -19245,7 +19222,7 @@
             "type": "string"
           },
           "amount": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -20092,7 +20069,7 @@
             "format": "int32"
           },
           "unitCost": {
-            "minimum": 0.0,
+            "minimum": 0,
             "exclusiveMinimum": false,
             "type": "number"
           },
@@ -21466,85 +21443,6 @@
             "maxLength": 500,
             "minLength": 0,
             "type": "string"
-          }
-        }
-      },
-      "InventoryReservationResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "salesOrderId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "salesOrderItemId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "inventoryBatchId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "batchCode": {
-            "type": "string"
-          },
-          "productSkuId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "productName": {
-            "type": "string"
-          },
-          "locationId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "locationCode": {
-            "type": "string"
-          },
-          "reservedQty": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "consumedQty": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "releasedQty": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "openQty": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "status": {
-            "type": "string"
-          },
-          "statusDescription": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "sourceType": {
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -23408,10 +23306,10 @@
           "active": {
             "type": "boolean"
           },
-          "buttonPermission": {
+          "menuPermission": {
             "type": "boolean"
           },
-          "menuPermission": {
+          "buttonPermission": {
             "type": "boolean"
           },
           "apiPermission": {
@@ -23784,18 +23682,18 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
           "numberOfElements": {
             "type": "integer",
             "format": "int32"
           },
           "pageable": {
             "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           },
           "empty": {
             "type": "boolean"
@@ -23815,9 +23713,6 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "unpaged": {
-            "type": "boolean"
-          },
           "pageSize": {
             "type": "integer",
             "format": "int32"
@@ -23828,6 +23723,9 @@
           "pageNumber": {
             "type": "integer",
             "format": "int32"
+          },
+          "unpaged": {
+            "type": "boolean"
           }
         }
       },
@@ -24304,18 +24202,18 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
           "numberOfElements": {
             "type": "integer",
             "format": "int32"
           },
           "pageable": {
             "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           },
           "empty": {
             "type": "boolean"
@@ -24449,18 +24347,18 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
           "numberOfElements": {
             "type": "integer",
             "format": "int32"
           },
           "pageable": {
             "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           },
           "empty": {
             "type": "boolean"
@@ -24536,18 +24434,18 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
           "numberOfElements": {
             "type": "integer",
             "format": "int32"
           },
           "pageable": {
             "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           },
           "empty": {
             "type": "boolean"
@@ -24936,18 +24834,18 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
           "numberOfElements": {
             "type": "integer",
             "format": "int32"
           },
           "pageable": {
             "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           },
           "empty": {
             "type": "boolean"
@@ -24971,6 +24869,85 @@
           },
           "specs": {
             "type": "string"
+          }
+        }
+      },
+      "InventoryReservationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "salesOrderId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "salesOrderItemId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "inventoryBatchId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "batchCode": {
+            "type": "string"
+          },
+          "productSkuId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "locationCode": {
+            "type": "string"
+          },
+          "reservedQty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "consumedQty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "releasedQty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openQty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "statusDescription": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -25291,18 +25268,18 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
           "numberOfElements": {
             "type": "integer",
             "format": "int32"
           },
           "pageable": {
             "$ref": "#/components/schemas/PageableObject"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           },
           "empty": {
             "type": "boolean"

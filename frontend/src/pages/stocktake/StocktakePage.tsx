@@ -9,6 +9,7 @@ import { listActiveWarehouses } from '../../api/masterData';
 import { paginateArray } from '../../api/pagination';
 import {
   createStocktakeTask,
+  resolveStocktakeReviewAttempt,
   reviewStocktake,
   startStocktake,
   STOCKTAKE_TASKS_QUERY_KEY,
@@ -17,6 +18,7 @@ import {
   type CreateStocktakePayload,
   type ReviewStocktakePayload,
   type StocktakeItem,
+  type StocktakeReviewAttempt,
   type StocktakeStatus,
   type StocktakeTask,
   type SubmitCountPayload,
@@ -45,6 +47,7 @@ export function StocktakePage(): JSX.Element {
   const [selectedTaskId, setSelectedTaskId] = useState<number>();
   const [countItem, setCountItem] = useState<StocktakeItem>();
   const [reviewTask, setReviewTask] = useState<StocktakeTask>();
+  const reviewAttempt = useRef<StocktakeReviewAttempt>();
   const { session } = useAuth();
   const capabilities = getStocktakeCapabilities(session?.currentRole, session?.permissionCodes);
   const { i18n, t } = useTranslation();
@@ -68,7 +71,8 @@ export function StocktakePage(): JSX.Element {
       submitStocktakeCount(taskId, itemId, payload),
   });
   const reviewMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ReviewStocktakePayload }) => reviewStocktake(id, payload),
+    mutationFn: ({ id, payload, idempotencyKey }: { id: number; payload: ReviewStocktakePayload; idempotencyKey: string }) =>
+      reviewStocktake(id, payload, idempotencyKey),
   });
 
   const submitCreate = async (payload: CreateStocktakePayload): Promise<void> => {
@@ -111,8 +115,11 @@ export function StocktakePage(): JSX.Element {
 
   const submitReview = async (payload: ReviewStocktakePayload): Promise<void> => {
     if (!reviewTask?.id) return;
+    const attempt = resolveStocktakeReviewAttempt(reviewAttempt.current, reviewTask.id, payload);
+    reviewAttempt.current = attempt;
     try {
-      await reviewMutation.mutateAsync({ id: reviewTask.id, payload });
+      await reviewMutation.mutateAsync({ id: reviewTask.id, payload, idempotencyKey: attempt.key });
+      reviewAttempt.current = undefined;
       message.success(t(payload.approved ? 'stocktake.messages.approved' : 'stocktake.messages.rejected'));
       setReviewTask(undefined);
       await refresh();
@@ -181,7 +188,16 @@ export function StocktakePage(): JSX.Element {
         taskId={selectedTaskId}
       />
       <StocktakeCountModal item={countItem} loading={countMutation.isPending} onCancel={() => setCountItem(undefined)} onConfirm={submitCount} open={countItem !== undefined} />
-      <StocktakeReviewModal loading={reviewMutation.isPending} onCancel={() => setReviewTask(undefined)} onConfirm={submitReview} open={reviewTask !== undefined} task={reviewTask} />
+      <StocktakeReviewModal
+        loading={reviewMutation.isPending}
+        onCancel={() => {
+          reviewAttempt.current = undefined;
+          setReviewTask(undefined);
+        }}
+        onConfirm={submitReview}
+        open={reviewTask !== undefined}
+        task={reviewTask}
+      />
     </section>
   );
 }

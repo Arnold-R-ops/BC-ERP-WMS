@@ -5,10 +5,13 @@ import com.wms.system.entity.*;
 import com.wms.system.entity.enums.BatchTrackingMode;
 import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.SourceType;
-import com.wms.system.entity.enums.TransactionType;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.*;
+import com.wms.system.service.inventory.InventoryPostingCommand;
+import com.wms.system.service.inventory.InventoryPostingService;
+import com.wms.system.service.inventory.PostingContext;
+import com.wms.system.tenant.context.CompanyScope;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +38,8 @@ import java.util.stream.Collectors;
  * Core Responsibilities:
  * 1. Confirm physical dispatch for one task (confirmDispatch)
  * 2. Atomically confirm dispatch for multiple tasks (batchConfirmDispatch)
- * 3. Deduct inventory from batches (deductInventory)
- * 4. Record stock transactions (recordStockTransaction)
+ * 3. Consume any sales reservation
+ * 4. Post inventory, ledger and Outbox through InventoryPostingService
  * 5. Check order completion status (checkOrderCompletion)
  *
  * Business Flow:
@@ -65,7 +68,6 @@ public class OutboundService {
 
     private final OutboundTaskRepository outboundTaskRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final StockTransactionRepository stockTransactionRepository;
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
@@ -73,6 +75,7 @@ public class OutboundService {
     private final LocationRepository locationRepository;
     private final LocationOccupancyService locationOccupancyService;
     private final SalesOrderStatusProjectionService statusProjectionService;
+    private final InventoryPostingService inventoryPostingService;
 
     /**
      * ⭐ Confirm Physical Dispatch for Single Task (确认单个任务发货)
@@ -187,7 +190,28 @@ public class OutboundService {
             );
         }
 
-        verifyPickingIdentity(task, scannedLocationId, skuCode, scannedBatchCode);
+        LockedDispatch locked = lockDispatchResources(task);
+        task = locked.task();
+
+        // Revalidate after acquiring the authoritative batch/reservation/task locks.
+        if (!task.canConfirmDispatch()) {
+            if (task.getStatus() == OutboundTaskStatus.COMPLETED) {
+                throw new BusinessException(
+                    ErrorKeys.OUTBOUND_TASK_ALREADY_COMPLETED,
+                    Map.of("taskId", taskId)
+                );
+            }
+            throw new BusinessException(
+                ErrorKeys.OUTBOUND_TASK_INVALID_STATUS,
+                Map.of(
+                    "taskId", taskId,
+                    "currentStatus", task.getStatus().name(),
+                    "requiredStatus", "PENDING or PICKING"
+                )
+            );
+        }
+        verifyPickingIdentity(task, locked.batch(), scannedLocationId, skuCode, scannedBatchCode);
+        requireDispatchableQuantity(locked.batch(), actualQty);
 
         // 4. Update task
         task.setActualQty(actualQty);
@@ -201,15 +225,8 @@ public class OutboundService {
             savedTask.getId(), savedTask.getStatus(), savedTask.getActualQty(),
             savedTask.getPickedBy(), savedTask.getPickedAt());
 
-        // 5. Deduct inventory or consume the V4.5 reservation
-        if (task.getReservationId() != null) {
-            consumeReservation(task, actualQty);
-        } else {
-            deductInventory(task.getAssignedBatchId(), actualQty);
-        }
-
-        // 6. Record stock transaction
-        recordStockTransaction(task, actualQty, operatorId, operatorName);
+        // 5-6. Consume any reservation and post quantity/ledger/Outbox atomically.
+        postDispatch(locked, actualQty, operatorId, operatorName);
 
         updateSalesOrderItemShipment(task.getSalesOrderItemId(), actualQty);
 
@@ -222,16 +239,11 @@ public class OutboundService {
 
     private void verifyPickingIdentity(
         OutboundTask task,
+        InventoryBatch batch,
         Long scannedLocationId,
         String skuCode,
         String scannedBatchCode
     ) {
-        InventoryBatch batch = inventoryBatchRepository.findById(task.getAssignedBatchId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.BATCH_NOT_FOUND,
-                Map.of("batchId", task.getAssignedBatchId())
-            ));
-
         ProductSku product = batch.getProductSku();
         if (product.getBatchTrackingMode() == BatchTrackingMode.LOCATION_VISUAL) {
             if (scannedLocationId != null && !scannedLocationId.equals(task.getLocationId())) {
@@ -312,113 +324,69 @@ public class OutboundService {
             );
         }
 
-        List<OutboundTaskResponse> responses = new ArrayList<>();
-
-        for (Long taskId : taskIds) {
-            // Get task to retrieve planQty
+        List<BatchDispatchTarget> targets = new ArrayList<>();
+        for (int index = 0; index < taskIds.size(); index++) {
+            Long taskId = taskIds.get(index);
             OutboundTask task = outboundTaskRepository.findById(taskId)
                 .orElseThrow(() -> new BusinessException(
                     ErrorKeys.OUTBOUND_TASK_NOT_FOUND,
                     Map.of("taskId", taskId)
                 ));
+            targets.add(new BatchDispatchTarget(
+                index,
+                task.getId(),
+                task.getAssignedBatchId(),
+                task.getReservationId(),
+                task.getSalesOrderId(),
+                task.getPlanQty()
+            ));
+        }
 
-            // Confirm dispatch with planQty as actualQty
+        // Serialize every affected sales order first. This keeps dispatch in
+        // the same leading lock order as order cancellation/closure and avoids
+        // an order-vs-inventory deadlock across multi-order batches.
+        targets.stream()
+            .map(BatchDispatchTarget::salesOrderId)
+            .distinct()
+            .sorted()
+            .forEach(orderId -> salesOrderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new BusinessException(
+                    ErrorKeys.SALES_ORDER_NOT_FOUND,
+                    Map.of("salesOrderId", orderId)
+                )));
+
+        // After the order locks, every batch request acquires remaining locks
+        // in the same batch/reservation/task order.
+        targets.sort(Comparator
+            .comparing(BatchDispatchTarget::batchId)
+            .thenComparing(BatchDispatchTarget::reservationId,
+                Comparator.nullsFirst(Comparator.naturalOrder()))
+            .thenComparing(BatchDispatchTarget::taskId));
+        OutboundTaskResponse[] orderedResponses = new OutboundTaskResponse[taskIds.size()];
+
+        for (BatchDispatchTarget target : targets) {
             OutboundTaskResponse response = confirmDispatch(
-                taskId,
-                task.getPlanQty(),
+                target.taskId(),
+                target.planQty(),
                 operatorId,
                 operatorName
             );
-
-            responses.add(response);
+            orderedResponses[target.originalIndex()] = response;
         }
+
+        List<OutboundTaskResponse> responses = java.util.Arrays.asList(orderedResponses);
 
         log.info("Batch confirm completed: totalTasks={}, operatorId={}", responses.size(), operatorId);
 
         return responses;
     }
 
-    /**
-     * Deduct Inventory from Batch (扣减批次库存)
-     *
-     * Business Logic:
-     * - Update inventory_batch.quantity -= quantity
-     * - If batch quantity reaches 0, set active = false
-     * - Use optimistic locking to prevent overselling
-     *
-     * @param batchId Batch ID
-     * @param quantity Quantity to deduct
-     * @throws BusinessException if batch not found or insufficient stock
-     */
-    private void deductInventory(Long batchId, Integer quantity) {
-        log.info("Deducting inventory: batchId={}, quantity={}", batchId, quantity);
-
-        // 1. Query batch
-        InventoryBatch batch = inventoryBatchRepository.findById(batchId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.BATCH_NOT_FOUND,
-                Map.of("batchId", batchId)
-            ));
-
-        // 2. Validate batch is active
-        if (!batch.getActive()) {
-            log.error("Batch is inactive: batchId={}, batchCode={}", batchId, batch.getBatchCode());
-
-            throw new BusinessException(
-                ErrorKeys.BATCH_INACTIVE,
-                Map.of(
-                    "batchId", batchId,
-                    "batchCode", batch.getBatchCode()
-                )
-            );
-        }
-
-        requireSaleable(batch);
-
-        // 3. Validate sufficient stock
-        if (batch.getQuantity() < quantity) {
-            log.error("Insufficient batch stock: batchId={}, batchCode={}, available={}, requested={}",
-                batchId, batch.getBatchCode(), batch.getQuantity(), quantity);
-
-            throw new BusinessException(
-                ErrorKeys.BATCH_STOCK_INSUFFICIENT,
-                Map.of(
-                    "batchId", batchId,
-                    "batchCode", batch.getBatchCode(),
-                    "availableQuantity", batch.getQuantity(),
-                    "requestedQuantity", quantity,
-                    "shortage", quantity - batch.getQuantity()
-                )
-            );
-        }
-
-        // 4. Deduct quantity
-        Integer quantityBefore = batch.getQuantity();
-        batch.decreaseQuantity(quantity);  // This method throws exception if insufficient
-
-        // 5. If quantity reaches 0, set active = false
-        if (batch.getQuantity() == 0) {
-            batch.setActive(false);
-            log.info("Batch exhausted, setting active=false: batchId={}, batchCode={}",
-                batchId, batch.getBatchCode());
-        }
-
-        // 6. Save batch
-        InventoryBatch savedBatch = inventoryBatchRepository.save(batch);
-        locationOccupancyService.refreshLocationStatus(savedBatch.getLocation() == null ? null : savedBatch.getLocation().getId());
-
-        log.info("Inventory deducted: batchId={}, batchCode={}, before={}, after={}, deducted={}, active={}",
-            savedBatch.getId(), savedBatch.getBatchCode(), quantityBefore,
-            savedBatch.getQuantity(), quantity, savedBatch.getActive());
-    }
-
-    private void consumeReservation(OutboundTask task, Integer actualQty) {
-        InventoryReservation reservation = inventoryReservationRepository.findById(task.getReservationId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.INVENTORY_RESERVATION_NOT_FOUND,
-                Map.of("reservationId", task.getReservationId())
-            ));
-
+    private void consumeReservation(
+        OutboundTask task,
+        InventoryBatch batch,
+        InventoryReservation reservation,
+        Integer actualQty
+    ) {
         if (!reservation.hasOpenQuantity() || reservation.getOpenQty() < actualQty) {
             throw new BusinessException(
                 ErrorKeys.INVENTORY_RESERVATION_INVALID_STATUS,
@@ -431,35 +399,127 @@ public class OutboundService {
             );
         }
 
-        InventoryBatch batch = inventoryBatchRepository.findById(reservation.getInventoryBatchId())
+        if (!reservation.getInventoryBatchId().equals(task.getAssignedBatchId())
+            || !reservation.getSalesOrderId().equals(task.getSalesOrderId())
+            || !reservation.getSalesOrderItemId().equals(task.getSalesOrderItemId())
+            || !reservation.getProductSkuId().equals(batch.getProductSku().getId())
+            || !reservation.getLocationId().equals(task.getLocationId())) {
+            throw new BusinessException(
+                ErrorKeys.INVENTORY_RESERVATION_INVALID_STATUS,
+                Map.of("reservationId", reservation.getId(), "taskId", task.getId())
+            );
+        }
+
+        batch.releaseReservedQuantity(actualQty);
+        inventoryBatchRepository.saveAndFlush(batch);
+        reservation.consume(actualQty);
+        inventoryReservationRepository.save(reservation);
+
+        log.info("Reservation prepared for dispatch posting: reservationId={}, batchId={}, consumed={}, status={}",
+            reservation.getId(), batch.getId(), actualQty, reservation.getStatus());
+    }
+
+    private LockedDispatch lockDispatchResources(OutboundTask snapshot) {
+        SalesOrder salesOrder = salesOrderRepository.findByIdForUpdate(snapshot.getSalesOrderId())
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.SALES_ORDER_NOT_FOUND,
+                Map.of("salesOrderId", snapshot.getSalesOrderId())
+            ));
+        InventoryBatch batch = inventoryBatchRepository.findByIdForPosting(snapshot.getAssignedBatchId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.BATCH_NOT_FOUND,
-                Map.of("batchId", reservation.getInventoryBatchId())
+                Map.of("batchId", snapshot.getAssignedBatchId())
             ));
 
+        InventoryReservation reservation = null;
+        if (snapshot.getReservationId() != null) {
+            reservation = inventoryReservationRepository.findByIdForUpdate(snapshot.getReservationId())
+                .orElseThrow(() -> new BusinessException(
+                    ErrorKeys.INVENTORY_RESERVATION_NOT_FOUND,
+                    Map.of("reservationId", snapshot.getReservationId())
+                ));
+        }
+
+        OutboundTask task = outboundTaskRepository.findByIdForUpdate(snapshot.getId())
+            .orElseThrow(() -> new BusinessException(
+                ErrorKeys.OUTBOUND_TASK_NOT_FOUND,
+                Map.of("taskId", snapshot.getId())
+            ));
+        if (!task.getAssignedBatchId().equals(batch.getId())
+            || !java.util.Objects.equals(task.getReservationId(), snapshot.getReservationId())) {
+            throw new BusinessException(
+                ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
+                Map.of("taskId", task.getId(), "reason", "DISPATCH_ASSIGNMENT_CHANGED")
+            );
+        }
+        return new LockedDispatch(task, batch, reservation, salesOrder);
+    }
+
+    private void requireDispatchableQuantity(InventoryBatch batch, Integer quantity) {
         if (!batch.getActive()) {
             throw new BusinessException(
                 ErrorKeys.BATCH_INACTIVE,
                 Map.of("batchId", batch.getId(), "batchCode", batch.getBatchCode())
             );
         }
-
         requireSaleable(batch);
+        if (batch.getQuantity() < quantity) {
+            throw new BusinessException(
+                ErrorKeys.BATCH_STOCK_INSUFFICIENT,
+                Map.of(
+                    "batchId", batch.getId(),
+                    "batchCode", batch.getBatchCode(),
+                    "availableQuantity", batch.getQuantity(),
+                    "requestedQuantity", quantity,
+                    "shortage", quantity - batch.getQuantity()
+                )
+            );
+        }
+    }
 
-        Integer quantityBefore = batch.getQuantity();
-        batch.consumeReservedQuantity(actualQty);
-        if (batch.getQuantity() == 0) {
-            batch.setActive(false);
+    private void postDispatch(
+        LockedDispatch locked,
+        Integer actualQty,
+        Long operatorId,
+        String operatorName
+    ) {
+        OutboundTask task = locked.task();
+        InventoryBatch batch = locked.batch();
+        if (locked.reservation() != null) {
+            consumeReservation(task, batch, locked.reservation(), actualQty);
         }
 
-        reservation.consume(actualQty);
-        inventoryBatchRepository.save(batch);
-        locationOccupancyService.refreshLocationStatus(batch.getLocation() == null ? null : batch.getLocation().getId());
-        inventoryReservationRepository.save(reservation);
+        SalesOrder salesOrder = locked.salesOrder();
+        Long warehouseId = batch.getLocation() == null || batch.getLocation().getWarehouse() == null
+            ? null
+            : batch.getLocation().getWarehouse().getId();
+        if (warehouseId == null) {
+            throw new BusinessException(
+                ErrorKeys.WAREHOUSE_NOT_FOUND,
+                Map.of("batchId", batch.getId())
+            );
+        }
 
-        log.info("Reservation consumed: reservationId={}, batchId={}, before={}, after={}, consumed={}, status={}",
-            reservation.getId(), batch.getId(), quantityBefore, batch.getQuantity(), actualQty,
-            reservation.getStatus());
+        String postingId = "SALE-OUT:" + task.getId();
+        inventoryPostingService.post(new InventoryPostingCommand(
+            batch.getId(),
+            batch.getProductSku().getId(),
+            task.getLocationId(),
+            -actualQty,
+            new PostingContext(
+                CompanyScope.currentCompanyId(),
+                warehouseId,
+                SourceType.SALE_OUT,
+                salesOrder.getOrderNo(),
+                "SALE_DISPATCH",
+                String.format("销售出库 - 订单号: %s", salesOrder.getOrderNo()),
+                operatorId,
+                operatorName,
+                postingId,
+                "sale-out-task:" + task.getId()
+            )
+        ));
+        locationOccupancyService.refreshLocationStatus(batch.getLocation().getId());
     }
 
     private void requireSaleable(InventoryBatch batch) {
@@ -486,72 +546,6 @@ public class OutboundService {
         int shippedQty = (item.getShippedQty() == null ? 0 : item.getShippedQty()) + actualQty;
         item.setShippedQty(shippedQty);
         salesOrderItemRepository.save(item);
-    }
-
-    /**
-     * Record Stock Transaction (记录库存流水)
-     *
-     * Business Logic:
-     * - Create StockTransaction record
-     * - Set source_type = "SALE_OUT"
-     * - Set source_order_id = sales_order.order_no
-     * - Set transaction_type = "OUT"
-     * - Set quantity = actualQty
-     * - Set operator_id and operator_name
-     * - Set remark = "销售出库 - 订单号: {orderNo}"
-     *
-     * @param task Outbound task
-     * @param actualQty Actual picked quantity
-     * @param operatorId Operator user ID
-     * @param operatorName Operator user name
-     */
-    private void recordStockTransaction(
-        OutboundTask task,
-        Integer actualQty,
-        Long operatorId,
-        String operatorName
-    ) {
-        log.info("Recording stock transaction: taskId={}, actualQty={}, operatorId={}",
-            task.getId(), actualQty, operatorId);
-
-        // 1. Get batch
-        InventoryBatch batch = inventoryBatchRepository.findById(task.getAssignedBatchId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.BATCH_NOT_FOUND,
-                Map.of("batchId", task.getAssignedBatchId())
-            ));
-
-        // 2. Get sales order
-        SalesOrder salesOrder = salesOrderRepository.findById(task.getSalesOrderId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorKeys.SALES_ORDER_NOT_FOUND,
-                Map.of("salesOrderId", task.getSalesOrderId())
-            ));
-
-        // 3. Calculate quantity before and after
-        // Note: At this point, batch quantity has already been deducted
-        Integer quantityAfter = batch.getQuantity();
-        Integer quantityBefore = quantityAfter + actualQty;
-
-        // 4. Create stock transaction
-        StockTransaction transaction = StockTransaction.builder()
-            .productSku(batch.getProductSku())
-            .location(batch.getLocation())
-            .transactionType(TransactionType.OUT)
-            .sourceType(SourceType.SALE_OUT)
-            .quantity(actualQty)
-            .quantityBefore(quantityBefore)
-            .quantityAfter(quantityAfter)
-            .sourceOrderId(salesOrder.getOrderNo())
-            .operatorId(operatorId)
-            .operatorName(operatorName)
-            .remark(String.format("销售出库 - 订单号: %s", salesOrder.getOrderNo()))
-            .build();
-
-        StockTransaction savedTransaction = stockTransactionRepository.save(transaction);
-
-        log.info("Stock transaction recorded: transactionId={}, batchCode={}, quantity={}, sourceOrderId={}",
-            savedTransaction.getId(), batch.getBatchCode(), actualQty, salesOrder.getOrderNo());
     }
 
     /**
@@ -723,5 +717,23 @@ public class OutboundService {
         int locationX = location.getPosX() == null ? 0 : location.getPosX();
         int locationY = location.getPosY() == null ? 0 : location.getPosY();
         return Math.abs(locationX - x) + Math.abs(locationY - y);
+    }
+
+    private record LockedDispatch(
+        OutboundTask task,
+        InventoryBatch batch,
+        InventoryReservation reservation,
+        SalesOrder salesOrder
+    ) {
+    }
+
+    private record BatchDispatchTarget(
+        int originalIndex,
+        Long taskId,
+        Long batchId,
+        Long reservationId,
+        Long salesOrderId,
+        Integer planQty
+    ) {
     }
 }

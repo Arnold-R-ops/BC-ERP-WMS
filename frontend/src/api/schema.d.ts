@@ -2676,22 +2676,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/reservations/{reservationId}/release": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["release"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/inventory-quality/releases": {
         parameters: {
             query?: never;
@@ -2701,7 +2685,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["release_1"];
+        post: operations["release"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5518,8 +5502,8 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             active?: boolean;
-            assignableToUsers?: boolean;
             privilegedRole?: boolean;
+            assignableToUsers?: boolean;
             systemRole?: boolean;
         };
         RoleGovernanceResult: {
@@ -5793,12 +5777,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            exhausted?: boolean;
-            expiringSoon?: boolean;
             /** Format: int64 */
             daysUntilExpiry?: number;
             /** Format: double */
             usageRate?: number;
+            expiringSoon?: boolean;
+            exhausted?: boolean;
             expired?: boolean;
         };
         PurchaseOrderItemResponse: {
@@ -5824,9 +5808,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            fullyReceived?: boolean;
             /** Format: int32 */
             remainingQuantity?: number;
-            fullyReceived?: boolean;
         };
         PurchaseOrderResponse: {
             /** Format: int64 */
@@ -7681,42 +7665,6 @@ export interface components {
             posY?: number;
             remark?: string;
         };
-        InventoryReservationResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            salesOrderId?: number;
-            /** Format: int64 */
-            salesOrderItemId?: number;
-            /** Format: int64 */
-            inventoryBatchId?: number;
-            batchCode?: string;
-            /** Format: int64 */
-            productSkuId?: number;
-            productName?: string;
-            /** Format: int64 */
-            locationId?: number;
-            locationCode?: string;
-            /** Format: int32 */
-            reservedQty?: number;
-            /** Format: int32 */
-            consumedQty?: number;
-            /** Format: int32 */
-            releasedQty?: number;
-            /** Format: int32 */
-            openQty?: number;
-            status?: string;
-            statusDescription?: string;
-            /** Format: date-time */
-            expiresAt?: string;
-            sourceType?: string;
-            /** Format: int64 */
-            createdBy?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
         InventoryQualityQuantityRequest: {
             /** Format: int64 */
             batchId: number;
@@ -8380,8 +8328,8 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
-            buttonPermission?: boolean;
             menuPermission?: boolean;
+            buttonPermission?: boolean;
             apiPermission?: boolean;
         };
         RoleGovernanceAuditDTO: {
@@ -8528,23 +8476,23 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PageableObject: {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"][];
-            unpaged?: boolean;
             /** Format: int32 */
             pageSize?: number;
             paged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
+            unpaged?: boolean;
         };
         SortObject: {
             direction?: string;
@@ -8726,11 +8674,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PlatformCompanyResponse: {
@@ -8783,11 +8731,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PlatformAuditLogResponse: {
@@ -8817,11 +8765,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         PlatformAdminRoleResponse: {
@@ -8975,11 +8923,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         SkuInfoDto: {
@@ -8988,6 +8936,42 @@ export interface components {
             skuCode?: string;
             barcode?: string;
             specs?: string;
+        };
+        InventoryReservationResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            salesOrderId?: number;
+            /** Format: int64 */
+            salesOrderItemId?: number;
+            /** Format: int64 */
+            inventoryBatchId?: number;
+            batchCode?: string;
+            /** Format: int64 */
+            productSkuId?: number;
+            productName?: string;
+            /** Format: int64 */
+            locationId?: number;
+            locationCode?: string;
+            /** Format: int32 */
+            reservedQty?: number;
+            /** Format: int32 */
+            consumedQty?: number;
+            /** Format: int32 */
+            releasedQty?: number;
+            /** Format: int32 */
+            openQty?: number;
+            status?: string;
+            statusDescription?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            sourceType?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         InventoryDetailDto: {
             /** Format: int64 */
@@ -9114,11 +9098,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             empty?: boolean;
         };
         RawEventSummary: {
@@ -11832,7 +11816,9 @@ export interface operations {
     reviewStocktake: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: number;
             };
@@ -14538,28 +14524,6 @@ export interface operations {
         };
     };
     release: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                reservationId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InventoryReservationResponse"];
-                };
-            };
-        };
-    };
-    release_1: {
         parameters: {
             query?: never;
             header: {

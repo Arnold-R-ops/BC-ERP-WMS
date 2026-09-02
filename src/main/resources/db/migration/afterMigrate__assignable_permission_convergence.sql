@@ -10,6 +10,7 @@ BEGIN
             WHERE company_id = company_record.id
               AND risk_level = 'CRITICAL' AND custom_assignable = TRUE
               AND permission_code IN (
+                  'purchase:void','purchase:approve_close_remaining',
                   'inventory_quality:review','inventory_quality:policy',
                   'receiving_inspection:review','receiving_inspection:correct','receiving_inspection:policy',
                   'inventory_disposition:execute','inventory_disposition:review','inventory_disposition:policy'

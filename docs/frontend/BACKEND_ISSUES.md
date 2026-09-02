@@ -1,5 +1,7 @@
 # 前端联调发现的后端问题
 
+> **历史联调清单（截至 2026-07）**：状态描述只代表发现问题时的代码，不应替代当前 OpenAPI 或 A1 报告。BE-012、BE-013、BE-014 和 BE-016 已随 P0-02 统一收货、唯一 DTO 和服务端认证操作者改造关闭；旧入库/采购直接收货接口不再是当前流程。
+
 更新时间：2026-07-12
 
 ## BE-001：`start-app.bat` 在当前 Windows 命令行中解析失败
@@ -79,21 +81,21 @@
 
 ## BE-012：OpenAPI 中入库 DTO 被采购同名 DTO 覆盖
 
-- 状态：生成的 TypeScript 契约错误
+- 状态：已由 P0-02 唯一命名 DTO 和重新生成契约关闭（历史现象保留）
 - 现象：采购与入库模块都存在 `ConfirmOrderRequest/ApprovalRequest` 简名。OpenAPI 只生成了一份 schema，导致 `POST /api/inbound-orders/{id}/confirm-order` 被声明成采购确认结构 `items[{itemId, expiryDate}]`；真实 Java DTO 是 `comment + confirmations[{confirmedQty, expiryDate, targetWarehouseId, targetLocationId...}]`。
 - 前端处理：入库确认请求按真实 Java Controller/DTO 手工声明类型，其余稳定响应继续复用生成类型。
 - 建议：为 DTO 添加唯一的 OpenAPI schema 名称，例如 `PurchaseConfirmOrderRequest` 与 `InboundConfirmOrderRequest`。
 
 ## BE-013：入库计划缺少供应商目录接口
 
-- 状态：限制入库计划新建体验
+- 状态：旧入库计划入口已由 P0-02 退役；当前其他入库不以该旧流程为准
 - 现象：`POST /api/inbound-orders` 强制要求 `supplierId`，但 Controller/OpenAPI 没有供应商列表或搜索端点。
 - 前端处理：暂时提供供应商 ID 数字输入并明确提示，不伪造选项。
 - 建议：提供只读、可搜索的供应商目录，至少返回 `id/code/name/active`。
 
 ## BE-014：采购接口要求客户端自行提交操作人身份
 
-- 状态：存在审计可信度和普通角色可用性风险
+- 状态：已关闭；当前写操作从认证主体解析操作者，客户端字段不再作为审计真相
 - 现象：采购创建、导入和收货请求要求 `operatorId/operatorName`，Controller 未从已认证的 `Authentication` 推导，而登录响应又不返回 `userId`。
 - 前端处理：通过 `GET /api/users` 按当前用户名解析 ID 后提交；若普通角色无权读取用户列表，相关写操作将无法可靠执行。
 - 建议：所有写接口从认证主体获取操作者 ID/名称，忽略客户端传入的身份字段；登录响应可补充只读 `userId` 供展示，但不能作为审计信任来源。
@@ -107,7 +109,7 @@
 
 ## BE-016：采购“部分收货”只能按完整批次操作
 
-- 状态：与页面规格中的按行实收数量存在差异
+- 状态：旧采购直接收货模型已由 P0-02 统一收货任务取代（历史现象保留）
 - 现象：确认 ASN 时每条采购明细只生成一个、数量等于订购量的批次；收货接口只接收 `batchCode + locationId`，没有 `actualQty`。因此只能通过选择部分明细批次实现部分收货，不能对单个批次分批实收。
 - 前端处理：收货界面明确按完整待上架批次分配库位，不提供无效的数量输入。
 - 建议：确认真实业务需要后，选择“ASN 时支持拆分多个批次”或“收货请求增加批次数量并维护剩余数量”其中一种模型，避免界面承诺后端无法执行的部分收货。

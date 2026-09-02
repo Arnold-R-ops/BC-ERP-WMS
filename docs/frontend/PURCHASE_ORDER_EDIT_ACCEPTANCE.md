@@ -1,5 +1,7 @@
 # ORDERING 采购单再次编辑验收
 
+> **历史验收快照（截至 2026-08-09）**：本文记录旧 `ORDERING` 采购流程的阶段验收，不是当前状态、接口或页面规格。当前采购、ASN 和统一收货流程已由 P0-02 取代，发布边界以 `TENANT_ERP_A1_IMPLEMENTATION_REPORT_2026-09-01.md`、`02_PAGE_SPECS.md` 和实时 OpenAPI 为准。
+
 ## 已实现范围
 
 - 仅 `ORDERING` 状态显示“编辑并保存”入口。
