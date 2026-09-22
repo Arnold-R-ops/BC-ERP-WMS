@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="fixture.Suite" tests="4" failures="0" errors="0" skipped="0">
+  <testcase name="alpha" classname="fixture.Suite"/>
+  <testcase classname="fixture.Suite" name="beta">
+    <system-out><![CDATA[synthetic output with <testcase name="not-a-method"/> text]]></system-out>
+  </testcase>
+  <testcase name="gamma" classname="fixture.Suite" />
+  <testcase name="delta" classname="fixture.Suite"><system-err>synthetic text</system-err></testcase>
+</testsuite>
