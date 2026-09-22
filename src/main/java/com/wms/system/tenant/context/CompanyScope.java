@@ -36,6 +36,13 @@ public final class CompanyScope {
 
         Long principalCompanyId = companyIdFrom(
             SecurityContextHolder.getContext().getAuthentication());
+        var admission = com.wms.system.tenant.security.TenantExecutionScope.current();
+        if (admission != null) {
+            if ((hostCompanyId != null && hostCompanyId != admission.tenantId())
+                    || (principalCompanyId != null && principalCompanyId != admission.tenantId()))
+                throw new IllegalStateException("Tenant admission does not match authenticated company");
+            if (hostCompanyId == null && principalCompanyId == null) return admission.tenantId();
+        }
 
         if (hostCompanyId != null && principalCompanyId != null
                 && !hostCompanyId.equals(principalCompanyId)) {

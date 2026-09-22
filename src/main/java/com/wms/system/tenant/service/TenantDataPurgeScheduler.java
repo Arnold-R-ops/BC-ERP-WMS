@@ -10,6 +10,7 @@ import java.time.OffsetDateTime;
 
 @Slf4j
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "wms.tenancy.purge-enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class TenantDataPurgeScheduler {
     private final TenantRepository tenantRepository;

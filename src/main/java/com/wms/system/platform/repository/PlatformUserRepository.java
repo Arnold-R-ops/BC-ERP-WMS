@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface PlatformUserRepository extends JpaRepository<PlatformUser, Long> {
+    // Serialize MFA writes with account/session revocation, while allowing audit FK checks.
+    @Query(value = "select * from platform_users where id = :id for no key update", nativeQuery = true)
+    Optional<PlatformUser> findByIdForSessionUpdate(@Param("id") Long id);
+
     Optional<PlatformUser> findByNormalizedEmail(String normalizedEmail);
 
     Optional<PlatformUser> findByNormalizedEmailAndEnabledTrue(String normalizedEmail);

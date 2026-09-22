@@ -31,6 +31,7 @@ public class JwtUtil {
     static final String CLAIM_CURRENT_ROLE = "current_role";
     static final String CLAIM_AVAILABLE_ROLES = "available_roles";
     static final String CLAIM_SECURITY_VERSION = "security_version";
+    static final String CLAIM_TENANT_SESSION_VERSION = "tenant_session_version";
     static final String CLAIM_SESSION_STARTED_AT = "session_started_at";
     static final String CLAIM_PLATFORM_EMAIL = "normalized_email";
     static final String CLAIM_PLATFORM_ROLES = "platform_roles";
@@ -71,9 +72,20 @@ public class JwtUtil {
         Long securityVersion,
         long sessionStartedAtEpochMillis
     ) {
+        // Compatibility overload: initial-version tokens cannot survive the first suspension.
+        var scope = com.wms.system.tenant.security.TenantExecutionScope.current();
+        long tenantVersion = scope == null ? 1L : java.util.Objects.requireNonNull(scope.sessionVersion(), "Unpinned tenant admission");
+        if (scope != null && scope.tenantId() != companyId) throw new IllegalArgumentException("Token tenant differs from admission");
+        return generateTenantToken(userId, companyId, username, currentRole, availableRoles,
+            securityVersion, sessionStartedAtEpochMillis, tenantVersion);
+    }
+
+    public String generateTenantToken(Long userId, Long companyId, String username, String currentRole,
+            List<String> availableRoles, Long securityVersion, long sessionStartedAtEpochMillis, long tenantSessionVersion) {
         requirePositive(userId, "userId");
         requirePositive(companyId, "companyId");
         requirePositive(securityVersion, "securityVersion");
+        requirePositive(tenantSessionVersion, "tenantSessionVersion");
         if (sessionStartedAtEpochMillis <= 0) {
             throw new IllegalArgumentException("sessionStartedAtEpochMillis must be positive");
         }
@@ -87,7 +99,8 @@ public class JwtUtil {
             CLAIM_CURRENT_ROLE, currentRole,
             CLAIM_AVAILABLE_ROLES, sanitizeRoles(availableRoles),
             CLAIM_SECURITY_VERSION, securityVersion,
-            CLAIM_SESSION_STARTED_AT, sessionStartedAtEpochMillis
+            CLAIM_SESSION_STARTED_AT, sessionStartedAtEpochMillis,
+            CLAIM_TENANT_SESSION_VERSION, tenantSessionVersion
         );
         long now = System.currentTimeMillis();
         long absoluteSessionEnd = Math.addExact(
@@ -124,6 +137,15 @@ public class JwtUtil {
         List<String> roles,
         Long securityVersion
     ) {
+        long now = System.currentTimeMillis() / 1000 * 1000;
+        // Signing alone never registers a backend session. Used by token-level tests.
+        return generatePlatformToken(platformUserId, normalizedEmail, roles, securityVersion,
+            java.util.UUID.randomUUID(), now, now + Math.min(properties.getPlatformExpiration(), 43_200_000L));
+    }
+
+    public String generatePlatformToken(Long platformUserId, String normalizedEmail,
+            List<String> roles, Long securityVersion, java.util.UUID sessionId,
+            long startedAt, long expiresAt) {
         requirePositive(platformUserId, "platformUserId");
         requirePositive(securityVersion, "securityVersion");
         requireText(normalizedEmail, "normalizedEmail");
@@ -132,14 +154,15 @@ public class JwtUtil {
             CLAIM_PLATFORM_EMAIL, normalizedEmail,
             CLAIM_PRINCIPAL_TYPE, JwtPrincipalType.PLATFORM.name(),
             CLAIM_PLATFORM_ROLES, sanitizeRoles(roles),
-            CLAIM_SECURITY_VERSION, securityVersion
+            CLAIM_SECURITY_VERSION, securityVersion,
+            "platform_session_id", sessionId.toString()
         );
-        return buildToken(
+        return buildTokenAt(
             platformUserId,
             claims,
             properties.getPlatformAudience(),
             platformSigningKey,
-            properties.getPlatformExpiration()
+            startedAt, expiresAt
         );
     }
 
@@ -162,7 +185,8 @@ public class JwtUtil {
             optionalPositiveLong(
                 claims.get(CLAIM_SESSION_STARTED_AT),
                 claims.getIssuedAt().getTime(),
-                CLAIM_SESSION_STARTED_AT)
+                CLAIM_SESSION_STARTED_AT),
+            optionalPositiveLong(claims.get(CLAIM_TENANT_SESSION_VERSION), 1L, CLAIM_TENANT_SESSION_VERSION)
         );
     }
 
@@ -180,7 +204,10 @@ public class JwtUtil {
             positiveLong(claims.getSubject(), "sub"),
             requiredString(claims, CLAIM_PLATFORM_EMAIL),
             stringList(claims, CLAIM_PLATFORM_ROLES),
-            positiveLong(claims.get(CLAIM_SECURITY_VERSION), CLAIM_SECURITY_VERSION)
+            positiveLong(claims.get(CLAIM_SECURITY_VERSION), CLAIM_SECURITY_VERSION),
+            claims.containsKey("platform_session_id")
+                ? java.util.UUID.fromString(requiredString(claims, "platform_session_id")) : null,
+            claims.getIssuedAt().getTime(), claims.getExpiration().getTime()
         );
     }
 

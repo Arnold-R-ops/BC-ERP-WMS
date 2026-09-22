@@ -20,6 +20,8 @@ public class PlatformExportJob {
     private String status;
     @Column(name = "requested_resource", nullable = false, length = 80)
     private String requestedResource;
+    @Column(name="access_reason",columnDefinition="TEXT")
+    private String accessReason;
     @Column(name = "file_path", length = 1000)
     private String filePath;
     @Column(name = "file_sha256", length = 64)

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class ShopifyTokenProviderTest {
+    @Mock private com.wms.system.tenant.security.TenantConnectionSafetyService tenantSafety;
 
     @Mock
     private RestTemplate restTemplate;

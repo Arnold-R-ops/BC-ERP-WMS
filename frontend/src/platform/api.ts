@@ -1,4 +1,5 @@
-import { readPlatformSession } from './storage';
+import { readPlatformSession, type PlatformSession } from './storage';
+import { browserLogoutFence, browserLogoutSnapshot, withPlatformBrowserBinding } from './browserLogout';
 
 export const PLATFORM_AUTH_UNAUTHORIZED_EVENT = 'wms:platform-auth:unauthorized';
 
@@ -107,13 +108,13 @@ async function platformResponse(path: string, init?: RequestInit): Promise<Respo
   });
   const reauthenticationFailure = await isReauthenticationFailure(response);
   if (response.status === 401 && !reauthenticationFailure) {
-    window.dispatchEvent(new CustomEvent(PLATFORM_AUTH_UNAUTHORIZED_EVENT));
+    window.dispatchEvent(new CustomEvent(PLATFORM_AUTH_UNAUTHORIZED_EVENT, { detail: { token: session.token } }));
   }
   if (!response.ok) throw new PlatformRequestError(reauthenticationFailure ? 'reauthentication' : 'request');
   return response;
 }
 
-async function platformRequest<T>(path: string, init?: RequestInit): Promise<T> {
+export async function platformRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await platformResponse(path, init);
   return response.json() as Promise<T>;
 }
@@ -129,6 +130,8 @@ export interface PlatformAuthResponse {
   roles: string[];
   expiresIn: number;
   recoveryCodes?: string[] | null;
+  /** Client-only fence; never an authentication credential or a server authorization claim. */
+  browserLogoutFence?: string;
 }
 
 export interface PlatformExportJob {
@@ -189,7 +192,27 @@ export interface PlatformEffectiveAccess {
   tenantDirectoryScope: 'ALL' | 'GRANTED' | 'NONE';
   scopes: PlatformEffectiveAccessScope[];
 }
-export interface PlatformCurrentSession { email: string; roles: string[]; mfaEnabled: boolean; expiresAt: string; }
+export interface PlatformSessionWindow { expiresAt: string; idleExpiresAt: string; serverNow: string; }
+export interface PlatformCurrentSession extends PlatformSessionWindow { email: string; roles: string[]; mfaEnabled: boolean; }
+
+export function reportPlatformActivity(): Promise<PlatformSessionWindow> {
+  return platformRequest('/api/platform/auth/session/activity', { method: 'POST', signal: AbortSignal.timeout(10_000) });
+}
+
+/** Capture credentials before clearing browser storage. Never claim success on a network error. */
+export async function revokeCurrentPlatformSession(session: PlatformSession): Promise<'revoked' | 'invalid'> {
+  const response = await fetch('/api/platform/auth/logout', {
+    method: 'POST', headers: { Authorization: `${session.tokenType} ${session.token}` },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 204) return 'revoked';
+  if (response.status === 401) {
+    const body = await response.json() as PlatformErrorBody;
+    if (['PLATFORM_SESSION_INVALIDATED', 'PLATFORM_SESSION_EXPIRED', 'PLATFORM_SESSION_IDLE_EXPIRED', 'AUTH_TOKEN_EXPIRED']
+      .includes(body.errorKey || '')) return 'invalid';
+  }
+  throw new Error('PLATFORM_LOGOUT_UNCONFIRMED');
+}
 export interface PlatformReauthenticationChallenge { challengeToken: string; expiresIn: number; }
 export interface PlatformAdminSecurityChallenge extends PlatformReauthenticationChallenge { targetSecurityVersion: number; }
 export interface PlatformAdminSecurityMutation {
@@ -266,12 +289,16 @@ export class PlatformMfaError extends Error {
 
 async function platformAuthRequest(path: string, request: object, mfaRequest = false): Promise<PlatformAuthResponse> {
   let response: Response;
+  let logoutBefore: ReturnType<typeof browserLogoutSnapshot>;
   try {
-    response = await fetch(path, {
+    logoutBefore = browserLogoutSnapshot();
+    response = await withPlatformBrowserBinding(() => fetch(path, {
       method: 'POST',
+      credentials: 'same-origin',
+      signal: AbortSignal.timeout(10_000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
-    });
+    }));
   } catch {
     if (mfaRequest) throw new PlatformMfaError('service');
     throw new PlatformLoginError('service');
@@ -305,6 +332,9 @@ async function platformAuthRequest(path: string, request: object, mfaRequest = f
   if (!body.email || !body.roles?.length || (!validChallenge && !validAuthentication)) {
     throw new PlatformLoginError('service');
   }
+  const beforeFence = logoutBefore[body.email.toLowerCase()]?.id || '';
+  if (browserLogoutFence(body.email) !== beforeFence) throw new PlatformLoginError('service');
+  body.browserLogoutFence = beforeFence;
   return body;
 }
 
@@ -321,7 +351,7 @@ export function verifyPlatformMfa(challengeToken: string, code?: string, recover
 }
 
 export function getPlatformCurrentSession(): Promise<PlatformCurrentSession> {
-  return platformRequest('/api/platform/auth/me');
+  return platformRequest('/api/platform/auth/me', { signal: AbortSignal.timeout(10_000) });
 }
 
 export function startPlatformLogoutAll(): Promise<PlatformReauthenticationChallenge> {
@@ -573,9 +603,11 @@ export function readPlatformTenantData(
   resource: string,
   page: number,
   size: number,
+  accessReason?: string,
 ): Promise<PlatformDataPage> {
   return platformRequest<PlatformDataPage>(
     `/api/platform/companies/${tenantId}/data/${encodeURIComponent(resource)}?page=${page}&size=${size}`,
+    { headers: accessReason ? { 'X-Platform-Access-Reason': encodeURIComponent(accessReason) } : {} },
   );
 }
 
@@ -598,10 +630,10 @@ export function searchPlatformAuditLogs(filters: {
   return platformRequest<PlatformAuditLogPage>(`/api/platform/audit-logs?${query.toString()}`);
 }
 
-export function createPlatformExport(tenantId: number, resource: string): Promise<PlatformExportJob> {
+export function createPlatformExport(tenantId: number, resource: string, accessReason?: string): Promise<PlatformExportJob> {
   return platformRequest<PlatformExportJob>(`/api/platform/companies/${tenantId}/exports`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(accessReason ? { 'X-Platform-Access-Reason': encodeURIComponent(accessReason) } : {}) },
     body: JSON.stringify({ resource }),
   });
 }
@@ -610,9 +642,10 @@ export function getPlatformExport(tenantId: number, jobId: string): Promise<Plat
   return platformRequest<PlatformExportJob>(`/api/platform/companies/${tenantId}/exports/${encodeURIComponent(jobId)}`);
 }
 
-export async function downloadPlatformExport(tenantId: number, jobId: string): Promise<Blob> {
+export async function downloadPlatformExport(tenantId: number, jobId: string, accessReason?: string): Promise<Blob> {
   const response = await platformResponse(
     `/api/platform/companies/${tenantId}/exports/${encodeURIComponent(jobId)}/download`,
+    { headers: accessReason ? { 'X-Platform-Access-Reason': encodeURIComponent(accessReason) } : {} },
   );
   return response.blob();
 }

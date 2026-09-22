@@ -47,6 +47,8 @@ public class IntegrationConfig extends BaseEntity {
      * 某些平台可能需要
      */
     @Column(name = "api_key")
+    @Convert(converter = com.wms.system.tenant.security.TenantCredentialConverter.class)
+    @ToString.Exclude @com.fasterxml.jackson.annotation.JsonIgnore
     private String apiKey;
 
     /**
@@ -59,16 +61,20 @@ public class IntegrationConfig extends BaseEntity {
     /**
      * OAuth 应用 Client Secret（shpss_ 开头）。
      * 双重用途：① 换取访问令牌的材料；② Webhook HMAC 验签密钥。
-     * 目前明文入库，凭证管理阶梯升级见 ROADMAP P3。
+     * P3-M1 uses protected storage when the dedicated credential key is configured.
      */
-    @Column(name = "client_secret", length = 200)
+    @Column(name = "client_secret", columnDefinition = "TEXT")
+    @Convert(converter = com.wms.system.tenant.security.TenantCredentialConverter.class)
+    @ToString.Exclude @com.fasterxml.jackson.annotation.JsonIgnore
     private String clientSecret;
 
     /**
      * 静态访问令牌（旧模式，可选）。
      * 仅当 clientId/clientSecret 缺失时使用；新配置应优先用 client credentials。
      */
-    @Column(name = "access_token", length = 500)
+    @Column(name = "access_token", columnDefinition = "TEXT")
+    @Convert(converter = com.wms.system.tenant.security.TenantCredentialConverter.class)
+    @ToString.Exclude @com.fasterxml.jackson.annotation.JsonIgnore
     private String accessToken;
 
     /**

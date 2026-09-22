@@ -1,4 +1,4 @@
-import { Alert, App, Button, Card, Descriptions, Empty, Modal, Pagination, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Card, Descriptions, Empty, Input, Modal, Pagination, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -66,6 +66,8 @@ export function TenantDatasetBrowser({ tenant, access }: { tenant: PlatformTenan
   const [exportJob, setExportJob] = useState<PlatformExportJob | null>(null);
   const [exportError, setExportError] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [reasonInput, setReasonInput] = useState('');
+  const [accessReason, setAccessReason] = useState('');
   const selectedAccess = effectiveDatasetAccess(access, tenant.id, datasetCode);
   const availableDatasets = effectiveDatasets(access, tenant.id);
 
@@ -75,7 +77,7 @@ export function TenantDatasetBrowser({ tenant, access }: { tenant: PlatformTenan
   }, []);
 
   useEffect(() => {
-    if (!datasetCode || !selectedAccess.read) {
+    if (!datasetCode || !selectedAccess.read || (tenant.status === 'SUSPENDED' && !accessReason)) {
       setData(null);
       setDataLoading(false);
       setDataError(false);
@@ -84,12 +86,12 @@ export function TenantDatasetBrowser({ tenant, access }: { tenant: PlatformTenan
     let active = true;
     setDataLoading(true);
     setDataError(false);
-    void readPlatformTenantData(tenant.id, datasetCode, dataPage, DATA_PAGE_SIZE)
+    void readPlatformTenantData(tenant.id, datasetCode, dataPage, DATA_PAGE_SIZE, accessReason || undefined)
       .then((result) => { if (active) setData(result); })
       .catch(() => { if (active) setDataError(true); })
       .finally(() => { if (active) setDataLoading(false); });
     return () => { active = false; };
-  }, [dataPage, datasetCode, selectedAccess.read, tenant.id]);
+  }, [dataPage, datasetCode, selectedAccess.read, tenant.id, tenant.status, accessReason]);
 
   useEffect(() => {
     if (!exportJob || !['PENDING', 'RUNNING'].includes(exportJob.status)) return undefined;
@@ -120,10 +122,11 @@ export function TenantDatasetBrowser({ tenant, access }: { tenant: PlatformTenan
 
   const createExport = async () => {
     if (!datasetCode) return;
+    if (tenant.status === 'SUSPENDED' && !accessReason) { message.warning('请先填写并确认受控访问原因'); return; }
     setExportSubmitting(true);
     setExportError(false);
     try {
-      const job = await createPlatformExport(tenant.id, datasetCode);
+      const job = await createPlatformExport(tenant.id, datasetCode, accessReason || undefined);
       if (!mounted.current) return;
       setExportJob(job);
       setExportConfirmOpen(false);
@@ -141,7 +144,7 @@ export function TenantDatasetBrowser({ tenant, access }: { tenant: PlatformTenan
     if (!exportJob) return;
     setDownloading(true);
     try {
-      const blob = await downloadPlatformExport(tenant.id, exportJob.id);
+      const blob = await downloadPlatformExport(tenant.id, exportJob.id, accessReason || undefined);
       if (!mounted.current) return;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -160,6 +163,7 @@ export function TenantDatasetBrowser({ tenant, access }: { tenant: PlatformTenan
   };
 
   return <>
+    {tenant.status === 'SUSPENDED' && <Alert type="warning" showIcon message="租户已暂停；平台仅可按既有授权受控读取／导出" description={<Space direction="vertical" style={{ width: '100%' }}><Input.TextArea value={reasonInput} maxLength={2000} placeholder="填写本次访问原因，写入审计" onChange={event => setReasonInput(event.target.value)} /><Button disabled={!reasonInput.trim()} onClick={() => setAccessReason(reasonInput.trim())}>确认访问原因</Button></Space>} />}
     <Card className="platform-dataset-card" title={english ? 'Authorized datasets' : '已授权数据集'} extra={<Space wrap>
       <Select allowClear placeholder={english ? 'Choose a dataset' : '请选择数据集'} value={datasetCode} onChange={selectDataset} options={availableDatasets.map((item) => ({ value: item.code, label: english ? item.en : item.zh }))} />
       {selectedAccess.export ? <Button onClick={() => setExportConfirmOpen(true)}>{english ? 'Export' : '导出'}</Button> : null}

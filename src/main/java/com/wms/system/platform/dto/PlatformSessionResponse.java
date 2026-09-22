@@ -7,5 +7,11 @@ public record PlatformSessionResponse(
     String email,
     List<String> roles,
     boolean mfaEnabled,
-    OffsetDateTime expiresAt
-) { }
+    OffsetDateTime expiresAt,
+    OffsetDateTime idleExpiresAt,
+    OffsetDateTime serverNow
+) {
+    public PlatformSessionResponse(String email, List<String> roles, boolean mfaEnabled, OffsetDateTime expiresAt) {
+        this(email, roles, mfaEnabled, expiresAt, null, null);
+    }
+}

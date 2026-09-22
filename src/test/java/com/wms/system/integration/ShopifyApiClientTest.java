@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class ShopifyApiClientTest {
+    @Mock private com.wms.system.tenant.security.TenantConnectionSafetyService tenantSafety;
 
     @Mock
     private org.springframework.web.client.RestTemplate restTemplate;
@@ -85,6 +86,13 @@ class ShopifyApiClientTest {
         stubGet(ORDERS_JSON);
 
         assertThat(shopifyApiClient.fetchOrdersRaw(config)).isEqualTo(ORDERS_JSON);
+    }
+    @Test void lateProviderResponseCannotProceedAfterTenantSuspension() {
+        stubGet(ORDERS_JSON);
+        org.mockito.Mockito.doNothing().doThrow(new com.wms.system.tenant.security.TenantAccessException("AUTH_SESSION_INVALIDATED",401))
+            .when(tenantSafety).requireBusiness(config);
+        assertThatThrownBy(()->shopifyApiClient.fetchOrdersRaw(config)).isInstanceOf(com.wms.system.tenant.security.TenantAccessException.class);
+        verify(restTemplate,times(1)).exchange(anyString(),eq(HttpMethod.GET),any(),eq(String.class));
     }
 
     @Test

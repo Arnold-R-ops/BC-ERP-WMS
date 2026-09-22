@@ -118,7 +118,7 @@ class ShopifyWebhookServiceTest {
             .signingSecret(SECRET)
             .active(true)
             .build();
-        when(channelWebhookRouteRepository
+        lenient().when(channelWebhookRouteRepository
             .findByPlatformAndCanonicalStoreIdentifierAndActiveTrue("SHOPIFY", SHOP))
             .thenReturn(Optional.of(route));
         lenient().when(tenantRepository.findById(1L)).thenReturn(Optional.of(Tenant.builder()
@@ -161,6 +161,13 @@ class ShopifyWebhookServiceTest {
         verify(shopifyIntegrationService, never()).processWebhookOrder(any(), any());
     }
 
+    // Existing business-dispatch assertions now target the admitted persisted-inbox worker.
+    private ShopifyWebhookService.WebhookOutcome processPersisted(String shop,String topic,String id,String signature,String body) {
+        var route=ChannelWebhookRoute.builder().integrationConfigId(1L).tenantId(1L).canonicalStoreIdentifier(SHOP).active(true).build();
+        try(var scope=com.wms.system.tenant.security.TenantExecutionScope.open(1,com.wms.system.tenant.security.TenantOperationPurpose.BUSINESS,1L)) {
+            return webhookService.handleForCompany(route,topic,id,body);
+        }
+    }
     // ===== 幂等 =====
 
     @Test
@@ -168,7 +175,7 @@ class ShopifyWebhookServiceTest {
         stubKnownShop();
         when(rawEventService.webhookAlreadyReceived("wh-1")).thenReturn(true);
 
-        var outcome = webhookService.handle(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        var outcome = processPersisted(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.DUPLICATE);
         verify(shopifyIntegrationService, never()).processWebhookOrder(any(), any());
@@ -181,7 +188,7 @@ class ShopifyWebhookServiceTest {
         when(idempotencyService.start(anyString(), anyString(), anyString()))
             .thenReturn(IdempotencyRequest.builder().status(IdempotencyStatus.SUCCEEDED).build());
 
-        var outcome = webhookService.handle(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        var outcome = processPersisted(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.DUPLICATE);
         verify(shopifyIntegrationService, never()).processWebhookOrder(any(), any());
@@ -196,7 +203,7 @@ class ShopifyWebhookServiceTest {
         when(shopifyIntegrationService.processWebhookOrder(any(), eq(config)))
             .thenReturn(new ShopifyIntegrationService.SyncResult());
 
-        var outcome = webhookService.handle(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        var outcome = processPersisted(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.ACCEPTED);
         verify(shopifyIntegrationService).processWebhookOrder(any(), eq(config));
@@ -204,16 +211,16 @@ class ShopifyWebhookServiceTest {
     }
 
     @Test
-    void handle_ProcessingException_StillAccepted() throws Exception {
+    void worker_ProcessingException_RemainsRetryable() throws Exception {
         stubKnownShop();
         when(rawEventService.webhookAlreadyReceived(anyString())).thenReturn(false);
         when(shopifyIntegrationService.processWebhookOrder(any(), any()))
             .thenThrow(new RuntimeException("boom"));
 
-        var outcome = webhookService.handle(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        var outcome = processPersisted(SHOP, "orders/create", "wh-1", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
-        // 处理失败不让 Shopify 重发——报文已留底，走各自补救通道
-        assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.ACCEPTED);
+        // Receipt ACK is separate; failed processing remains retryable in the durable worker.
+        assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.PROCESSING_FAILED);
         verify(idempotencyService).markFailed(any(), eq(500), anyString());
     }
 
@@ -237,7 +244,7 @@ class ShopifyWebhookServiceTest {
         when(pendingTask.getStatus()).thenReturn(OutboundTaskStatus.PENDING);
         when(outboundTaskRepository.findBySalesOrderId(100L)).thenReturn(List.of(pendingTask));
 
-        var outcome = webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        var outcome = processPersisted(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.ACCEPTED);
         verify(salesSubmissionService).cancelSalesOrder(eq(100L), anyString(), eq(1L));
@@ -255,7 +262,7 @@ class ShopifyWebhookServiceTest {
         when(pickingTask.getStatus()).thenReturn(OutboundTaskStatus.PICKING);
         when(outboundTaskRepository.findBySalesOrderId(100L)).thenReturn(List.of(pickingTask));
 
-        webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        processPersisted(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
         verify(rawEventService).markManualReview(eq(7L), anyString());
@@ -268,7 +275,7 @@ class ShopifyWebhookServiceTest {
             .id(100L).orderNo("SO-1").status(SalesOrderStatus.SHIPPED).build();
         when(salesOrderRepository.findByExternalOrderId("12345")).thenReturn(Optional.of(order));
 
-        webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        processPersisted(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
         verify(rawEventService).markManualReview(eq(7L), anyString());
@@ -279,7 +286,7 @@ class ShopifyWebhookServiceTest {
         stubCancelledCommon();
         when(salesOrderRepository.findByExternalOrderId("12345")).thenReturn(Optional.empty());
 
-        webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        processPersisted(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());
         verify(rawEventService).markSkipped(eq(7L), anyString());
@@ -295,7 +302,7 @@ class ShopifyWebhookServiceTest {
         when(salesSubmissionService.cancelSalesOrder(anyLong(), anyString(), anyLong()))
             .thenThrow(new RuntimeException("state conflict"));
 
-        var outcome = webhookService.handle(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        var outcome = processPersisted(SHOP, "orders/cancelled", "wh-2", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         assertThat(outcome).isEqualTo(ShopifyWebhookService.WebhookOutcome.ACCEPTED);
         verify(rawEventService).markManualReview(eq(7L), anyString());
@@ -310,7 +317,7 @@ class ShopifyWebhookServiceTest {
         when(rawEventService.recordWebhook(anyString(), anyString(), eq(ChannelRawEvent.TYPE_ORDER_UPDATED),
             anyString(), anyString(), anyString())).thenReturn(event);
 
-        webhookService.handle(SHOP, "orders/updated", "wh-3", sign(ORDER_BODY, SECRET), ORDER_BODY);
+        processPersisted(SHOP, "orders/updated", "wh-3", sign(ORDER_BODY, SECRET), ORDER_BODY);
 
         verify(rawEventService).markManualReview(eq(7L), anyString());
         verify(shopifyIntegrationService, never()).processWebhookOrder(any(), any());
@@ -324,7 +331,7 @@ class ShopifyWebhookServiceTest {
         when(rawEventService.recordWebhook(anyString(), anyString(), eq(ChannelRawEvent.TYPE_REFUND),
             anyString(), anyString(), anyString())).thenReturn(event);
 
-        webhookService.handle(SHOP, "refunds/create", "wh-4", sign(refundBody, SECRET), refundBody);
+        processPersisted(SHOP, "refunds/create", "wh-4", sign(refundBody, SECRET), refundBody);
 
         verify(rawEventService).markSkipped(eq(7L), anyString());
         verify(salesSubmissionService, never()).cancelSalesOrder(anyLong(), anyString(), anyLong());

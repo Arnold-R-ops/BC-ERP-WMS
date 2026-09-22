@@ -59,8 +59,16 @@ public class ShopifyWebhookService {
     private final OutboundTaskRepository outboundTaskRepository;
     private final SalesSubmissionService salesSubmissionService;
     private final ObjectMapper objectMapper;
+    private final com.wms.system.tenant.security.TenantWebhookInboxService inbox;
 
-    public enum WebhookOutcome { ACCEPTED, DUPLICATE, SIGNATURE_INVALID, UNKNOWN_SHOP }
+    public enum WebhookOutcome { ACCEPTED, DUPLICATE, SIGNATURE_INVALID, UNKNOWN_SHOP, OVER_LIMIT, UNAVAILABLE, CONFLICT, PROCESSING_FAILED }
+
+    public void rejectOversizedIngress(String shopDomain) {
+        String canonical=IntegrationConfig.canonicalizeStoreIdentifier(shopDomain);
+        if(!isValidShopifyDomain(canonical)) return;
+        channelWebhookRouteRepository.findByPlatformAndCanonicalStoreIdentifierAndActiveTrue(CHANNEL,canonical)
+            .ifPresent(route->inbox.rejectOversizedIngress(route.getTenantId()));
+    }
 
     public WebhookOutcome handle(
             String shopDomain,
@@ -87,31 +95,25 @@ public class ShopifyWebhookService {
             return WebhookOutcome.SIGNATURE_INVALID;
         }
 
-        Tenant tenant = tenantRepository.findById(route.getTenantId())
-            .filter(candidate -> candidate.getStatus() == TenantStatus.ACTIVE)
-            .orElse(null);
-        if (tenant == null) {
-            return WebhookOutcome.UNKNOWN_SHOP;
-        }
-
-        TenantContext context = new TenantContext(
-            tenant.getId(),
-            tenant.getSlug(),
-            canonicalStore,
-            RequestSurface.TENANT,
-            tenant.getStatus()
-        );
-        return TenantContextHolder.runWithResolvedTenant(
-            context,
-            () -> handleForCompany(route, topic, webhookId, rawBody)
-        );
+        return switch(inbox.accept(route,topic,webhookId,rawBody)) {
+            case ACCEPTED -> WebhookOutcome.ACCEPTED;
+            case DUPLICATE -> WebhookOutcome.DUPLICATE;
+            case UNTRUSTED -> WebhookOutcome.SIGNATURE_INVALID;
+            case OVER_LIMIT -> WebhookOutcome.OVER_LIMIT;
+            case UNAVAILABLE -> WebhookOutcome.UNAVAILABLE;
+            case CONFLICT -> WebhookOutcome.CONFLICT;
+        };
     }
 
-    private WebhookOutcome handleForCompany(
+    /** Only the persisted-inbox worker may invoke processing inside an admitted tenant transaction. */
+    public WebhookOutcome handleForCompany(
             ChannelWebhookRoute route,
             String topic,
             String webhookId,
             String rawBody) {
+        var scope=com.wms.system.tenant.security.TenantExecutionScope.current();
+        if(scope==null || scope.tenantId()!=route.getTenantId() || scope.purpose()!=com.wms.system.tenant.security.TenantOperationPurpose.BUSINESS)
+            throw new com.wms.system.tenant.security.TenantAccessException("TENANT_EXECUTION_CONTEXT_REQUIRED",403);
         IntegrationConfig config = integrationConfigRepository.findById(route.getIntegrationConfigId())
             .filter(candidate -> Boolean.TRUE.equals(candidate.getIsActive()))
             .filter(candidate -> route.getCanonicalStoreIdentifier()
@@ -140,16 +142,17 @@ public class ShopifyWebhookService {
             }
         } catch (DataIntegrityViolationException | BusinessException conflict) {
             log.warn("Webhook idempotency conflict: webhookId={}", webhookId);
-            return WebhookOutcome.DUPLICATE;
+            return WebhookOutcome.PROCESSING_FAILED;
         }
 
         try {
             dispatch(topic, webhookId, rawBody, config);
             idempotencyService.markSucceeded(idempotency, 200, "accepted");
         } catch (Exception exception) {
-            log.error("Webhook processing failed and remains available for replay: topic={}",
-                topic, exception);
-            idempotencyService.markFailed(idempotency, 500, exception.getMessage());
+            log.error("Webhook processing failed and remains available for replay: topic={}, type={}",
+                topic, exception.getClass().getSimpleName());
+            idempotencyService.markFailed(idempotency, 500, "WEBHOOK_PROCESSING_FAILED");
+            return WebhookOutcome.PROCESSING_FAILED;
         }
         return WebhookOutcome.ACCEPTED;
     }
@@ -179,7 +182,10 @@ public class ShopifyWebhookService {
         String externalId = node.path("id").asText(null);
 
         switch (topic == null ? "" : topic) {
-            case TOPIC_ORDER_CREATE -> shopifyIntegrationService.processWebhookOrder(node, config);
+            case TOPIC_ORDER_CREATE -> {
+                var result=shopifyIntegrationService.processWebhookOrder(node, config);
+                if(result!=null && result.getFailedCount()>0) throw new IllegalStateException("Webhook order requires reconciliation");
+            }
             case TOPIC_ORDER_CANCELLED ->
                 handleCancelled(node, externalId, webhookId, rawBody, config);
             case TOPIC_ORDER_UPDATED -> {
@@ -197,7 +203,7 @@ public class ShopifyWebhookService {
             }
             default -> {
                 ChannelRawEvent event = rawEventService.recordWebhook(
-                    CHANNEL, config.getStoreUrl(), "UNHANDLED:" + topic,
+                    CHANNEL, config.getStoreUrl(), ("UNHANDLED:" + topic).substring(0, Math.min(50, ("UNHANDLED:" + topic).length())),
                     externalId, rawBody, webhookId);
                 rawEventService.markSkipped(event.getId(), "Unhandled webhook topic: " + topic);
             }

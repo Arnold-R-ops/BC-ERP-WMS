@@ -43,6 +43,22 @@ public class Tenant {
     @Builder.Default
     private TenantStatus status = TenantStatus.PROVISIONING;
 
+    @Column(name = "session_version", nullable = false)
+    @Builder.Default
+    private Long sessionVersion = 1L;
+
+    @Column(name = "suspension_kind", length = 30)
+    private String suspensionKind;
+
+    @Column(name = "suspended_at")
+    private OffsetDateTime suspendedAt;
+
+    @Column(name = "security_incident_id", length = 36)
+    private String securityIncidentId;
+
+    @Column(name = "suspension_reason", columnDefinition = "TEXT")
+    private String suspensionReason;
+
     @Column(nullable = false, length = 60)
     @Builder.Default
     private String timezone = "Asia/Shanghai";

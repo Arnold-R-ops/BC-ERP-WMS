@@ -28,6 +28,7 @@ public class TenantDataPurgeService {
     private final JdbcTemplate jdbcTemplate;
 
     public void purgeDueCompany(Long tenantId) {
+        com.wms.system.tenant.security.TenantLifecycleReleaseGate.requirePurgeReleased();
         Tenant tenant = prepare(tenantId);
         if (tenant == null) return;
         deleteExportArtifacts(tenantId);
@@ -45,6 +46,7 @@ public class TenantDataPurgeService {
     }
 
     protected Tenant prepare(Long tenantId) {
+        com.wms.system.tenant.security.TenantLifecycleReleaseGate.requirePurgeReleased();
         return new TransactionTemplate(transactionManager).execute(status -> {
             Tenant tenant = tenantRepository.findByIdForUpdate(tenantId).orElseThrow();
             if (tenant.getStatus() == TenantStatus.PURGED) return null;

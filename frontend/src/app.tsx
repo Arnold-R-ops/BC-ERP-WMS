@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { canAccessModule, type AppModule } from './access';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { TenantAccessBoundary } from './auth/TenantAccessBoundary';
 import { LoginPage } from './pages/LoginPage';
 import { SessionHandoffPage } from './pages/SessionHandoffPage';
 
@@ -120,7 +121,7 @@ const queryClient = new QueryClient({
 
 function ProtectedRoute(): JSX.Element {
   const { session } = useAuth();
-  return session ? <Outlet /> : <Navigate replace to="/login" />;
+  return session ? <TenantAccessBoundary><Outlet /></TenantAccessBoundary> : <Navigate replace to="/login" />;
 }
 
 function PublicOnlyRoute(): JSX.Element {
@@ -294,7 +295,7 @@ export function App(): JSX.Element {
                 v7_startTransition: true,
               }}
             >
-              <AuthProvider>
+              <AuthProvider onSessionScopeChange={() => queryClient.clear()}>
                 <AppRoutes />
               </AuthProvider>
             </HashRouter>

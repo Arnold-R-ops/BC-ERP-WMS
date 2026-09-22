@@ -29,15 +29,17 @@ public class PlatformExportService {
     private final PlatformExportWorker worker;
     private final Executor executor;
     private final PlatformAccessProperties properties;
+    private final com.wms.system.tenant.security.PlatformTenantDataSafety safety;
 
     public PlatformExportService(PlatformExportJobRepository repository,
             PlatformCompanyDataService companyDataService, PlatformAccessGuard guard,
             PlatformAuditService auditService, PlatformExportWorker worker,
             @Qualifier("platformExportExecutor") Executor executor,
-            PlatformAccessProperties properties) {
+            PlatformAccessProperties properties, com.wms.system.tenant.security.PlatformTenantDataSafety safety) {
         this.repository = repository; this.companyDataService = companyDataService;
         this.guard = guard; this.auditService = auditService; this.worker = worker;
         this.executor = executor; this.properties = properties;
+        this.safety=safety;
     }
 
     public PlatformExportJobResponse create(Long companyId, String resource, HttpServletRequest request) {
@@ -47,12 +49,14 @@ public class PlatformExportService {
         }
         PlatformSecurityUser actor = guard.requireExport(companyId, normalized);
         companyDataService.requireAvailable(companyId);
+        String reason=request.getHeader(com.wms.system.tenant.security.PlatformTenantDataSafety.REASON_HEADER);
+        var safetyContext=safety.auditContext(companyId,reason);
         PlatformExportJob job = repository.save(PlatformExportJob.builder()
             .publicId(UUID.randomUUID().toString()).platformUserId(actor.getId())
-            .targetTenantId(companyId).status("PENDING").requestedResource(normalized)
+            .targetTenantId(companyId).status("PENDING").requestedResource(normalized).accessReason(com.wms.system.tenant.security.PlatformTenantDataSafety.decodeReason(reason))
             .expiresAt(OffsetDateTime.now().plusHours(properties.getExportRetentionHours())).build());
         auditService.record(actor.getId(), companyId, "EXPORT", normalized, "REQUESTED",
-            Map.of("jobId", job.getPublicId()), request);
+            Map.of("jobId", job.getPublicId(),"safety",safetyContext), request);
         executor.execute(() -> worker.run(job.getId()));
         return PlatformExportJobResponse.from(job);
     }
@@ -79,11 +83,12 @@ public class PlatformExportService {
             .orElseThrow(() -> new NoSuchElementException("Export file unavailable"));
         guard.requireExport(job.getTargetTenantId(), job.getRequestedResource());
         Path root = properties.getExportDirectory().toAbsolutePath().normalize();
+        var safetyContext=safety.auditContext(job.getTargetTenantId(),request.getHeader(com.wms.system.tenant.security.PlatformTenantDataSafety.REASON_HEADER));
         Path path = Path.of(job.getFilePath()).toAbsolutePath().normalize();
         if (!path.getParent().equals(root) || !Files.isRegularFile(path))
             throw new NoSuchElementException("Export file unavailable");
         auditService.record(actor.getId(), job.getTargetTenantId(), "EXPORT", job.getRequestedResource(),
-            "DOWNLOADED", Map.of("jobId", job.getPublicId(), "sha256", job.getFileSha256()), request);
+            "DOWNLOADED", Map.of("jobId", job.getPublicId(), "sha256", job.getFileSha256(),"safety",safetyContext), request);
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType("application/zip"))
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=company-export-" + publicId + ".zip")

@@ -89,8 +89,11 @@ public class TenantProvisioningService {
             RequestSurface.TENANT, TenantStatus.PROVISIONING);
         TenantContextHolder.runWithResolvedTenant(context,
             () -> {
-                requiresNew().executeWithoutResult(
-                    status -> provisionTenantData(signup.getId(), tenantId));
+                try (var admission = com.wms.system.tenant.security.TenantExecutionScope.open(tenantId,
+                        com.wms.system.tenant.security.TenantOperationPurpose.PROVISIONING, tenant.getSessionVersion())) {
+                    requiresNew().executeWithoutResult(
+                        status -> provisionTenantData(signup.getId(), tenantId));
+                }
                 return null;
             });
         SignupResponse completed = requiresNew().execute(status -> finalizeProvisioning(publicId));
@@ -161,7 +164,8 @@ public class TenantProvisioningService {
             locked.setTenantId(tenant.getId());
             locked.setIdentityId(identity.getId());
             locked.setStatus(SignupStatus.PROVISIONING);
-            signupRepository.save(locked);
+            // Preserve the ERP A2 fix: satisfy the composite job FK before Hibernate inserts the job.
+            signupRepository.saveAndFlush(locked);
             jobRepository.save(TenantProvisioningJob.builder()
                 .signupRequestId(locked.getId()).tenantId(tenant.getId())
                 .status(ProvisioningStatus.RUNNING).currentStep("TENANT_DATA").build());
@@ -225,6 +229,10 @@ public class TenantProvisioningService {
     }
 
     private SignupResponse activeResponse(SignupRequest signup) {
+        Tenant handoffTenant = tenantRepository.findByIdForUpdate(signup.getTenantId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.SESSION_HANDOFF_INVALID));
+        if (handoffTenant.getStatus() != TenantStatus.ACTIVE)
+            throw new BusinessException(ErrorKeys.SESSION_HANDOFF_INVALID);
         SessionHandoffCode existing = handoffRepository.findBySignupRequestId(signup.getId()).orElse(null);
         String raw = tokenHasher.opaqueCode();
         if (existing != null) {
@@ -232,6 +240,7 @@ public class TenantProvisioningService {
             existing.setCodeHash(tokenHasher.hash("session-handoff", raw));
             existing.setExpiresAt(now().plus(signupProperties.handoffTtl()));
             existing.setConsumedAt(null);
+            existing.setTenantSessionVersion(handoffTenant.getSessionVersion());
             handoffRepository.save(existing);
         } else {
             TenantMembership membership = membershipRepository
@@ -240,6 +249,7 @@ public class TenantProvisioningService {
             handoffRepository.save(SessionHandoffCode.builder()
                 .signupRequestId(signup.getId()).codeHash(tokenHasher.hash("session-handoff", raw))
                 .tenantId(signup.getTenantId()).identityId(signup.getIdentityId())
+                .tenantSessionVersion(handoffTenant.getSessionVersion())
                 .tenantUserId(membership.getTenantUserId())
                 .expiresAt(now().plus(signupProperties.handoffTtl())).build());
         }

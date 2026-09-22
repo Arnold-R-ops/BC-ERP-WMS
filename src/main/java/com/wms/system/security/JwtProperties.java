@@ -29,6 +29,7 @@ public class JwtProperties {
     private long expiration = 86_400_000L;
 
     @Positive
+    @jakarta.validation.constraints.Max(43_200_000L)
     private long platformExpiration = 43_200_000L;
 
     @NotBlank

@@ -39,6 +39,7 @@ import {
   writeAuthSession,
 } from './storage';
 import { createAuthSession, mergeRoleSwitchSession } from './session';
+import { sessionCacheScope as sessionScope } from './sessionCacheScope';
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -48,6 +49,10 @@ interface AuthContextValue {
   switchRole: (targetRoleCode: string) => Promise<void>;
   changePassword: (request: ChangeMyPasswordRequest) => Promise<void>;
   revokeAllSessions: (currentPassword: string) => Promise<void>;
+}
+
+interface AuthProviderProps extends PropsWithChildren {
+  onSessionScopeChange?: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -89,7 +94,7 @@ function releaseRefreshLease(owner: string): void {
   }
 }
 
-export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
+export function AuthProvider({ children, onSessionScopeChange }: AuthProviderProps): JSX.Element {
   const [session, setSession] = useState<AuthSession | null>(() => readAuthSession());
   const sessionRef = useRef(session);
   const refreshInFlightRef = useRef(false);
@@ -102,27 +107,35 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     sessionRef.current = session;
   }, [session]);
 
+  const replaceSession = useCallback((nextSession: AuthSession | null) => {
+    if (sessionScope(sessionRef.current) !== sessionScope(nextSession)) {
+      onSessionScopeChange?.();
+    }
+    sessionRef.current = nextSession;
+    setSession(nextSession);
+  }, [onSessionScopeChange]);
+
   const logout = useCallback(() => {
     clearAuthSession();
     clearUserActivity();
-    setSession(null);
-  }, []);
+    replaceSession(null);
+  }, [replaceSession]);
 
   const login = useCallback(async (request: LoginRequest) => {
     const nextSession = createAuthSession(await loginRequest(request));
     writeAuthSession(nextSession);
     recordUserActivity();
-    setSession(nextSession);
+    replaceSession(nextSession);
     return nextSession;
-  }, []);
+  }, [replaceSession]);
 
   const completeHandoff = useCallback(async (code: string) => {
     const nextSession = createAuthSession(await consumeSessionHandoffRequest({ code }));
     writeAuthSession(nextSession);
     recordUserActivity();
-    setSession(nextSession);
+    replaceSession(nextSession);
     return nextSession;
-  }, []);
+  }, [replaceSession]);
 
   const switchRole = useCallback(async (targetRoleCode: string) => {
     const currentSession = sessionRef.current;
@@ -136,8 +149,8 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     }
     const nextSession = mergeRoleSwitchSession(currentSession, response);
     writeAuthSession(nextSession);
-    setSession(nextSession);
-  }, []);
+    replaceSession(nextSession);
+  }, [replaceSession]);
 
   const changePassword = useCallback(async (request: ChangeMyPasswordRequest) => {
     await changeMyPasswordRequest(request);
@@ -185,14 +198,14 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       if (readAuthSession()?.token !== currentSession.token) return;
       const nextSession = createAuthSession(response);
       writeAuthSession(nextSession);
-      setSession(nextSession);
+      replaceSession(nextSession);
     } catch {
       endSession('auth.refreshFailed');
     } finally {
       refreshInFlightRef.current = false;
       releaseRefreshLease(tabOwnerRef.current);
     }
-  }, [endSession]);
+  }, [endSession, replaceSession]);
 
   useEffect(() => {
     if (!session) return undefined;
@@ -221,7 +234,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       if (event.key === AUTH_STORAGE_KEY) {
         if (event.newValue === null) {
           if (sessionRef.current) {
-            setSession(null);
+            replaceSession(null);
             message.warning(t('auth.sessionEndedElsewhere'));
             navigate('/login', { replace: true });
           }
@@ -231,13 +244,13 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
         // A login in another tab shares localStorage, but must not turn a
         // tab that is deliberately showing the login screen into ERP. Tabs
         // that already have a session still receive token/role refreshes.
-        if (updated && sessionRef.current) setSession(updated);
+        if (updated && sessionRef.current) replaceSession(updated);
       }
       if (event.key === AUTH_ACTIVITY_STORAGE_KEY) void maintainSession();
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, [maintainSession, message, navigate, t]);
+  }, [maintainSession, message, navigate, replaceSession, t]);
 
   useEffect(() => {
     const handleUnauthorized = (event: Event) => {

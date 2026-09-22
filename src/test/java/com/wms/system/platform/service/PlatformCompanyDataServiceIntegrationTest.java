@@ -25,8 +25,10 @@ import java.util.zip.ZipFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringBootTest(properties="spring.config.location=classpath:platform-r2-isolation.properties")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named="p3.r2.database-authorized",matches="true")
+@org.springframework.test.context.ContextConfiguration(initializers=com.wms.platformverification.PlatformR2SpringInitializer.class)
+@org.springframework.context.annotation.Import(PlatformExportTestConfiguration.class)
 class PlatformCompanyDataServiceIntegrationTest {
     @Autowired PlatformCompanyDataService service;
     @Autowired TenantRepository tenantRepository;
@@ -38,19 +40,30 @@ class PlatformCompanyDataServiceIntegrationTest {
     @Autowired PlatformAccessProperties accessProperties;
     @Autowired PlatformAccessGrantRepository accessGrantRepository;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired @org.springframework.beans.factory.annotation.Qualifier("platformExportExecutor")
+    PlatformExportTestConfiguration.TrackingExecutor exportTasks;
+    com.wms.platformverification.PlatformFixtureScope fixtures;
     Long actorId;
 
-    @BeforeEach void setUp() {
+    @BeforeEach void setUp(TestInfo info) {
+        exportTasks.requireIdle();
+        fixtures=com.wms.platformverification.PlatformFixtureScope.open(jdbc,transactionManager,getClass().getName(),info.getTestMethod().orElseThrow().getName());
         PlatformUser actor = platformUserRepository.save(PlatformUser.builder()
             .normalizedEmail("reader-" + java.util.UUID.randomUUID() + "@example.com")
             .passwordHash("hidden").displayName("Reader").enabled(true).build());
         actorId = actor.getId();
+        fixtures.ownUser(actorId);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
             new PlatformSecurityUser(actor), null,
             List.of(new SimpleGrantedAuthority("ROLE_PLATFORM_TENANT_READ"))));
     }
 
-    @AfterEach void clear() { SecurityContextHolder.clearContext(); TenantContextHolder.clear(); }
+    @AfterEach void clear() {
+        SecurityContextHolder.clearContext(); TenantContextHolder.clear();
+        exportTasks.requireIdle(); // Do not retire an actor while its worker is still running.
+        if(fixtures!=null) fixtures.close();
+    }
 
     @Test void platformReadUsesTargetCompanyRlsAndAuditStaysPlatformOnly() {
         Tenant alpha = tenant("alpha-" + suffix());
@@ -148,35 +161,63 @@ class PlatformCompanyDataServiceIntegrationTest {
         Tenant company = tenant("export-" + suffix());
         inCompany(company, () -> saveWarehouse("EXPORT", "Export warehouse"));
         grant(company, "EXPORT", "warehouses");
-        authenticate("ROLE_PLATFORM_TENANT_EXPORT");
-        Path exportRoot = Files.createTempDirectory("bcwms-platform-export-test-");
-        accessProperties.setExportDirectory(exportRoot);
-        var created = exportService.create(company.getId(), "warehouses", new MockHttpServletRequest());
-        PlatformExportJob job = null;
-        for (int attempt = 0; attempt < 100; attempt++) {
-            job = exportJobRepository.findByPublicIdAndPlatformUserId(created.id(), actorId).orElseThrow();
-            if ("COMPLETED".equals(job.getStatus()) || "FAILED".equals(job.getStatus())) break;
-            Thread.sleep(50);
+        fixtures.requireOwnedUser(actorId);
+        String authority = new TransactionTemplate(transactionManager).execute(tx ->
+            PlatformCompanyDataFixture.persistExportRole(jdbc, actorId, company.getId()));
+        authenticate(authority);
+        try (var directory = exportTasks.begin(accessProperties, fixtures.owner(), java.time.Duration.ofSeconds(10))) {
+            var created = exportService.create(company.getId(), "warehouses", new MockHttpServletRequest());
+            directory.bind(created.id());
+            try {
+                directory.awaitWorker(); // Terminal job status alone does not prove the background audit has finished.
+            PlatformExportJob job = exportJobRepository.findByPublicIdAndPlatformUserId(created.id(), actorId).orElseThrow();
+            PlatformCompanyDataFixture.requireJob(job, created.id(), actorId, company.getId());
+            assertThat(job).isNotNull();
+            assertThat(job.getStatus()).isEqualTo("COMPLETED");
+            assertThat(job.getFileSha256()).hasSize(64);
+            Path artifact = directory.artifact(created.id());
+            assertThat(Path.of(job.getFilePath()).toAbsolutePath().normalize()).isEqualTo(artifact);
+            assertThat(Files.isRegularFile(artifact, LinkOption.NOFOLLOW_LINKS)).isTrue();
+            assertThat(java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(Files.readAllBytes(artifact)))).isEqualTo(job.getFileSha256());
+            try (ZipFile zip = new ZipFile(artifact.toFile(), java.nio.charset.StandardCharsets.UTF_8)) {
+                List<String> names = zip.stream().map(java.util.zip.ZipEntry::getName).toList();
+                assertThat(names).containsExactlyInAnyOrder("manifest.json", "warehouses.csv");
+                assertThat(names).noneMatch(name -> name.contains("audit") || name.contains("password")
+                    || name.contains("token") || name.contains("secret"));
+            }
+            } catch (Exception | AssertionError failure) {
+                diagnoseExport(created.id(), company.getId(), failure);
+                throw failure;
+            }
+            diagnoseExport(created.id(), company.getId(), null);
         }
-        assertThat(job).isNotNull();
-        assertThat(job.getStatus()).isEqualTo("COMPLETED");
-        assertThat(job.getFileSha256()).hasSize(64);
-        try (ZipFile zip = new ZipFile(job.getFilePath(), java.nio.charset.StandardCharsets.UTF_8)) {
-            List<String> names = zip.stream().map(java.util.zip.ZipEntry::getName).toList();
-            assertThat(names).containsExactlyInAnyOrder("manifest.json", "warehouses.csv");
-            assertThat(names).noneMatch(name -> name.contains("audit") || name.contains("password")
-                || name.contains("token") || name.contains("secret"));
+    }
+
+    private void diagnoseExport(String publicId, long tenant, Throwable primary) {
+        try {
+            var job = exportJobRepository.findByPublicIdAndPlatformUserId(publicId, actorId).orElseThrow();
+            // The database query narrows actor/tenant/action first; the helper also matches exact job ID and dataset.
+            var audits = new TransactionTemplate(transactionManager).execute(tx -> jdbc.query(
+                "select detail_json from platform_audit_logs where platform_user_id=? and target_tenant_id=? and action='EXPORT' and resource_type='warehouses' and result='FAILED' and detail_json::jsonb->>'jobId'=?",
+                (row, n) -> PlatformAuditLog.builder().platformUserId(actorId).targetTenantId(tenant).action("EXPORT")
+                    .resourceType("warehouses").result("FAILED").detailJson(row.getString(1)).build(), actorId, tenant, publicId));
+            System.out.println(PlatformCompanyDataFixture.diagnostic(job, publicId, actorId, tenant, audits));
+        } catch (Exception diagnosisFailure) {
+            System.out.println("PLATFORM_EXPORT_DIAGNOSIS_UNAVAILABLE actor=" + actorId + " tenant=" + tenant
+                + " type=" + diagnosisFailure.getClass().getSimpleName());
+            if (primary != null) primary.addSuppressed(new IllegalStateException("EXPORT_DIAGNOSIS_UNAVAILABLE"));
+            else throw new IllegalStateException("EXPORT_DIAGNOSIS_UNAVAILABLE");
         }
-        Files.deleteIfExists(Path.of(job.getFilePath()));
-        Files.deleteIfExists(exportRoot);
     }
 
     private Tenant tenant(String slug) {
         return tenant(slug, TenantStatus.ACTIVE);
     }
     private Tenant tenant(String slug, TenantStatus status) {
-        return tenantRepository.save(Tenant.builder().tenantCode("T-" + slug).displayName(slug)
-            .slug(slug).status(status).build());
+        Tenant row = tenantRepository.save(PlatformCompanyDataFixture.retention(Tenant.builder().tenantCode("T-" + slug).displayName(slug)
+            .slug(slug).status(status).build(), java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)));
+        fixtures.ownTenant(row.getId()); return row;
     }
     private void grant(Tenant tenant, String capability, String dataset) {
         accessGrantRepository.save(PlatformAccessGrant.builder()

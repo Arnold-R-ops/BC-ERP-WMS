@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getPlatformTenant, type PlatformEffectiveAccess, type PlatformTenant } from './api';
 import { TenantDatasetBrowser } from './TenantDatasetBrowser';
 import { TenantOverview } from './TenantOverview';
+import { TenantSecurityPanel } from './TenantSecurityPanel';
 
 interface TenantDetailProps {
   directoryTenant: PlatformTenant;
@@ -34,6 +35,7 @@ export function TenantDetail({ directoryTenant, access }: TenantDetailProps): JS
   return <Tabs
     activeKey={activeTab}
     items={[
+      ...(access.superAdmin ? [{ key: 'security', label: english ? 'Tenant safety' : '租户安全', children: <TenantSecurityPanel key={directoryTenant.id} tenantId={directoryTenant.id} onChanged={() => setOverviewAttempt(value => value + 1)} /> }] : []),
       {
         key: 'overview',
         label: english ? 'Overview' : '概览',
@@ -43,7 +45,7 @@ export function TenantDetail({ directoryTenant, access }: TenantDetailProps): JS
         key: 'data',
         label: english ? 'Data browser' : '数据浏览',
         disabled: !overview,
-        children: overview ? <TenantDatasetBrowser access={access} tenant={overview} /> : null,
+        children: overview ? <TenantDatasetBrowser key={`${overview.id}:${overview.status}`} access={access} tenant={overview} /> : null,
       },
     ]}
     onChange={setActiveTab}

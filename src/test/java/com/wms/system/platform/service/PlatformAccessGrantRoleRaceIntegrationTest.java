@@ -38,8 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringBootTest(properties="spring.config.location=classpath:platform-r2-isolation.properties")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named="p3.r2.database-authorized",matches="true")
+@org.springframework.test.context.ContextConfiguration(initializers=com.wms.platformverification.PlatformR2SpringInitializer.class)
 class PlatformAccessGrantRoleRaceIntegrationTest {
     @Autowired PlatformAccessGrantService accessGrantService;
     @Autowired PlatformAccessGrantRepository grants;
@@ -56,20 +57,18 @@ class PlatformAccessGrantRoleRaceIntegrationTest {
     private Long operationsRoleId;
     private Long auditorRoleId;
     private ExecutorService executor;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private com.wms.platformverification.PlatformFixtureScope fixtures;
 
     @BeforeEach
     void setUp() {
         String suffix = UUID.randomUUID().toString();
-        PlatformRole operationsRole = roles.saveAndFlush(PlatformRole.builder()
-            .roleCode(PlatformAdminInvitationService.OPERATIONS_ADMIN)
-            .displayName("Operations administrator")
-            .build());
-        PlatformRole auditorRole = roles.saveAndFlush(PlatformRole.builder()
-            .roleCode(PlatformAdminInvitationService.SECURITY_AUDITOR)
-            .displayName("Security auditor")
-            .build());
+        PlatformRole operationsRole = requireBaselineRole(roles, PlatformAdminInvitationService.OPERATIONS_ADMIN);
+        PlatformRole auditorRole = requireBaselineRole(roles, PlatformAdminInvitationService.SECURITY_AUDITOR);
         operationsRoleId = operationsRole.getId();
         auditorRoleId = auditorRole.getId();
+        assertThat(operationsRoleId).isNotEqualTo(auditorRoleId);
+        fixtures=com.wms.platformverification.PlatformFixtureScope.open(jdbc,transactionManager,getClass().getName(),"roleRaceFixture");
 
         PlatformUser target = users.saveAndFlush(PlatformUser.builder()
             .normalizedEmail("grant-race-" + suffix + "@example.com")
@@ -81,6 +80,7 @@ class PlatformAccessGrantRoleRaceIntegrationTest {
             .mfaFailedAttempts(0)
             .build());
         targetUserId = target.getId();
+        fixtures.ownUser(targetUserId);
         userRoles.saveAndFlush(PlatformUserRole.builder()
             .platformUserId(targetUserId)
             .platformRoleId(operationsRoleId)
@@ -92,6 +92,7 @@ class PlatformAccessGrantRoleRaceIntegrationTest {
             .slug("race-" + suffix.substring(0, 8))
             .build());
         tenantId = tenant.getId();
+        fixtures.ownTenant(tenantId);
 
         PlatformUser actor = PlatformUser.builder().id(targetUserId + 10_000L)
             .normalizedEmail("grant-race-owner@example.com")
@@ -104,15 +105,23 @@ class PlatformAccessGrantRoleRaceIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        if (executor != null) executor.shutdownNow();
+        com.wms.platformverification.PlatformFixtureWorkers.requireStopped(executor, java.time.Duration.ofSeconds(5));
         if (targetUserId != null) {
             grants.deleteAll(grants.findByGranteePlatformUserIdOrderByCreatedAtDesc(targetUserId));
             userRoles.deleteAll(userRoles.findByPlatformUserId(targetUserId));
             users.deleteById(targetUserId);
         }
         if (tenantId != null) tenants.deleteById(tenantId);
-        if (operationsRoleId != null) roles.deleteById(operationsRoleId);
-        if (auditorRoleId != null) roles.deleteById(auditorRoleId);
+        if (fixtures != null) fixtures.close();
+        // Baseline roles are shared reference data; this fixture never creates or deletes them.
+    }
+
+    static PlatformRole requireBaselineRole(PlatformRoleRepository repository, String code) {
+        PlatformRole role = repository.findByRoleCode(code)
+            .orElseThrow(() -> new IllegalStateException("Required baseline platform role missing: " + code));
+        assertThat(role.getRoleCode()).isEqualTo(code);
+        assertThat(role.getId()).isNotNull().isPositive();
+        return role;
     }
 
     @Test

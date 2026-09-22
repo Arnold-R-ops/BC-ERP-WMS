@@ -29,7 +29,8 @@ public class ActiveCompanyTaskRunner {
                 RequestSurface.TENANT,
                 tenant.getStatus()
             );
-            try {
+            try (var admission = com.wms.system.tenant.security.TenantExecutionScope.open(tenant.getId(),
+                    com.wms.system.tenant.security.TenantOperationPurpose.BUSINESS, tenant.getSessionVersion())) {
                 TenantContextHolder.runWithTenant(context, () -> action.accept(tenant));
             } catch (RuntimeException exception) {
                 log.error("Background task failed: task={}, companyId={}",
