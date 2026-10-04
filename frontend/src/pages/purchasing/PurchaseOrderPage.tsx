@@ -94,6 +94,7 @@ export function PurchaseOrderPage(): JSX.Element {
   const canCancelAsn = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:asn:cancel');
   const canViewAsn = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:asn:view');
   const canViewReceiving = hasPermission(session?.currentRole, session?.permissionCodes, 'receiving:view');
+  const canExecuteReceiving = hasPermission(session?.currentRole, session?.permissionCodes, 'receiving:execute');
   const canRequestClosure = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:request_close_remaining');
   const canApproveClosure = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:approve_close_remaining');
   const canDirectClose = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:asn:close');
@@ -398,6 +399,7 @@ export function PurchaseOrderPage(): JSX.Element {
         canConfirmShipment={canConfirmShipment}
         canCreateAsn={canCreateAsn}
         canEdit={canEdit}
+        canExecuteReceiving={canExecuteReceiving}
         canSubmit={canSubmit}
         canUpdateAsn={canUpdateAsn}
         canViewAsn={canViewAsn}

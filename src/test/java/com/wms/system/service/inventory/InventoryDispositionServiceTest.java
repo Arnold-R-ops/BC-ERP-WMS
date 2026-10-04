@@ -122,6 +122,9 @@ class InventoryDispositionServiceTest {
         assertThat(source.getReservedQuantity()).isZero();
         assertThat(reservation.getReleasedQty()).isEqualTo(30);
         assertThat(task.getStatus()).isEqualTo(OutboundTaskStatus.VOIDED);
+        assertThat(task.getArchivedBy()).isEqualTo(7L);
+        assertThat(task.getArchivedAt()).isNotNull();
+        assertThat(task.getArchiveReason()).contains(result.dispositionNumber());
         verify(backorderService).addQualityShortage(
             51L, 30, "Inventory quality exception: " + result.dispositionNumber());
         verify(qualityStateService).transition(argThat(command ->

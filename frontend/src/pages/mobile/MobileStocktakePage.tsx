@@ -69,6 +69,10 @@ export function MobileStocktakePage(): JSX.Element {
       submitStocktakeCount(taskId, itemId, payload),
   });
   const finishMutation = useMutation({ mutationFn: finishStocktake });
+  const busy = countMutation.isPending || finishMutation.isPending;
+  const hasUnsavedCount = selectedItem !== undefined && (
+    countedQty !== selectedItem.countedQty || remark.trim() !== (selectedItem.remark ?? '').trim()
+  );
 
   const scan = (code: string): void => {
     const result = resolveStocktakeScan(items, code, candidateIds);
@@ -89,7 +93,7 @@ export function MobileStocktakePage(): JSX.Element {
   };
 
   const saveCount = async (): Promise<void> => {
-    if (!online || !selectedTaskId || !selectedItem?.id || countedQty === undefined) return;
+    if (!online || busy || !selectedTaskId || !selectedItem?.id || countedQty === undefined) return;
     try {
       await countMutation.mutateAsync({
         taskId: selectedTaskId,
@@ -107,7 +111,7 @@ export function MobileStocktakePage(): JSX.Element {
   };
 
   const requestFinish = (): void => {
-    if (!selectedTaskId || !online || !complete) return;
+    if (!selectedTaskId || !online || busy || !complete || hasUnsavedCount) return;
     modal.confirm({
       title: t('mobile.stocktake.finishTitle'),
       content: t('mobile.stocktake.finishNotice'),
@@ -131,7 +135,7 @@ export function MobileStocktakePage(): JSX.Element {
     <section className="mobile-operation-page">
       <header className="mobile-operation-heading">
         <div><Typography.Title level={2}>{t('mobile.stocktake.title')}</Typography.Title><p>{t('mobile.stocktake.subtitle')}</p></div>
-        <Button aria-label={t('common.refresh')} disabled={!online} icon={<ReloadOutlined spin={tasksQuery.isFetching || itemsQuery.isFetching} />} onClick={() => void Promise.all([tasksQuery.refetch(), itemsQuery.refetch()])} />
+        <Button aria-label={t('common.refresh')} disabled={!online || busy} icon={<ReloadOutlined spin={tasksQuery.isFetching || itemsQuery.isFetching} />} onClick={() => void Promise.all([tasksQuery.refetch(), itemsQuery.refetch()])} />
       </header>
 
       {tasksQuery.isLoading ? <Skeleton active /> : tasks.length === 0 ? (
@@ -145,6 +149,7 @@ export function MobileStocktakePage(): JSX.Element {
                 <span>{t('mobile.stocktake.task')}</span>
                 <Select
                   allowClear
+                  disabled={busy}
                   onChange={setSelectedTaskId}
                   optionFilterProp="label"
                   options={taskOptions}
@@ -160,7 +165,7 @@ export function MobileStocktakePage(): JSX.Element {
                   <div className="mobile-progress-band"><span>{t('mobile.stocktake.progress', { ready: countedCount, total: totalCount })}</span><Progress percent={totalCount === 0 ? 0 : Math.round((countedCount / totalCount) * 100)} showInfo={false} /></div>
                   <div className="mobile-blind-count-notice"><AuditOutlined /><div><strong>{t('mobile.stocktake.blindTitle')}</strong><span>{t('mobile.stocktake.blindNotice')}</span></div></div>
 
-                  <ScanInput autoFocus disabled={!online || itemsQuery.isLoading || totalCount === 0} label={t('mobile.stocktake.scanItem')} onScan={scan} placeholder={t('mobile.stocktake.scanPlaceholder')} />
+                  <ScanInput autoFocus disabled={!online || busy || itemsQuery.isLoading || totalCount === 0} label={t('mobile.stocktake.scanItem')} onScan={scan} placeholder={t('mobile.stocktake.scanPlaceholder')} />
                   {candidateIds.length > 1 ? <Tag color="gold">{t('mobile.stocktake.candidates', { count: candidateIds.length })}</Tag> : null}
 
                   {selectedItem ? (
@@ -171,13 +176,14 @@ export function MobileStocktakePage(): JSX.Element {
                         <span>{t('mobile.batch')} {selectedItem.batchCode ?? '-'}</span>
                         <span>{selectedItem.productBarcode ?? '-'}</span>
                       </div>
-                      <label className="mobile-field-label"><span>{t('mobile.stocktake.countedQty')}</span><InputNumber autoFocus disabled={!online} min={0} onChange={(value) => setCountedQty(value === null ? undefined : Number(value))} precision={0} value={countedQty} /></label>
-                      <label className="mobile-field-label"><span>{t('common.remark')}</span><Input.TextArea disabled={!online} maxLength={500} onChange={(event) => setRemark(event.target.value)} rows={2} value={remark} /></label>
-                      <Button block disabled={!online || countedQty === undefined} loading={countMutation.isPending} onClick={() => void saveCount()} size="large" type="primary">{t('mobile.stocktake.saveCount')}</Button>
+                      <label className="mobile-field-label"><span>{t('mobile.stocktake.countedQty')}</span><InputNumber autoFocus disabled={!online || busy} min={0} onChange={(value) => setCountedQty(value === null ? undefined : Number(value))} precision={0} value={countedQty} /></label>
+                      <label className="mobile-field-label"><span>{t('common.remark')}</span><Input.TextArea disabled={!online || busy} maxLength={500} onChange={(event) => setRemark(event.target.value)} rows={2} value={remark} /></label>
+                      <Button block disabled={!online || busy || countedQty === undefined} loading={countMutation.isPending} onClick={() => void saveCount()} size="large" type="primary">{t('mobile.stocktake.saveCount')}</Button>
                     </section>
                   ) : null}
 
-                  <Button block disabled={!online || !complete} loading={finishMutation.isPending} onClick={requestFinish} size="large">{t('mobile.stocktake.finish')}</Button>
+                  <p>{t(hasUnsavedCount ? 'mobile.stocktake.saveBeforeFinish' : 'mobile.stocktake.editNotice')}</p>
+                  <Button block disabled={!online || busy || !complete || hasUnsavedCount} loading={finishMutation.isPending} onClick={requestFinish} size="large">{t('mobile.stocktake.finish')}</Button>
                 </>
               )}
             </section>
@@ -190,7 +196,7 @@ export function MobileStocktakePage(): JSX.Element {
               {!selectedTask ? <Empty description={t('mobile.selectTaskFirst')} image={Empty.PRESENTED_IMAGE_SIMPLE} /> : (
                 <div className="mobile-task-list compact">
                   {items.map((item) => (
-                    <button className={`mobile-task-card${item.id === selectedItem?.id ? ' is-active' : ''}${item.isCounted ? ' is-ready' : ''}`} disabled={item.isCounted} key={item.id} onClick={() => { setSelectedItem(item); setCountedQty(item.countedQty); setRemark(item.remark ?? ''); }} type="button">
+                    <button className={`mobile-task-card${item.id === selectedItem?.id ? ' is-active' : ''}${item.isCounted ? ' is-ready' : ''}`} disabled={!online || busy} key={item.id} onClick={() => { setSelectedItem(item); setCandidateIds([]); setCountedQty(item.countedQty); setRemark(item.remark ?? ''); }} type="button">
                       <div className="mobile-task-card-top"><strong>{item.locationCode ?? '-'}</strong>{item.isCounted ? <CheckCircleFilled /> : <Tag>{t('mobile.pendingScan')}</Tag>}</div>
                       <span>{item.productName ?? '-'}</span>
                       <div className="mobile-task-meta"><span>{t('mobile.batch')} {item.batchCode ?? '-'}</span><span>{item.productBarcode ?? '-'}</span></div>

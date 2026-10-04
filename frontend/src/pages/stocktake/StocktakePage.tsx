@@ -9,6 +9,7 @@ import { listActiveWarehouses } from '../../api/masterData';
 import { paginateArray } from '../../api/pagination';
 import {
   createStocktakeTask,
+  finishStocktake,
   resolveStocktakeReviewAttempt,
   reviewStocktake,
   startStocktake,
@@ -66,6 +67,7 @@ export function StocktakePage(): JSX.Element {
 
   const createMutation = useMutation({ mutationFn: createStocktakeTask });
   const startMutation = useMutation({ mutationFn: startStocktake });
+  const finishMutation = useMutation({ mutationFn: finishStocktake });
   const countMutation = useMutation({
     mutationFn: ({ taskId, itemId, payload }: { taskId: number; itemId: number; payload: SubmitCountPayload }) =>
       submitStocktakeCount(taskId, itemId, payload),
@@ -97,6 +99,23 @@ export function StocktakePage(): JSX.Element {
         try {
           await startMutation.mutateAsync(task.id as number);
           message.success(t('stocktake.messages.started'));
+          await refresh();
+        } catch (error) { message.error(getErrorMessage(error, t)); throw error; }
+      },
+    });
+  };
+
+  const requestFinish = (task: StocktakeTask): void => {
+    if (!task.id || !capabilities.canCount || countItem || countMutation.isPending || finishMutation.isPending) return;
+    modal.confirm({
+      title: t('mobile.stocktake.finishTitle'),
+      content: t('mobile.stocktake.finishNotice'),
+      okText: t('mobile.stocktake.finish'),
+      cancelText: t('common.cancel'),
+      onOk: async () => {
+        try {
+          await finishMutation.mutateAsync(task.id as number);
+          message.success(t('mobile.stocktake.finished'));
           await refresh();
         } catch (error) { message.error(getErrorMessage(error, t)); throw error; }
       },
@@ -182,6 +201,8 @@ export function StocktakePage(): JSX.Element {
         canReview={capabilities.canReview}
         onClose={() => setSelectedTaskId(undefined)}
         onCount={setCountItem}
+        onFinish={requestFinish}
+        finishing={finishMutation.isPending}
         onReview={setReviewTask}
         onStart={requestStart}
         open={selectedTaskId !== undefined}

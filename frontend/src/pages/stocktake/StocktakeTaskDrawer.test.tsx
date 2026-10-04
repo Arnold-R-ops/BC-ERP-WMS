@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App as AntdApp, ConfigProvider } from 'antd';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../locales/i18n';
 
@@ -18,7 +18,7 @@ import {
 } from '../../api/stocktake';
 import { StocktakeTaskDrawer } from './StocktakeTaskDrawer';
 
-function renderDrawer(canCount: boolean, canReview: boolean): void {
+function renderDrawer(canCount: boolean, canReview: boolean, onFinish = vi.fn()): void {
   const queryClient = new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
   });
@@ -31,6 +31,7 @@ function renderDrawer(canCount: boolean, canReview: boolean): void {
             canReview={canReview}
             onClose={() => undefined}
             onCount={() => undefined}
+            onFinish={onFinish}
             onReview={() => undefined}
             onStart={() => undefined}
             open
@@ -86,5 +87,31 @@ describe('stocktake item visibility boundary', () => {
     await waitFor(() => expect(listStocktakeReviewItems).toHaveBeenCalledWith(8));
     expect(listStocktakeItems).not.toHaveBeenCalled();
     expect((await screen.findAllByText('Book snapshot')).length).toBeGreaterThan(0);
+  });
+
+  it('enables explicit finish only when every blind count has been saved', async () => {
+    vi.mocked(getStocktakeTask).mockResolvedValue({ id: 8, status: 'COUNTING' });
+    vi.mocked(listStocktakeItems).mockResolvedValue([{ id: 13, isCounted: true, countedQty: 4 }]);
+    const onFinish = vi.fn();
+    renderDrawer(true, false, onFinish);
+    const finish = await screen.findByRole('button', { name: 'Finish stocktake count' });
+    await waitFor(() => expect(finish).toBeEnabled());
+    fireEvent.click(finish);
+    expect(onFinish).toHaveBeenCalledWith(expect.objectContaining({ id: 8 }));
+    expect(screen.getByRole('button', { name: 'Revise count' })).toBeEnabled();
+    expect(screen.queryByText('Book snapshot')).not.toBeInTheDocument();
+  });
+
+  it('prevents finish with an uncounted item', async () => {
+    vi.mocked(getStocktakeTask).mockResolvedValue({ id: 8, status: 'COUNTING' });
+    renderDrawer(true, false);
+    expect(await screen.findByRole('button', { name: 'Finish stocktake count' })).toBeDisabled();
+  });
+
+  it('does not expose the finish action to a reviewer without count permission', async () => {
+    vi.mocked(getStocktakeTask).mockResolvedValue({ id: 8, status: 'COUNTING' });
+    renderDrawer(false, true);
+    await screen.findByText(/This role can only view the task summary/);
+    expect(screen.queryByRole('button', { name: 'Finish stocktake count' })).not.toBeInTheDocument();
   });
 });

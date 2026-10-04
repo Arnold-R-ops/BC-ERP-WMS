@@ -6,6 +6,7 @@ import com.wms.system.dto.sales.SalesOrderResponse;
 import com.wms.system.dto.sales.UpdateSalesOrderRequest;
 import com.wms.system.entity.*;
 import com.wms.system.entity.enums.CommercialStatus;
+import com.wms.system.entity.enums.OutboundTaskStatus;
 import com.wms.system.entity.enums.SalesApprovalMode;
 import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
@@ -614,6 +615,75 @@ class SalesSubmissionServiceTest {
 
         verify(inventoryReservationService).releaseOpenReservationsForOrder(1L); // Release reservations
         verify(outboundTaskRepository).findBySalesOrderIdForUpdate(1L);
+    }
+
+    @Test
+    void cancelAuditsEveryUnstartedTaskAndLeavesExistingVoidsUntouched() {
+        SalesOrder order = terminationOrder();
+        OutboundTask pending = OutboundTask.builder().id(20L).status(OutboundTaskStatus.PENDING).build();
+        OutboundTask previouslyVoided = OutboundTask.builder().id(21L).status(OutboundTaskStatus.VOIDED)
+            .archivedBy(88L).archiveReason("Earlier termination").build();
+        when(outboundTaskRepository.findBySalesOrderIdForUpdate(1L)).thenReturn(List.of(pending, previouslyVoided));
+        SalesOrderItem item = SalesOrderItem.builder().requestedQty(5).shippedQty(0).cancelledQty(0).build();
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
+
+        salesSubmissionService.cancelSalesOrder(1L, "Customer request", 7L, "manager");
+
+        assertThat(order.getCommercialStatus()).isEqualTo(CommercialStatus.CANCELLED);
+        assertThat(pending.getStatus()).isEqualTo(OutboundTaskStatus.VOIDED);
+        assertThat(pending.getArchivedBy()).isEqualTo(7L);
+        assertThat(pending.getArchivedAt()).isNotNull();
+        assertThat(pending.getArchiveReason()).isEqualTo("Customer request");
+        assertThat(pending.getActualQty()).isZero();
+        assertThat(previouslyVoided.getArchivedBy()).isEqualTo(88L);
+        assertThat(item.getCancelledQty()).isEqualTo(5);
+        verify(outboundTaskRepository).saveAll(List.of(pending));
+        verify(inventoryReservationService).releaseOpenReservationsForOrder(1L);
+    }
+
+    @Test
+    void closingPartlyShippedOrderOnlyTerminatesUnstartedTasks() {
+        SalesOrder order = terminationOrder();
+        OutboundTask completed = OutboundTask.builder().id(20L).status(OutboundTaskStatus.COMPLETED)
+            .planQty(2).actualQty(2).pickedBy(8L).build();
+        OutboundTask pending = OutboundTask.builder().id(21L).status(OutboundTaskStatus.PENDING)
+            .planQty(3).build();
+        when(outboundTaskRepository.findBySalesOrderIdForUpdate(1L)).thenReturn(List.of(completed, pending));
+        SalesOrderItem item = SalesOrderItem.builder().requestedQty(5).shippedQty(2).cancelledQty(0).build();
+        when(salesOrderItemRepository.findBySalesOrderId(1L)).thenReturn(List.of(item));
+
+        salesSubmissionService.closeSalesOrder(1L, "Close unshipped balance", 7L, "manager");
+
+        assertThat(order.getCommercialStatus()).isEqualTo(CommercialStatus.CLOSED);
+        assertThat(item.getShippedQty()).isEqualTo(2);
+        assertThat(item.getCancelledQty()).isEqualTo(3);
+        assertThat(completed.getStatus()).isEqualTo(OutboundTaskStatus.COMPLETED);
+        assertThat(completed.getActualQty()).isEqualTo(2);
+        assertThat(completed.getArchivedAt()).isNull();
+        assertThat(pending.getArchivedBy()).isEqualTo(7L);
+        assertThat(pending.getArchiveReason()).isEqualTo("Close unshipped balance");
+        verify(outboundTaskRepository).saveAll(List.of(pending));
+        verify(inventoryReservationService).releaseOpenReservationsForOrder(1L);
+    }
+
+    @Test
+    void cancellationCannotReleaseStockOnceWarehouseWorkStarted() {
+        SalesOrder order = SalesOrder.builder().id(1L).commercialStatus(CommercialStatus.APPROVED).build();
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
+        when(outboundTaskRepository.findBySalesOrderIdForUpdate(1L)).thenReturn(List.of(
+            OutboundTask.builder().status(OutboundTaskStatus.PICKING).build()));
+        assertThatThrownBy(() -> salesSubmissionService.cancelSalesOrder(1L, "Cancel", 7L, "manager"))
+            .isInstanceOf(BusinessException.class);
+        verifyNoInteractions(inventoryReservationService);
+        verify(outboundTaskRepository, never()).saveAll(anyList());
+    }
+
+    private SalesOrder terminationOrder() {
+        SalesOrder order = SalesOrder.builder().id(1L).orderNo("SO-A2-FIX").customerId(1L)
+            .commercialStatus(CommercialStatus.APPROVED).totalAmount(BigDecimal.TEN).build();
+        when(salesOrderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        return order;
     }
 }
 

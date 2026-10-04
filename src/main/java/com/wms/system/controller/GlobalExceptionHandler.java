@@ -622,6 +622,7 @@ public class GlobalExceptionHandler {
                  ErrorKeys.VALIDATION_FAILED,
                  ErrorKeys.INVENTORY_DISPOSITION_INVALID,
                  ErrorKeys.INVENTORY_DISPOSITION_POLICY_INVALID,
+                 ErrorKeys.OTHER_INBOUND_TYPES_REQUIRED,
                  ErrorKeys.PARAMETER_REQUIRED,
                  ErrorKeys.TRANSACTION_INVALID_TYPE,
                  ErrorKeys.PO_INVALID_STATUS,
@@ -696,6 +697,8 @@ public class GlobalExceptionHandler {
                  ErrorKeys.AUTH_ACCESS_DENIED,
                  ErrorKeys.WAREHOUSE_SCOPE_DENIED,
                  ErrorKeys.INVENTORY_CORRECTION_APPROVAL_NOT_ENTITLED,
+                 ErrorKeys.OTHER_INBOUND_DISABLED,
+                 ErrorKeys.OTHER_INBOUND_TYPE_DISABLED,
                  ErrorKeys.PO_ALREADY_COMPLETED -> HttpStatus.FORBIDDEN;
 
             // 409 Conflict
@@ -776,6 +779,7 @@ public class GlobalExceptionHandler {
             // 500 Internal Server Error
             case ErrorKeys.ROLE_SWITCH_FAILED,  // v3.3 Multi-Role System
                  ErrorKeys.INVENTORY_CORRECTION_POLICY_INVALID,
+                 ErrorKeys.OTHER_INBOUND_POLICY_INVALID,
                  ErrorKeys.INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
 
             // Default (fallback)

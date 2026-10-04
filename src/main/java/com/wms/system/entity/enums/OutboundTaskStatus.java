@@ -5,7 +5,7 @@ package com.wms.system.entity.enums;
  *
  * 状态流转：
  * PENDING → PICKING → COMPLETED
- * PENDING → VOIDED（仅受控历史测试数据归档）
+ * PENDING → VOIDED（业务终止或受控历史测试归档，均须保留审计字段）
  *
  * @author WMS Team
  * @since 2026-01-28
@@ -44,7 +44,7 @@ public enum OutboundTaskStatus {
     QUALITY_EXCEPTION("质量异常待处理"),
 
     /**
-     * 已作废：仅用于保留历史测试任务证据并从正常作业队列排除。
+     * 已作废：未开始的任务因业务终止或受控历史测试归档退出作业队列。
      * 不代表完成拣货，也不得产生库存流水。
      */
     VOIDED("已作废");

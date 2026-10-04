@@ -163,7 +163,12 @@ public class TenantProvisioningService {
             locked.setTenantId(tenant.getId());
             locked.setIdentityId(identity.getId());
             locked.setStatus(SignupStatus.PROVISIONING);
-            signupRepository.save(locked);
+            // The production Flyway schema protects the provisioning job with
+            // a composite (signup_request_id, tenant_id) foreign key. Flush the
+            // request's tenant assignment before Hibernate inserts the job;
+            // otherwise insert ordering can make a valid first signup fail on
+            // an empty production-shaped database.
+            signupRepository.saveAndFlush(locked);
             jobRepository.save(TenantProvisioningJob.builder()
                 .signupRequestId(locked.getId()).tenantId(tenant.getId())
                 .status(ProvisioningStatus.RUNNING).currentStep("TENANT_DATA").build());

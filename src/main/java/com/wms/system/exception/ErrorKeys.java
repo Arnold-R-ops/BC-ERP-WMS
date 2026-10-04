@@ -271,6 +271,12 @@ public final class ErrorKeys {
     public static final String INVENTORY_DISPOSITION_QUANTITY_CONFLICT = "INVENTORY_DISPOSITION_QUANTITY_CONFLICT";
     public static final String INVENTORY_DISPOSITION_RESERVED_CONFLICT = "INVENTORY_DISPOSITION_RESERVED_CONFLICT";
 
+    // ========== Controlled Other-Inbound Related Errors ==========
+    public static final String OTHER_INBOUND_DISABLED = "OTHER_INBOUND_DISABLED";
+    public static final String OTHER_INBOUND_TYPE_DISABLED = "OTHER_INBOUND_TYPE_DISABLED";
+    public static final String OTHER_INBOUND_TYPES_REQUIRED = "OTHER_INBOUND_TYPES_REQUIRED";
+    public static final String OTHER_INBOUND_POLICY_INVALID = "OTHER_INBOUND_POLICY_INVALID";
+
     /** An idempotency key is required for this write command. */
     public static final String IDEMPOTENCY_KEY_REQUIRED = "IDEMPOTENCY_KEY_REQUIRED";
 

@@ -19,6 +19,8 @@ interface StocktakeTaskDrawerProps {
   canReview: boolean;
   onClose: () => void;
   onCount: (item: StocktakeItem) => void;
+  onFinish: (task: StocktakeTask) => void;
+  finishing?: boolean;
   onReview: (task: StocktakeTask) => void;
   onStart: (task: StocktakeTask) => void;
   open: boolean;
@@ -30,6 +32,8 @@ export function StocktakeTaskDrawer({
   canReview,
   onClose,
   onCount,
+  onFinish,
+  finishing,
   onReview,
   onStart,
   open,
@@ -102,6 +106,18 @@ export function StocktakeTaskDrawer({
           {t('stocktake.actions.review')}
         </Button>
       ) : null}
+      {task?.status === 'COUNTING' && canCount ? (
+        <Button
+          aria-label={t('mobile.stocktake.finish')}
+          disabled={itemsQuery.isFetching || !itemsQuery.data?.length || !itemsQuery.data.every((item) => item.isCounted)}
+          icon={<CheckOutlined />}
+          loading={finishing}
+          onClick={() => onFinish(task)}
+          type="primary"
+        >
+          {t('mobile.stocktake.finish')}
+        </Button>
+      ) : null}
     </Space>
   );
 
@@ -135,7 +151,7 @@ export function StocktakeTaskDrawer({
           <Alert message={t('stocktake.details.itemPermissionNotice')} showIcon style={{ marginTop: 16 }} type="info" />
         ) : null}
         {!reviewData && itemAccess ? (
-          <Alert message={t('stocktake.count.blindNotice')} showIcon style={{ marginTop: 16 }} type="info" />
+          <Alert description={t('mobile.stocktake.editNotice')} message={t('stocktake.count.blindNotice')} showIcon style={{ marginTop: 16 }} type="info" />
         ) : null}
 
         {itemAccess ? (

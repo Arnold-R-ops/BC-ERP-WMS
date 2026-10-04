@@ -714,7 +714,7 @@ public class SalesSubmissionService {
         List<OutboundTask> tasks = outboundTaskRepository.findBySalesOrderIdForUpdate(orderId);
         rejectTerminationWhenWarehouseStarted(orderId, "CANCEL", tasks);
         inventoryReservationService.releaseOpenReservationsForOrder(orderId);
-        voidOpenTasks(tasks);
+        voidOpenTasks(tasks, operatorId, reason);
         cancelOpenBackorders(orderId);
         cancelOutstandingItemQuantities(orderId);
 
@@ -873,7 +873,7 @@ public class SalesSubmissionService {
             ));
         }
         inventoryReservationService.releaseOpenReservationsForOrder(orderId);
-        voidOpenTasks(tasks);
+        voidOpenTasks(tasks, operatorId, reason);
         cancelOpenBackorders(orderId);
         cancelOutstandingItemQuantities(orderId);
         order.setCommercialStatus(CommercialStatus.CLOSED);
@@ -908,11 +908,13 @@ public class SalesSubmissionService {
         }
     }
 
-    private void voidOpenTasks(List<OutboundTask> tasks) {
-        tasks.stream()
+    private void voidOpenTasks(List<OutboundTask> tasks, Long actorId, String reason) {
+        LocalDateTime terminatedAt = LocalDateTime.now();
+        List<OutboundTask> pendingTasks = tasks.stream()
             .filter(task -> task.getStatus() == OutboundTaskStatus.PENDING)
-            .forEach(task -> task.setStatus(OutboundTaskStatus.VOIDED));
-        outboundTaskRepository.saveAll(tasks);
+            .toList();
+        pendingTasks.forEach(task -> task.voidUnstarted(actorId, terminatedAt, reason));
+        outboundTaskRepository.saveAll(pendingTasks);
     }
 
     private void cancelOpenBackorders(Long orderId) {

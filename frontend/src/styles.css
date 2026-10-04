@@ -3032,6 +3032,37 @@ button.mobile-task-card:disabled {
   width: 126px;
 }
 
+.mobile-live-modal { max-width: 100vw; margin: 0; }
+.mobile-live-modal .ant-modal-content {
+  min-height: 100vh;
+  min-height: 100dvh;
+  border-radius: 0;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+}
+.mobile-live-scanner { display: grid; gap: 16px; max-width: 720px; margin: 0 auto; }
+.mobile-live-instructions, .mobile-live-status { margin: 0; line-height: 1.6; }
+.mobile-live-status { color: #526560; font-size: 13px; }
+.mobile-live-preview {
+  position: relative;
+  background: #14201e;
+  border-radius: 12px;
+  overflow: hidden;
+  height: min(58vh, 520px);
+  height: min(58dvh, 520px);
+}
+.mobile-live-preview[hidden] { display: none; }
+.mobile-live-preview video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.mobile-live-guide {
+  position: absolute; inset: 15%; border: 2px solid #a4e8d1; border-radius: 18px;
+  pointer-events: none;
+}
+.mobile-live-starting {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px; color: white; background: #14201ee6;
+}
+.mobile-live-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.mobile-live-actions > button { flex: 1 1 150px; }
+
 .mobile-task-summary {
   display: flex;
   justify-content: space-between;

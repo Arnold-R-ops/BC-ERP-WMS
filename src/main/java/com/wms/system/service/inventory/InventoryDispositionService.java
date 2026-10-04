@@ -637,7 +637,7 @@ public class InventoryDispositionService {
                 order, planned.source(), null, planned.quantity(),
                 planned.reallocatedQuantity(), planned.backorderedQuantity(),
                 planned.qualityExceptionQuantity(), planned.source().getQualityStatus(), targetStatus);
-            applyReservationImpacts(planned, line, order);
+            applyReservationImpacts(planned, line, order, actorId);
             InventoryBatch result = applySplitAndTransition(
                 planned.source(), planned.quantity(), targetStatus, order, line,
                 ++ordinal, actorId, actorName);
@@ -651,13 +651,14 @@ public class InventoryDispositionService {
     private void applyReservationImpacts(
         MarkPlanLine planned,
         InventoryDispositionLine line,
-        InventoryDispositionOrder order
+        InventoryDispositionOrder order,
+        Long actorId
     ) {
         for (ReservationImpactPlan impact : planned.impacts()) {
             if (impact.type() == InventoryDispositionReservationImpactType.REALLOCATED) {
                 applyReallocation(planned.source(), line, impact, order);
             } else {
-                applyBackorder(planned.source(), line, impact, order);
+                applyBackorder(planned.source(), line, impact, order, actorId);
             }
         }
         batchRepository.save(planned.source());
@@ -730,7 +731,8 @@ public class InventoryDispositionService {
         InventoryBatch source,
         InventoryDispositionLine line,
         ReservationImpactPlan impact,
-        InventoryDispositionOrder order
+        InventoryDispositionOrder order,
+        Long actorId
     ) {
         InventoryReservation reservation = impact.reservation();
         OutboundTask task = impact.task();
@@ -748,7 +750,8 @@ public class InventoryDispositionService {
             } else {
                 int taskQuantity = value(task.getPlanQty());
                 if (quantity >= taskQuantity) {
-                    task.setStatus(OutboundTaskStatus.VOIDED);
+                    task.voidUnstarted(actorId, LocalDateTime.now(),
+                        "Reservation released to backorder by " + order.getDispositionNumber());
                     task.setRemark("Reservation released to backorder by " + order.getDispositionNumber());
                 } else {
                     task.setPlanQty(taskQuantity - quantity);

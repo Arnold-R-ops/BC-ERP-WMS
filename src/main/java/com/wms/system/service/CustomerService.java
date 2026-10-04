@@ -271,6 +271,7 @@ public class CustomerService {
      *
      * @return 客户列表（根据角色过滤）
      */
+    @Transactional(readOnly = true)
     public List<CustomerResponse> listCustomers() {
         return listCustomers(null);
     }
@@ -279,6 +280,7 @@ public class CustomerService {
      * Query customers by business type while preserving row-level isolation.
      * A null type retains the legacy all-customer behavior.
      */
+    @Transactional(readOnly = true)
     public List<CustomerResponse> listCustomers(CustomerType customerType) {
         log.debug("Querying all customers");
 
@@ -320,6 +322,7 @@ public class CustomerService {
      *
      * @return 激活客户列表（根据角色过滤）
      */
+    @Transactional(readOnly = true)
     public List<CustomerResponse> listActiveCustomers() {
         return listActiveCustomers(null);
     }
@@ -328,6 +331,7 @@ public class CustomerService {
      * Query active customers by business type while preserving row-level isolation.
      * A null type retains the legacy all-active-customer behavior.
      */
+    @Transactional(readOnly = true)
     public List<CustomerResponse> listActiveCustomers(CustomerType customerType) {
         log.debug("Querying all active customers");
 

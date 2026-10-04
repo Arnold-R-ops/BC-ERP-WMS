@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
  * 6. Submit count success
  * 7. Submit count blind count verification
  * 8. Submit count calculate difference
- * 9. Submit count auto transition to reviewing
+ * 9. Last count remains editable until explicit finish
  * 10. Review stocktake approve
  * 11. Review stocktake reject
  * 12. Adjust inventory surplus
@@ -309,7 +309,7 @@ class StocktakeServiceTest {
     }
 
     @Test
-    @DisplayName("finish counting is idempotent after the final count auto-transitions")
+    @DisplayName("finish counting is idempotent after an explicit finish")
     void testFinishCounting_AlreadyReviewing() {
         testTask.setStatus(StocktakeStatus.REVIEWING);
         testTask.setCountedItems(testTask.getTotalItems());
@@ -509,11 +509,11 @@ class StocktakeServiceTest {
         assertThat(testTask.getCountedItems()).isZero();
     }
 
-    // ========== Test 9: Auto Transition to Reviewing ==========
+    // ========== Test 9: Last count waits for explicit finish ==========
 
     @Test
     @DisplayName("case-10")
-    void testSubmitCount_AutoTransitionToReviewing() {
+    void testSubmitCount_LastItemRemainsCounting() {
         // Given: Last item to count
         testTask.setStatus(StocktakeStatus.COUNTING);
         testTask.setTotalItems(1);
@@ -550,7 +550,46 @@ class StocktakeServiceTest {
         // Then
         ArgumentCaptor<StocktakeTask> taskCaptor = ArgumentCaptor.forClass(StocktakeTask.class);
         verify(stocktakeTaskRepository).save(taskCaptor.capture());
-        assertThat(taskCaptor.getValue().getStatus()).isEqualTo(StocktakeStatus.REVIEWING);
+        assertThat(taskCaptor.getValue().getStatus()).isEqualTo(StocktakeStatus.COUNTING);
+        assertThat(taskCaptor.getValue().getCountedItems()).isEqualTo(1);
+        verifyNoInteractions(inventoryPostingService);
+    }
+
+    @Test
+    void rejectedTaskAllowsMultipleCorrectionsThenExplicitFinish() {
+        testTask.setStatus(StocktakeStatus.REVIEWING);
+        testTask.setTotalItems(2);
+        testTask.setCountedItems(2);
+        when(stocktakeTaskRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(testWarehouse));
+        ReviewStocktakeRequest reject = new ReviewStocktakeRequest();
+        reject.setApproved(false);
+        reject.setComment("Recheck both lines");
+        stocktakeService.reviewStocktake(1L, reject, 7L, "Manager");
+
+        when(stocktakeItemRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.findById(1L)).thenReturn(Optional.of(testBatch));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
+        for (long id : List.of(1L, 2L)) {
+            StocktakeItem item = StocktakeItem.builder().id(id).taskId(1L).productSkuId(1L)
+                .batchId(1L).locationId(1L).snapshotQty(100).countedQty(95)
+                .differenceQty(-5).isCounted(true).build();
+            when(stocktakeItemRepository.findById(id)).thenReturn(Optional.of(item));
+            SubmitCountRequest count = new SubmitCountRequest();
+            count.setCountedQty(100);
+            stocktakeService.submitCount(1L, id, count, 8L, "Counter");
+            assertThat(testTask.getStatus()).isEqualTo(StocktakeStatus.COUNTING);
+            assertThat(testTask.getCountedItems()).isEqualTo(2);
+            assertThat(item.getCountedQty()).isEqualTo(100);
+        }
+        assertThat(stocktakeService.finishCounting(1L).getStatus()).isEqualTo("REVIEWING");
+        assertThat(stocktakeService.finishCounting(1L).getStatus()).isEqualTo("REVIEWING");
+        SubmitCountRequest late = new SubmitCountRequest();
+        late.setCountedQty(80);
+        assertThatThrownBy(() -> stocktakeService.submitCount(1L, 1L, late, 8L, "Counter"))
+            .isInstanceOf(BusinessException.class);
+        verifyNoInteractions(inventoryPostingService);
     }
 
     // ========== Test 10: Review Approve ==========

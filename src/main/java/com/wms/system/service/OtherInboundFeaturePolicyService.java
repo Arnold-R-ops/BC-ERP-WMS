@@ -4,6 +4,7 @@ import com.wms.system.dto.inbound.OtherInboundFeaturePolicyResponse;
 import com.wms.system.entity.SystemConfig;
 import com.wms.system.entity.enums.OtherInboundBusinessType;
 import com.wms.system.exception.BusinessException;
+import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.SystemConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,11 +45,11 @@ public class OtherInboundFeaturePolicyService {
     public void requireEnabled(OtherInboundBusinessType type) {
         OtherInboundFeaturePolicyResponse policy = getPolicy();
         if (!policy.isEnabled()) {
-            throw new BusinessException("OTHER_INBOUND_DISABLED", Map.of());
+            throw new BusinessException(ErrorKeys.OTHER_INBOUND_DISABLED, Map.of());
         }
         if (!policy.getAllowedBusinessTypes().contains(type)) {
             throw new BusinessException(
-                "OTHER_INBOUND_TYPE_DISABLED",
+                ErrorKeys.OTHER_INBOUND_TYPE_DISABLED,
                 Map.of("businessType", type.name())
             );
         }
@@ -64,7 +65,7 @@ public class OtherInboundFeaturePolicyService {
     ) {
         if (types == null || types.isEmpty()) {
             throw new BusinessException(
-                "OTHER_INBOUND_TYPES_REQUIRED",
+                ErrorKeys.OTHER_INBOUND_TYPES_REQUIRED,
                 Map.of("reason", "At least one controlled business type is required")
             );
         }
@@ -97,7 +98,7 @@ public class OtherInboundFeaturePolicyService {
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(OtherInboundBusinessType.class)));
         } catch (RuntimeException exception) {
             throw new BusinessException(
-                "OTHER_INBOUND_POLICY_INVALID",
+                ErrorKeys.OTHER_INBOUND_POLICY_INVALID,
                 Map.of("configuredValue", value)
             );
         }

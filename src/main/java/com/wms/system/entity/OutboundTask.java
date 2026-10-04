@@ -203,6 +203,25 @@ public class OutboundTask extends BaseEntity {
     // ========== 便利方法 ==========
 
     /**
+     * Terminate an unstarted task without dispatching stock. The existing archive
+     * columns are mandatory audit evidence for every VOIDED task, not only test
+     * archives. Sales/disposition records retain the business reason and source;
+     * the guarded historical archive service retains its separate audit trail.
+     */
+    public void voidUnstarted(Long actorId, LocalDateTime at, String reason) {
+        if (status != OutboundTaskStatus.PENDING || (actualQty != null && actualQty != 0)) {
+            throw new IllegalStateException("Only an unstarted outbound task can be voided");
+        }
+        if (actorId == null || at == null || reason == null || reason.isBlank() || reason.length() > 500) {
+            throw new IllegalArgumentException("Outbound task termination requires actor, time and reason (1-500)");
+        }
+        status = OutboundTaskStatus.VOIDED;
+        archivedAt = at;
+        archivedBy = actorId;
+        archiveReason = reason.trim();
+    }
+
+    /**
      * 判断是否可以确认发货
      *
      * @return true 如果状态为 PENDING 或 PICKING

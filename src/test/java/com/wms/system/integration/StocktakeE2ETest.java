@@ -264,7 +264,7 @@ class StocktakeE2ETest {
         assertThat(countedItem2.getIsCounted()).isTrue();
 
         // Step 5: Finish counting
-        StocktakeTaskResponse finishedTask = stocktakeService.getStocktakeTask(taskResponse.getId());
+        StocktakeTaskResponse finishedTask = stocktakeService.finishCounting(taskResponse.getId());
 
         // Verify: Status changed to REVIEWING
         assertThat(finishedTask.getStatus()).isEqualTo("REVIEWING");
@@ -389,7 +389,7 @@ class StocktakeE2ETest {
             );
         }
 
-        StocktakeTaskResponse reviewingTask = stocktakeService.getStocktakeTask(taskResponse.getId());
+        StocktakeTaskResponse reviewingTask = stocktakeService.finishCounting(taskResponse.getId());
         assertThat(reviewingTask.getStatus()).isEqualTo("REVIEWING");
 
         // Step 3: Manager rejects due to large differences
@@ -478,7 +478,7 @@ class StocktakeE2ETest {
             "warehouse_staff"
         );
 
-        StocktakeTaskResponse finishedTask = stocktakeService.getStocktakeTask(taskResponse.getId());
+        StocktakeTaskResponse finishedTask = stocktakeService.finishCounting(taskResponse.getId());
         assertThat(finishedTask.getStatus()).isEqualTo("REVIEWING");
 
         // Verify: No differences

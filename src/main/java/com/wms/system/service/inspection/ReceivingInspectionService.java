@@ -254,8 +254,11 @@ public class ReceivingInspectionService {
             if (taskLine.getPendingReviewQuantity() < passed) {
                 throw invalid("PENDING_REVIEW_QUANTITY_MISMATCH", taskLine.getId());
             }
-            taskLine.setPendingReviewQuantity(taskLine.getPendingReviewQuantity() - passed);
             if (approve) {
+                // Keep the line quantity invariant valid before inventory
+                // transition helpers trigger an EntityManager flush.
+                taskLine.setPendingReviewQuantity(taskLine.getPendingReviewQuantity() - passed);
+                taskLine.setPassedQuantity(taskLine.getPassedQuantity() + passed);
                 InventoryBatch source = batchRepository.findByIdForPosting(
                     resultLine.getSourceBatch().getId()).orElseThrow();
                 requirePendingSource(source, passed);
@@ -264,9 +267,9 @@ public class ReceivingInspectionService {
                     result.getResultNumber(), "INSPECTION_REVIEW_APPROVED",
                     comment, actorId, actorName, ++ordinal);
                 resultLine.setPassedBatch(passedBatch);
-                taskLine.setPassedQuantity(taskLine.getPassedQuantity() + passed);
                 wakeBackorder(taskLine);
             } else {
+                taskLine.setPendingReviewQuantity(taskLine.getPendingReviewQuantity() - passed);
                 taskLine.setPendingQuantity(taskLine.getPendingQuantity() + passed);
             }
             taskLineRepository.save(taskLine);

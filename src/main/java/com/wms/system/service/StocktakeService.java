@@ -257,11 +257,8 @@ public class StocktakeService {
         long differenceCount = stocktakeItemRepository.countByTaskIdAndDifferenceQtyNot(taskId, 0);
         task.setDifferenceItems((int) differenceCount);
 
-        // 6. Auto transition to REVIEWING if all items counted
-        if (task.getCountedItems().equals(task.getTotalItems())) {
-            task.setStatus(StocktakeStatus.REVIEWING);
-            log.info("All items counted, auto transitioning to REVIEWING: taskNo={}", task.getTaskNo());
-        }
+        // Saving (including recounting after rejection) never submits for review.
+        // The explicit finish command is the single transition boundary.
 
         stocktakeTaskRepository.save(task);
 
@@ -283,10 +280,7 @@ public class StocktakeService {
 
         StocktakeTask task = getTaskByIdForUpdate(taskId);
 
-        // The final count submission can auto-transition the task before the
-        // mobile client sends its explicit finish request. Treat REVIEWING as
-        // an idempotent success so a delayed or retried confirmation cannot
-        // report a false failure after the state change has committed.
+        // A repeated finish request after a committed transition is idempotent.
         if (task.getStatus() == StocktakeStatus.REVIEWING) {
             requireAllItemsCounted(
                 task,

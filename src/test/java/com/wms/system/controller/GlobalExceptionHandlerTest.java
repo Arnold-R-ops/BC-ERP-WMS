@@ -112,6 +112,32 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @WithMockUser
+    @DisplayName("BusinessException OTHER_INBOUND_DISABLED -> 403")
+    void otherInboundDisabledReturns403() throws Exception {
+        when(inventoryService.getTotalStock(any())).thenThrow(
+            new BusinessException(ErrorKeys.OTHER_INBOUND_DISABLED, Map.of())
+        );
+
+        mockMvc.perform(get("/api/inventory/total-stock/1"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.errorKey").value(ErrorKeys.OTHER_INBOUND_DISABLED));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("BusinessException OTHER_INBOUND_TYPES_REQUIRED -> 400")
+    void otherInboundTypesRequiredReturns400() throws Exception {
+        when(inventoryService.getTotalStock(any())).thenThrow(
+            new BusinessException(ErrorKeys.OTHER_INBOUND_TYPES_REQUIRED, Map.of())
+        );
+
+        mockMvc.perform(get("/api/inventory/total-stock/1"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errorKey").value(ErrorKeys.OTHER_INBOUND_TYPES_REQUIRED));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("BusinessException OUTBOUND_TASK_ALREADY_COMPLETED -> 409")
     void testBusinessException_OutboundTaskAlreadyCompleted_Returns409() throws Exception {
         when(inventoryService.getTotalStock(any())).thenThrow(

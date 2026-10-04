@@ -22,10 +22,10 @@ export function resolveStocktakeScan(
   const scan = normalized(rawScan);
   if (!scan) return { kind: 'none' };
 
-  const uncounted = items.filter((item) => item.id !== undefined && !item.isCounted);
+  const countable = items.filter((item) => item.id !== undefined);
   const scope = candidateIds.length > 0
-    ? uncounted.filter((item) => candidateIds.includes(item.id as number))
-    : uncounted;
+    ? countable.filter((item) => candidateIds.includes(item.id as number))
+    : countable;
   const matches = scope.filter((item) => itemMatches(item, scan));
 
   if (matches.length === 1) return { kind: 'match', item: matches[0] };

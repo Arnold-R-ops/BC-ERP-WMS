@@ -25,7 +25,13 @@ describe('stocktake scan resolution', () => {
     if (result.kind === 'match') expect(result.item.id).toBe(2);
   });
 
-  it('ignores already-counted items', () => {
-    expect(resolveStocktakeScan(items, 'BATCH-DONE')).toEqual({ kind: 'none' });
+  it('allows an already-counted batch to be selected for correction', () => {
+    expect(resolveStocktakeScan(items, 'BATCH-DONE')).toEqual({ kind: 'match', item: items[2] });
+  });
+
+  it('does not guess between a counted and an uncounted line for the same SKU', () => {
+    const mixed = [{ ...items[0], isCounted: true }, items[1]];
+    expect(resolveStocktakeScan(mixed, 'SKU-1')).toEqual({ kind: 'ambiguous', candidateIds: [1, 2] });
+    expect(resolveStocktakeScan(mixed, 'BATCH-OLD', [1, 2])).toEqual({ kind: 'match', item: mixed[0] });
   });
 });

@@ -1,6 +1,7 @@
 import { CheckOutlined, EditOutlined, ExportOutlined, PlusOutlined, SendOutlined, StopOutlined, UndoOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Descriptions, Divider, Drawer, Space, Table, Tag, type TableColumnsType } from 'antd';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '../../api/errors';
@@ -58,6 +59,7 @@ interface PurchaseOrderDrawerProps {
   canCloseRemainder: boolean;
   canCreateAsn: boolean;
   canEdit: boolean;
+  canExecuteReceiving: boolean;
   canUpdateAsn: boolean;
   canSubmit: boolean;
   canViewAsn: boolean;
@@ -77,12 +79,13 @@ interface PurchaseOrderDrawerProps {
 export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Element {
   const {
     canApprove, canCancel, canCancelAsn, canCloseRemainder, canConfirmAsn, canConfirmShipment,
-    canCreateAsn, canEdit, canSubmit, canUpdateAsn, canViewAsn, canViewReceiving, canVoid,
+    canCreateAsn, canEdit, canExecuteReceiving, canSubmit, canUpdateAsn, canViewAsn, canViewReceiving, canVoid,
     orderId, onAsnAction, onClose, onCloseRemainder, onConfirmShipment, onCreateAsn, onEdit,
     onEditAsn, onWorkflow,
   } = props;
   const { i18n, t } = useTranslation();
   const navigate = useNavigate();
+  const [selectedReceivingTask, setSelectedReceivingTask] = useState<ReceivingTask>();
   const orderQuery = useQuery({
     queryKey: ['purchase-order', orderId],
     queryFn: () => getPurchaseOrder(orderId as number),
@@ -153,7 +156,26 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
     { title: t('purchasing.fields.receivingTask'), dataIndex: 'taskNumber' },
     { title: t('purchasing.fields.targetWarehouse'), dataIndex: 'warehouseName', render: (_, task) => task.warehouseName ?? task.warehouseCode ?? '-' },
     { title: t('purchasing.fields.status'), dataIndex: 'status', render: (status) => <Tag>{String(status)}</Tag> },
-    { title: t('common.actions'), key: 'actions', render: (_, task) => <Button onClick={() => navigate(`/mobile/receiving?taskId=${task.id}`)} size="small" type="link">{t('purchasing.actions.enterReceivingTask')}</Button> },
+    {
+      title: t('common.actions'), key: 'actions', render: (_, task) => (
+        <Space size={0} wrap>
+          <Button onClick={() => setSelectedReceivingTask(task)} size="small" type="link">
+            {t('purchasing.actions.viewReceivingTask')}
+          </Button>
+          {canExecuteReceiving && ['PENDING', 'PARTIALLY_RECEIVED'].includes(task.status)
+            ? <Button onClick={() => navigate(`/mobile/receiving?taskId=${task.id}`)} size="small" type="link">{t('purchasing.actions.enterReceivingTask')}</Button>
+            : null}
+        </Space>
+      ),
+    },
+  ];
+
+  const receivingTaskItemColumns: TableColumnsType<ReceivingTask['items'][number]> = [
+    { title: t('purchasing.fields.product'), dataIndex: 'productName', render: (_, item) => item.productName ?? item.skuCode ?? '-' },
+    { title: t('purchasing.fields.expectedQuantity'), dataIndex: 'expectedQuantity', align: 'right' },
+    { title: t('purchasing.fields.receivedQuantity'), dataIndex: 'receivedQuantity', align: 'right' },
+    { title: t('purchasing.fields.closedQuantity'), dataIndex: 'closedQuantity', align: 'right' },
+    { title: t('purchasing.fields.remainingQuantity'), dataIndex: 'remainingQuantity', align: 'right' },
   ];
 
   const finalStatus = order?.status && ['COMPLETED', 'CLOSED', 'CANCELLED', 'VOIDED'].includes(order.status);
@@ -211,6 +233,26 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
             <Table columns={asnColumns} dataSource={asnsQuery.data ?? []} pagination={false} rowKey="id" scroll={{ x: 1080 }} size="small" />
           </>}
           {canViewReceiving && <><Divider orientation="left">{t('purchasing.details.receivingTasks')}</Divider><Table columns={taskColumns} dataSource={tasksQuery.data ?? []} pagination={false} rowKey="id" size="small" /></>}
+          <Drawer
+            destroyOnHidden
+            onClose={() => setSelectedReceivingTask(undefined)}
+            open={selectedReceivingTask !== undefined}
+            title={t('purchasing.details.receivingTaskTitle', { taskNumber: selectedReceivingTask?.taskNumber ?? '-' })}
+            width="min(760px, 94vw)"
+          >
+            {selectedReceivingTask ? <>
+              <Descriptions
+                column={{ xs: 1, sm: 2 }}
+                items={[
+                  { key: 'status', label: t('purchasing.fields.status'), children: <Tag>{selectedReceivingTask.status}</Tag> },
+                  { key: 'warehouse', label: t('purchasing.fields.targetWarehouse'), children: selectedReceivingTask.warehouseName ?? selectedReceivingTask.warehouseCode ?? '-' },
+                ]}
+                size="small"
+              />
+              <Divider orientation="left">{t('purchasing.details.receivingTaskItems')}</Divider>
+              <Table columns={receivingTaskItemColumns} dataSource={selectedReceivingTask.items} pagination={false} rowKey="id" size="small" />
+            </> : null}
+          </Drawer>
         </>
       )}
     </Drawer>

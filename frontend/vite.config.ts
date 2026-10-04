@@ -29,7 +29,9 @@ export default defineConfig(({ mode }) => {
       // ProLayout's lazy-loaded icon vendor chunk is ~184 kB gzip.
       chunkSizeWarningLimit: 600,
       outDir: 'dist',
-      sourcemap: true,
+      // Public release packages contain no source maps. Private error reporting,
+      // if introduced, must use a separate, explicitly authorized upload workflow.
+      sourcemap: false,
       rollupOptions: {
         input: {
           company: projectEntry('index.html'),

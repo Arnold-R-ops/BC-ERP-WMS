@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>A2 手机扫码诊断</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef4f3; color: #173c37; font: 16px/1.6 system-ui,sans-serif; }
+    main { max-width: 700px; margin: auto; padding: 20px; }
+    section { padding: 20px; margin: 16px 0; background: white; border: 1px solid #d2e3de; border-radius: 14px; }
+    h1 { font-size: 26px; margin: 0; } h2 { font-size: 20px; margin: 0 0 12px; }
+    p { margin: 10px 0; } .muted { color: #53736d; font-size: 14px; }
+    button, .file-button { display: block; border: 0; border-radius: 8px; background: #166653; color: white; padding: 13px; font: inherit; text-align: center; width: 100%; margin: 10px 0; cursor: pointer; }
+    button:disabled, .file-button:has(input:disabled) { opacity: .5; }
+    .file-button.secondary { background: #e8f2ef; color: #174c3f; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 ui-monospace,monospace; background: #f3f7f5; padding: 12px; }
+    #photo { max-width: 100%; max-height: 400px; object-fit: contain; display: block; margin: auto; }
+    [hidden] { display: none !important; } li { margin-bottom: 8px; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>A2 手机扫码诊断</h1>
+    <p class="muted">版本 A2-SCAN-0906-3 · 使用与盘点页面相同的识别流程。</p>
+    <p>无需登录，不提交盘点数量。照片只在当前浏览器中处理，不上传服务器。</p>
+    <section>
+      <h2>1. 内置样张检测</h2>
+      <p>先检查这台手机能否直接读出四枚盘点二维码和一枚条形码。</p>
+      <button id="self-test" type="button">重新检测内置样张</button>
+      <p id="self-result" role="status">正在准备检测…</p>
+      <ul id="samples"></ul>
+    </section>
+    <section>
+      <h2>2. 检测拍摄照片</h2>
+      <p>拍摄电脑上的单枚大二维码，或者选择刚才识别失败的原照片。</p>
+      <label class="file-button">拍照检测<input id="capture" type="file" accept="image/*" capture="environment" hidden></label>
+      <label class="file-button secondary">从相册选择照片<input id="album" type="file" accept="image/*" hidden></label>
+      <p id="photo-result" role="status">等待选择照片</p>
+      <img id="photo" alt="本次扫码照片预览" hidden>
+      <pre id="diagnostics" hidden></pre>
+      <p class="muted">如仍失败，请将检测结果和照片预览截图发回此对话。原照片也可以单独发送，便于复现。</p>
+    </section>
+    <p id="device" class="muted"></p>
+  </main>
+  <script type="module" src="/src/dev/a2ScanDiagnostic.ts"></script>
+</body>
+</html>
