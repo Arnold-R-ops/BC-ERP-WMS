@@ -17,6 +17,7 @@ public class SalesDailySummaryResponse {
     private Long pendingApprovalCount;
     private Long approvedAwaitingShipmentCount;
     private Long shippedCount;
+    private Long closedCount;
     private Long rejectedCount;
     private Long cancelledCount;
     private Long voidedCount;

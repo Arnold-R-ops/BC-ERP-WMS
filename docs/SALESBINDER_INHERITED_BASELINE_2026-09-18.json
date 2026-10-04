@@ -1,0 +1,270 @@
+[
+  {
+    "path": "docs/TENANT_ERP_A2_4_FIX_AND_REGRESSION_2026-09-08.md",
+    "sha256": "CD6A57245CBB91B4B35FCB9D0D05E704057AB3DFBFB93BC6985A64EBF222F75E"
+  },
+  {
+    "path": "docs/TENANT_ERP_A2_4_FRONTEND_REGRESSION_2026-09-07.md",
+    "sha256": "0D7A765D74F4D46CC42613C19AC8C014AE4175A54CE142A8839375CFEDD01F2F"
+  },
+  {
+    "path": "docs/TENANT_ERP_A2_4_INVENTORY_READONLY_AUDIT_2026-09-07.md",
+    "sha256": "E5376186E25A9073D8D9F715928059A5DB41C20047842CDD5024D19233B325DC"
+  },
+  {
+    "path": "docs/TENANT_ERP_A2_INDEPENDENT_ACCEPTANCE_REPORT_2026-09-07.md",
+    "sha256": "7226820350A392228CBC063BFB478F730F872FAAA10BCADDB5629A04B204F80B"
+  },
+  {
+    "path": "docs/TENANT_ERP_A2_RUNTIME_AND_SIGNOFF_2026-09-09.md",
+    "sha256": "409F455784BD17A57461A05C7D25207A0EDA38EC860DE8564C1F2854963A4529"
+  },
+  {
+    "path": "docs/TENANT_ERP_A2_UAT_EXECUTION_PLAN_2026-09-02.md",
+    "sha256": "56234387478CAFC6F2DF60F4C8CAF3DA504DA600A35F64B457D2FEEFB56A8674"
+  },
+  {
+    "path": "docs/TENANT_ERP_A3_PREPARATION_PLAN_2026-09-09.md",
+    "sha256": "F41EA26317D5630737EFCD6DC60B3B905C053B7BF1088CAF8EDF2B3A4DC71B15"
+  },
+  {
+    "path": "frontend/a2-live-scan-diagnostic.html",
+    "sha256": "D8B4FF0A00458FBC431BD6A4C174F83B1A105EA5EFE7129D3267554C81AA0B88"
+  },
+  {
+    "path": "frontend/a2-mobile-barcodes.html",
+    "sha256": "6EC368F785EC9F02C6BF61077F92FDD8FB1E7CDA125B17E577952C2B92B4E2BF"
+  },
+  {
+    "path": "frontend/a2-scan-diagnostic.html",
+    "sha256": "E78B07FADC57355BB815A1B57CC11B26C42BD12287603313619A77181A725F0C"
+  },
+  {
+    "path": "frontend/package.json",
+    "sha256": "8A1C7B7752B92E8C0B7DEC848CFFD4A9C860A8E9077C7DAF63A095A9AFB139B6"
+  },
+  {
+    "path": "frontend/pnpm-lock.yaml",
+    "sha256": "A5EA94CEC5FFF0C5E8F495BCF310ED054CEA52197F0E91A4C42C451BBA4D5A86"
+  },
+  {
+    "path": "frontend/src/dev/a2LiveScanDiagnostic.tsx",
+    "sha256": "14068875F724DAC1206DC9EA50286F9B6EDCC8ACBEEAF14BE07AB5DA056A4B5B"
+  },
+  {
+    "path": "frontend/src/dev/a2ScanDiagnostic.ts",
+    "sha256": "3F1BD77770CC950B6E9483A21446861AB258548034893C0D5E0D4865E22ED88A"
+  },
+  {
+    "path": "frontend/src/locales/en-US.ts",
+    "sha256": "11412CDC5180593690716B31FEB5D552F28DF9F79EBD6A710211CB4105811B92"
+  },
+  {
+    "path": "frontend/src/locales/zh-CN.ts",
+    "sha256": "3C184712B20A90FF1A2447A5EBB00E80E5890861F703191D9A7A7D08F80F15AA"
+  },
+  {
+    "path": "frontend/src/pages/mobile/__fixtures__/README.md",
+    "sha256": "05E26855078BF26B3086E155C79F69F857C7005CBF81B7629CA2E6832B8C5A37"
+  },
+  {
+    "path": "frontend/src/pages/mobile/__fixtures__/safari-qr-perspective.json",
+    "sha256": "E51803BCEE176C1E48C9C086140FBAF52C27B9B3FA27BDBA3128A5A3E24875B4"
+  },
+  {
+    "path": "frontend/src/pages/mobile/barcodePhoto.ts",
+    "sha256": "964EFD6A98758293F27A987BD52E17392D5CD904A4DA3CB19AAEEE113927663B"
+  },
+  {
+    "path": "frontend/src/pages/mobile/liveBarcodeScanner.test.ts",
+    "sha256": "AF4693F0D1027241FEBDDCD9F2F8E411BBFC297812EBA9334B1DE26751FAF400"
+  },
+  {
+    "path": "frontend/src/pages/mobile/liveBarcodeScanner.ts",
+    "sha256": "EF0C76C9172C10A268596CB4F25EB76DAB421BBBED5C7B5676A397BEE120DCC7"
+  },
+  {
+    "path": "frontend/src/pages/mobile/LiveScanDialog.test.tsx",
+    "sha256": "D9147E79B6CB0A077E5CD39FB221477A0D2415E52260562BA219F2276999B6FA"
+  },
+  {
+    "path": "frontend/src/pages/mobile/LiveScanDialog.tsx",
+    "sha256": "BC3AEB0C448238CF84EB853946D1148915015E6246703140828A82FDF1BD15FF"
+  },
+  {
+    "path": "frontend/src/pages/mobile/MobileStocktakePage.test.tsx",
+    "sha256": "55492A2F22407E26F7A55AA63094F549120ADAF660D60580FF87366F5AFA4327"
+  },
+  {
+    "path": "frontend/src/pages/mobile/MobileStocktakePage.tsx",
+    "sha256": "7E09A3BF41AD04B975AB14389DBB9F63DF3301EDB19BF8C1926D876841B0C779"
+  },
+  {
+    "path": "frontend/src/pages/mobile/qrPerspective.test.ts",
+    "sha256": "9EA8F4887F5B7666EC08DAA11F82018B8FC573BA06964387A0D54886B2D851F7"
+  },
+  {
+    "path": "frontend/src/pages/mobile/qrPerspective.ts",
+    "sha256": "81CDABD439906D8CD64BC73E3CA74D7E42B90B5BA0E1CEA741D2CA9E708DBC1E"
+  },
+  {
+    "path": "frontend/src/pages/mobile/ScanInput.test.tsx",
+    "sha256": "3D2C7E6AFF34E6C3ECF79EF8BD4B6868DD74732A86F5B8F33F868A85C9779DA9"
+  },
+  {
+    "path": "frontend/src/pages/mobile/ScanInput.tsx",
+    "sha256": "E2C43A3590079FE9DEF9CBC3C901E63271544BBEF859838395147E67242A0542"
+  },
+  {
+    "path": "frontend/src/pages/mobile/stocktakeScan.test.ts",
+    "sha256": "1D0CAE4482453E0ECBDEE44E25E6026146ADC3D51D9C6FAFCBE4296723C9E025"
+  },
+  {
+    "path": "frontend/src/pages/mobile/stocktakeScan.ts",
+    "sha256": "B5F7AF6F1BE7617F2D485D11BDC5D41D69F8052EEF79033B8750D0EB577487A5"
+  },
+  {
+    "path": "frontend/src/pages/purchasing/PurchaseOrderDrawer.tsx",
+    "sha256": "07C8A372EED72BF22AACE4C9034E06F360AB0EB33A66BBEA8CAF611273AFB784"
+  },
+  {
+    "path": "frontend/src/pages/purchasing/PurchaseOrderPage.tsx",
+    "sha256": "262714682BBD21D091EDCCE78903B4335ED4F92287C27F2289A331EA9084EBEC"
+  },
+  {
+    "path": "frontend/src/pages/stocktake/StocktakePage.tsx",
+    "sha256": "CF18959C68D8BA899A280C383CC910F6AB0A2238A84B61A5B7B4DCE1532550A6"
+  },
+  {
+    "path": "frontend/src/pages/stocktake/StocktakeTaskDrawer.test.tsx",
+    "sha256": "7189C8A901E25065578DDB6630704BCAD57ECEE238C1CDD6356A1C83516F7FD2"
+  },
+  {
+    "path": "frontend/src/pages/stocktake/StocktakeTaskDrawer.tsx",
+    "sha256": "0AF36C62A6FF7B8DFAEBE9B80782F3CC7D4D7D2C8E66D97CE4F8292888DDC58F"
+  },
+  {
+    "path": "frontend/src/styles.css",
+    "sha256": "60170D243E0607B55AD739A30302260E1BD3B6E7752ED9CB0EE35398887F3738"
+  },
+  {
+    "path": "frontend/src/test/buildBoundary.test.js",
+    "sha256": "CC79A5896E269A0C33ABB0D5F1256494B1B38D0596B078A7D4CB286F6289A641"
+  },
+  {
+    "path": "frontend/vite.config.ts",
+    "sha256": "1FB0DF22B0F82EBD3CF4F96AF73828517AEE5589FBDF36F0970B485FCE91C015"
+  },
+  {
+    "path": "scripts/check_a2_https_runtime.mjs",
+    "sha256": "34DAD0034E70E9E170B5693E0F0127747E44E1238F4CC0E81476BEC704973E32"
+  },
+  {
+    "path": "scripts/check_a2_local_runtime.mjs",
+    "sha256": "37CEF5761377A67BAEE9A02AC12345633E78A082F64EC28C7CA5AE323D466323"
+  },
+  {
+    "path": "scripts/check_a2_release_boundary.mjs",
+    "sha256": "194AB739FB539D8B1FCABDB90D73645451168372D20F2E8D8964A91A749B131C"
+  },
+  {
+    "path": "scripts/generate_a2_mobile_barcode_sheet.py",
+    "sha256": "2A15E678FC0905BCBC9F288C29CE15B44FC59BE4865D7A57B6415D65EC4457D5"
+  },
+  {
+    "path": "scripts/prepare_a2_local_tls.py",
+    "sha256": "BF52E68F5860F9307201B9920B9BEED643E8C44B2697E3407A0890AF496093CC"
+  },
+  {
+    "path": "scripts/start_a2_local_https.mjs",
+    "sha256": "B9D5E9E462DA3E2448F48C29CF1F7A3C232E4DA51A248CF50D9A325330E65F5A"
+  },
+  {
+    "path": "src/main/java/com/wms/system/controller/GlobalExceptionHandler.java",
+    "sha256": "B3A532223DB876455F9C0814CED7AA4B3A3DD78D30F6121F67D9A9A1D7285C3F"
+  },
+  {
+    "path": "src/main/java/com/wms/system/entity/enums/OutboundTaskStatus.java",
+    "sha256": "4609CA6CE69805B3832F0CE0FA62E6CE9D62CCEEBDD0AF3293A3BAFACB761EFD"
+  },
+  {
+    "path": "src/main/java/com/wms/system/entity/OutboundTask.java",
+    "sha256": "DBE5EF858B4A48B907BFF38B1714DD77B59461B2A35B513FD91A40D1B5736022"
+  },
+  {
+    "path": "src/main/java/com/wms/system/exception/ErrorKeys.java",
+    "sha256": "1080F815947B9FA7FD129A3DE17402A778A63ED8AC9FC57D45281B9A6F3AAE2D"
+  },
+  {
+    "path": "src/main/java/com/wms/system/service/CustomerService.java",
+    "sha256": "E7EE6079C131A563E3A183226F7241FEAD899743A1D2E24D0F6D0BD02CCD6588"
+  },
+  {
+    "path": "src/main/java/com/wms/system/service/inspection/ReceivingInspectionService.java",
+    "sha256": "5FD314F4526BB76903670E236E1FA31E136F0F4977234C94629BBAC39F1F708B"
+  },
+  {
+    "path": "src/main/java/com/wms/system/service/inventory/InventoryDispositionService.java",
+    "sha256": "65CFCD586F4A21CBF9D2A7ACC37F29F8BFAFB3651B4353E6D897F9BF278E7450"
+  },
+  {
+    "path": "src/main/java/com/wms/system/service/OtherInboundFeaturePolicyService.java",
+    "sha256": "E3317EA6E5E626CF7C3D012499D6954DA91BB7F1ACF943D61528B59CDBA7C2CA"
+  },
+  {
+    "path": "src/main/java/com/wms/system/service/SalesSubmissionService.java",
+    "sha256": "FA841BCB86B9C3C862DBB1D9B12C45BF5FC3433983C31892A0C8BEB230A8A9C9"
+  },
+  {
+    "path": "src/main/java/com/wms/system/service/StocktakeService.java",
+    "sha256": "311445BF31129EE195A49A82D60516D67654FEE8E2B7A596F028C8ECF453B7C1"
+  },
+  {
+    "path": "src/main/java/com/wms/system/signup/service/TenantProvisioningService.java",
+    "sha256": "5784C06A3E2908C2C45BC561C141263FF00DF37195A4D3D919CDAE362CDDBB0D"
+  },
+  {
+    "path": "src/test/java/com/wms/system/controller/GlobalExceptionHandlerConcurrencyUnitTest.java",
+    "sha256": "A79F9A80064E44103BE1045B07E08B1B8D08DEEC23FFE4190EDAD14327AE6E6E"
+  },
+  {
+    "path": "src/test/java/com/wms/system/controller/GlobalExceptionHandlerTest.java",
+    "sha256": "3CD03821D8CA24F477597F08949F6018FA02D177C5219E688580DD2EE5F6825E"
+  },
+  {
+    "path": "src/test/java/com/wms/system/entity/OutboundTaskTerminationTest.java",
+    "sha256": "FF15D400FC2A4145D4875C98AAB46BD9FB771F16EF766C111819475E9FB8B8FD"
+  },
+  {
+    "path": "src/test/java/com/wms/system/integration/StocktakeE2ETest.java",
+    "sha256": "919C25445C9AD0F21F58DC0736337A7774D4A2AF4F07E5F00F5892A84108E0F5"
+  },
+  {
+    "path": "src/test/java/com/wms/system/service/inventory/InventoryDispositionServiceTest.java",
+    "sha256": "9F82E01CB08AAAA0B6136C8049B8E6BE55695BA8905E3BE5E14F093A783C9532"
+  },
+  {
+    "path": "src/test/java/com/wms/system/service/SalesSubmissionServiceTest.java",
+    "sha256": "E963E69217024AA69C533069114663733DBC83E4CD0E14EA178A06E5371DF7C4"
+  },
+  {
+    "path": "src/test/java/com/wms/system/service/StocktakeServiceTest.java",
+    "sha256": "5B445819669A35DC61498DD53C07D50B2D4FC7DB9C3E5F7D6815114ABEE1C28A"
+  },
+  {
+    "path": "src/test/java/com/wms/system/uat/A2FixAcceptanceTest.java",
+    "sha256": "12A7B1C74F2C7EFE24F20F8FF7B9C9B2CED5C38B3499B792A1EC99A50A84B612"
+  },
+  {
+    "path": "src/test/java/com/wms/system/uat/A2UatBusinessFixtureTest.java",
+    "sha256": "5F48142DB51D4A71388E257CFDCF7F56CCAB6F2B1972F46B718013F15442A6A2"
+  },
+  {
+    "path": "src/test/java/com/wms/system/uat/A2UatGovernedBusinessFlowTest.java",
+    "sha256": "9EAEAF3BAC646C87E18766D3768843DF0EC3E7715FF896EC3EFC39D1999161F7"
+  },
+  {
+    "path": "src/test/java/com/wms/system/uat/A2UatTenantProvisioningTest.java",
+    "sha256": "7990A09B8D9884F42AE9212770D7230D8C9C8C29C376843F0903EF9CAC27EF31"
+  }
+]

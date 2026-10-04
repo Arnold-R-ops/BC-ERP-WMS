@@ -67,6 +67,8 @@ public class CustomerResponse {
      * 客户地址
      */
     private String address;
+    private String shippingAddress;
+    private Boolean shippingSameAsBilling;
 
     private BigDecimal vatRate;
 

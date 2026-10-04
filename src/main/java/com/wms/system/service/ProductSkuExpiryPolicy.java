@@ -55,6 +55,11 @@ public class ProductSkuExpiryPolicy {
             }
         }
 
+        validateSuppliedDates(productSku, productionDate, expiryDate);
+    }
+
+    public void validateSuppliedDates(ProductSku productSku, LocalDate productionDate, LocalDate expiryDate) {
+        Objects.requireNonNull(productSku, "productSku");
         LocalDate businessDate = LocalDate.now(clock);
         if (productionDate != null
                 && expiryDate != null

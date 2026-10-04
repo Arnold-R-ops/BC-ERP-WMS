@@ -89,13 +89,13 @@ public class InventoryQueryService {
             .productSkuId(row.getProductSkuId())
             .skuInfo(skuInfo)
             .warehouseNames(parseWarehouseNames(row.getWarehouseNames()))
-            .displayQuantity(formatQuantity(totalQuantity, conversionRate, row.getPackUnit()))
+            .displayQuantity(formatQuantity(totalQuantity, conversionRate, row.getPackUnit(), row.getBaseUnit()))
             .totalQuantity(totalQuantity)
             .inTransitQuantity(inTransitQuantity)
             .companyOwnedQuantity(totalQuantity + inTransitQuantity)
             .reservedQuantity(reservedQuantity)
             .availableQuantity(availableQuantity)
-            .displayAvailableQuantity(formatQuantity(availableQuantity, conversionRate, row.getPackUnit()))
+            .displayAvailableQuantity(formatQuantity(availableQuantity, conversionRate, row.getPackUnit(), row.getBaseUnit()))
             .pendingInspectionQuantity(numberToInt(row.getPendingInspectionQuantity()))
             .quarantinedQuantity(numberToInt(row.getQuarantinedQuantity()))
             .damagedQuantity(numberToInt(row.getDamagedQuantity()))
@@ -135,20 +135,21 @@ public class InventoryQueryService {
             .toList();
     }
 
-    private String formatQuantity(int totalQuantity, int conversionRate, String packUnit) {
+    private String formatQuantity(int totalQuantity, int conversionRate, String packUnit, String baseUnit) {
+        String unit = baseUnit == null || baseUnit.isBlank() ? "件" : baseUnit;
         if (totalQuantity <= 0) {
-            return "0件";
+            return "0" + unit;
         }
 
         if (conversionRate <= 1) {
-            return totalQuantity + "件";
+            return totalQuantity + unit;
         }
 
         String safePackUnit = (packUnit == null || packUnit.isBlank()) ? "箱" : packUnit;
         int packCount = totalQuantity / conversionRate;
         int looseCount = totalQuantity % conversionRate;
 
-        return packCount + safePackUnit + " + " + looseCount + "件";
+        return packCount + safePackUnit + " + " + looseCount + unit;
     }
 
     private int numberToInt(Number number) {

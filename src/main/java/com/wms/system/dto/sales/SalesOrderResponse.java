@@ -35,6 +35,8 @@ public class SalesOrderResponse {
      */
     private String orderNo;
 
+    private String orderPurpose;
+
     /**
      * 客户ID
      */

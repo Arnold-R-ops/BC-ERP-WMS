@@ -50,13 +50,14 @@ public class SalesOrderShipmentService {
         SalesOrder order = requireOrder(salesOrderId);
         validateOrderAllowsShipment(order);
 
-        String trackingNo = normalizeRequired(request.getTrackingNo());
+        String trackingNo = validatedTrackingNo(request);
         ensureTrackingNumberAvailable(salesOrderId, trackingNo, null);
 
         SalesLogisticsStatus logisticsStatus = deriveBasicStatus(request);
         SalesOrderShipment shipment = SalesOrderShipment.builder()
             .salesOrderId(salesOrderId)
             .trackingNo(trackingNo)
+            .deliveryMethod(request.getDeliveryMethod())
             .carrier(normalizeOptional(request.getCarrier()))
             .trackingUrl(normalizeOptional(request.getTrackingUrl()))
             .shippedAt(request.getShippedAt())
@@ -94,9 +95,10 @@ public class SalesOrderShipmentService {
             );
         }
 
-        String trackingNo = normalizeRequired(request.getTrackingNo());
+        String trackingNo = validatedTrackingNo(request);
         ensureTrackingNumberAvailable(salesOrderId, trackingNo, shipmentId);
         shipment.setTrackingNo(trackingNo);
+        shipment.setDeliveryMethod(request.getDeliveryMethod());
         shipment.setCarrier(normalizeOptional(request.getCarrier()));
         shipment.setTrackingUrl(normalizeOptional(request.getTrackingUrl()));
         shipment.setShippedAt(request.getShippedAt());
@@ -203,6 +205,7 @@ public class SalesOrderShipmentService {
     }
 
     private void ensureTrackingNumberAvailable(Long salesOrderId, String trackingNo, Long currentShipmentId) {
+        if (trackingNo == null) return;
         shipmentRepository.findFirstBySalesOrderIdAndTrackingNo(salesOrderId, trackingNo)
             .filter(existing -> !existing.getId().equals(currentShipmentId))
             .ifPresent(existing -> {
@@ -213,8 +216,16 @@ public class SalesOrderShipmentService {
             });
     }
 
-    private String normalizeRequired(String value) {
-        return value == null ? "" : value.trim();
+    private String validatedTrackingNo(SalesOrderShipmentRequest request) {
+        var method = request.getDeliveryMethod();
+        if (method == null) method = com.wms.system.entity.enums.DeliveryMethod.COURIER;
+        request.setDeliveryMethod(method);
+        String tracking = normalizeOptional(request.getTrackingNo());
+        if (method == com.wms.system.entity.enums.DeliveryMethod.COURIER && tracking == null) {
+            throw new BusinessException(ErrorKeys.VALIDATION_FAILED,
+                Map.of("message", "Courier delivery requires a tracking number"));
+        }
+        return tracking;
     }
 
     private void appendLogisticsEvent(
@@ -248,6 +259,7 @@ public class SalesOrderShipmentService {
             .id(shipment.getId())
             .salesOrderId(shipment.getSalesOrderId())
             .trackingNo(shipment.getTrackingNo())
+            .deliveryMethod(shipment.getDeliveryMethod())
             .carrier(shipment.getCarrier())
             .trackingUrl(shipment.getTrackingUrl())
             .status(shipment.getStatus().name())

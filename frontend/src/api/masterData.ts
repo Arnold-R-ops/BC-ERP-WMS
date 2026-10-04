@@ -1,8 +1,8 @@
 import type { components } from './schema';
 import { apiRequest } from './http';
 
-export type Customer = components['schemas']['CustomerResponse'];
-export type CustomerPayload = components['schemas']['CreateCustomerRequest'];
+export type Customer = components['schemas']['CustomerResponse'] & { shippingAddress?: string; shippingSameAsBilling?: boolean };
+export type CustomerPayload = components['schemas']['CreateCustomerRequest'] & { shippingAddress?: string; shippingSameAsBilling?: boolean };
 export type CustomerType = NonNullable<Customer['customerType']>;
 export type Warehouse = components['schemas']['WarehouseResponse'];
 export type Location = components['schemas']['LocationResponse'];

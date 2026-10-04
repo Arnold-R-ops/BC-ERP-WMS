@@ -125,6 +125,7 @@ class SalesSubmissionServiceTest {
             .name("Test Customer")
             .isActive(true)
             .build();
+        lenient().when(customerService.authorizedDocumentCustomer(anyLong())).thenReturn(testCustomer);
     }
 
     // ========== Test 1: Create Sales Order Success ==========

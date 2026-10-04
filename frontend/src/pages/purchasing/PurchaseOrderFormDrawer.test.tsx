@@ -212,7 +212,7 @@ describe('purchase order entry', () => {
     })));
   });
 
-  it('blocks saving when split allocation quantities do not total the ordered quantity', async () => {
+  it('saves a draft while split allocation quantities are incomplete', async () => {
     const onSubmit = vi.fn(async () => true);
     renderDrawer({
       initialValues: {
@@ -232,7 +232,10 @@ describe('purchase order entry', () => {
     await screen.findByText('已分配 90 / 订购 100');
     fireEvent.click(screen.getByRole('button', { name: /新\s*建/ }));
 
-    expect(await screen.findByText('各分仓计划数量合计必须等于本行订购数量')).toBeInTheDocument();
-    expect(onSubmit).not.toHaveBeenCalled();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      items: [expect.objectContaining({ orderedQuantity: 100, allocations: [
+        { warehouseId: 2, plannedQuantity: 60 }, { warehouseId: 3, plannedQuantity: 30 },
+      ] })],
+    })));
   });
 });

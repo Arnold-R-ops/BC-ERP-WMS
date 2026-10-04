@@ -12,6 +12,7 @@ public class SalesOrderShipmentResponse {
     private Long id;
     private Long salesOrderId;
     private String trackingNo;
+    private com.wms.system.entity.enums.DeliveryMethod deliveryMethod;
     private String carrier;
     private String trackingUrl;
     private String status;

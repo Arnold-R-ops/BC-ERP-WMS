@@ -163,6 +163,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         String getBarcode();
         String getSpecs();
         String getPackUnit();
+        String getBaseUnit();
         Number getConversionRate();
         Number getSafetyStock();
         Number getTotalQuantity();
@@ -201,6 +202,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 p.barcode AS "barcode",
                 p.specs AS "specs",
                 p.pack_unit AS "packUnit",
+                p.base_unit AS "baseUnit",
                 p.conversion_rate AS "conversionRate",
                 p.safety_stock AS "safetyStock",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity ELSE 0 END), 0) AS "totalQuantity",
@@ -243,7 +245,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 OR LOWER(p.sku_code) LIKE CONCAT('%', filter.term, '%')
                 OR LOWER(p.barcode) LIKE CONCAT('%', filter.term, '%')
               )
-            GROUP BY p.id, p.name, p.sku_code, p.barcode, p.specs, p.pack_unit, p.conversion_rate, p.safety_stock
+            GROUP BY p.id, p.name, p.sku_code, p.barcode, p.specs, p.pack_unit, p.base_unit, p.conversion_rate, p.safety_stock
             ORDER BY p.id
             """,
         countQuery = """
@@ -433,6 +435,17 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
            "AND b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE " +
            "AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)")
     Integer sumAvailableQuantityByProductSku(@Param("productSkuId") Long productSkuId);
+
+    @Query("""
+        select coalesce(sum(b.quantity - b.reservedQuantity), 0) from InventoryBatch b
+        where b.productSku.id = :productSkuId and b.location.warehouse.id = :warehouseId
+          and b.active = true
+          and b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+          and (b.expiryDate is null or b.expiryDate >= CURRENT_DATE)
+        """)
+    Integer sumAvailableQuantityByProductSkuAndWarehouse(@Param("productSkuId") Long productSkuId,
+        @Param("warehouseId") Long warehouseId);
+
 
     /**
      * Find all active batches by product

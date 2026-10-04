@@ -1,12 +1,12 @@
 import {
   ModalForm,
   ProFormDigit,
-  ProFormSelect,
+  ProFormDependency,
   ProFormSwitch,
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-components';
-import { GlobalOutlined, IdcardOutlined, MailOutlined, PhoneOutlined, PrinterOutlined, ProfileOutlined, TagsOutlined, UserOutlined } from '@ant-design/icons';
+import { MailOutlined, PhoneOutlined, ProfileOutlined, UserOutlined } from '@ant-design/icons';
 import { Tabs } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +48,8 @@ export function ClientFormModal({
         phone: customer?.phone ?? '',
         email: customer?.email ?? '',
         address: customer?.address ?? '',
+        shippingSameAsBilling: customer?.shippingSameAsBilling ?? true,
+        shippingAddress: customer?.shippingAddress ?? '',
         creditLimit: customer?.creditLimit ?? 0,
         vatRate: customer?.vatRate,
         secondaryTaxRate: customer?.secondaryTaxRate,
@@ -88,26 +90,18 @@ export function ClientFormModal({
       <div className="client-form-two-columns">
         <ProFormText fieldProps={{ maxLength: 100, prefix: <InputIcon><MailOutlined /></InputIcon>, type: 'email' }} label={t('clients.fields.email')} name="email" />
         <ProFormText fieldProps={{ maxLength: 30, prefix: <InputIcon><PhoneOutlined /></InputIcon> }} label={t('clients.fields.phone')} name="phone" />
-        <ProFormText disabled fieldProps={{ placeholder: 'www.something.com', prefix: <InputIcon><GlobalOutlined /></InputIcon> }} label={t('clients.form.preview.website')} name="websitePreview" />
-        <ProFormText disabled fieldProps={{ placeholder: t('clients.form.preview.faxPlaceholder'), prefix: <InputIcon><PrinterOutlined /></InputIcon> }} label={t('clients.form.preview.fax')} name="faxPreview" />
-        <ProFormSelect disabled fieldProps={{ placeholder: t('clients.form.preview.none'), prefix: <InputIcon><IdcardOutlined /></InputIcon> }} label={t('clients.form.preview.manager')} name="managerPreview" />
-        <ProFormSelect disabled fieldProps={{ placeholder: t('clients.form.preview.none'), prefix: <InputIcon><TagsOutlined /></InputIcon> }} label={t('clients.form.preview.tags')} name="tagPreview" />
       </div>
       <ProFormText fieldProps={{ maxLength: 100 }} label={t('clients.fields.contact')} name="contact" />
       <ProFormDigit fieldProps={{ min: 0, precision: 2 }} label={t('clients.fields.creditLimit')} name="creditLimit" />
       <h2 className="client-form-section">{t('clients.form.sections.billingAddress')}</h2>
-      <ProFormTextArea fieldProps={{ maxLength: 500, placeholder: t('clients.form.preview.addressPlaceholder'), showCount: true }} label={t('clients.fields.address')} name="address" />
-      <div className="client-form-two-columns">
-        <ProFormText disabled fieldProps={{ placeholder: t('clients.form.preview.city') }} label={t('clients.form.preview.city')} name="billingCityPreview" />
-        <ProFormText disabled fieldProps={{ placeholder: t('clients.form.preview.province') }} label={t('clients.form.preview.province')} name="billingProvincePreview" />
-        <ProFormText disabled fieldProps={{ placeholder: t('clients.form.preview.postcode') }} label={t('clients.form.preview.postcode')} name="billingPostcodePreview" />
-        <ProFormText disabled fieldProps={{ placeholder: t('clients.form.preview.country') }} label={t('clients.form.preview.country')} name="billingCountryPreview" />
-      </div>
+      <ProFormTextArea fieldProps={{ maxLength: 255, placeholder: t('clients.form.preview.addressPlaceholder'), showCount: true }} label={t('clients.fields.address')} name="address" />
       <h2 className="client-form-section">{t('clients.form.sections.shippingAddress')}</h2>
-      <ProFormSelect disabled fieldProps={{ placeholder: t('clients.form.preview.sameAsBilling') }} label={t('clients.form.preview.shippingAddress')} name="shippingAddressPreview" />
-      <h2 className="client-form-section">{t('clients.form.sections.pricingTier')}</h2>
-      <p className="client-form-hint">{t('clients.form.hints.pricingTier')}</p>
-      <ProFormSelect disabled fieldProps={{ placeholder: t('clients.form.preview.selectPricingTier') }} label={t('clients.form.preview.pricingTier')} name="priceTierPreview" />
+      <ProFormSwitch label={t('upgrade.sameAddress')} name="shippingSameAsBilling" />
+      <ProFormDependency name={['shippingSameAsBilling']}>
+        {({ shippingSameAsBilling }) => shippingSameAsBilling === false
+          ? <ProFormTextArea fieldProps={{ maxLength: 255, showCount: true }} label={t('upgrade.shippingAddress')} name="shippingAddress" rules={[{ required: true, whitespace: true }, { max: 255 }]} />
+          : null}
+      </ProFormDependency>
       <ProFormSwitch label={t('clients.fields.active')} name="isActive" />
       </>}
       {activeTab === 'tax' && <>

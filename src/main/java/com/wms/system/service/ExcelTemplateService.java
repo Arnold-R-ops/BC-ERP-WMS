@@ -167,7 +167,7 @@ public class ExcelTemplateService {
 
         for (int index = 0; index < definition.headers().size(); index++) {
             Cell cell = headerRow.createCell(index);
-            cell.setCellValue(definition.headers().get(index));
+            cell.setCellValue(index == 0 ? "skuCode" : definition.headers().get(index));
             cell.setCellStyle(headerStyle);
             dataSheet.setColumnWidth(index, definition.columnWidths()[index]);
         }
@@ -199,14 +199,16 @@ public class ExcelTemplateService {
                 "Sales order line import template",
                 "Select the customer in the WMS form. This file imports line items only.",
                 "Do not rename the data sheet or change the machine headers.",
-                "productSkuId and quantity are required. unitPrice must not be negative.",
+                "Column A: skuCode (recommended), barcode, or legacy productSkuId. Keep the header matching the identifier type. Store identifiers as text.",
+                "quantity and unitPrice are required; unitPrice must not be negative.",
                 "specifiedBatchIds accepts comma-separated inventory batch IDs."
             }
             : new String[] {
                 "Purchase order line import template",
                 "Select the supplier in the WMS import dialog. This file imports line items only.",
                 "Do not rename the data sheet or change the machine headers.",
-                "productSkuId and orderedQuantity are required.",
+                "Column A: skuCode (recommended), barcode, or legacy productSkuId. Keep the header matching the identifier type. Store identifiers as text.",
+                "orderedQuantity is required. Review resolved product names in the order before submitting.",
                 "Dates use yyyy-MM-dd. Batch and remark fields are optional."
             };
 
@@ -270,7 +272,7 @@ public class ExcelTemplateService {
         for (int index = 0; index < definition.headers().size(); index++) {
             String actual = CELL_FORMATTER.formatCellValue(headerRow.getCell(index)).trim();
             String expected = definition.headers().get(index);
-            if (!expected.equals(actual)) {
+            if (!expected.equals(actual) && !(index == 0 && List.of("productSkuId", "skuCode", "barcode").contains(actual))) {
                 throw invalidTemplate(
                     definition,
                     "column " + (index + 1) + " must be '" + expected + "' but was '" + actual + "'"

@@ -1,0 +1,769 @@
+{
+  "branch": "codex/salesbinder-simplification",
+  "baseCommit": "ea4697e",
+  "inheritedUnchangedFiles": 60,
+  "changes": [
+    {
+      "path": "docs/SALESBINDER_INHERITED_BASELINE_2026-09-18.json",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "bc9a04ef959a30c906610a2986617da7e26e346b8f29f283c84c9baffb478d4e"
+    },
+    {
+      "path": "docs/SALESBINDER_UPGRADE_DELIVERY_2026-09-19.md",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "a6095af304f55dd0f7b867334ee5055e3db786343ce001bbe02743967c352fc3"
+    },
+    {
+      "path": "docs/SALESBINDER_UPGRADE_PROGRESS_2026-09-18.md",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "a902a89d314a58d0a867c2de2823bd98437e469246ab79b636d3789b6dc01daa"
+    },
+    {
+      "path": "frontend/src/access.ts",
+      "inheritedFile": false,
+      "beforeSha256": "dd23d34b9bf831c79a5ffbc91fa5afeb49d567d1437069da6e992e01c8fa9591",
+      "afterSha256": "ecf74e6310b743c4f2473fd9be0cd26a4a2204c22dea0e9a63bca5e130ad76de"
+    },
+    {
+      "path": "frontend/src/api/commercial.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "a41c854fd03b49983256650166391c44130397e3db5141b7df6f0f6dee470b9d"
+    },
+    {
+      "path": "frontend/src/api/csv.test.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "1d87a83cbd73c9f799601e40befde7bbb05ec8c4a46b45acdbf7bd6accce5447"
+    },
+    {
+      "path": "frontend/src/api/csv.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "650c187aacefe359c32426d24d7a88373494b65ac91b78dc2f36fe591c38e0dd"
+    },
+    {
+      "path": "frontend/src/api/dashboard.ts",
+      "inheritedFile": false,
+      "beforeSha256": "c963ee57cb56f1f6efeb8d9084894c54b38da7124df9914b2cd4e532b0d78766",
+      "afterSha256": "94e20befb81c35e4f4913d7e4c88f64f7958169d260673a2d0424c2d13f462a9"
+    },
+    {
+      "path": "frontend/src/api/masterData.ts",
+      "inheritedFile": false,
+      "beforeSha256": "a27405bf7e3f68ef56b50fba8d20f61b8dece6294cadafa715e9e6771fcc70fd",
+      "afterSha256": "07fe0d94615ae6ebf9d46521e4c764f81d004a20a087499f5b2522c1dd3e9616"
+    },
+    {
+      "path": "frontend/src/api/productSkus.ts",
+      "inheritedFile": false,
+      "beforeSha256": "2eb526b7003b386da7db70adaefec723d43bc86b77e0a1cc3d030498018f7a71",
+      "afterSha256": "b1387326a25c05b7cfbaf87d7d0a8dbc6c9ec86c4b0edcd033a556a97aa1fcb9"
+    },
+    {
+      "path": "frontend/src/api/replenishment.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "36b553bf75fd845e197c2805b2e45e35c1adbe85a5801e16cbf47a5e0c6e35aa"
+    },
+    {
+      "path": "frontend/src/api/reports.ts",
+      "inheritedFile": false,
+      "beforeSha256": "c197719f451c123abf58377e1d3d064e47a9858f594f1acf96e46af166f017b0",
+      "afterSha256": "ddb2cd1ff1493f9b5456511e4966d189c5f7b342dadfafbefaa2fefa4def403d"
+    },
+    {
+      "path": "frontend/src/api/sales.ts",
+      "inheritedFile": false,
+      "beforeSha256": "40d25c20ac4c9f2774aab367f2d5888a65b809b971b7078b066e772d5aab8214",
+      "afterSha256": "16dcf0818a65919b5eee90b0b2047927f2b341f9060f09d35da6c49fbc559635"
+    },
+    {
+      "path": "frontend/src/app.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "15d57fd8d364d3cbf751622325fc635688a6d8be84864c78af10c0976f211193",
+      "afterSha256": "abeaa6496d79a998be68ef651eda1475513c3e8fd39bff1875dba500e90dd88a"
+    },
+    {
+      "path": "frontend/src/components/OrderImportErrors.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "23e59251f62157f8dcbdeb3fa6230df33907eb87761cf9c01805c9cb8a90ca98"
+    },
+    {
+      "path": "frontend/src/layouts/AppLayout.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "ed9bf62738413adb9f9429bcd8c10e54e26b28e4d583a885e4bd80e7df8f95fd",
+      "afterSha256": "f3a2d82534e171450e32f041ab2f1b13e608eca19de824d3f671cf85b719cacb"
+    },
+    {
+      "path": "frontend/src/locales/en-US.ts",
+      "inheritedFile": true,
+      "beforeSha256": "11412cdc5180593690716b31feb5d552f28df9f79ebd6a710211cb4105811b92",
+      "afterSha256": "d156406a42b9741868e9016b58f96fcb3bd5f9a35b19d7db227e4455fb1d88c0"
+    },
+    {
+      "path": "frontend/src/locales/zh-CN.ts",
+      "inheritedFile": true,
+      "beforeSha256": "3c184712b20a90ff1a2447a5ebb00e80e5890861f703191d9a7a7d08f80f15aa",
+      "afterSha256": "580a0099a36febc92d5baaf004171f2a5000e80514dd591cc4195a1f64a10a6e"
+    },
+    {
+      "path": "frontend/src/pages/DashboardPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "418649d44fb954edb9e79c2ff12f29ddf782d02313cb3ed4293e96325b818498",
+      "afterSha256": "bb2398890bd3a0fb8b06a5b5f15d6a3a5cd182e4937b508076498aaf53d16a74"
+    },
+    {
+      "path": "frontend/src/pages/analytics/CustomerAnalyticsPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "be4964f33b5015a19ab2a71d3a1c2956f90fd20a9851707d7df6b5ed2c1ec9bf",
+      "afterSha256": "f696cf543416851248cbb2a588cf9137d3d37bde6309a4be4e3f48f5fa9f60c1"
+    },
+    {
+      "path": "frontend/src/pages/analytics/SalesAnalyticsPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "613ea474083fad01137049620ac9e6c3b2bf0421baf600baa949d37ff33def35",
+      "afterSha256": "a83007b1f5c04abcb2946902fb93c5b5b5068dab4d11dc6c6b51b8f256eb2f54"
+    },
+    {
+      "path": "frontend/src/pages/commercial/CommercialSurface.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "ab0d944e3ff340357fcebd6832cb3280945a548656dc715b50727084c8fdebe1"
+    },
+    {
+      "path": "frontend/src/pages/commercial/DocumentDetails.test.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "f9f15eb3a858aa01e486d40c3b30ec7b1d7fc7e527f6cfb791e060dd7c2a4f79"
+    },
+    {
+      "path": "frontend/src/pages/commercial/DocumentDetails.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "941b096d9486058b76c722b714875da96b3cb27850686f72cf113680f7150ce4"
+    },
+    {
+      "path": "frontend/src/pages/commercial/InvoicePage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "25eca0b7c8e60b1980966ea4dc967001348d09bfbe81342bc435bd9b6b1318a9"
+    },
+    {
+      "path": "frontend/src/pages/commercial/QuotationPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "d48503c5c35c1c499d02581444dd11c4bd458fda70f429fb8dedefab5d16bdc4"
+    },
+    {
+      "path": "frontend/src/pages/commercial/date.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "dab26123dcb0baeda35ebdd0b62f7948e4fd8e3e6bcdcc7a5f32da62083942f4"
+    },
+    {
+      "path": "frontend/src/pages/corrections/EmergencyCorrectionCreateModal.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "47459a3ec477bbc2b98d387b230e97b55a3aec9ee66f7877a417d56359a53162",
+      "afterSha256": "d642f32f1ec05db17bec203e2f4f3b0df2bcda05f0d4a5b8abdc09378ad871db"
+    },
+    {
+      "path": "frontend/src/pages/customers/ClientFormModal.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "f4303ee2b71a05ca8803652dad85d8e29121640ddcea3c8847e71f615b683b9a",
+      "afterSha256": "bff7e1b0fb104999d1955fc7efd4475eb8132e9739d1c716fc6690a59e768dd7"
+    },
+    {
+      "path": "frontend/src/pages/inventory/ReplenishmentPage.test.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "f3a738fede615aaf1e7b878d3663ede456414b6733265ff3c17fa65631e6be13"
+    },
+    {
+      "path": "frontend/src/pages/inventory/ReplenishmentPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "11d7e697e3aa5a8c34f9847063f025454b6ce5ab0c6abe0a5c97ea755455ba0b"
+    },
+    {
+      "path": "frontend/src/pages/mobile/MobileReceivingPage.test.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "8d7197c5f6698c1050274d8878839ce7c0a8cbf1aed5b78db23dadfb8ca1aa66",
+      "afterSha256": "8a49894011ec35b11fc54885a800c4261bbbd0f81b0e7884ea1455215dad5a28"
+    },
+    {
+      "path": "frontend/src/pages/mobile/MobileReceivingPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "33f3ad3879b2e896ad361dbce357aa77a245fd7aa4ec6ae3b4e2d92ce979c5c6",
+      "afterSha256": "eb26ab803c96d6032c64d046bd6e4767a08070f1c9a3f9aa5f03a4fe43152c0b"
+    },
+    {
+      "path": "frontend/src/pages/products/ProductSkuFormModal.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "5604fe99e79f660514c032815393c67e4cb4ad058cec5a13840438d2016049d6",
+      "afterSha256": "2b22f7994973616e92fa2cead2a6c75a34770d56bbf61146d11b6e2214bc5ec8"
+    },
+    {
+      "path": "frontend/src/pages/purchasing/PurchaseConfirmModal.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "4be0a3933d69a60bcf659ff69aef30c02caa158dba67a963145ae4e05705ab7c",
+      "afterSha256": "5352f1e000971d00cd23c668c9ca9b4757a0f3540972863d09fbd9ba473b2a85"
+    },
+    {
+      "path": "frontend/src/pages/purchasing/PurchaseOrderDrawer.tsx",
+      "inheritedFile": true,
+      "beforeSha256": "07c8a372eed72bf22aace4c9034e06f360ab0eb33a66bbea8caf611273afb784",
+      "afterSha256": "881499a0dd5c1b3d05909d731da5d9ce9fa706b3667438ffd3228eae33173963"
+    },
+    {
+      "path": "frontend/src/pages/purchasing/PurchaseOrderFormDrawer.test.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "f21431a24291175ba1e0d4938e6158603c052edaf46aa68e8c0eba1ca8f2daf3",
+      "afterSha256": "4ebefb80e6b8a94461561c69c9c3e4f4104221dfd41ef188fb0d4ee9945187ae"
+    },
+    {
+      "path": "frontend/src/pages/purchasing/PurchaseOrderFormDrawer.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "a184996a0382eb6ea65b8de329746f977fb7d4b3bdb86d5b060b8139ec812d21",
+      "afterSha256": "6160389a4c6db518ced3561c4c1c29149590566696921c2444773307f513c13d"
+    },
+    {
+      "path": "frontend/src/pages/purchasing/PurchaseOrderPage.tsx",
+      "inheritedFile": true,
+      "beforeSha256": "262714682bbd21d091edcce78903b4335ed4f92287c27f2289a331ea9084ebec",
+      "afterSha256": "43efdace75e2f6eea9151158723f8363531a5cf8fe45d736781bf907d1e89506"
+    },
+    {
+      "path": "frontend/src/pages/purchasing/purchaseOrderPersistence.ts",
+      "inheritedFile": false,
+      "beforeSha256": "8e1e65a31504d19cd573e5a37ff64f211278af909735284134214e397b642d3e",
+      "afterSha256": "1beb232727fa6593bff1bf27b7d8263e8dfa831b4e1609b537582f70d8d4668c"
+    },
+    {
+      "path": "frontend/src/pages/rma/RmaPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "39e00890c432cea8215689df7876f96ad1440d5d710f100ce90b932f5631dcf2",
+      "afterSha256": "7481d96a8aa9c00f539b93ec3d7d8a99ed1828ebb4eb0da6b5840c5c5a714287"
+    },
+    {
+      "path": "frontend/src/pages/rma/refundProgress.test.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "9020a97f64a8fc204f31298598864bc41b36eaae9ef9afa36db36710c6896025"
+    },
+    {
+      "path": "frontend/src/pages/rma/refundProgress.ts",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "a2ee8728a735858dd26ac602d5b5f8b2972faa5630869fc1b4a9487d959303e5"
+    },
+    {
+      "path": "frontend/src/pages/sales/SalesOrderDrawer.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "3119f030b9a41c8597a6c88ef13f2ba599c029011fc8a7e3430786e0b9058a3a",
+      "afterSha256": "45ba678e74f65fe98588631f95eff9b6db15fb7893064f0c166554f24c17f375"
+    },
+    {
+      "path": "frontend/src/pages/sales/SalesOrderFormDrawer.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "33769a48cf55da1241dbd99e441e9fa131fcd7bba2dba294ef26952c07aa1ef4",
+      "afterSha256": "fa0ee5721514cf50f6648fd3d1c7d180e7b0dd8e7e2a90280251dc91b711094e"
+    },
+    {
+      "path": "frontend/src/pages/sales/SalesOrderPage.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "ed63c1d39fd267e3d583f1c90d4bec14eea372ae4cf2396ba70d3100ce23bf9c",
+      "afterSha256": "9f486cea10cc14e3a0502fdb55f02fb98f8630d3ecc532b66ffdbd195a82d231"
+    },
+    {
+      "path": "frontend/src/pages/sales/SalesShipmentSection.tsx",
+      "inheritedFile": false,
+      "beforeSha256": "0aec7bb416ec7e7b8fb25df093b07cb178cbf6718357589ff0cfb85bca3550d1",
+      "afterSha256": "93ed4f352e1676aed9691a677b62835302249c4e307eede7f7714a929a183c0b"
+    },
+    {
+      "path": "pom.xml",
+      "inheritedFile": false,
+      "beforeSha256": "5e6d322ca034d5bed61fe733a6be46918fae348edcabc7cb49b678aee4963756",
+      "afterSha256": "8c1ebe4610b74effcb783af03361c284ef43da380966bad5e7798457ac1ee534"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialController.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "eeb0953b8779e6da8444bef3df2e6d3e48123c970a916f26d3bcaba2e7f48638"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialDocument.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "a073c913fc70c88d8a954ee4eb726975f71f17c3f468b6cb4949cc9e147f9fe8"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialDocumentLine.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "ab6f09138cf53892579f08e31c34d1099c69d72d66c268eca45f4f6fbeffa818"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialDocumentLineRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "7fd67c6366805214af91791404109d753c937fe7904ca03b47528657508989c5"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialDocumentRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "136ab80fefffbc32ae92bbeed5f4f0a0a61e5670080e9fa97d99bfc5ac919cc0"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialDtos.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "32088f19282f3e0f6df50c61f4daedfc990bb7ebe9e13f0010fc9218e8a2a7f5"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialExportService.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "93bd0e63e5d688bcfbcfe7bd91caf3b578455a8444451c40ff54234cef03a205"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialProfile.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "9e11145f5d645a5e48529cbb8ca0009d789229ed08b47c9d2d44a27d19fc7c1a"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialProfileRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "36e0925d820d35d37b3d57336f8f10d5a9328ecaf4af650cf9e3b54c42015497"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialReceipt.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "c660018de99a8af72b26f480cffe065b010e358867d252d736bb28f783fd857c"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialReceiptRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "e956acfcb28da705bda0453c9263c27800c4ed1063121ad9529ba6239b95a47b"
+    },
+    {
+      "path": "src/main/java/com/wms/system/commercial/CommercialService.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "8a29d6f170669bce6bdb5d9b60c9b6adca9a4181e5e1d4822baef62dfc32e3ae"
+    },
+    {
+      "path": "src/main/java/com/wms/system/controller/ReplenishmentController.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "aef634f26d28302701b90dca13ccb06070d8a2136d7a804edb9b69307742fc82"
+    },
+    {
+      "path": "src/main/java/com/wms/system/controller/ReportCsvController.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "f9b91fb240da73c85c660a77152e0c405a20fd81bcc5642c1f5dc281b4ef0b72"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/ReorderSuggestion.java",
+      "inheritedFile": false,
+      "beforeSha256": "30293273d96c2b3ca04425181bad30696f44ecad4aac04b9a2bbea28af09c510",
+      "afterSha256": "52ca8c92037882b751f7ac06f39d649168900e7aa03eb6cd61061d5e42d4da62"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/customer/CreateCustomerRequest.java",
+      "inheritedFile": false,
+      "beforeSha256": "944846601af8d4625986501d5156c0fb7bdc859f6e89d53ebf0facce7c0a9914",
+      "afterSha256": "ceddff805b2748771ca1d0031f44113c5e843bc8d49895b5ecef19469dc17078"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/customer/CustomerResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "9edf7d83dfd22e908de626e65be715746c1c0bd83c018122c1ff228e37aa1833",
+      "afterSha256": "16bf87d8b99ea228b70435faeb105e05a7309ab4bbd7eda9bddb4406913970bf"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/productsku/CreateProductSkuRequest.java",
+      "inheritedFile": false,
+      "beforeSha256": "28b005d16c3bd076c68928f049f21d1d3da2674bbd5abfadd1d279f4dabaf1f3",
+      "afterSha256": "15d59eec9a872db42ebce9bdf46d816921ce1cb2ced55d630d37e0e8503734c3"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/productsku/ProductSkuResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "b9b0283860203ac1fe2e4decfd5fa880e932bee3411aa9f8d6f405852bc0633c",
+      "afterSha256": "cbdfc509b8ba691c23c22df1bd0ef04ca070b2ff6672d0066a4e790d2fddb3c1"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/receiving/SavePurchaseOrderAllocationsRequest.java",
+      "inheritedFile": false,
+      "beforeSha256": "4359780e3280fe94f1ff062812bad544879e74b774e3ce8db41f6c0bf047b778",
+      "afterSha256": "f06d4b748b05e357bd9c5754921ff5edf7fab85ee315da523c9503b9f1df99f2"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/report/CustomerProductSummaryResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "118d504fe3fab87fb09847b47ded96671b856b88fd766a221c7212ba227cde4f",
+      "afterSha256": "aa021bb7313e259c4b22ce188ef9f10202565331a5827592d02d6678fb9615ea"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/report/SalesDailySummaryResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "02547691a9cd8257599c96ee237ba1af0c73f141487d89f5db4a26045033884d",
+      "afterSha256": "8795c85712ebb4bb7f91024939fe1f66946f05bf9b79c2a75218e2fd81d9e337"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/report/SalesOverviewResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "9ce18e11cd65261f963cf273148a3167f285b06c68206507f2ec84de3c3aa96b",
+      "afterSha256": "cfd8442c8f015a8d82440e1d2d8abbea0aa047f23176cd67f73eadfe3c29fd8d"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/sales/SalesOrderResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "b088adf6f148feae0eb1fab072b69fb7e13190369770d21b9421e328a5427b84",
+      "afterSha256": "da460df2dd4cb83b2a4dd902759e4840fb2bcb85c32b0ae21fef0ae3b8d8365c"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/sales/SalesOrderShipmentRequest.java",
+      "inheritedFile": false,
+      "beforeSha256": "f50ec2c7599720b5242eb1328d800bc3abe01e78fd0612d3e77cc3e727eeeeac",
+      "afterSha256": "8fc8f6249f192c02e2cb7937575c75a9b014a551ce9f4d50c9bba967f11a3a7f"
+    },
+    {
+      "path": "src/main/java/com/wms/system/dto/sales/SalesOrderShipmentResponse.java",
+      "inheritedFile": false,
+      "beforeSha256": "97eb90ec9a7030a862a22b2222a05da1e8bcb5ba95874da436441fd957397034",
+      "afterSha256": "1e7736ca12c6ede510e25752a0829d44efc3c5eb93e22d940ba83f425daa7c1e"
+    },
+    {
+      "path": "src/main/java/com/wms/system/entity/Customer.java",
+      "inheritedFile": false,
+      "beforeSha256": "744aeda95d5708ab4fe89bae1b83c8439c35ee96d56dfcc3a6c8f2928a7396f6",
+      "afterSha256": "a6532b91986784dd480b1f5d5a0adf21dceab8bfc0ca17b410da7024d4843b8e"
+    },
+    {
+      "path": "src/main/java/com/wms/system/entity/ProductSku.java",
+      "inheritedFile": false,
+      "beforeSha256": "6035e3ce75fec82ef44069a42ac01912f7b763d33bede143eda5126d1ab918ed",
+      "afterSha256": "fec63308cd9a94ef5748c714cfaf527eed2ba7d99e96d11f266cd7d4d939e132"
+    },
+    {
+      "path": "src/main/java/com/wms/system/entity/SalesDailySummary.java",
+      "inheritedFile": false,
+      "beforeSha256": "e15be7281e02e3f42fa8ad0e53a2ebd73485f54d3fe37008c0aa35b22befd323",
+      "afterSha256": "01e4a1807302928860da0be9f23bf5e1e2cce1d3fa8130d553288e16b74fced5"
+    },
+    {
+      "path": "src/main/java/com/wms/system/entity/SalesOrderShipment.java",
+      "inheritedFile": false,
+      "beforeSha256": "b2cc73166696219a55ace1a0e46036d9df5e706318b997b8d1d2818842cf59ec",
+      "afterSha256": "228f9e4c507b746cb21f59bd903efd7489689e324738bb6b55de5f49e9e736e9"
+    },
+    {
+      "path": "src/main/java/com/wms/system/entity/WarehouseStockThreshold.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "0405943b6a47f5e1f32c747e5c33682aefbca351e80ac1dda57ee4259b39f569"
+    },
+    {
+      "path": "src/main/java/com/wms/system/entity/enums/DeliveryMethod.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "71daf5b11e3a1b9865a5fa8f46f21720517a246dcd74cf2595575463449c5953"
+    },
+    {
+      "path": "src/main/java/com/wms/system/repository/InventoryBatchRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": "032fdaeee750642fad60f62d2cac7178e4a6e7f090fd1acdec8dabc32b2435ff",
+      "afterSha256": "ccb9df4d80b5c863aee5e40fc29419e6d0abc7af8b083668b9c8bb6ebd76c614"
+    },
+    {
+      "path": "src/main/java/com/wms/system/repository/ProductSkuRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": "8871709889c40dbbb74042983526d8c542362e6e3f774aef5fcc167ec8c91638",
+      "afterSha256": "e3cf68a8e7ea122d2e89c58a14e0221770b9bc0f24436dca03c56ca9261bc7b1"
+    },
+    {
+      "path": "src/main/java/com/wms/system/repository/PurchaseOrderAllocationRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": "6e613f9f4cf687cdd5480e90a8fe82a9139dac5074de15b310fc0b7d1c7eb345",
+      "afterSha256": "e53ef7d797fb7b63c2aeda88e46e3895c0ad088b2404b66f810f1465886676be"
+    },
+    {
+      "path": "src/main/java/com/wms/system/repository/WarehouseStockThresholdRepository.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "81a1b235fd129ed479a714743bf1f0c719e985c3ad60d09f3d1094c38f4c7d74"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/CustomerService.java",
+      "inheritedFile": true,
+      "beforeSha256": "e7ee6079c131a563e3a183226f7241fead899743a1d2e24d0f6d0bd02ccd6588",
+      "afterSha256": "4d716e3c3bda2a0affdb2a90ac4a41def34f774afa0f7fc50e42e080aa0972ab"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ExcelImportService.java",
+      "inheritedFile": false,
+      "beforeSha256": "da1dce0660327b776dcd048536ec8180a86d20e42fb26e456164dd6ee4f9f608",
+      "afterSha256": "94638ac34e424baee4c5f6164b34383fc9ba4177c00212cef08f931d5a98ebe3"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ExcelTemplateService.java",
+      "inheritedFile": false,
+      "beforeSha256": "58961f647b6c6a3d43ba82b7e175af1e5d978ca63e74231d74de86be0148010c",
+      "afterSha256": "8e2f86a9635a638e6c1bc240008b102431f3fc873f1694af7944f83d1e3ae516"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/InventoryQueryService.java",
+      "inheritedFile": false,
+      "beforeSha256": "9270a14aafd7c72edb071094313a9bbd0fe0f3de7ee49baf6870a2d39040128f",
+      "afterSha256": "1c5b0426ce32e7be7a3a7ea4619fc9ad006e3764ea7ca3e2dc27f94dd99b9e9a"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/OrderImportSupport.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "5979b5fef8c383610557b423458707c35eafb46c767d4dd1cc2c477c7cfdf27b"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ProductSkuExpiryPolicy.java",
+      "inheritedFile": false,
+      "beforeSha256": "cdcfd09e8f1a87ec53a542d56210d95e48d97c36d722b808a0b32a721ffb0269",
+      "afterSha256": "b14ffe0110fe8e4efa17c37b3ea60b63c3e73b57de2312cb6882ab6c15e6d3a4"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ProductSkuService.java",
+      "inheritedFile": false,
+      "beforeSha256": "8c493091e759432a2b3b85cbc19f9d65f329b2ebc0df523beb14a6e7445b2582",
+      "afterSha256": "96e7bb1f5012357937385db00930999410519112312c6a3fad0980a91f3fc1a5"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/PurchaseAsnService.java",
+      "inheritedFile": false,
+      "beforeSha256": "62395c32193bc9cb55605d6f203ece5542bc2d690260746a07521b8d8b992703",
+      "afterSha256": "4bc0057bc158394197371b1deff5525dba69c4c4dfd4aa6e07c84a58d2b31180"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/PurchaseOrderAllocationService.java",
+      "inheritedFile": false,
+      "beforeSha256": "95d94351deed32ca953d614ff8403e1bd019f39e22e6c8982b623e382d094a31",
+      "afterSha256": "bf2d0fb9989e3a6caf8022fd3a6c897a41474d80d4c641795e8425456528fdf8"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ReportCsvService.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "b0c8ff797d8e4110527f987af2988ca6738ca573d33160b011faecac4dfd96c1"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ReportQueryService.java",
+      "inheritedFile": false,
+      "beforeSha256": "6e2e44d97396b43181c36f21044f3ba087af11645c2381b123600652f30c51bc",
+      "afterSha256": "32abbc283d6f4130bed79bc419fa63bd845988f55994015ecedc97f76be62088"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/ReportSummaryRefreshService.java",
+      "inheritedFile": false,
+      "beforeSha256": "e34afb2bd15c028124645918c9eaefe6998e8f036e9d6ec68c58c3fda9947dab",
+      "afterSha256": "21a6910330ee2390aff1ff37ac66f3cbaae565c2a789d32b8940440300993219"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/SalesEntryService.java",
+      "inheritedFile": false,
+      "beforeSha256": "22cfbaeba2e3a1b2c4e32347838d633ce70c3b4afaf9c44954e07f453f9bcf16",
+      "afterSha256": "cdb7ef960665be11c2e65b1198963620bfbcfdbe27f2ea1653eea5912c6bfae2"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/SalesOrderShipmentService.java",
+      "inheritedFile": false,
+      "beforeSha256": "82bee9472a6d773ce68d4f0a2dca5fe857d39ab70d50f86e88dd980ecacdbda4",
+      "afterSha256": "4d67ac997fab07db1bd7f972584536203902162d81e4deb41b055594b7fb3d93"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/SalesSubmissionService.java",
+      "inheritedFile": true,
+      "beforeSha256": "fa841bcb86b9c3c862dbb1d9b12c45bf5fc3433983c31892a0c8beb230a8a9c9",
+      "afterSha256": "d143b11c46df4fe227b5a537c9cf7a99bc81566d8f2db8b86bc338876f17b420"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/StockPredictionService.java",
+      "inheritedFile": false,
+      "beforeSha256": "dae2e1cdf6f9f4e9452866e74ebe2c7ffb54f28663fe4fa13875769de2f56ab6",
+      "afterSha256": "b9f41c4535939499292521d4e69a2f46573b350e0db2ee45511527d8e632b860"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/WarehouseStockThresholdService.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "ffa8b5d39f337000c15a06b908bb98483a8764b43056e62d1fe1032e9248fee3"
+    },
+    {
+      "path": "src/main/java/com/wms/system/service/inventory/InventoryQualityPermissionCatalogue.java",
+      "inheritedFile": false,
+      "beforeSha256": "18ab1df13ad908a100d9a234cc2c99f36948fc0c9354365f934a2db97c7e829b",
+      "afterSha256": "7461afbf2729fc6a2b6fe9767cd462e1c1ff0c2ff0e9803381d35a768122f6ad"
+    },
+    {
+      "path": "src/main/resources/db/migration/V4_91__SalesBinder_Address_Units_And_Delivery.sql",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "4936859dddd6094735069d49091868b1b416866e5ddf19f9b6cd2de5485e6bfc"
+    },
+    {
+      "path": "src/main/resources/db/migration/V4_92__Warehouse_Replenishment_Thresholds.sql",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "9034cf607a4623d97c4a83acce44276c11ef39a5c927c70c0912f4d8a3e6f3c3"
+    },
+    {
+      "path": "src/main/resources/db/migration/V4_93__Confirmed_Order_Report_Basis.sql",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "e491ea478e79028f05c975cff040c0f1322c58ea6fee4c0cba8e95865d1d577d"
+    },
+    {
+      "path": "src/main/resources/db/migration/V4_94__Commercial_Documents_And_Receipts.sql",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "843bbfad9a121a1a38a3d7f38f742fac75a1c271ce3f975644e5b9b690705d29"
+    },
+    {
+      "path": "src/main/resources/fonts/NotoSansSC-Regular.ttf",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "b6b11d5874305ffc5b04c82ec2b13c1f8eb606c155b2fb1002233723fe5fe47f"
+    },
+    {
+      "path": "src/main/resources/fonts/OFL.txt",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+    },
+    {
+      "path": "src/main/resources/fonts/README.md",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "241dbf1c34cd290acf7b7cc8122bc97ad26f044561ee6ab4947e6b0366685540"
+    },
+    {
+      "path": "src/test/java/com/wms/system/commercial/CommercialExportTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "3553e38bbdc724de544360d2cbae28936afeff1b2f79b954d3bb026d4832db86"
+    },
+    {
+      "path": "src/test/java/com/wms/system/commercial/CommercialPermissionTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "8819f35c8ba5a5eea2e6e2bf85680cc30022b8d0a696c1156a356d271c655844"
+    },
+    {
+      "path": "src/test/java/com/wms/system/commercial/CommercialPurgeCompatibilityTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "856fb2e1193e26a203566c09431f24929c5f85114f34e40ab76f5ec9a3bbf610"
+    },
+    {
+      "path": "src/test/java/com/wms/system/commercial/CommercialWorkflowIntegrationTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "73882bf788c13a7a7f21fd16a83200741855ee74d0d212ca446742f90c60c414"
+    },
+    {
+      "path": "src/test/java/com/wms/system/migration/SalesBinderUpgradeApplicationTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "310157e0821667342291a7ca69b65c6d7c3ac847b4334be34df01f19e1c1b9f3"
+    },
+    {
+      "path": "src/test/java/com/wms/system/migration/SalesBinderUpgradeMigrationTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "35713fe68f4fa70b86c27cd4f3bdfdfa568de5f77b5b0ea348f2123f3e84ab80"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/AddressAndBaseUnitValidationTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "ab22fb8c7cc9ceba350ca2c53f47f8e2016a0d7db79ffd205708284ea26b7de8"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/ExcelTemplateServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": "074ccce0955c3cab77285fa9356617aab5aed68a41cdc942610ab2b333f0b63e",
+      "afterSha256": "5dbfd018aae5bf2d8c38988ec6c2789ad5381e4e49dec41b9bd9325d2ed78bec"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/InventoryQueryServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": "22e1c015b047f394e1439db3824653d29550fc5cef62e444f0c94a007b0396d8",
+      "afterSha256": "56306b990cce5ac7514b2ffdc7e65c6b5ba5bc7c4cb35cc71f10aa50dc1aa38f"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/OrderImportMatchingTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "e8eefb10728ae2a897388ac5e29622eb079a06c4fe9ca3c14fd757fc3f080fa7"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/ProductSkuExpiryPolicyTest.java",
+      "inheritedFile": false,
+      "beforeSha256": "3f6f8fd2eb034cafe533227d8b77efa0eb55caf5a84840ad3f06b4604883015c",
+      "afterSha256": "f30b6b8e74e8ef6290763d930e74d91463b6dc4f914f6f812ae48131849c85d1"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/PurchaseOrderAllocationServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "df27d266533e1fce033640577c8a005ae72cc4e24b18241b70709def3a78edbb"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/ReportCsvServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "81f9520d6670494e6db41a25bac9df69bb8d220ec0ed56e6cbbc3106593d029d"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/SalesOrderShipmentServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": "4b28836ddec24d5795931b97ce28d3be1945db1227fe8a12b73a14764c2b2a86",
+      "afterSha256": "911a2e60cb9d999a0d3da94c762e558f0f94f076401d094b37423e093c5b9e42"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/SalesSubmissionServiceTest.java",
+      "inheritedFile": true,
+      "beforeSha256": "e963e69217024aa69c533069114663733dbc83e4cd0e14ea178a06e5371df7c4",
+      "afterSha256": "8371c5ec73bbe0f693365a50d5c4451533a3d4ea335173fa925eb199ccbf3735"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/StockPredictionServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": "69777a278869dd7a65ad7c713e4a2af67284ab13e4dea7ac38f4919a9874fe7e",
+      "afterSha256": "f781e44b74654f72872f9801d10f060db0724ac6a1608a772f2b10a9e67bf2d2"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/WarehouseStockThresholdServiceTest.java",
+      "inheritedFile": false,
+      "beforeSha256": null,
+      "afterSha256": "4e0174b1af1d76402c69dea28bad83f088f227265a6785bfe03e99c98a7d731a"
+    },
+    {
+      "path": "src/test/java/com/wms/system/service/inventory/InventoryQualityPermissionCatalogueTest.java",
+      "inheritedFile": false,
+      "beforeSha256": "c73fa467d7df3e7b0e12d6cd5429e574a39c8e65501795d15da68c0bbca47501",
+      "afterSha256": "e5abe5960f391fc2ef4054d51abca9ae862678d467efa75d929f1086f5c15992"
+    }
+  ]
+}

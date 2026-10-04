@@ -69,6 +69,14 @@ public class StockPredictionService {
     private final ProductSkuRepository productSkuRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransactionRepository stockTransactionRepository;
+    private final com.wms.system.repository.PurchaseOrderAllocationRepository purchaseAllocations;
+    private final WarehouseStockThresholdService warehouseThresholds;
+    private static final List<com.wms.system.entity.enums.PurchaseOrderStatus> EFFECTIVE_PURCHASE_STATUSES = List.of(
+        com.wms.system.entity.enums.PurchaseOrderStatus.AWAITING_SHIPMENT,
+        com.wms.system.entity.enums.PurchaseOrderStatus.PARTIALLY_SHIPPED,
+        com.wms.system.entity.enums.PurchaseOrderStatus.IN_TRANSIT,
+        com.wms.system.entity.enums.PurchaseOrderStatus.PARTIALLY_RECEIVED);
+
 
     /**
      * Default calculation period (days)
@@ -109,6 +117,14 @@ public class StockPredictionService {
      */
     @Transactional(readOnly = true)
     public ReorderSuggestion getReorderSuggestion(Long productSkuId, Integer calculationPeriod) {
+        return getReorderSuggestion(productSkuId, calculationPeriod, null);
+    }
+
+    @Transactional(readOnly = true)
+    public ReorderSuggestion getReorderSuggestion(Long productSkuId, Integer calculationPeriod, Long warehouseId) {
+        if (calculationPeriod == null || calculationPeriod < 1 || calculationPeriod > 365) {
+            throw new BusinessException(ErrorKeys.VALIDATION_FAILED, java.util.Map.of("reason", "统计周期须为 1 至 365 天"));
+        }
         log.info("Generating reorder suggestion: productSkuId={}, calculationPeriod={} days",
             productSkuId, calculationPeriod);
 
@@ -122,7 +138,9 @@ public class StockPredictionService {
         // 2. Query current total stock (sum across all locations)
         // Single source of truth is inventory_batch (V3.0 architecture decision);
         // the legacy Inventory table is no longer maintained by inbound/outbound flows.
-        Integer currentStock = inventoryBatchRepository.sumAvailableQuantityByProductSku(productSkuId);
+        Integer currentStock = warehouseId == null
+            ? inventoryBatchRepository.sumAvailableQuantityByProductSku(productSkuId)
+            : inventoryBatchRepository.sumAvailableQuantityByProductSkuAndWarehouse(productSkuId, warehouseId);
         if (currentStock == null) {
             currentStock = 0;
         }
@@ -146,6 +164,9 @@ public class StockPredictionService {
         log.info("ProductSku {} has {} outbound transactions in last {} days (London timezone)",
             product.getName(), outboundTransactions.size(), calculationPeriod);
 
+        if (warehouseId != null) outboundTransactions = outboundTransactions.stream()
+            .filter(transaction -> warehouseId.equals(transaction.getWarehouseId())).toList();
+
         // 4. Calculate daily average outbound (with timezone conversion)
         double dailyAverageOutbound = calculateDailyAverageWithTimezoneConversion(
             outboundTransactions, calculationPeriod
@@ -153,9 +174,13 @@ public class StockPredictionService {
 
         // 5. Calculate suggested reorder quantity
         // Formula: (Daily Average × Lead Time) + Safety Stock
-        int suggestedQuantity = (int) Math.ceil(
-            (dailyAverageOutbound * product.getLeadTime()) + product.getMinStock()
-        );
+        Integer threshold = warehouseId == null ? product.getMinStock() : warehouseThresholds.threshold(product, warehouseId);
+        Long outstanding = purchaseAllocations.sumEffectiveOutstanding(productSkuId, warehouseId, EFFECTIVE_PURCHASE_STATUSES);
+        long incoming = outstanding == null ? 0L : Math.max(0L, outstanding);
+        int targetStock = threshold == null ? 0 : (int) Math.min(Integer.MAX_VALUE, Math.ceil(
+            dailyAverageOutbound * product.getLeadTime() + threshold));
+        int suggestedQuantity = threshold == null ? 0 : (int) Math.min(Integer.MAX_VALUE,
+            Math.max(0L, (long) targetStock - currentStock - incoming));
 
         // 6. Calculate estimated days until stockout
         Double estimatedDaysUntilStockout = null;
@@ -172,7 +197,12 @@ public class StockPredictionService {
             .unitPrice(product.getUnitPrice())
             .supplier(product.getSupplier())
             .currentStock(currentStock)
-            .minStock(product.getMinStock())
+            .minStock(threshold == null ? 0 : threshold)
+            .thresholdConfigured(threshold != null)
+            .warehouseId(warehouseId)
+            .baseUnit(product.getDisplayBaseUnit())
+            .outstandingPurchaseQuantity(incoming)
+            .targetStock(targetStock)
             .leadTime(product.getLeadTime())
             .dailyAverageOutbound(dailyAverageOutbound)
             .calculationPeriod(calculationPeriod)
@@ -258,6 +288,16 @@ public class StockPredictionService {
         log.info("Batch reorder suggestions completed: {} suggestions generated", suggestions.size());
 
         return suggestions;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReorderSuggestion> getReorderSuggestions(Integer days, Long warehouseId, boolean includeHealthy) {
+        return productSkuRepository.findAllOperationalOrderBySkuCodeAsc().stream()
+            .map(product -> getReorderSuggestion(product.getId(), days, warehouseId))
+            .filter(s -> includeHealthy || s.needsReorder())
+            .sorted(Comparator.comparing((ReorderSuggestion s) -> s.getUrgencyLevel().getPriority())
+                .thenComparing(ReorderSuggestion::getProductSkuId))
+            .toList();
     }
 
     /**

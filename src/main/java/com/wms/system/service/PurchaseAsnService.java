@@ -251,7 +251,7 @@ public class PurchaseAsnService {
                     )
                 );
             }
-            expiryPolicy.validateForInventoryReceipt(
+            expiryPolicy.validateSuppliedDates(
                 item.getProductSku(), item.getProductionDate(), item.getExpiryDate());
             allocation.setShippedQuantity(allocation.getShippedQuantity() + item.getShippedQuantity());
             allocation.setStatus(PurchaseOrderAllocationStatus.ACTIVE);
@@ -589,7 +589,7 @@ public class PurchaseAsnService {
                     )
                 );
             }
-            expiryPolicy.validateForInventoryReceipt(
+            expiryPolicy.validateSuppliedDates(
                 orderItem.getProductSku(), requested.productionDate(), requested.expiryDate());
 
             PurchaseAsnItem item = existingItems.remove(orderItem.getId());

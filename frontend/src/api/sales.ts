@@ -1,14 +1,15 @@
 import type { components } from './schema';
 import { apiBlobRequest, apiRawRequest, apiRequest } from './http';
 
-export type SalesOrder = components['schemas']['SalesOrderResponse'];
+export type SalesOrder = components['schemas']['SalesOrderResponse'] & { orderPurpose?: 'NORMAL' | 'EXCHANGE_REPLACEMENT' };
 export type SalesOrderItem = components['schemas']['SalesOrderItemResponse'];
 export type SalesOrderPayload = components['schemas']['CreateSalesOrderRequest'];
 export type SalesOrderItemPayload = components['schemas']['CreateSalesOrderItemRequest'];
 export type SalesApprovalPayload = components['schemas']['ApprovalRequest'];
-export type SalesOrderShipment = components['schemas']['SalesOrderShipmentResponse'];
+export type DeliveryMethod = 'COURIER' | 'FREIGHT' | 'SELF_DELIVERY' | 'PICKUP';
+export type SalesOrderShipment = components['schemas']['SalesOrderShipmentResponse'] & { deliveryMethod?: DeliveryMethod };
 export type SalesLogisticsEvent = components['schemas']['SalesLogisticsEventResponse'];
-export type SalesOrderShipmentPayload = components['schemas']['SalesOrderShipmentRequest'];
+export type SalesOrderShipmentPayload = Omit<components['schemas']['SalesOrderShipmentRequest'], 'trackingNo'> & { trackingNo?: string; deliveryMethod?: DeliveryMethod };
 export type SalesOrderPolicy = components['schemas']['SalesOrderPolicyResponse'];
 export type UpdateSalesOrderPolicyPayload = components['schemas']['UpdateSalesOrderPolicyRequest'];
 export type UpdateSalesLogisticsStatusPayload = components['schemas']['UpdateSalesLogisticsStatusRequest'];

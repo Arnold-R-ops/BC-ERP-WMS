@@ -66,6 +66,19 @@ class InventoryQueryServiceTest {
     }
 
     @Test
+    void configuredBaseUnitIsUsedForBothPhysicalAndAvailableStock() {
+        Pageable pageable = PageRequest.of(0, 20);
+        var row = summaryRow(29, 5, 24, 10);
+        when(row.getBaseUnit()).thenReturn("袋");
+        when(row.getPackUnit()).thenReturn("箱");
+        when(inventoryBatchRepository.findInventorySummaryRows(LEGACY_COMPANY_ID, "", pageable))
+            .thenReturn(new PageImpl<>(List.of(row), pageable, 1));
+        var summary = inventoryQueryService.getSummary(pageable, null).getContent().get(0);
+        assertThat(summary.getDisplayQuantity()).isEqualTo("2箱 + 5袋");
+        assertThat(summary.getDisplayAvailableQuantity()).isEqualTo("2箱 + 0袋");
+    }
+
+    @Test
     void getSummaryMarksSufficientStock() {
         Pageable pageable = PageRequest.of(0, 20);
         InventoryBatchRepository.InventorySummaryRow row = summaryRow(32, 5, 27, 20);

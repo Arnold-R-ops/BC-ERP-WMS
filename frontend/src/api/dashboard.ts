@@ -1,7 +1,10 @@
 import type { components } from './schema';
 import { apiRequest } from './http';
 
-export type ReorderSuggestion = components['schemas']['ReorderSuggestion'];
+export type ReorderSuggestion = components['schemas']['ReorderSuggestion'] & {
+  warehouseId?: number; baseUnit?: string; outstandingPurchaseQuantity?: number;
+  targetStock?: number; thresholdConfigured?: boolean;
+};
 
 export interface UrgentReorderResponse {
   suggestions: ReorderSuggestion[];

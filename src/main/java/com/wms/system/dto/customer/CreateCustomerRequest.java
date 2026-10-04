@@ -61,6 +61,17 @@ public class CreateCustomerRequest {
     @Size(max = 255, message = "客户地址长度不能超过 255 个字符")
     private String address;
 
+    @Size(max = 255, message = "收货地址长度不能超过 255 个字符")
+    private String shippingAddress;
+    private Boolean shippingSameAsBilling;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @AssertTrue(message = "选择不同收货地址时，请填写收货地址")
+    public boolean isShippingAddressComplete() {
+        return !Boolean.FALSE.equals(shippingSameAsBilling)
+            || (shippingAddress != null && !shippingAddress.isBlank());
+    }
+
     @DecimalMin(value = "0.00", message = "增值税率不能为负数")
     @DecimalMax(value = "100.00", message = "增值税率不能超过 100")
     private BigDecimal vatRate;

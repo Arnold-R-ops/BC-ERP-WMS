@@ -8,6 +8,7 @@ import { getErrorMessage } from '../../api/errors';
 import { getSalesOrder, type SalesOrder, type SalesOrderItem } from '../../api/sales';
 import { OrderStatusTag } from '../../components/OrderStatusTag';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
+import { InvoicePage } from '../commercial/InvoicePage';
 import { SalesShipmentSection } from './SalesShipmentSection';
 
 export type SalesReasonAction = 'reject' | 'cancel' | 'close' | 'void';
@@ -184,6 +185,7 @@ export function SalesOrderDrawer({
             scroll={{ x: 1170 }}
             size="small"
           />
+          {order.id !== undefined && <InvoicePage salesOrderId={order.id} canIssue={['APPROVED','COMPLETED','CLOSED'].includes(order.commercialStatus ?? '') && order.orderPurpose !== 'EXCHANGE_REPLACEMENT'} />}
           {order.id !== undefined && <SalesShipmentSection canEdit={canEditShipments} canUpdateLogistics={canUpdateLogistics} detailedLogisticsEnabled={order.detailedLogisticsEnabled === true} salesOrderId={order.id} />}
         </>
       )}

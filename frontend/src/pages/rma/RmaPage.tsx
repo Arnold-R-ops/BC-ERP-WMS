@@ -1,3 +1,4 @@
+import { refundProgress } from './refundProgress';
 import { CheckOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, App as AntdApp, Button, Card, Descriptions, Drawer, Form, Input, InputNumber, Modal, Radio, Select, Space, Switch, Table, Tag, Typography } from 'antd';
@@ -115,14 +116,14 @@ export function RmaPage(): JSX.Element {
   };
 
   return <section>
-    <Typography.Title level={2}>{english ? 'Sales returns (RMA)' : '销售退货（RMA）'}</Typography.Title>
+    <Typography.Title level={2}>{english ? 'Sales returns (RMA)' : '销售退货/换货'}</Typography.Title>
     <Typography.Paragraph type="secondary">
       {english ? 'Authorisation, physical receipt, inspection and refund/exchange are independent, auditable stages.' : '业务授权、实物收货、质检与退款/换货相互独立并全程留痕。'}
     </Typography.Paragraph>
     <Card style={{ marginBottom: 12 }}>
       <Space wrap>
         <Button icon={<ReloadOutlined />} onClick={() => void refresh()}>{english ? 'Refresh' : '刷新'}</Button>
-        {permitted('rma:create') ? <Button type="primary" icon={<PlusOutlined />} onClick={() => { createForm.resetFields(); createForm.setFieldsValue({ rmaType: 'RETURN_REFUND', statutoryBasis: 'VOLUNTARY_POLICY', lines: [] }); setCreateOpen(true); }}>{english ? 'Create RMA' : '创建 RMA'}</Button> : null}
+        {permitted('rma:create') ? <Button type="primary" icon={<PlusOutlined />} onClick={() => { createForm.resetFields(); createForm.setFieldsValue({ rmaType: 'RETURN_REFUND', statutoryBasis: 'VOLUNTARY_POLICY', lines: [] }); setCreateOpen(true); }}>{english ? 'Create RMA' : '新建退货/换货'}</Button> : null}
         {permitted('rma:policy') ? <Button icon={<SettingOutlined />} onClick={() => { if (policy.data) policyForm.setFieldsValue({ ...policy.data, reason: '' }); setPolicyOpen(true); }}>{english ? 'Policy' : '退货策略'}</Button> : null}
       </Space>
     </Card>
@@ -133,7 +134,7 @@ export function RmaPage(): JSX.Element {
         { title: english ? 'External case' : '渠道案例', dataIndex: 'externalCaseId' },
         { title: english ? 'Sales order' : '已匹配销售单', dataIndex: 'salesOrderNumber', render: (value?: string) => value ?? '-' },
         { title: english ? 'Status' : '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === 'MATCHED_PENDING' ? 'processing' : 'warning'}>{value}</Tag> },
-        { title: english ? 'Action' : '操作', render: (_, item) => item.status === 'MATCHED_PENDING' && permitted('rma:create') ? <Button size="small" onClick={() => { createForm.resetFields(); createForm.setFieldsValue({ channelCaseId: item.id, salesOrderId: item.salesOrderId, rmaType: 'RETURN_REFUND', statutoryBasis: 'VOLUNTARY_POLICY', reasonCode: 'CHANNEL_REFUND', lines: [] }); setCreateOpen(true); }}>{english ? 'Create linked RMA' : '创建关联 RMA'}</Button> : null },
+        { title: english ? 'Action' : '操作', render: (_, item) => item.status === 'MATCHED_PENDING' && permitted('rma:create') ? <Button size="small" onClick={() => { createForm.resetFields(); createForm.setFieldsValue({ channelCaseId: item.id, salesOrderId: item.salesOrderId, rmaType: 'RETURN_REFUND', statutoryBasis: 'VOLUNTARY_POLICY', reasonCode: 'CHANNEL_REFUND', lines: [] }); setCreateOpen(true); }}>{english ? 'Create linked RMA' : '创建关联退货'}</Button> : null },
       ]} />
     </Card> : null}
     <Table columns={columns} dataSource={rmas.data ?? []} loading={rmas.isLoading} rowKey="id" scroll={{ x: 1510 }} pagination={{ pageSize: 15 }} />
@@ -150,13 +151,20 @@ export function RmaPage(): JSX.Element {
             <Select style={{ width: 210 }} options={(warehouses.data ?? []).filter((warehouse) => warehouse.id && warehouse.isActive).map((warehouse) => ({ value: warehouse.id as number, label: `${warehouse.code} · ${warehouse.name}` }))} />
           </Form.Item>
           <Form.Item name="rmaType" label={english ? 'Type' : '类型'} rules={[{ required: true }]}>
-            <Select style={{ width: 190 }} options={['RETURN_REFUND', 'EXCHANGE', ...(policy.data?.refundOnlyEnabled ? ['REFUND_ONLY'] : [])].map((value) => ({ value, label: value }))} />
+            <Select style={{ width: 190 }} options={['RETURN_REFUND', 'EXCHANGE', ...(policy.data?.refundOnlyEnabled ? ['REFUND_ONLY'] : [])].map((value) => ({ value, label: english ? value.replaceAll('_', ' ') : ({ RETURN_REFUND: '退货退款', EXCHANGE: '换货', REFUND_ONLY: '仅退款', VOLUNTARY_POLICY: '普通退货', DISTANCE_CANCELLATION: '远程销售撤销', FAULTY_NOT_AS_DESCRIBED: '商品质量/描述不符', OTHER_STATUTORY: '其他法定原因' } as Record<string, string>)[value] ?? value }))} />
           </Form.Item>
           <Form.Item name="statutoryBasis" label={english ? 'Basis' : '退货依据'} rules={[{ required: true }]}>
-            <Select style={{ width: 230 }} options={['VOLUNTARY_POLICY', 'DISTANCE_CANCELLATION', 'FAULTY_NOT_AS_DESCRIBED', 'OTHER_STATUTORY'].map((value) => ({ value, label: value }))} />
+            <Select style={{ width: 230 }} options={['VOLUNTARY_POLICY', 'DISTANCE_CANCELLATION', 'FAULTY_NOT_AS_DESCRIBED', 'OTHER_STATUTORY'].map((value) => ({ value, label: english ? value.replaceAll('_', ' ') : ({ RETURN_REFUND: '退货退款', EXCHANGE: '换货', REFUND_ONLY: '仅退款', VOLUNTARY_POLICY: '普通退货', DISTANCE_CANCELLATION: '远程销售撤销', FAULTY_NOT_AS_DESCRIBED: '商品质量/描述不符', OTHER_STATUTORY: '其他法定原因' } as Record<string, string>)[value] ?? value }))} />
           </Form.Item>
         </Space>
-        <Form.Item name="reasonCode" label={english ? 'Reason code' : '原因码'} rules={[{ required: true }]}><Input maxLength={80} /></Form.Item>
+        <Form.Item name="reasonCode" label={english ? 'Reason' : '退货原因'} rules={[{ required: true }]}><Select options={[
+          { value: 'DAMAGED', label: english ? 'Damaged goods' : '商品破损' },
+          { value: 'WRONG_ITEM', label: english ? 'Wrong item' : '商品发错' },
+          { value: 'QUALITY', label: english ? 'Quality issue' : '质量问题' },
+          { value: 'CUSTOMER_REQUEST', label: english ? 'Customer request' : '客户申请' },
+          { value: 'CHANNEL_REFUND', label: english ? 'Channel refund' : '渠道退款' },
+          { value: 'OTHER', label: english ? 'Other (describe below)' : '其他（填写说明）' },
+        ]} /></Form.Item>
         <Form.Item name="reasonDetail" label={english ? 'Details' : '原因说明'}><Input.TextArea maxLength={1000} rows={2} /></Form.Item>
         <Space wrap align="start">
           <Form.Item name="returnCarrier" label={english ? 'Customer carrier (sales only)' : '客户退回承运商（仅业务端）'}><Input maxLength={80} /></Form.Item>
@@ -179,6 +187,21 @@ export function RmaPage(): JSX.Element {
 
     <Drawer open={Boolean(selected)} width={980} title={selected?.rmaNumber} onClose={() => setSelected(undefined)}>
       {selected ? <>
+        <Alert showIcon style={{marginBottom:12}} type={selected.resolutionStatus==='EXCEPTION'?'warning':'info'} message={
+          selected.businessStatus==='PENDING_APPROVAL' ? (english?'Next: review return request':'下一步：审批退货申请') :
+          ['REFUND_REQUESTED','EXCEPTION'].includes(selected.resolutionStatus) ? (english?'Next: confirm the external refund result':'下一步：核对实际退款回执并确认结果') :
+          selected.resolutionStatus==='REFUND_CONFIRMED' ? (english?'Refund confirmed':'退款已确认') :
+          selected.resolutionStatus==='EXCHANGE_CREATED' ? (english?'Next: fulfil the linked replacement order':'下一步：处理关联换货销售单') :
+          ['CANCELLED','REJECTED','CLOSED'].includes(selected.businessStatus) ? (english?'No further business action':'当前业务已结束') :
+          ['PARTIAL','COMPLETED'].includes(selected.inspectionStatus) ? (english?'Next: confirm eligibility and refund/exchange':'下一步：确认退款资格并处理退款或换货') :
+          ['PARTIAL','RECEIVED'].includes(selected.receiptStatus) ? (english?'Next: inspect the received goods':'下一步：质检已收到的退货') :
+          selected.rmaType==='REFUND_ONLY' ? (english?'Next: confirm refund amount':'下一步：确认退款金额') : (english?'Next: receive returned goods':'下一步：等待退货并收货')
+        } />
+        {selected.rmaType!=='EXCHANGE' && <Descriptions size="small" column={3} items={[
+          {key:'expected',label:english?'Refund due':'应退',children:selected.refundAmount==null?(english?'To be confirmed':'待确认'):selected.refundCurrency+' '+formatMoney(refundProgress(selected).expected,i18n.language)},
+          {key:'confirmed',label:english?'Refund confirmed':'已退',children:(selected.refundCurrency??'GBP')+' '+formatMoney(refundProgress(selected).confirmed,i18n.language)},
+          {key:'remaining',label:english?'Refund pending':'待退',children:selected.refundAmount==null?(english?'To be confirmed':'待确认'):selected.refundCurrency+' '+formatMoney(refundProgress(selected).pending,i18n.language)},
+        ]} />}
         {selected.outsideStandardWindow ? <Alert showIcon type="warning" style={{ marginBottom: 12 }} message={english ? `Outside the ${selected.standardReturnDaysSnapshot}-day commercial window; statutory rights remain separate.` : `已超过 ${selected.standardReturnDaysSnapshot} 天商业默认期限；法定权利不受该期限截断。`} /> : null}
         <Descriptions bordered size="small" column={2} items={[
           { key: 'order', label: english ? 'Sales order' : '销售单', children: selected.salesOrderNo },
@@ -249,7 +272,7 @@ export function RmaPage(): JSX.Element {
 
     <Modal open={policyOpen} title={english ? 'RMA policy' : 'RMA 策略'} onCancel={() => setPolicyOpen(false)} onOk={() => void policyForm.validateFields().then(async (values) => { await policyMutation.mutateAsync(values); setPolicyOpen(false); await refresh(); message.success(english ? 'Policy updated.' : '策略已更新'); })} confirmLoading={policyMutation.isPending}>
       <Form form={policyForm} layout="vertical">
-        <Form.Item name="approvalMode" label={english ? 'Approval mode' : '审批模式'} rules={[{ required: true }]}><Select options={(['DIRECT', 'RISK_BASED', 'ALWAYS'] as RmaApprovalMode[]).map((value) => ({ value, label: value }))} /></Form.Item>
+        <Form.Item name="approvalMode" label={english ? 'Approval mode' : '审批模式'} rules={[{ required: true }]}><Select options={(['DIRECT', 'RISK_BASED', 'ALWAYS'] as RmaApprovalMode[]).map((value) => ({ value, label: english ? value.replaceAll('_', ' ') : ({ RETURN_REFUND: '退货退款', EXCHANGE: '换货', REFUND_ONLY: '仅退款', VOLUNTARY_POLICY: '普通退货', DISTANCE_CANCELLATION: '远程销售撤销', FAULTY_NOT_AS_DESCRIBED: '商品质量/描述不符', OTHER_STATUTORY: '其他法定原因' } as Record<string, string>)[value] ?? value }))} /></Form.Item>
         <Form.Item name="standardReturnDays" label={english ? 'Commercial default days' : '商业默认退货天数'} rules={[{ required: true }]}><InputNumber min={1} max={365} precision={0} /></Form.Item>
         <Form.Item name="refundOnlyEnabled" label={english ? 'Linked refund-only' : '允许关联原单仅退款'} valuePropName="checked"><Switch /></Form.Item>
         <Form.Item name="advanceResolutionEnabled" label={english ? 'Advance resolution' : '允许提前处理'} valuePropName="checked"><Switch /></Form.Item>

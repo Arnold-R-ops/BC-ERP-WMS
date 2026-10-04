@@ -1,4 +1,16 @@
-import { apiRequest } from './http';
+import { apiRequest, apiBlobRequest } from './http';
+export function exportSales(startDate: string, endDate: string): Promise<Blob> {
+  return apiBlobRequest('/api/reports/sales/export?' + new URLSearchParams({ startDate, endDate }));
+}
+export function exportCustomers(params: CustomerFactParams): Promise<Blob> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== '') query.set(key, String(value)); });
+  return apiBlobRequest('/api/reports/customers/export?' + query);
+}
+export function exportCustomerProducts(id: number, topProducts = 8): Promise<Blob> {
+  return apiBlobRequest('/api/reports/customer/' + id + '/export?topProducts=' + topProducts);
+}
+
 
 export type CustomerFactType = 'CLIENT' | 'CONSUMER';
 export type CustomerFactSource = 'MANUAL' | 'CHANNEL';
@@ -11,6 +23,7 @@ export interface SalesDailySummary {
   pendingApprovalCount: number;
   approvedAwaitingShipmentCount: number;
   shippedCount: number;
+  closedCount?: number;
   rejectedCount: number;
   cancelledCount: number;
   voidedCount: number;
@@ -29,6 +42,7 @@ export interface CustomerProductFact {
   skuName?: string;
   productName?: string;
   barcode?: string;
+  baseUnit?: string;
   totalOrderCount: number;
   totalQuantity: number;
   totalAmount: number;

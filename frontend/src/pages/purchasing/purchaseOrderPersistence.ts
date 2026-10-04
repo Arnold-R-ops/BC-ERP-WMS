@@ -40,7 +40,7 @@ export function buildPurchaseAllocationInputs(
   return lines.flatMap((line) => {
     const savedItem = savedItems?.find((item) => item.id === line.id || item.productSkuId === line.productSkuId);
     const purchaseOrderItemId = savedItem?.id;
-    if (purchaseOrderItemId === undefined || line.allocations.length === 0) {
+    if (purchaseOrderItemId === undefined) {
       throw new Error('Purchase line and allocation mapping is incomplete');
     }
     return line.allocations.map((allocation) => {

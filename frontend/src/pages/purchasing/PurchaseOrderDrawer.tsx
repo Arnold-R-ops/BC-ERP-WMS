@@ -1,9 +1,9 @@
 import { CheckOutlined, EditOutlined, ExportOutlined, PlusOutlined, SendOutlined, StopOutlined, UndoOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Descriptions, Divider, Drawer, Space, Table, Tag, type TableColumnsType } from 'antd';
+import { Alert, Button, Descriptions, Divider, Drawer, Collapse, Space, Table, Tag, type TableColumnsType } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { MobileReceivingPage } from '../mobile/MobileReceivingPage';
 import { getErrorMessage } from '../../api/errors';
 import {
   getPurchaseOrder,
@@ -84,7 +84,7 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
     onEditAsn, onWorkflow,
   } = props;
   const { i18n, t } = useTranslation();
-  const navigate = useNavigate();
+  const [executingTaskId, setExecutingTaskId] = useState<number>();
   const [selectedReceivingTask, setSelectedReceivingTask] = useState<ReceivingTask>();
   const orderQuery = useQuery({
     queryKey: ['purchase-order', orderId],
@@ -163,7 +163,7 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
             {t('purchasing.actions.viewReceivingTask')}
           </Button>
           {canExecuteReceiving && ['PENDING', 'PARTIALLY_RECEIVED'].includes(task.status)
-            ? <Button onClick={() => navigate(`/mobile/receiving?taskId=${task.id}`)} size="small" type="link">{t('purchasing.actions.enterReceivingTask')}</Button>
+            ? <Button onClick={() => setExecutingTaskId(task.id)} size="small" type="link">{t('purchasing.actions.enterReceivingTask')}</Button>
             : null}
         </Space>
       ),
@@ -201,6 +201,11 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
       title={t('purchasing.details.title', { poNumber: order?.poNumber ?? '-' })}
       width="min(1180px, 96vw)"
     >
+      <Drawer destroyOnHidden open={executingTaskId !== undefined} onClose={() => setExecutingTaskId(undefined)}
+        width="min(1180px, 96vw)" title={t('purchasing.actions.enterReceivingTask')}>
+        {executingTaskId !== undefined && <MobileReceivingPage key={executingTaskId} embeddedTaskId={executingTaskId}
+          onReceiptSaved={async () => { await Promise.all([orderQuery.refetch(), allocationsQuery.refetch(), tasksQuery.refetch(), ...(canViewAsn ? [asnsQuery.refetch()] : [])]); }} />}
+      </Drawer>
       {orderQuery.error && <Alert description={getErrorMessage(orderQuery.error, t)} message={t('purchasing.messages.loadFailed')} showIcon type="error" />}
       {order && (
         <>
@@ -211,6 +216,8 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
               { key: 'status', label: t('purchasing.fields.status'), children: <OrderStatusTag domain="purchasing" status={order.status} /> },
               { key: 'supplier', label: t('purchasing.fields.supplier'), children: order.supplier ?? '-' },
               { key: 'quantity', label: t('purchasing.fields.totalQuantity'), children: order.totalQuantity ?? 0 },
+              { key: 'shipped', label: t('purchasing.fields.shippedQuantity'), children: allocationsQuery.data?.reduce((total, allocation) => total + (allocation.shippedQuantity ?? 0), 0) ?? '-' },
+              { key: 'received', label: t('purchasing.fields.receivedQuantity'), children: (order.items ?? []).reduce((total, item) => total + (item.receivedQuantity ?? 0), 0) },
               { key: 'cost', label: t('purchasing.fields.totalCost'), children: order.totalCost === undefined ? '-' : formatMoney(order.totalCost, i18n.language) },
               { key: 'expected', label: t('purchasing.fields.expectedDate'), children: formatDate(order.expectedDate, i18n.language) },
               { key: 'entry', label: t('purchasing.fields.actualEntryDate'), children: formatDateTime(order.actualEntryDate, i18n.language) },
@@ -220,9 +227,10 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
           />
           <Divider orientation="left">{t('purchasing.details.lines')}</Divider>
           <Table columns={itemColumns} dataSource={order.items ?? []} pagination={false} rowKey={(item) => item.id ?? item.productSkuId ?? 0} scroll={{ x: 760 }} size="small" />
-          <Divider orientation="left">{t('purchasing.details.allocations')}</Divider>
-          <Table columns={allocationColumns} dataSource={allocationsQuery.data ?? []} pagination={false} rowKey={(item) => item.id ?? `${item.purchaseOrderItemId}-${item.warehouseId}`} size="small" />
-          {canViewAsn && <>
+          <Collapse style={{ marginTop: 16 }} items={[{ key: 'allocations', label: t('purchasing.details.allocations'),
+            children: <Table columns={allocationColumns} dataSource={allocationsQuery.data ?? []} pagination={false} rowKey={(item) => item.id ?? `${item.purchaseOrderItemId}-${item.warehouseId}`} size="small" />,
+          }]} />
+          {canViewAsn && <Collapse style={{ marginTop: 16 }} items={[{ key: 'shipments', label: t('purchasing.details.shipments'), children: <>
             <Divider />
             <div className="purchase-asn-section-heading">
               <strong>{t('purchasing.details.shipments')}</strong>
@@ -231,7 +239,7 @@ export function PurchaseOrderDrawer(props: PurchaseOrderDrawerProps): JSX.Elemen
                 : null}
             </div>
             <Table columns={asnColumns} dataSource={asnsQuery.data ?? []} pagination={false} rowKey="id" scroll={{ x: 1080 }} size="small" />
-          </>}
+          </> }]} />}
           {canViewReceiving && <><Divider orientation="left">{t('purchasing.details.receivingTasks')}</Divider><Table columns={taskColumns} dataSource={tasksQuery.data ?? []} pagination={false} rowKey="id" size="small" /></>}
           <Drawer
             destroyOnHidden

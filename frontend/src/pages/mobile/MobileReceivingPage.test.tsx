@@ -85,7 +85,7 @@ const task: ReceivingTask = {
   }],
 };
 
-function renderPage(path = '/mobile/receiving'): void {
+function renderPage(path = '/mobile/receiving', embeddedTaskId?: number, onReceiptSaved?: () => Promise<void>): void {
   const queryClient = new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
   });
@@ -94,7 +94,7 @@ function renderPage(path = '/mobile/receiving'): void {
       <ConfigProvider>
         <AntdApp>
           <QueryClientProvider client={queryClient}>
-            <MobileReceivingPage />
+            <MobileReceivingPage embeddedTaskId={embeddedTaskId} onReceiptSaved={onReceiptSaved} />
           </QueryClientProvider>
         </AntdApp>
       </ConfigProvider>
@@ -103,6 +103,28 @@ function renderPage(path = '/mobile/receiving'): void {
 }
 
 describe('warehouse receiving plans', () => {
+  it('receives the purchase-selected task through the same command without loading other tasks', async () => {
+    const refreshed = vi.fn(async () => undefined);
+    renderPage('/purchasing', 5, refreshed);
+    expect(await screen.findByText('RT-20260828-05')).toBeVisible();
+    expect(listReceivingTasks).not.toHaveBeenCalled();
+    expect(listReceivingPlans).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: '收货任务' })).not.toBeInTheDocument();
+    const product = screen.getByPlaceholderText('扫描条码、批次码后按回车');
+    fireEvent.change(product, { target: { value: '6900000101' } });
+    fireEvent.keyDown(product, { code: 'Enter', key: 'Enter' });
+    const location = screen.getByPlaceholderText('扫描库位码后按回车');
+    await waitFor(() => expect(location).toBeEnabled());
+    fireEvent.change(location, { target: { value: 'LOC-A-01' } });
+    fireEvent.keyDown(location, { code: 'Enter', key: 'Enter' });
+    const submit = screen.getByRole('button', { name: '提交本次收货' });
+    await waitFor(() => expect(submit).toBeEnabled());
+    fireEvent.click(submit);
+    await waitFor(() => expect(submitReceivingReceipt).toHaveBeenCalledWith(5, {
+      lines: [{ receivingTaskItemId: 7, locationId: 8, quantity: 30 }],
+    }, expect.any(String)));
+    await waitFor(() => expect(refreshed).toHaveBeenCalledOnce());
+  });
   afterEach(() => cleanup());
 
   beforeEach(async () => {

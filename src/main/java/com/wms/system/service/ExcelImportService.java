@@ -60,6 +60,7 @@ public class ExcelImportService {
 
     private static final DataFormatter CELL_FORMATTER = new DataFormatter();
     private final ExcelTemplateService excelTemplateService;
+    private final com.wms.system.repository.ProductSkuRepository productSkuRepository;
 
     public byte[] downloadPurchaseOrderTemplate() {
         return excelTemplateService.getPurchaseOrderTemplate();
@@ -118,6 +119,9 @@ public class ExcelImportService {
              Workbook workbook = new XSSFWorkbook(inputStream)) {
 
             Sheet sheet = excelTemplateService.validateAndGetPurchaseOrderSheet(workbook);
+            OrderImportSupport.limit(sheet);
+            List<Map<String,Object>> errors = new ArrayList<>();
+            int skipped = 0;
             int totalRows = sheet.getPhysicalNumberOfRows();
             int lastRowNum = sheet.getLastRowNum();
 
@@ -130,6 +134,7 @@ public class ExcelImportService {
                 Row row = sheet.getRow(rowIndex);
 
                 if (row == null || isRowEmpty(row)) {
+                    skipped++;
                     log.debug("Skipping empty row: rowIndex={}", rowIndex);
                     continue;
                 }
@@ -146,16 +151,11 @@ public class ExcelImportService {
                     log.error("Failed to parse row: rowIndex={}, error={}",
                         rowIndex, e.getMessage(), e);
 
-                    throw new BusinessException(
-                        ErrorKeys.INVALID_EXCEL_DATA,
-                        Map.of(
-                            "rowIndex", rowIndex + 1,  // User-facing row number (1-indexed)
-                            "error", e.getMessage()
-                        )
-                    );
+                    errors.add(OrderImportSupport.error(rowIndex, e));
                 }
             }
 
+            OrderImportSupport.requireValid(errors, items.size(), skipped);
             log.info("✅ Excel import completed: filename={}, itemCount={}",
                 filename, items.size());
 
@@ -194,7 +194,7 @@ public class ExcelImportService {
      */
     private PurchaseOrderService.PurchaseOrderItemData parseRow(Row row, int rowIndex) {
         // Column A: productSkuId (required)
-        Long productSkuId = getCellLong(row, 0);
+        Long productSkuId = OrderImportSupport.usesCode(row) ? OrderImportSupport.resolve(row, productSkuRepository) : getCellLong(row, 0);
         if (productSkuId == null) {
             throw new IllegalArgumentException("Missing productSkuId in column A");
         }
@@ -291,7 +291,7 @@ public class ExcelImportService {
         try {
             CellType cellType = getEffectiveCellType(cell);
             if (cellType == CellType.NUMERIC) {
-                return (int) cell.getNumericCellValue();
+                return BigDecimal.valueOf(cell.getNumericCellValue()).intValueExact();
             } else if (cellType == CellType.STRING) {
                 String value = cell.getStringCellValue().trim();
                 return value.isEmpty() ? null : Integer.parseInt(value);

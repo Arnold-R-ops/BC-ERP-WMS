@@ -26,7 +26,7 @@ class InventoryQualityPermissionCatalogueTest {
         new InventoryQualityPermissionCatalogue(repository).provisionForTenant(88L);
 
         ArgumentCaptor<SysPermission> captor = ArgumentCaptor.forClass(SysPermission.class);
-        verify(repository, times(31)).save(captor.capture());
+        verify(repository, times(38)).save(captor.capture());
         assertThat(captor.getAllValues()).extracting(SysPermission::getPermissionCode)
             .containsExactly(
                 "inventory_quality:view", "inventory_quality:hold",
@@ -41,7 +41,9 @@ class InventoryQualityPermissionCatalogueTest {
                 "rma:view", "rma:create", "rma:approve", "rma:receive",
                 "rma:inspect", "rma:resolve", "rma:policy", "rma:advance-resolution",
                 "transfer:view", "transfer:create", "transfer:approve", "transfer:dispatch",
-                "transfer:receive", "transfer:close", "transfer:policy"
+                "transfer:receive", "transfer:close", "transfer:policy",
+                "quotation:view", "quotation:edit", "quotation:convert",
+                "invoice:view", "invoice:create", "invoice:receive", "commercial:export"
             );
         assertThat(captor.getAllValues()).allSatisfy(permission -> {
             assertThat(permission.isCustomAssignable()).isTrue();
@@ -57,7 +59,7 @@ class InventoryQualityPermissionCatalogueTest {
                 assertThat(permission.getResourcePath()).isEqualTo("/api/transfers/**");
                 assertThat(permission.getHttpMethod()).isEqualTo("*");
             });
-        verify(repository, times(31)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
+        verify(repository, times(38)).existsByCompanyIdAndPermissionCode(eq(88L), anyString());
         verifyNoMoreInteractions(repository);
     }
 }

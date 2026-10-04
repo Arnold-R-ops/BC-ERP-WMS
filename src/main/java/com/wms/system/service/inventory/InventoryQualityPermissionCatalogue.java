@@ -124,7 +124,14 @@ public class InventoryQualityPermissionCatalogue {
             new PermissionSeed("transfer:close", "关闭调拨差异", "/api/transfers/**", "*",
                 SysPermission.RISK_LEVEL_HIGH, 179, "Close unshipped or in-transit transfer differences"),
             new PermissionSeed("transfer:policy", "配置调拨策略", "/api/transfers/**", "*",
-                SysPermission.RISK_LEVEL_HIGH, 180, "Configure transfer approval and optional receiving inspection")
+                SysPermission.RISK_LEVEL_HIGH, 180, "Configure transfer approval and optional receiving inspection"),
+            new PermissionSeed("quotation:view","查看报价","/api/commercial/quotes/**;/api/commercial/quotes;/api/commercial/profile","GET",SysPermission.RISK_LEVEL_NORMAL,181,"Commercial document permission; customer ownership still applies"),
+            new PermissionSeed("quotation:edit","编制报价","/api/commercial/quotes/**;/api/commercial/quotes","*",SysPermission.RISK_LEVEL_NORMAL,182,"Commercial document permission; customer ownership still applies"),
+            new PermissionSeed("quotation:convert","报价转销售单","/api/commercial/quotes/*/convert","POST",SysPermission.RISK_LEVEL_HIGH,183,"Commercial document permission; customer ownership still applies"),
+            new PermissionSeed("invoice:view","查看账单与收款","/api/commercial/invoices/**;/api/commercial/invoices;/api/commercial/profile","GET",SysPermission.RISK_LEVEL_NORMAL,184,"Commercial document permission; customer ownership still applies"),
+            new PermissionSeed("invoice:create","开立或作废账单","/api/commercial/invoices;/api/commercial/invoices/*/void","POST",SysPermission.RISK_LEVEL_HIGH,185,"Commercial document permission; customer ownership still applies"),
+            new PermissionSeed("invoice:receive","登记和更正手工收款","/api/commercial/invoices/*/receipts;/api/commercial/invoices/*/receipts/*/reverse","POST",SysPermission.RISK_LEVEL_HIGH,186,"Commercial document permission; customer ownership still applies"),
+            new PermissionSeed("commercial:export","导出报价及账单（含完整客户地址）","/api/commercial/quotes/*/pdf;/api/commercial/quotes/*/xlsx;/api/commercial/invoices/*/pdf","GET",SysPermission.RISK_LEVEL_HIGH,187,"Commercial document permission; customer ownership still applies")
         );
     }
 

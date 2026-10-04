@@ -32,6 +32,11 @@ public class ReorderSuggestion {
      * 商品ID
      */
     private Long productSkuId;
+    private Long warehouseId;
+    private String baseUnit;
+    private Long outstandingPurchaseQuantity;
+    private Integer targetStock;
+    private Boolean thresholdConfigured;
 
     /**
      * 商品条形码
@@ -194,8 +199,6 @@ public class ReorderSuggestion {
      * 业务方法：检查是否需要补货
      */
     public boolean needsReorder() {
-        return urgencyLevel == UrgencyLevel.CRITICAL
-            || urgencyLevel == UrgencyLevel.HIGH
-            || urgencyLevel == UrgencyLevel.MEDIUM;
+        return suggestedReorderQuantity != null && suggestedReorderQuantity > 0;
     }
 }

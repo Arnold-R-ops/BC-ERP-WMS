@@ -6,6 +6,8 @@ export type AppModule =
   | 'suppliers'
   | 'inventory'
   | 'sales'
+  | 'quotations'
+  | 'invoices'
   | 'rma'
   | 'transfer'
   | 'analytics'
@@ -34,6 +36,8 @@ const modulePermissions: Record<Exclude<AppModule, 'dashboard'>, readonly string
   suppliers: ['menu:suppliers'],
   inventory: ['menu:inventory'],
   sales: ['menu:sales'],
+  quotations: ['quotation:view'],
+  invoices: ['invoice:view'],
   rma: ['rma:view', 'rma:create', 'rma:approve', 'rma:resolve', 'rma:policy'],
   transfer: ['transfer:view', 'transfer:create', 'transfer:approve', 'transfer:close', 'transfer:policy'],
   analytics: ['menu:reports'],

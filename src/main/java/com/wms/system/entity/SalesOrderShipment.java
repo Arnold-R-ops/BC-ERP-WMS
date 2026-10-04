@@ -33,8 +33,13 @@ public class SalesOrderShipment extends BaseEntity {
     @Column(name = "sales_order_id", nullable = false)
     private Long salesOrderId;
 
-    @Column(name = "tracking_no", nullable = false, length = 100)
+    @Column(name = "tracking_no", length = 100)
     private String trackingNo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_method", nullable = false, length = 20)
+    @Builder.Default
+    private com.wms.system.entity.enums.DeliveryMethod deliveryMethod = com.wms.system.entity.enums.DeliveryMethod.COURIER;
 
     @Column(length = 50)
     private String carrier;

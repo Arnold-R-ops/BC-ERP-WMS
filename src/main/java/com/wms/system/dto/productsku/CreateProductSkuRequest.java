@@ -59,6 +59,10 @@ public class CreateProductSkuRequest {
     @Size(max = 20)
     private String packUnit;
 
+    @jakarta.validation.constraints.Pattern(regexp = ".*\\S.*", message = "Base unit must not be blank")
+    @Size(max = 20)
+    private String baseUnit;
+
     @Min(1)
     private Integer nearExpiryDays;
 

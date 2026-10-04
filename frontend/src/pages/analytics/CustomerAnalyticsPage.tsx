@@ -2,6 +2,7 @@ import { EyeOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
+  App,
   Button,
   Descriptions,
   Drawer,
@@ -25,10 +26,25 @@ import {
   type CustomerFactType,
   type CustomerProductFact,
 } from '../../api/reports';
+import { exportCustomers, exportCustomerProducts } from '../../api/reports';
+import { saveBlob } from '../../api/files';
+import { getErrorMessage } from '../../api/errors';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
 
 export function CustomerAnalyticsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
+  const { message } = App.useApp();
+  const [exporting, setExporting] = useState(false);
+  const download = async (products = false): Promise<void> => {
+    setExporting(true);
+    try {
+      const blob = products && selectedCustomerId !== undefined
+        ? await exportCustomerProducts(selectedCustomerId, 8)
+        : await exportCustomers({ keyword: keyword.trim() || undefined, customerType, source, sortBy: 'totalAmount', sortDirection: 'desc' });
+      saveBlob(blob, products ? 'customer-products.csv' : 'customers.csv');
+    } catch (error) { message.error(getErrorMessage(error, t)); }
+    finally { setExporting(false); }
+  };
   const [keyword, setKeyword] = useState('');
   const [customerType, setCustomerType] = useState<CustomerFactType>();
   const [source, setSource] = useState<CustomerFactSource>();
@@ -121,6 +137,7 @@ export function CustomerAnalyticsPage(): JSX.Element {
           <Typography.Title level={2}>{t('analytics.customer.title')}</Typography.Title>
           <Typography.Text type="secondary">{t('analytics.customer.subtitle')}</Typography.Text>
         </div>
+        <Button loading={exporting} disabled={customerQuery.isError} onClick={() => void download()}>{t('upgrade.exportCsv')}</Button>
         <Button icon={<ReloadOutlined spin={customerQuery.isFetching} />} onClick={() => void customerQuery.refetch()}>
           {t('analytics.refreshSnapshot')}
         </Button>
@@ -190,6 +207,7 @@ export function CustomerAnalyticsPage(): JSX.Element {
         open={selectedCustomerId !== undefined}
         title={detail?.customerName ?? t('analytics.customer.detailTitle')}
         width={760}
+        extra={<Button loading={exporting} disabled={!detail || detailQuery.isError} onClick={() => void download(true)}>{t('upgrade.exportCsv')}</Button>}
       >
         {detailQuery.isError ? <Alert message={t('analytics.loadFailed')} showIcon type="error" /> : detail && (
           <div className="analytics-customer-detail">

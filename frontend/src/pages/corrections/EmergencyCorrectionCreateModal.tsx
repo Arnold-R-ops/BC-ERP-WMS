@@ -167,8 +167,8 @@ export function EmergencyCorrectionCreateModal({
             <Form.Item label={t('corrections.fields.batchCode')} name="batchCode" rules={[{ required: true, whitespace: true, message: t('corrections.validation.batchCodeRequired') }]}>
               <Input maxLength={100} />
             </Form.Item>
-            <Form.Item label={t('corrections.fields.productionDate')} name="productionDate"><Input type="date" /></Form.Item>
-            <Form.Item label={t('corrections.fields.expiryDate')} name="expiryDate" rules={[{ required: true, message: t('corrections.validation.expiryRequired') }]}><Input type="date" /></Form.Item>
+            <Form.Item label={t('corrections.fields.productionDate')} name="productionDate" rules={[{ required: productSkusQuery.data?.find((sku) => sku.id === productSkuId)?.expiryManagementEnabled === true }]}><Input type="date" /></Form.Item>
+            <Form.Item label={t('corrections.fields.expiryDate')} name="expiryDate" rules={[{ required: productSkusQuery.data?.find((sku) => sku.id === productSkuId)?.expiryManagementEnabled === true, message: t('corrections.validation.expiryRequired') }]}><Input type="date" /></Form.Item>
           </>
         )}
 

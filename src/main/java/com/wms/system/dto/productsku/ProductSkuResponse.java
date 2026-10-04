@@ -31,6 +31,7 @@ public class ProductSkuResponse {
     private Integer perPackQty;
     private Integer conversionRate;
     private String packUnit;
+    private String baseUnit;
     private Integer nearExpiryDays;
     private Boolean expiryManagementEnabled;
     private ReceivingInspectionRequirement inspectionRequirement;

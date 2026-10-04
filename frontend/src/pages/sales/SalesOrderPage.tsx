@@ -2,6 +2,7 @@ import { DownloadOutlined, EyeOutlined, PlusOutlined, SettingOutlined, UploadOut
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Tabs, Tag, Upload } from 'antd';
+import { OrderImportErrors, orderImportErrors } from '../../components/OrderImportErrors';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -280,7 +281,10 @@ export function SalesOrderPage(): JSX.Element {
             beforeUpload={(file) => {
               void importSalesOrderItems(file as File)
                 .then((items) => { setInitialItems(items); setFormOpen(true); })
-                .catch((error) => message.error(getErrorMessage(error, t)));
+                .catch((error) => {
+                  if (orderImportErrors(error).length) modal.error({ title: '订单导入检查', width: 720, content: <OrderImportErrors error={error} /> });
+                  else message.error(getErrorMessage(error, t));
+                });
               return false;
             }}
             key="import"

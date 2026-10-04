@@ -34,6 +34,8 @@ class StockPredictionServiceTest {
     @Mock private ProductSkuRepository productSkuRepository;
     @Mock private InventoryBatchRepository inventoryBatchRepository;
     @Mock private StockTransactionRepository stockTransactionRepository;
+    @Mock private com.wms.system.repository.PurchaseOrderAllocationRepository purchaseAllocations;
+    @Mock private WarehouseStockThresholdService warehouseThresholds;
 
     @InjectMocks
     private StockPredictionService stockPredictionService;
@@ -73,7 +75,7 @@ class StockPredictionServiceTest {
         assertThat(result.getEstimatedDaysUntilStockout()).isNull();
         assertThat(result.getUrgencyLevel()).isEqualTo(ReorderSuggestion.UrgencyLevel.CRITICAL);
         // suggestedQty = ceil(0 * 7) + 50 = 50
-        assertThat(result.getSuggestedReorderQuantity()).isEqualTo(50);
+        assertThat(result.getSuggestedReorderQuantity()).isEqualTo(20);
     }
 
     @Test
@@ -107,7 +109,7 @@ class StockPredictionServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getDailyAverageOutbound()).isEqualTo(2.0); // 60/30
         // suggestedQty = ceil(2.0 * 7) + 50 = 14 + 50 = 64
-        assertThat(result.getSuggestedReorderQuantity()).isEqualTo(64);
+        assertThat(result.getSuggestedReorderQuantity()).isZero();
     }
 
     @Test
@@ -234,6 +236,35 @@ class StockPredictionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getDailyAverageOutbound()).isEqualTo(10.0 / 30);
+    }
+
+    @Test void subtractsOutstandingPurchasesAndClampsNetQuantityAtZero() {
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSku(1L)).thenReturn(30);
+        when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any())).thenReturn(List.of());
+        when(purchaseAllocations.sumEffectiveOutstanding(eq(1L), isNull(), any())).thenReturn(12L, 100L);
+        assertThat(stockPredictionService.getReorderSuggestion(1L, 30).getSuggestedReorderQuantity()).isEqualTo(8);
+        var covered = stockPredictionService.getReorderSuggestion(1L, 30);
+        assertThat(covered.getSuggestedReorderQuantity()).isZero();
+        assertThat(covered.needsReorder()).isFalse();
+    }
+    @Test void warehouseUsesOnlyItsStockThresholdTransactionsAndOutstandingOrders() {
+        var local = buildTransaction(30, LocalDateTime.now().minusDays(1)); local.setWarehouseId(2L);
+        var elsewhere = buildTransaction(300, LocalDateTime.now().minusDays(1)); elsewhere.setWarehouseId(3L);
+        when(productSkuRepository.findById(1L)).thenReturn(Optional.of(testProduct));
+        when(inventoryBatchRepository.sumAvailableQuantityByProductSkuAndWarehouse(1L, 2L)).thenReturn(5);
+        when(warehouseThresholds.threshold(testProduct, 2L)).thenReturn(10);
+        when(purchaseAllocations.sumEffectiveOutstanding(eq(1L), eq(2L), any())).thenReturn(2L);
+        when(stockTransactionRepository.findMovementHistory(anyLong(), any(), any())).thenReturn(List.of(local, elsewhere));
+        var result = stockPredictionService.getReorderSuggestion(1L, 30, 2L);
+        assertThat(result.getDailyAverageOutbound()).isEqualTo(1);
+        assertThat(result.getTargetStock()).isEqualTo(17);
+        assertThat(result.getSuggestedReorderQuantity()).isEqualTo(10);
+        verify(inventoryBatchRepository, never()).sumAvailableQuantityByProductSku(any());
+    }
+    @Test void refusesInvalidPeriods() {
+        assertThatThrownBy(() -> stockPredictionService.getReorderSuggestion(1L, 0)).isInstanceOf(BusinessException.class);
+        verifyNoInteractions(productSkuRepository);
     }
 
     // ========== Helper ==========

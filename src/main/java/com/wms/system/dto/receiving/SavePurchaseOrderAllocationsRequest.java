@@ -10,7 +10,7 @@ import java.util.List;
 
 public record SavePurchaseOrderAllocationsRequest(
     @NotNull Long purchaseOrderVersion,
-    @NotEmpty List<@Valid Row> allocations
+    @NotNull List<@Valid Row> allocations
 ) {
     @Schema(name = "PurchaseOrderAllocationRowRequest")
     public record Row(

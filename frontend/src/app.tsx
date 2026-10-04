@@ -23,9 +23,12 @@ const ProductPage = lazy(() =>
 const CategoryPage = lazy(() =>
   import('./pages/categories/CategoryPage').then((module) => ({ default: module.CategoryPage })),
 );
+const ReplenishmentPage = lazy(() => import('./pages/inventory/ReplenishmentPage').then((module) => ({ default: module.ReplenishmentPage })));
 const InventoryPage = lazy(() =>
   import('./pages/inventory/InventoryPage').then((module) => ({ default: module.InventoryPage })),
 );
+const QuotationPage = lazy(() => import('./pages/commercial/QuotationPage').then(m => ({default:m.QuotationPage})));
+const InvoicePage = lazy(() => import('./pages/commercial/InvoicePage').then(m => ({default:m.InvoicePage})));
 const SalesOrderPage = lazy(() =>
   import('./pages/sales/SalesOrderPage').then((module) => ({ default: module.SalesOrderPage })),
 );
@@ -253,6 +256,8 @@ function AppRoutes(): JSX.Element {
               element={<ModuleRoute module="sales"><SalesOrderPage /></ModuleRoute>}
               path="sales"
             />
+            <Route path="quotations" element={<ModuleRoute module="quotations"><QuotationPage /></ModuleRoute>} />
+            <Route path="invoices" element={<ModuleRoute module="invoices"><InvoicePage /></ModuleRoute>} />
             <Route element={<ModuleRoute module="rma"><RmaPage /></ModuleRoute>} path="rmas" />
             <Route element={<ModuleRoute module="transfer"><TransferPage /></ModuleRoute>} path="transfers" />
             <Route element={<ModuleRoute module="analytics"><Navigate replace to="sales" /></ModuleRoute>} path="analytics" />
@@ -271,6 +276,7 @@ function AppRoutes(): JSX.Element {
               path="outbound"
             />
             <Route element={<ModuleRoute module="stocktake"><Navigate replace to="stocktake" /></ModuleRoute>} path="inventory-governance" />
+            <Route element={<ModuleRoute module="inventory"><ReplenishmentPage /></ModuleRoute>} path="replenishment" />
             <Route element={<ModuleRoute module="stocktake"><StocktakePage /></ModuleRoute>} path="inventory-governance/stocktake" />
             <Route element={<ModuleRoute module="inventoryQuality"><InventoryQualityPage /></ModuleRoute>} path="inventory-governance/quality" />
             <Route element={<ModuleRoute module="receivingInspection"><ReceivingInspectionPage /></ModuleRoute>} path="inventory-governance/receiving-inspections" />

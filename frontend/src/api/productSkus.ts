@@ -3,10 +3,12 @@ import { apiRequest } from './http';
 
 export type ReceivingInspectionRequirement = 'INHERIT' | 'REQUIRED' | 'EXEMPT';
 export type ProductSku = components['schemas']['ProductSkuResponse'] & {
+  baseUnit?: string;
   expiryManagementEnabled?: boolean;
   inspectionRequirement?: ReceivingInspectionRequirement;
 };
 export type ProductSkuPayload = components['schemas']['CreateProductSkuRequest'] & {
+  baseUnit?: string;
   expiryManagementEnabled?: boolean;
   inspectionRequirement?: ReceivingInspectionRequirement;
 };

@@ -22,6 +22,15 @@ class ProductSkuExpiryPolicyTest {
     );
 
     @Test
+    void shippingAdviceMayOmitDatesForExpiryManagedSkuButReceiptMayNot() {
+        assertThatCode(() -> policy.validateSuppliedDates(sku(true), null, null)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> policy.validateForInventoryReceipt(sku(true), null, null))
+            .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> policy.validateSuppliedDates(sku(true), BUSINESS_DATE.plusDays(1), null))
+            .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
     void unmanagedSkuAllowsBothDatesToBeAbsent() {
         ProductSku sku = sku(false);
 

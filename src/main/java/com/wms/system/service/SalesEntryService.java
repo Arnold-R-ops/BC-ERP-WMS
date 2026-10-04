@@ -97,12 +97,16 @@ public class SalesEntryService {
             Sheet sheet = excelTemplateService.validateAndGetSalesOrderSheet(workbook);
 
             List<SalesOrderItemData> items = new ArrayList<>();
+            OrderImportSupport.limit(sheet);
+            List<Map<String,Object>> errors = new ArrayList<>();
+            int skipped = 0;
             int lastRowNum = sheet.getLastRowNum();
 
             // 璺宠繃琛ㄥご琛?(row 0)锛屼粠 row 1 寮€濮嬭鍙?
             for (int rowIndex = 1; rowIndex <= lastRowNum; rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
                 if (row == null || isEmptyRow(row)) {
+                    skipped++;
                     continue;
                 }
 
@@ -111,16 +115,11 @@ public class SalesEntryService {
                     items.add(item);
                 } catch (Exception e) {
                     log.error("Failed to parse row {}: {}", rowIndex + 1, e.getMessage());
-                    throw new BusinessException(
-                        ErrorKeys.INVALID_EXCEL_DATA,
-                        Map.of(
-                            "rowIndex", rowIndex + 1,  // 1-indexed for user-facing
-                            "error", e.getMessage()
-                        )
-                    );
+                    errors.add(OrderImportSupport.error(rowIndex, e));
                 }
             }
 
+            OrderImportSupport.requireValid(errors, items.size(), skipped);
             log.info("Successfully imported {} items from Excel", items.size());
             return items;
 
@@ -140,7 +139,7 @@ public class SalesEntryService {
      */
     private SalesOrderItemData parseExcelRow(Row row, int rowIndex) {
         // 瑙ｆ瀽鍚勫垪鏁版嵁
-        Long productSkuId = readLongCell(row, 0, "productSkuId");
+        Long productSkuId = OrderImportSupport.usesCode(row) ? OrderImportSupport.resolve(row, productSkuRepository) : readLongCell(row, 0, "productSkuId");
         Integer quantity = readIntegerCell(row, 1, "quantity");
         BigDecimal unitPrice = readBigDecimalCell(row, 2, "unitPrice");
         Boolean rejectNearExpiry = readBooleanCell(row, 3, "rejectNearExpiry");

@@ -109,9 +109,11 @@ function ReceivingPlanCard({ canEdit, onEdit, plan }: ReceivingPlanCardProps): J
   );
 }
 
-export function MobileReceivingPage(): JSX.Element {
+export function MobileReceivingPage({ embeddedTaskId, onReceiptSaved }: {
+  embeddedTaskId?: number; onReceiptSaved?: () => Promise<void>;
+} = {}): JSX.Element {
   const [searchParams] = useSearchParams();
-  const queryTaskId = Number(searchParams.get('taskId')) || undefined;
+  const queryTaskId = embeddedTaskId ?? (Number(searchParams.get('taskId')) || undefined);
   const [view, setView] = useState<ReceivingView>(queryTaskId ? 'tasks' : 'plans');
   const [selectedTaskId, setSelectedTaskId] = useState<number | undefined>(queryTaskId);
   const [editingPlan, setEditingPlan] = useState<ReceivingPlan>();
@@ -127,7 +129,14 @@ export function MobileReceivingPage(): JSX.Element {
   }>();
   const idempotencyAttempt = useRef<IdempotencyAttempt>();
   const { session } = useAuth();
-  const { online } = useMobileOperation();
+  const operation = useMobileOperation();
+  const [browserOnline, setBrowserOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const update = (): void => setBrowserOnline(navigator.onLine);
+    window.addEventListener('online', update); window.addEventListener('offline', update);
+    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
+  }, []);
+  const online = operation.online && browserOnline;
   const { message } = AntdApp.useApp();
   const { t } = useTranslation();
   const canEditPlans = hasPermission(session?.currentRole, session?.permissionCodes, 'receiving:plan:edit');
@@ -143,15 +152,16 @@ export function MobileReceivingPage(): JSX.Element {
   const tasksQuery = useQuery({
     queryKey: RECEIVING_TASKS_QUERY_KEY,
     queryFn: () => listReceivingTasks(),
-    enabled: view === 'tasks',
+    enabled: view === 'tasks' && embeddedTaskId === undefined,
   });
-  const tasks = (tasksQuery.data ?? []).filter((task) => task.status === 'PENDING' || task.status === 'PARTIALLY_RECEIVED');
   const taskQuery = useQuery({
     queryKey: ['receiving-task', selectedTaskId],
     queryFn: () => getReceivingTask(selectedTaskId as number),
     enabled: view === 'tasks' && selectedTaskId !== undefined,
   });
   const selectedTask = taskQuery.data;
+  const tasks = (embeddedTaskId !== undefined ? selectedTask ? [selectedTask] : [] : tasksQuery.data ?? [])
+    .filter((task) => task.status === 'PENDING' || task.status === 'PARTIALLY_RECEIVED');
   const locationsQuery = useQuery({
     queryKey: ['receiving-task-locations', selectedTaskId],
     queryFn: () => listReceivingTaskLocations(selectedTaskId as number),
@@ -160,11 +170,11 @@ export function MobileReceivingPage(): JSX.Element {
   const taskFingerprint = selectedTask?.items.map((item) => `${item.id}:${item.remainingQuantity}`).join('|');
 
   useEffect(() => {
-    if (selectedTaskId !== undefined && !tasks.some((task) => task.id === selectedTaskId)
+    if (embeddedTaskId === undefined && selectedTaskId !== undefined && !tasks.some((task) => task.id === selectedTaskId)
         && !tasksQuery.isLoading && !taskQuery.isLoading) {
       setSelectedTaskId(undefined);
     }
-  }, [selectedTaskId, taskQuery.isLoading, tasks, tasksQuery.isLoading]);
+  }, [embeddedTaskId, selectedTaskId, taskQuery.isLoading, tasks, tasksQuery.isLoading]);
 
   useEffect(() => {
     if (!selectedTask) {
@@ -280,7 +290,8 @@ export function MobileReceivingPage(): JSX.Element {
       await receiptMutation.mutateAsync({ id: selectedTask.id, key: idempotencyAttempt.current.key, payload });
       idempotencyAttempt.current = undefined;
       message.success(t('mobile.receiving.submitted', { count: payload.lines.length }));
-      await Promise.all([taskQuery.refetch(), tasksQuery.refetch()]);
+      await Promise.all([taskQuery.refetch(), ...(embeddedTaskId === undefined ? [tasksQuery.refetch()] : [])]);
+      await onReceiptSaved?.();
     } catch (error) { message.error(getErrorMessage(error, t)); }
   };
 
@@ -299,7 +310,7 @@ export function MobileReceivingPage(): JSX.Element {
       await plansQuery.refetch();
       return;
     }
-    const requests: Array<Promise<unknown>> = [tasksQuery.refetch()];
+    const requests: Array<Promise<unknown>> = embeddedTaskId === undefined ? [tasksQuery.refetch()] : [];
     if (selectedTaskId !== undefined) requests.push(taskQuery.refetch(), locationsQuery.refetch());
     await Promise.all(requests);
   };
@@ -315,14 +326,14 @@ export function MobileReceivingPage(): JSX.Element {
           onClick={() => void refresh()}
         />
       </header>
-      <div aria-label={t('mobile.receiving.viewSwitcher')} className="mobile-receiving-switch" role="group">
+      {embeddedTaskId === undefined && <div aria-label={t('mobile.receiving.viewSwitcher')} className="mobile-receiving-switch" role="group">
         <Button aria-pressed={view === 'plans'} onClick={() => setView('plans')} type={view === 'plans' ? 'primary' : 'default'}>
           {t('mobile.receiving.planTab')}
         </Button>
         <Button aria-pressed={view === 'tasks'} onClick={() => setView('tasks')} type={view === 'tasks' ? 'primary' : 'default'}>
           {t('mobile.receiving.taskTab')}
         </Button>
-      </div>
+      </div>}
 
       {view === 'plans' ? (
         plansQuery.isLoading ? <Skeleton active /> : plans.length === 0 ? (
@@ -332,7 +343,7 @@ export function MobileReceivingPage(): JSX.Element {
             {plans.map((plan) => <ReceivingPlanCard canEdit={canEditPlans} key={plan.id} onEdit={setEditingPlan} plan={plan} />)}
           </div>
         )
-      ) : tasksQuery.isLoading ? <Skeleton active /> : tasks.length === 0 ? (
+      ) : (embeddedTaskId !== undefined ? taskQuery.isLoading : tasksQuery.isLoading) ? <Skeleton active /> : tasks.length === 0 ? (
         <Empty description={t('mobile.receiving.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
         <>
@@ -341,7 +352,7 @@ export function MobileReceivingPage(): JSX.Element {
             <section className="mobile-operation-panel">
               <label className="mobile-field-label">
                 <span>{t('mobile.receiving.task')}</span>
-                <Select allowClear onChange={setSelectedTaskId} optionFilterProp="label" options={taskOptions} placeholder={t('mobile.receiving.selectTask')} showSearch value={selectedTaskId} />
+                <Select disabled={embeddedTaskId !== undefined} allowClear={embeddedTaskId === undefined} onChange={setSelectedTaskId} optionFilterProp="label" options={taskOptions} placeholder={t('mobile.receiving.selectTask')} showSearch value={selectedTaskId} />
               </label>
               {!selectedTask ? <div className="mobile-selection-hint">{t('mobile.receiving.selectTaskHint')}</div> : (
                 <>

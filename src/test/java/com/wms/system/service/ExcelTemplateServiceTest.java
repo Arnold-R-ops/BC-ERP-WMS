@@ -39,7 +39,7 @@ class ExcelTemplateServiceTest {
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             Sheet dataSheet = workbook.getSheet(ExcelTemplateService.PURCHASE_SHEET);
             assertThat(dataSheet).isNotNull();
-            assertThat(dataSheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("productSkuId");
+            assertThat(dataSheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("skuCode");
             assertThat(dataSheet.getRow(0).getCell(1).getStringCellValue()).isEqualTo("orderedQuantity");
             Sheet reference = workbook.getSheet(ExcelTemplateService.SKU_REFERENCE_SHEET);
             assertThat(reference.getRow(1).getCell(1).getStringCellValue()).isEqualTo("SKU00000001");
@@ -83,7 +83,7 @@ class ExcelTemplateServiceTest {
 
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             assertThat(workbook.getSheet(ExcelTemplateService.SALES_SHEET)
-                    .getRow(0).getCell(0).getStringCellValue()).isEqualTo("productSkuId");
+                    .getRow(0).getCell(0).getStringCellValue()).isEqualTo("skuCode");
         }
     }
 

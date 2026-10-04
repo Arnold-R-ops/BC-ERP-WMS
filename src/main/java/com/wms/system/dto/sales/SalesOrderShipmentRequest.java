@@ -9,9 +9,10 @@ import java.time.LocalDateTime;
 @Data
 public class SalesOrderShipmentRequest {
 
-    @NotBlank(message = "Tracking number is required")
     @Size(max = 100, message = "Tracking number must not exceed 100 characters")
     private String trackingNo;
+
+    private com.wms.system.entity.enums.DeliveryMethod deliveryMethod = com.wms.system.entity.enums.DeliveryMethod.COURIER;
 
     @Size(max = 50, message = "Carrier must not exceed 50 characters")
     private String carrier;

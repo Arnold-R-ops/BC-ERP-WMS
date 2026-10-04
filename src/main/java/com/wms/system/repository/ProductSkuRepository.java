@@ -24,6 +24,10 @@ import java.util.Optional;
  */
 @Repository
 public interface ProductSkuRepository extends JpaRepository<ProductSku, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from ProductSku p where p.id = :id")
+    Optional<ProductSku> findByIdForThresholdUpdate(@Param("id") Long id);
+
 
     /**
      * 根据条形码查询商品（用于扫码入库/出库）
@@ -38,6 +42,7 @@ public interface ProductSkuRepository extends JpaRepository<ProductSku, Long> {
      * @return Optional<ProductSku> 商品对象（可能为空）
      */
     Optional<ProductSku> findByBarcode(String barcode);
+    Optional<ProductSku> findBySkuCode(String skuCode);
 
     /**
      * 归一化条码匹配（P1 批次2，SKU 解析漏斗第三层）

@@ -50,6 +50,7 @@ export function ProductSkuFormModal({
         perPackQty: productSku?.perPackQty ?? 1,
         conversionRate: productSku?.conversionRate ?? 1,
         packUnit: productSku?.packUnit ?? t('common.unit'),
+        baseUnit: productSku?.baseUnit ?? '件',
         nearExpiryDays: productSku?.nearExpiryDays ?? 90,
         expiryManagementEnabled: productSku?.expiryManagementEnabled ?? false,
         inspectionRequirement: productSku?.inspectionRequirement ?? 'INHERIT',
@@ -116,6 +117,7 @@ export function ProductSkuFormModal({
         <ProFormDigit fieldProps={{ min: 1, precision: 0 }} label={t('productSkus.fields.perPackQty')} name="perPackQty" width="xs" />
         <ProFormDigit fieldProps={{ min: 1, precision: 0 }} label={t('productSkus.fields.conversionRate')} name="conversionRate" width="xs" />
         <ProFormText fieldProps={{ maxLength: 20 }} label={t('productSkus.fields.packUnit')} name="packUnit" width="xs" />
+        <ProFormText fieldProps={{ maxLength: 20 }} label={t('upgrade.baseUnit')} name="baseUnit" rules={[{ required: true, whitespace: true }]} width="xs" />
       </ProForm.Group>
 
       <Divider orientation="left" plain>{t('productSkus.form.inventoryGroup')}</Divider>

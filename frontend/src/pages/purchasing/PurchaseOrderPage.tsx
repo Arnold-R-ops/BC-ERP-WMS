@@ -2,6 +2,7 @@ import { AuditOutlined, DownloadOutlined, EyeOutlined, PlusOutlined, SettingOutl
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Modal, Tabs } from 'antd';
+import { OrderImportErrors, orderImportErrors } from '../../components/OrderImportErrors';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { hasPermission } from '../../access';
@@ -78,7 +79,7 @@ export function PurchaseOrderPage(): JSX.Element {
   const [pendingWorkflow, setPendingWorkflow] = useState<PendingWorkflow>();
   const { session } = useAuth();
   const { i18n, t } = useTranslation();
-  const { message } = AntdApp.useApp();
+  const { message, modal } = AntdApp.useApp();
   const queryClient = useQueryClient();
 
   const canCreate = hasPermission(session?.currentRole, session?.permissionCodes, 'purchase:create');
@@ -225,7 +226,10 @@ export function PurchaseOrderPage(): JSX.Element {
       message.success(t('purchasing.messages.importedDraft'));
       setImportOpen(false);
       await refresh();
-    } catch (error) { message.error(getErrorMessage(error, t)); }
+    } catch (error) {
+      if (orderImportErrors(error).length) modal.error({ title: '订单导入检查', width: 720, content: <OrderImportErrors error={error} /> });
+      else message.error(getErrorMessage(error, t));
+    }
   };
 
   const submitShipment = async (payload: CreatePurchaseAsnRequest): Promise<void> => {

@@ -176,8 +176,8 @@ export function PurchaseConfirmModal({
                       <InputNumber max={allocation?.availableToShipQuantity ?? allocation?.plannedQuantity} min={1} precision={0} />
                     </Form.Item>
                     <Form.Item label={t('purchasing.fields.externalBatchCode')} name={[field.name, 'externalBatchCode']}><Input maxLength={100} /></Form.Item>
-                    <Form.Item label={t('purchasing.fields.productionDate')} name={[field.name, 'productionDate']} rules={[{ required: expiryManaged, message: t('purchasing.validation.productionRequired') }]}><Input type="date" /></Form.Item>
-                    <Form.Item label={t('purchasing.fields.expiryDate')} name={[field.name, 'expiryDate']} rules={[{ required: expiryManaged, message: t('purchasing.validation.expiryRequired') }]}><Input type="date" /></Form.Item>
+                    <Form.Item label={t('purchasing.fields.productionDate')} name={[field.name, 'productionDate']} rules={[{ required: false, message: t('purchasing.validation.productionRequired') }]}><Input type="date" /></Form.Item>
+                    <Form.Item label={t('purchasing.fields.expiryDate')} name={[field.name, 'expiryDate']} rules={[{ required: false, message: t('purchasing.validation.expiryRequired') }]}><Input type="date" /></Form.Item>
                     <Form.Item label={t('common.remark')} name={[field.name, 'remark']}><Input maxLength={500} /></Form.Item>
                     {expiryManaged && <span className="shipment-expiry-note">{t('purchasing.confirm.expiryManaged')}</span>}
                   </div>

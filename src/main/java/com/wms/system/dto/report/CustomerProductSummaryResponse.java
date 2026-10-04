@@ -14,6 +14,7 @@ public class CustomerProductSummaryResponse {
     private String skuName;
     private String productName;
     private String barcode;
+    private String baseUnit;
     private Long totalOrderCount;
     private Long totalQuantity;
     private BigDecimal totalAmount;

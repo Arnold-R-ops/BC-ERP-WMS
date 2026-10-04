@@ -65,6 +65,7 @@ public class ReportSummaryRefreshService {
                 pending_approval_count,
                 approved_awaiting_shipment_count,
                 shipped_count,
+                closed_count,
                 rejected_count,
                 cancelled_count,
                 voided_count,
@@ -76,19 +77,20 @@ public class ReportSummaryRefreshService {
                 company_id,
                 created_at::date AS summary_date,
                 COUNT(*) FILTER (
-                    WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    WHERE commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                 ) AS total_order_count,
                 COALESCE(
                     SUM(total_amount) FILTER (
-                        WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                        WHERE commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                     ),
                     0.00
                 ) AS total_amount,
                 COUNT(*) FILTER (WHERE commercial_status = 'DRAFT') AS draft_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'PENDING_APPROVAL') AS pending_approval_count,
-                COUNT(*) FILTER (WHERE commercial_status = 'APPROVED')
+                COUNT(*) FILTER (WHERE commercial_status IN ('APPROVED', 'COMPLETED') AND warehouse_status <> 'SHIPPED')
                     AS approved_awaiting_shipment_count,
-                COUNT(*) FILTER (WHERE warehouse_status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE commercial_status IN ('APPROVED', 'COMPLETED') AND warehouse_status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'CLOSED') AS closed_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'REJECTED') AS rejected_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'CANCELLED') AS cancelled_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'VOIDED') AS voided_count,
@@ -108,6 +110,7 @@ public class ReportSummaryRefreshService {
                 pending_approval_count = EXCLUDED.pending_approval_count,
                 approved_awaiting_shipment_count = EXCLUDED.approved_awaiting_shipment_count,
                 shipped_count = EXCLUDED.shipped_count,
+                closed_count = EXCLUDED.closed_count,
                 rejected_count = EXCLUDED.rejected_count,
                 cancelled_count = EXCLUDED.cancelled_count,
                 voided_count = EXCLUDED.voided_count,
@@ -143,7 +146,7 @@ public class ReportSummaryRefreshService {
                     ) AS previous_created_at
                 FROM sales_orders
                 WHERE company_id = ?
-                  AND commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                  AND commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                   AND order_purpose = 'NORMAL'
             )
             SELECT
@@ -187,7 +190,7 @@ public class ReportSummaryRefreshService {
                   FROM sales_orders so
                   WHERE so.company_id = cfs.company_id
                     AND so.customer_id = cfs.customer_id
-                    AND so.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    AND so.commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                     AND so.order_purpose = 'NORMAL'
               )
             """;
@@ -225,7 +228,7 @@ public class ReportSummaryRefreshService {
                   ON sales_order_item.sales_order_id = sales_order.id
                  AND sales_order_item.company_id = sales_order.company_id
                 WHERE sales_order.company_id = ?
-                  AND sales_order.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                  AND sales_order.commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                   AND sales_order.order_purpose = 'NORMAL'
                 GROUP BY
                     sales_order.company_id,
@@ -292,7 +295,7 @@ public class ReportSummaryRefreshService {
                   WHERE sales_order.company_id = customer_product.company_id
                     AND sales_order.customer_id = customer_product.customer_id
                     AND sales_order_item.product_sku_id = customer_product.product_sku_id
-                    AND sales_order.commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    AND sales_order.commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                     AND sales_order.order_purpose = 'NORMAL'
               )
             """;
@@ -311,6 +314,7 @@ public class ReportSummaryRefreshService {
                 pending_approval_count,
                 approved_awaiting_shipment_count,
                 shipped_count,
+                closed_count,
                 rejected_count,
                 cancelled_count,
                 voided_count,
@@ -322,19 +326,20 @@ public class ReportSummaryRefreshService {
                 company_id,
                 created_at::date AS summary_date,
                 COUNT(*) FILTER (
-                    WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                    WHERE commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                 ) AS total_order_count,
                 COALESCE(
                     SUM(total_amount) FILTER (
-                        WHERE commercial_status NOT IN ('REJECTED', 'CANCELLED', 'VOIDED')
+                        WHERE commercial_status IN ('APPROVED', 'COMPLETED', 'CLOSED')
                     ),
                     0.00
                 ) AS total_amount,
                 COUNT(*) FILTER (WHERE commercial_status = 'DRAFT') AS draft_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'PENDING_APPROVAL') AS pending_approval_count,
-                COUNT(*) FILTER (WHERE commercial_status = 'APPROVED')
+                COUNT(*) FILTER (WHERE commercial_status IN ('APPROVED', 'COMPLETED') AND warehouse_status <> 'SHIPPED')
                     AS approved_awaiting_shipment_count,
-                COUNT(*) FILTER (WHERE warehouse_status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE commercial_status IN ('APPROVED', 'COMPLETED') AND warehouse_status = 'SHIPPED') AS shipped_count,
+                COUNT(*) FILTER (WHERE commercial_status = 'CLOSED') AS closed_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'REJECTED') AS rejected_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'CANCELLED') AS cancelled_count,
                 COUNT(*) FILTER (WHERE commercial_status = 'VOIDED') AS voided_count,
@@ -353,6 +358,7 @@ public class ReportSummaryRefreshService {
                 pending_approval_count = EXCLUDED.pending_approval_count,
                 approved_awaiting_shipment_count = EXCLUDED.approved_awaiting_shipment_count,
                 shipped_count = EXCLUDED.shipped_count,
+                closed_count = EXCLUDED.closed_count,
                 rejected_count = EXCLUDED.rejected_count,
                 cancelled_count = EXCLUDED.cancelled_count,
                 voided_count = EXCLUDED.voided_count,

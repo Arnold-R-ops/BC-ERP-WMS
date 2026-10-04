@@ -7,7 +7,7 @@ import {
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
-import { Alert, Button, Divider, Space } from 'antd';
+import { Alert, Button, Divider, Form, Space } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listInventoryBatchesByProductSku } from '../../api/inventory';
@@ -57,6 +57,7 @@ export function SalesOrderFormDrawer({
   onSubmit,
 }: SalesOrderFormDrawerProps): JSX.Element {
   const { t } = useTranslation();
+  const [form] = Form.useForm<SalesOrderPayload>();
   const customersQuery = useQuery({
     queryKey: ['customers', 'active', 'CLIENT'],
     queryFn: () => listCustomers(true, 'CLIENT'),
@@ -79,6 +80,7 @@ export function SalesOrderFormDrawer({
 
   return (
     <DrawerForm<SalesOrderPayload>
+      form={form}
       drawerProps={{ destroyOnHidden: true, maskClosable: false }}
       initialValues={{
         channel: 'MANUAL',
@@ -129,7 +131,11 @@ export function SalesOrderFormDrawer({
       ) : null}
 
       <ProFormSelect
-        fieldProps={{ loading: customersQuery.isLoading, showSearch: true, optionFilterProp: 'label' }}
+        fieldProps={{ loading: customersQuery.isLoading, showSearch: true, optionFilterProp: 'label', onChange: (id) => {
+          const customer = customersQuery.data?.find((item) => item.id === id);
+          const visible = (value?: string) => value?.includes('*') ? undefined : value;
+          form.setFieldsValue({ shipAddress1: visible(customer?.shippingSameAsBilling === false ? customer.shippingAddress : customer?.address), consigneeName: visible(customer?.contact ?? customer?.name), consigneePhone: visible(customer?.phone) });
+        } }}
         label={t('sales.fields.customer')}
         name="customerId"
         options={customerOptions}

@@ -113,6 +113,8 @@ public class CustomerService {
             .phone(request.getPhone())
             .email(request.getEmail())
             .address(request.getAddress())
+            .shippingSameAsBilling(!Boolean.FALSE.equals(request.getShippingSameAsBilling()))
+            .shippingAddress(Boolean.FALSE.equals(request.getShippingSameAsBilling()) ? request.getShippingAddress() : null)
             .vatRate(request.getVatRate())
             .secondaryTaxRate(request.getSecondaryTaxRate())
             .vatNumber(request.getVatNumber())
@@ -180,6 +182,12 @@ public class CustomerService {
             customer.setAddress(request.getAddress());
         } else {
             log.debug("Address contains mask, skipping update for customer: id={}", id);
+        }
+
+        if (request.getShippingSameAsBilling() != null) {
+            customer.setShippingSameAsBilling(request.getShippingSameAsBilling());
+            if (request.getShippingSameAsBilling()) customer.setShippingAddress(null);
+            else if (!MaskingUtils.isMasked(request.getShippingAddress())) customer.setShippingAddress(request.getShippingAddress());
         }
 
         if (request.getCreditLimit() != null) {
@@ -430,6 +438,7 @@ public class CustomerService {
 
     public void validateManualOrderCustomer(Long customerId) {
         Customer customer = getCustomerEntityById(customerId);
+        requireCustomerAccess(customer);
         if (customer.getCustomerType() != CustomerType.CLIENT) {
             throw new BusinessException(
                 ErrorKeys.MANUAL_ORDER_REQUIRES_CLIENT,
@@ -458,6 +467,23 @@ public class CustomerService {
             && !java.util.Objects.equals(customer.getOwnerId(), getCurrentUserId())) {
             throw new BusinessException(ErrorKeys.CUSTOMER_NOT_FOUND, Map.of("customerId", customer.getId()));
         }
+    }
+
+    /** Internal document operations still honour the current customer's ownership boundary. */
+    public Customer authorizedDocumentCustomer(Long id) {
+        Customer customer = getCustomerEntityById(id);
+        requireCustomerAccess(customer);
+        return customer;
+    }
+
+    public boolean maskDocumentCustomer() {
+        return isSalesRole() && !isManagerOrAdmin();
+    }
+
+    public Long documentOwnerFilter() {
+        if (!maskDocumentCustomer()) return null;
+        Long id = getCurrentUserId();
+        return id == null ? -1L : id;
     }
 
     private String nextCustomerCode() {
@@ -546,6 +572,8 @@ public class CustomerService {
                 .email(MaskingUtils.maskEmail(customer.getEmail()))
                 .normalizedEmail(MaskingUtils.maskEmail(customer.getNormalizedEmail()))
                 .address(MaskingUtils.maskAddress(customer.getAddress()))
+                .shippingSameAsBilling(customer.getShippingSameAsBilling())
+                .shippingAddress(MaskingUtils.maskAddress(Boolean.FALSE.equals(customer.getShippingSameAsBilling()) ? customer.getShippingAddress() : customer.getAddress()))
                 .vatRate(customer.getVatRate())
                 .secondaryTaxRate(customer.getSecondaryTaxRate())
                 .vatNumber(customer.getVatNumber())
@@ -568,6 +596,8 @@ public class CustomerService {
                 .email(customer.getEmail())
                 .normalizedEmail(customer.getNormalizedEmail())
                 .address(customer.getAddress())
+                .shippingSameAsBilling(customer.getShippingSameAsBilling())
+                .shippingAddress(Boolean.FALSE.equals(customer.getShippingSameAsBilling()) ? customer.getShippingAddress() : customer.getAddress())
                 .vatRate(customer.getVatRate())
                 .secondaryTaxRate(customer.getSecondaryTaxRate())
                 .vatNumber(customer.getVatNumber())

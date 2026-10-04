@@ -138,6 +138,7 @@ public class ReportQueryService {
                 sumStatus(dailyRows, SalesDailySummaryResponse::getApprovedAwaitingShipmentCount)
             )
             .shippedCount(sumStatus(dailyRows, SalesDailySummaryResponse::getShippedCount))
+            .closedCount(sumStatus(dailyRows, SalesDailySummaryResponse::getClosedCount))
             .rejectedCount(sumStatus(dailyRows, SalesDailySummaryResponse::getRejectedCount))
             .cancelledCount(sumStatus(dailyRows, SalesDailySummaryResponse::getCancelledCount))
             .voidedCount(sumStatus(dailyRows, SalesDailySummaryResponse::getVoidedCount))
@@ -238,6 +239,7 @@ public class ReportQueryService {
                     ? null
                     : sku.getProduct().getProductName())
                 .barcode(sku == null ? null : sku.getBarcode())
+                .baseUnit(sku == null ? null : sku.getDisplayBaseUnit())
                 .totalOrderCount(fact.getTotalOrderCount())
                 .totalQuantity(fact.getTotalQuantity())
                 .totalAmount(fact.getTotalAmount())
@@ -322,6 +324,7 @@ public class ReportQueryService {
             .pendingApprovalCount(summary.getPendingApprovalCount())
             .approvedAwaitingShipmentCount(summary.getApprovedAwaitingShipmentCount())
             .shippedCount(summary.getShippedCount())
+            .closedCount(summary.getClosedCount())
             .rejectedCount(summary.getRejectedCount())
             .cancelledCount(summary.getCancelledCount())
             .voidedCount(summary.getVoidedCount())

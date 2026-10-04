@@ -183,6 +183,14 @@ public class SalesSubmissionService {
             customerService.validateManualOrderCustomer(request.getCustomerId());
         }
 
+        // Resolve defaults from authorised source data, never persist a masked display value.
+        if (!forcePendingApproval) {
+            var addressCustomer = customerService.authorizedDocumentCustomer(request.getCustomerId());
+            if (request.getShipAddress1() == null) request.setShipAddress1(Boolean.FALSE.equals(addressCustomer.getShippingSameAsBilling()) ? addressCustomer.getShippingAddress() : addressCustomer.getAddress());
+            if (request.getConsigneeName() == null) request.setConsigneeName(addressCustomer.getContact());
+            if (request.getConsigneePhone() == null) request.setConsigneePhone(addressCustomer.getPhone());
+        }
+
         // 2. Generate order number
         String orderNo = generateOrderNumber();
         log.info("📋 Generated order number: {}", orderNo);
@@ -1124,6 +1132,7 @@ public class SalesSubmissionService {
         return SalesOrderResponse.builder()
             .id(order.getId())
             .orderNo(order.getOrderNo())
+            .orderPurpose(order.getOrderPurpose().name())
             .customerId(order.getCustomerId())
             .customerName(customerName)
             .totalAmount(order.getTotalAmount())

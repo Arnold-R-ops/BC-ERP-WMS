@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
-import { ModalForm, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
+import { ModalForm, ProFormDependency, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App as AntdApp, Button, Popconfirm, Space, Table, Tag, Timeline, Tooltip, Typography, type TableColumnsType } from 'antd';
 import { useState } from 'react';
@@ -79,6 +79,7 @@ export function SalesShipmentSection({ canEdit, canUpdateLogistics, detailedLogi
   };
 
   const columns: TableColumnsType<SalesOrderShipment> = [
+    { title: t('upgrade.deliveryMethod'), dataIndex: 'deliveryMethod', width: 120, render: (value) => t('upgrade.delivery.' + String(value ?? 'COURIER')) },
     { title: t('sales.shipments.fields.trackingNo'), dataIndex: 'trackingNo', width: 190 },
     { title: t('sales.shipments.fields.carrier'), dataIndex: 'carrier', width: 140 },
     { title: t('sales.shipments.fields.status'), dataIndex: 'status', width: 110, render: (value) => <Tag color={value === 'VOIDED' ? 'default' : 'success'}>{t(`sales.shipments.statuses.${String(value ?? 'ACTIVE')}`)}</Tag> },
@@ -142,7 +143,7 @@ export function SalesShipmentSection({ canEdit, canUpdateLogistics, detailedLogi
 
       <ModalForm<SalesOrderShipmentPayload>
         key={editing?.id ?? 'new-shipment'}
-        initialValues={{ trackingNo: editing?.trackingNo ?? '', carrier: editing?.carrier ?? '', trackingUrl: editing?.trackingUrl ?? '', shippedAt: editing?.shippedAt ?? '', remark: editing?.remark ?? '' }}
+        initialValues={{ deliveryMethod: editing?.deliveryMethod ?? 'COURIER', trackingNo: editing?.trackingNo ?? '', carrier: editing?.carrier ?? '', trackingUrl: editing?.trackingUrl ?? '', shippedAt: editing?.shippedAt ?? '', remark: editing?.remark ?? '' }}
         modalProps={{ destroyOnHidden: true, maskClosable: false }}
         onFinish={save}
         onOpenChange={(nextOpen) => { if (!nextOpen) { setFormOpen(false); setEditing(undefined); } }}
@@ -151,8 +152,11 @@ export function SalesShipmentSection({ canEdit, canUpdateLogistics, detailedLogi
         title={editing ? t('sales.shipments.form.editTitle') : t('sales.shipments.form.createTitle')}
         width={620}
       >
-        <ProFormText fieldProps={{ maxLength: 100 }} label={t('sales.shipments.fields.trackingNo')} name="trackingNo" rules={[{ required: true, message: t('sales.shipments.validation.trackingRequired') }]} />
-        <ProFormText fieldProps={{ maxLength: 100 }} label={t('sales.shipments.fields.carrier')} name="carrier" />
+        <ProFormSelect label={t('upgrade.deliveryMethod')} name="deliveryMethod" options={['COURIER', 'FREIGHT', 'SELF_DELIVERY', 'PICKUP'].map(value => ({ value, label: t('upgrade.delivery.' + value) }))} rules={[{ required: true }]} />
+        <ProFormDependency name={['deliveryMethod']}>
+          {({ deliveryMethod }) => <ProFormText fieldProps={{ maxLength: 100 }} label={t('sales.shipments.fields.trackingNo')} name="trackingNo" rules={[{ required: deliveryMethod === 'COURIER', whitespace: true, message: t('sales.shipments.validation.trackingRequired') }]} />}
+        </ProFormDependency>
+        <ProFormText fieldProps={{ maxLength: 50 }} label={t('sales.shipments.fields.carrier')} name="carrier" />
         <ProFormText fieldProps={{ maxLength: 500 }} label={t('sales.shipments.fields.trackingUrl')} name="trackingUrl" />
         <ProFormText fieldProps={{ type: 'datetime-local' }} label={t('sales.shipments.fields.shippedAt')} name="shippedAt" />
         <ProFormTextArea fieldProps={{ maxLength: 500, showCount: true }} label={t('common.remark')} name="remark" />

@@ -13,6 +13,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PurchaseOrderAllocationRepository extends JpaRepository<PurchaseOrderAllocation, Long> {
+    @Query("""
+        select coalesce(sum(a.plannedQuantity - a.receivedQuantity - a.closedQuantity), 0)
+        from PurchaseOrderAllocation a
+        where a.purchaseOrderItem.productSku.id = :productSkuId
+          and (:warehouseId is null or a.warehouse.id = :warehouseId)
+          and a.status = com.wms.system.entity.enums.PurchaseOrderAllocationStatus.ACTIVE
+          and a.purchaseOrderItem.purchaseOrder.status in :statuses
+        """)
+    Long sumEffectiveOutstanding(@Param("productSkuId") Long productSkuId,
+        @Param("warehouseId") Long warehouseId,
+        @Param("statuses") Collection<com.wms.system.entity.enums.PurchaseOrderStatus> statuses);
+
 
     Optional<PurchaseOrderAllocation> findByPurchaseOrderItemIdAndWarehouseId(
         Long purchaseOrderItemId,

@@ -53,6 +53,22 @@ class SalesOrderShipmentServiceTest {
     private SalesOrderShipmentService shipmentService;
 
     @Test
+    void courierNeedsRealTrackingWhileOtherDeliveryMethodsDoNot() {
+        SalesOrder order = SalesOrder.builder().id(10L).commercialStatus(CommercialStatus.APPROVED).build();
+        when(salesOrderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(shipmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        for (var method : List.of(com.wms.system.entity.enums.DeliveryMethod.FREIGHT,
+            com.wms.system.entity.enums.DeliveryMethod.SELF_DELIVERY, com.wms.system.entity.enums.DeliveryMethod.PICKUP)) {
+            var payload = request(null, null); payload.setDeliveryMethod(method);
+            var response = shipmentService.create(10L, payload, 2L, "operator");
+            assertThat(response.getTrackingNo()).isNull();
+            assertThat(response.getDeliveryMethod()).isEqualTo(method);
+        }
+        assertThatThrownBy(() -> shipmentService.create(10L, request(" ", null), 2L, "operator"))
+            .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
     void create_AllowsMultipleInternalShipmentsForOneOrder() {
         SalesOrder order = SalesOrder.builder()
             .id(10L)

@@ -55,6 +55,7 @@ public class ProductSkuService {
             .perPackQty(request.getPerPackQty() != null ? request.getPerPackQty() : 1)
             .conversionRate(request.getConversionRate() != null ? request.getConversionRate() : 1)
             .packUnit(request.getPackUnit() != null ? request.getPackUnit() : "Box")
+            .baseUnit(request.getBaseUnit() == null ? "件" : request.getBaseUnit().trim())
             .nearExpiryDays(request.getNearExpiryDays() != null ? request.getNearExpiryDays() : 90)
             .expiryManagementEnabled(Boolean.TRUE.equals(request.getExpiryManagementEnabled()))
             .inspectionRequirement(request.getInspectionRequirement() == null
@@ -128,6 +129,7 @@ public class ProductSkuService {
         if (request.getPerPackQty() != null)    product.setPerPackQty(request.getPerPackQty());
         if (request.getConversionRate() != null) product.setConversionRate(request.getConversionRate());
         if (request.getPackUnit() != null)      product.setPackUnit(request.getPackUnit());
+        if (request.getBaseUnit() != null)      product.setBaseUnit(request.getBaseUnit().trim());
         if (request.getNearExpiryDays() != null) product.setNearExpiryDays(request.getNearExpiryDays());
         if (request.getExpiryManagementEnabled() != null) {
             product.setExpiryManagementEnabled(request.getExpiryManagementEnabled());
@@ -194,6 +196,7 @@ public class ProductSkuService {
             .perPackQty(product.getPerPackQty())
             .conversionRate(product.getConversionRate())
             .packUnit(product.getPackUnit())
+            .baseUnit(product.getDisplayBaseUnit())
             .nearExpiryDays(product.getNearExpiryDays())
             .expiryManagementEnabled(product.getExpiryManagementEnabled())
             .inspectionRequirement(product.getInspectionRequirement())

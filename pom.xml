@@ -172,6 +172,14 @@
             <version>5.2.3</version>
         </dependency>
 
+        <!-- Business quotation PDF output; use Spring's commons-logging bridge. -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
+            <exclusions><exclusion><groupId>commons-logging</groupId><artifactId>commons-logging</artifactId></exclusion></exclusions>
+        </dependency>
+
         <!-- ========== 测试依赖 ========== -->
         <!-- Spring Boot Test Starter (包含 JUnit 5, Mockito 等) -->
         <dependency>

@@ -56,6 +56,10 @@ public class SalesDailySummary extends BaseEntity {
     @Builder.Default
     private Long shippedCount = 0L;
 
+    @Column(name = "closed_count", nullable = false)
+    @Builder.Default
+    private Long closedCount = 0L;
+
     @Column(name = "rejected_count", nullable = false)
     @Builder.Default
     private Long rejectedCount = 0L;

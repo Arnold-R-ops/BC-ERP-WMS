@@ -134,6 +134,13 @@ public class Customer extends BaseEntity {
     @Column(length = 255)
     private String address;
 
+    @Column(name = "shipping_address", length = 255)
+    private String shippingAddress;
+
+    @Column(name = "shipping_same_as_billing", nullable = false)
+    @Builder.Default
+    private Boolean shippingSameAsBilling = true;
+
     @Column(name = "vat_rate", precision = 5, scale = 2)
     private BigDecimal vatRate;
 

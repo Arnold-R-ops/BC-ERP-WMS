@@ -319,6 +319,10 @@ public class ProductSku extends BaseEntity {
     @Builder.Default
     private String packUnit = "Box";
 
+    @Column(name = "base_unit", nullable = false, length = 20)
+    @Builder.Default
+    private String baseUnit = "件";
+
     /**
      * 换算率（V3.1 新增）
      *
@@ -377,14 +381,18 @@ public class ProductSku extends BaseEntity {
      * @return 格式化的字符串（例如 "2 Box, 1 Unit"）
      * @since V3.1
      */
+    public String getDisplayBaseUnit() {
+        return baseUnit == null || baseUnit.isBlank() ? "件" : baseUnit;
+    }
+
     public String formatQuantity(Integer quantity) {
         if (quantity == null || quantity == 0) {
-            return "0 Unit";
+            return "0 " + getDisplayBaseUnit();
         }
 
         // 特殊情况：conversionRate = 1（散装商品，不分箱）
         if (this.conversionRate == 1) {
-            return quantity + " Unit";
+            return quantity + " " + getDisplayBaseUnit();
         }
 
         int packCount = quantity / this.conversionRate;
@@ -401,7 +409,7 @@ public class ProductSku extends BaseEntity {
             if (packCount > 0) {
                 result.append(", ");
             }
-            result.append(looseCount).append(" Unit");
+            result.append(looseCount).append(" ").append(getDisplayBaseUnit());
         }
 
         return result.toString();

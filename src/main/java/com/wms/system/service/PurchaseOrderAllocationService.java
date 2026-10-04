@@ -87,7 +87,11 @@ public class PurchaseOrderAllocationService {
             }
             plannedByItem.merge(item.getId(), row.plannedQuantity(), Math::addExact);
         }
-        validateCompletePlan(order, plannedByItem);
+        for (PurchaseOrderItem item : order.getItems()) {
+            if (plannedByItem.getOrDefault(item.getId(), 0) > item.getOrderedQuantity()) {
+                throw validation("allocations.plannedQuantity", "exceeds-ordered-quantity");
+            }
+        }
 
         List<PurchaseOrderAllocation> existing = allocationRepository
             .findByPurchaseOrderItemPurchaseOrderIdOrderByIdAsc(purchaseOrderId);

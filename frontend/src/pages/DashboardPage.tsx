@@ -463,6 +463,7 @@ export function DashboardPage(): JSX.Element {
           <section className="dashboard-panel" id="dashboard-urgent-reorders">
             <div className="dashboard-panel-heading">
               <Typography.Title level={5}>{t('dashboard.urgentReorderList')}</Typography.Title>
+              <Button type="link" onClick={() => navigate('/replenishment')}>{t('upgrade.replenishment.viewAll')}</Button>
               <Button onClick={() => navigate('/inventory')} type="link">
                 {t('dashboard.actions.viewInventory')}
               </Button>

@@ -2,6 +2,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
+  App,
   Button,
   Empty,
   Input,
@@ -20,6 +21,9 @@ import {
   REPORTS_QUERY_KEY,
   type SalesDailySummary,
 } from '../../api/reports';
+import { exportSales } from '../../api/reports';
+import { saveBlob } from '../../api/files';
+import { getErrorMessage } from '../../api/errors';
 import { formatDate, formatDateTime, formatMoney } from '../workflowUtils';
 
 function dateKey(daysAgo = 0): string {
@@ -62,6 +66,14 @@ function SalesTrend({ data, label }: { data: SalesDailySummary[]; label: string 
 
 export function SalesAnalyticsPage(): JSX.Element {
   const { i18n, t } = useTranslation();
+  const { message } = App.useApp();
+  const [exporting, setExporting] = useState(false);
+  const download = async (): Promise<void> => {
+    setExporting(true);
+    try { saveBlob(await exportSales(startDate, endDate), 'sales.csv'); }
+    catch (error) { message.error(getErrorMessage(error, t)); }
+    finally { setExporting(false); }
+  };
   const [preset, setPreset] = useState(30);
   const [startDate, setStartDate] = useState(dateKey(29));
   const [endDate, setEndDate] = useState(dateKey());
@@ -81,6 +93,7 @@ export function SalesAnalyticsPage(): JSX.Element {
     { key: 'pending', label: t('analytics.status.pendingApproval'), value: overview?.pendingApprovalCount ?? 0, color: '#b7791f' },
     { key: 'approved', label: t('analytics.status.awaitingShipment'), value: overview?.approvedAwaitingShipmentCount ?? 0, color: '#2563eb' },
     { key: 'shipped', label: t('analytics.status.shipped'), value: overview?.shippedCount ?? 0, color: '#15803d' },
+    { key: 'closed', label: t('upgrade.closedRemainder'), value: overview?.closedCount ?? 0, color: '#475569' },
     { key: 'rejected', label: t('analytics.status.rejected'), value: overview?.rejectedCount ?? 0, color: '#b42318' },
     { key: 'cancelled', label: t('analytics.status.cancelled'), value: overview?.cancelledCount ?? 0, color: '#7c3aed' },
     { key: 'voided', label: t('analytics.status.voided'), value: overview?.voidedCount ?? 0, color: '#475569' },
@@ -114,6 +127,7 @@ export function SalesAnalyticsPage(): JSX.Element {
           <Typography.Title level={2}>{t('analytics.sales.title')}</Typography.Title>
           <Typography.Text type="secondary">{t('analytics.sales.subtitle')}</Typography.Text>
         </div>
+        <Button loading={exporting} onClick={() => void download()} disabled={overviewQuery.isError || dailyQuery.isError}>{t('upgrade.exportCsv')}</Button>
         <Button icon={<ReloadOutlined spin={overviewQuery.isFetching || dailyQuery.isFetching} />} onClick={refresh}>
           {t('analytics.refreshSnapshot')}
         </Button>
@@ -154,7 +168,7 @@ export function SalesAnalyticsPage(): JSX.Element {
         </div>
       )}
 
-      <Alert className="analytics-context-alert" description={t('analytics.profitDeferred')} message={t('analytics.snapshotNotice', {
+      <Alert className="analytics-context-alert" description={t('upgrade.reportBasis')} message={t('analytics.snapshotNotice', {
         time: formatDateTime(overview?.refreshedAt, i18n.language),
       })} showIcon type="info" />
 
