@@ -4,6 +4,8 @@ import com.wms.system.tenant.context.CompanyScope;
 import com.wms.system.tenant.context.RequestSurface;
 import com.wms.system.tenant.context.TenantContext;
 import com.wms.system.tenant.context.TenantContextHolder;
+import com.wms.system.tenant.security.TenantExecutionScope;
+import com.wms.system.tenant.security.TenantAccessException;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.lang.Nullable;
@@ -55,6 +57,20 @@ public final class CompanyRlsJpaTransactionManager implements PlatformTransactio
                 statement.setString(1, Long.toString(resolveDatabaseCompanyId()));
                 statement.execute();
             }
+            TenantExecutionScope admission = TenantExecutionScope.current();
+            if (admission != null) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "select bcwms_check_tenant_activity(?, ?, ?, ?)")) {
+                    statement.setLong(1, admission.tenantId());
+                    statement.setObject(2, admission.sessionVersion(), java.sql.Types.BIGINT);
+                    statement.setString(3, admission.purpose().name());
+                    statement.setBoolean(4, !connection.isReadOnly());
+                    try (java.sql.ResultSet result = statement.executeQuery()) {
+                        if (!result.next()) throw new IllegalStateException("Tenant admission missing");
+                        admission.pin(result.getLong(1));
+                    }
+                }
+            }
             return status;
         } catch (Exception exception) {
             try {
@@ -62,6 +78,10 @@ public final class CompanyRlsJpaTransactionManager implements PlatformTransactio
             } catch (RuntimeException rollbackFailure) {
                 exception.addSuppressed(rollbackFailure);
             }
+            if (exception.getMessage() != null && exception.getMessage().contains("AUTH_SESSION_INVALIDATED"))
+                throw new TenantAccessException("AUTH_SESSION_INVALIDATED", 401);
+            if (exception.getMessage() != null && exception.getMessage().contains("TENANT_SERVICE_UNAVAILABLE"))
+                throw new TenantAccessException("TENANT_SERVICE_UNAVAILABLE", 423);
             throw new CannotCreateTransactionException(
                 "Failed to bind PostgreSQL company row-level security", exception);
         }

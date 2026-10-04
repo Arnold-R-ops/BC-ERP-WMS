@@ -1,6 +1,6 @@
 import { AuditOutlined, HomeOutlined, LockOutlined, LogoutOutlined, SafetyCertificateOutlined, ShopOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons';
 import { Alert, App as AntdApp, Button, Card, Checkbox, ConfigProvider, Descriptions, Form, Input, Layout, Modal, QRCode, Space, Spin, Tag, Typography } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -14,40 +14,12 @@ import { PlatformTenantManagementPage } from './PlatformTenantManagementPage';
 import { PlatformTenantAccessProvider, usePlatformTenantAccess } from './PlatformTenantAccessProvider';
 import { platformMfaFailureMessage, shouldRestartPlatformMfa } from './mfaFeedback';
 
-const PLATFORM_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
-
 function PlatformProtectedRoute({ view }: { view: 'home' | 'tenants' | 'audit' | 'grants' | 'admins' }): JSX.Element {
-  const { session, logout } = usePlatformAuth();
+  const { session, sessionVerified } = usePlatformAuth();
   const { access, loading: tenantAccessLoading, error: tenantAccessError, hasTenantAccess } = usePlatformTenantAccess();
-  const navigate = useNavigate();
-  const deadlineRef = useRef(0);
-
-  const endSession = useCallback((reason: 'idle' | 'expired') => {
-    logout();
-    navigate('/login', { replace: true, state: { reason } });
-  }, [logout, navigate]);
-
-  useEffect(() => {
-    if (!session) return undefined;
-    const resetIdleDeadline = () => {
-      deadlineRef.current = Math.min(Date.now() + PLATFORM_IDLE_TIMEOUT_MS, session.expiresAt);
-    };
-    const activityEvents: (keyof WindowEventMap)[] = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-    resetIdleDeadline();
-    const onActivity = () => resetIdleDeadline();
-    activityEvents.forEach((eventName) => window.addEventListener(eventName, onActivity, { passive: true }));
-    const timer = window.setInterval(() => {
-      if (Date.now() >= deadlineRef.current) {
-        endSession(Date.now() >= session.expiresAt ? 'expired' : 'idle');
-      }
-    }, 1_000);
-    return () => {
-      activityEvents.forEach((eventName) => window.removeEventListener(eventName, onActivity));
-      window.clearInterval(timer);
-    };
-  }, [endSession, session]);
 
   if (!session) return <Navigate replace to="/login" />;
+  if (!sessionVerified) return <Spin fullscreen />;
   const securityReader = session.roles.includes('PLATFORM_SUPER_ADMIN')
     || session.roles.includes('PLATFORM_SECURITY_AUDITOR');
   if ((view === 'audit' || view === 'grants' || view === 'admins') && !securityReader) return <Navigate replace to="/" />;
@@ -64,6 +36,31 @@ function PlatformProtectedRoute({ view }: { view: 'home' | 'tenants' | 'audit' |
           : <PlatformHome />}</PlatformShell>;
 }
 
+function PlatformSessionNotice(): null {
+  const { session, sessionNotice, clearSessionNotice } = usePlatformAuth();
+  const { message } = AntdApp.useApp();
+  const { i18n } = useTranslation();
+  const english = i18n.language === 'en-US';
+  useEffect(() => {
+    if (!sessionNotice) {
+      if (session) message.destroy('platform-session-status');
+      return;
+    }
+    const notices = {
+      unauthorized: ['Your platform session was rejected. Sign in again.', '平台会话已失效，请重新登录。'],
+      unavailable: ['Session verification failed. Browser sign-in was cleared; server revocation is not confirmed.', '无法完成会话校验，已清除浏览器登录信息；不代表服务端会话已撤销。'],
+      'logout-pending': ['Browser sign-in cleared. Waiting for server revocation confirmation.', '已清除浏览器登录信息，正在确认服务端会话撤销结果。'],
+      'logout-unconfirmed': ['Browser sign-in cleared, but server revocation was NOT confirmed. The token may work until idle/absolute expiry or account revocation. Retry from a new sign-in using Sign out all devices if needed.', '已清除浏览器登录信息，但未能确认服务端撤销。旧令牌可能在空闲/最长时限到期或账号撤销前仍可使用；必要时重新登录后执行“退出所有设备”。'],
+      'logout-revoked': ['Server sessions for this account in this browser have been revoked.', '本浏览器中此平台账号的服务端会话已撤销。'],
+      'logout-invalid': ['The current session is invalid. Revocation of other sessions in this browser could not be confirmed.', '当前会话已失效，无法确认本浏览器其他服务端会话已撤销。'],
+    };
+    message.open({ key: 'platform-session-status', type: sessionNotice === 'logout-revoked' ? 'success' : 'warning',
+      content: notices[sessionNotice][english ? 0 : 1], duration: sessionNotice === 'logout-unconfirmed' || sessionNotice === 'logout-pending' ? 0 : 6 });
+    if (sessionNotice !== 'logout-pending') clearSessionNotice();
+  }, [clearSessionNotice, english, message, session, sessionNotice]);
+  return null;
+}
+
 function PlatformLoginPage(): JSX.Element {
   const [form] = Form.useForm<PlatformLoginRequest>();
   const [mfaForm] = Form.useForm<{ code?: string; recoveryCode?: string }>();
@@ -71,7 +68,7 @@ function PlatformLoginPage(): JSX.Element {
   const [authStep, setAuthStep] = useState<PlatformAuthResponse | null>(null);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [recoverySaved, setRecoverySaved] = useState(false);
-  const { login, establishSession, sessionNotice, clearSessionNotice } = usePlatformAuth();
+  const { login, establishSession } = usePlatformAuth();
   const { message } = AntdApp.useApp();
   const { i18n } = useTranslation();
   const navigate = useNavigate();
@@ -86,13 +83,7 @@ function PlatformLoginPage(): JSX.Element {
     if (state?.reason) navigate('/login', { replace: true, state: null });
   }, [english, message, navigate, state?.reason]);
 
-  useEffect(() => {
-    if (sessionNotice !== 'unauthorized') return;
-    message.error(english
-      ? 'Your platform session was rejected and has been cleared. Please sign in again.'
-      : '平台会话校验失败，已安全退出，请重新登录。');
-    clearSessionNotice();
-  }, [clearSessionNotice, english, message, sessionNotice]);
+
 
   const submit = async (values: PlatformLoginRequest) => {
     setSubmitting(true);
@@ -137,8 +128,13 @@ function PlatformLoginPage(): JSX.Element {
 
   const finishEnrollment = () => {
     if (!authStep || !recoverySaved) return;
-    establishSession(authStep);
-    navigate('/', { replace: true });
+    try {
+      establishSession(authStep);
+      navigate('/', { replace: true });
+    } catch {
+      setAuthStep(null); setRecoverySaved(false);
+      message.warning(english ? 'Sign-in was interrupted. Sign in again.' : '本次登录已中断，请重新登录。');
+    }
   };
 
   if (authStep?.status === 'AUTHENTICATED' && authStep.recoveryCodes?.length) {
@@ -206,7 +202,7 @@ function PlatformLoginPage(): JSX.Element {
 }
 
 function PlatformHome(): JSX.Element {
-  const { session, logout } = usePlatformAuth();
+  const { session, forgetSession } = usePlatformAuth();
   const { access: effectiveAccess, loading: accessLoading, error: accessError, hasTenantAccess } = usePlatformTenantAccess();
   const { i18n } = useTranslation();
   const { message } = AntdApp.useApp();
@@ -257,7 +253,7 @@ function PlatformHome(): JSX.Element {
     setLogoutConfirming(true);
     try {
       await confirmPlatformLogoutAll(logoutChallenge, logoutCode);
-      logout();
+      forgetSession();
       navigate('/login', { replace: true, state: { reason: 'revoked' } });
     } catch {
       message.error(english ? 'The authenticator code is invalid or expired.' : '认证器验证码无效或已过期。');
@@ -477,7 +473,7 @@ function PlatformShell({ children }: { children: React.ReactNode }): JSX.Element
 
 function PlatformRoutes(): JSX.Element {
   const { session } = usePlatformAuth();
-  return <Routes>
+  return <><PlatformSessionNotice /><Routes>
     <Route path="/login" element={session ? <Navigate replace to="/" /> : <PlatformLoginPage />} />
     <Route path="/activate" element={<PlatformInvitationActivationPage />} />
     <Route path="/" element={<PlatformProtectedRoute view="home" />} />
@@ -487,7 +483,7 @@ function PlatformRoutes(): JSX.Element {
     <Route path="/security" element={<Navigate replace to="/admins" />} />
     <Route path="/admins" element={<PlatformProtectedRoute view="admins" />} />
     <Route path="*" element={<Navigate replace to="/" />} />
-  </Routes>;
+  </Routes></>;
 }
 
 export function PlatformApp(): JSX.Element {

@@ -28,6 +28,10 @@ public class SessionHandoffCode {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private Long tenantId;
 
+    @Column(name = "tenant_session_version", nullable = false)
+    @Builder.Default
+    private Long tenantSessionVersion = 1L;
+
     @Column(name = "identity_id", nullable = false, updatable = false)
     private Long identityId;
 

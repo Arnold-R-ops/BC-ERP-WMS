@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test-only OFFLINE context for the already frozen cache. No mirrors, credentials or project changes. -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+  <offline>true</offline>
+  <profiles><profile><id>r2-frozen-cache-origins</id>
+    <repositories>
+      <repository><id>aliyun-public</id><url>https://maven.aliyun.com/repository/public</url></repository>
+      <repository><id>aliyun-central</id><url>https://maven.aliyun.com/repository/central</url></repository>
+      <repository><id>aliyun-spring</id><url>https://maven.aliyun.com/repository/spring</url></repository>
+    </repositories>
+    <pluginRepositories>
+      <pluginRepository><id>aliyun-public</id><url>https://maven.aliyun.com/repository/public</url></pluginRepository>
+      <pluginRepository><id>aliyun-central</id><url>https://maven.aliyun.com/repository/central</url></pluginRepository>
+    </pluginRepositories>
+  </profile></profiles>
+  <activeProfiles><activeProfile>r2-frozen-cache-origins</activeProfile></activeProfiles>
+</settings>

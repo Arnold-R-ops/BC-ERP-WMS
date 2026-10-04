@@ -43,6 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final DynamicPermissionService permissionService;
     private final PlatformUserDetailsService platformUserDetailsService;
     private final TenancyProperties tenancyProperties;
+    private final com.wms.system.platform.service.PlatformSessionService platformSessions;
 
     @Override
     protected void doFilterInternal(
@@ -86,6 +87,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 reject(response, "AUTH_TOKEN_INVALID");
                 return;
             }
+        } catch (com.wms.system.platform.service.PlatformSessionException exception) {
+            reject(response, exception.getErrorKey());
+            return;
+        } catch (PlatformSessionCheckUnavailableException exception) {
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"errorKey\":\"PLATFORM_SESSION_CHECK_UNAVAILABLE\"}");
+            return;
         } catch (ExpiredJwtException exception) {
             log.info("Expired tenant or platform JWT rejected: path={}", request.getRequestURI());
             reject(response, "AUTH_TOKEN_EXPIRED");
@@ -115,7 +125,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         TenantContext context,
         HttpServletRequest request
     ) {
-        TenantJwtClaims claims = jwtUtil.parseTenantToken(token);
+        Object verified = request.getAttribute(com.wms.system.tenant.web.TenantSecurityAdmissionFilter.VERIFIED_CLAIMS);
+        TenantJwtClaims claims = verified instanceof TenantJwtClaims parsed ? parsed : jwtUtil.parseTenantToken(token);
 
         if (context != null && (!context.isTenantRequest()
                 || !claims.companyId().equals(context.tenantId()))) {
@@ -150,7 +161,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void authenticatePlatform(String token, HttpServletRequest request) {
+        try {
+            authenticatePlatformAvailable(token, request);
+        } catch (org.springframework.dao.DataAccessException | org.springframework.transaction.TransactionException exception) {
+            throw new PlatformSessionCheckUnavailableException();
+        }
+    }
+
+    private void authenticatePlatformAvailable(String token, HttpServletRequest request) {
         PlatformJwtClaims claims = jwtUtil.parsePlatformToken(token);
+        platformSessions.check(claims);
         PlatformSecurityUser platformUser =
             platformUserDetailsService.loadEnabledUser(claims.platformUserId());
         if (!claims.securityVersion().equals(
@@ -201,4 +221,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             super("Tenant session identity or authorization context changed");
         }
     }
+
+    private static final class PlatformSessionCheckUnavailableException extends RuntimeException { }
 }

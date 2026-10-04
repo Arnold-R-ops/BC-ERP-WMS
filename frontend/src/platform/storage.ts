@@ -1,3 +1,5 @@
+import { browserLogoutFence } from './browserLogout';
+
 export const PLATFORM_AUTH_STORAGE_KEY = '2g-wms.platform-auth-session';
 
 export interface PlatformSession {
@@ -6,6 +8,7 @@ export interface PlatformSession {
   email: string;
   roles: string[];
   expiresAt: number;
+  logoutFence?: string;
 }
 
 function isPlatformSession(value: unknown): value is PlatformSession {
@@ -25,7 +28,8 @@ export function readPlatformSession(now = Date.now()): PlatformSession | null {
 
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!isPlatformSession(parsed) || parsed.expiresAt <= now) {
+    if (!isPlatformSession(parsed) || parsed.expiresAt <= now
+      || (parsed.logoutFence || '') !== browserLogoutFence(parsed.email)) {
       clearPlatformSession();
       return null;
     }
@@ -37,7 +41,8 @@ export function readPlatformSession(now = Date.now()): PlatformSession | null {
 }
 
 export function writePlatformSession(session: PlatformSession): void {
-  sessionStorage.setItem(PLATFORM_AUTH_STORAGE_KEY, JSON.stringify(session));
+  sessionStorage.setItem(PLATFORM_AUTH_STORAGE_KEY, JSON.stringify({ ...session,
+    logoutFence: session.logoutFence ?? browserLogoutFence(session.email) }));
 }
 
 export function clearPlatformSession(): void {

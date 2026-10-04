@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { activatePlatformInvitation, changePlatformAdminRole, confirmPlatformInvitationActivation, confirmPlatformLogoutAll, confirmPlatformMfaEnrollment, createPlatformAdminInvitation, createPlatformExport, getMyPlatformEffectiveAccess, getPlatformAdmin, getPlatformCurrentSession, getPlatformInvitationStatus, getPlatformRecoveryCodeStatus, getPlatformTenant, listPlatformAdmins, listPlatformTenants, platformLogin, PlatformInvitationError, PlatformLoginError, PlatformMfaError, PLATFORM_AUTH_UNAUTHORIZED_EVENT, regeneratePlatformRecoveryCodes, resetPlatformAdminMfa, revokePlatformAdminInvitation, revokePlatformAdminSessions, searchPlatformAuditLogs, startPlatformAdminInvitation, startPlatformAdminMfaReset, startPlatformAdminRoleChange, startPlatformAdminSessionRevoke, startPlatformLogoutAll, startPlatformRecoveryCodeRegeneration, verifyPlatformMfa } from './api';
 import { writePlatformSession } from './storage';
+import { beginBrowserLogout } from './browserLogout';
+
+// Cookie initialization/locking has its own real wrapper tests in browserLogout.test.ts.
+vi.mock('./browserLogout', async importOriginal => ({
+  ...await importOriginal<typeof import('./browserLogout')>(),
+  withPlatformBrowserBinding: <T,>(action: () => Promise<T>) => action(),
+}));
 
 describe('platform read API', () => {
   beforeEach(() => {
@@ -333,6 +340,16 @@ describe('platform login API', () => {
     await expect(platformLogin({ email: 'admin@bcwms.com', password: 'secret' }))
       .rejects.toMatchObject({ reason: 'credentials' } satisfies Partial<PlatformLoginError>);
   });
+  it('rejects an old MFA response that arrives after a browser logout', async () => {
+    let resolve!: (response: Response) => void;
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(() => new Promise<Response>(done => { resolve = done; }));
+    const pending = verifyPlatformMfa('pending-challenge', '123456');
+    beginBrowserLogout('admin@bcwms.com');
+    resolve(new Response(JSON.stringify({ status: 'AUTHENTICATED', token: 'late-test-token', tokenType: 'Bearer',
+      email: 'admin@bcwms.com', roles: ['PLATFORM_SUPER_ADMIN'], expiresIn: 43_200_000 }), { status: 200 }));
+    await expect(pending).rejects.toMatchObject({ reason: 'service' });
+    expect(sessionStorage.getItem('2g-wms.platform-auth-session')).toBeNull();
+  });
 
   it('accepts an MFA challenge without treating it as an authenticated session', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
@@ -415,6 +432,8 @@ describe('platform login API', () => {
     expect(result.status).toBe('AUTHENTICATED');
     expect(fetchMock).toHaveBeenCalledWith('/api/platform/auth/invitations/activate/confirm', {
       method: 'POST',
+      credentials: 'same-origin',
+      signal: expect.any(AbortSignal),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ challengeToken: 'activation-challenge', code: '123456' }),
     });

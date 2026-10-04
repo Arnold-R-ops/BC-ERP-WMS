@@ -10,6 +10,14 @@ import org.springframework.context.annotation.Configuration;
 public class TenantFilterRegistrationConfig {
 
     @Bean
+    FilterRegistrationBean<com.wms.system.tenant.web.TenantSecurityAdmissionFilter> disableSecurityAdmissionContainerRegistration(
+            com.wms.system.tenant.web.TenantSecurityAdmissionFilter filter) {
+        var registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     FilterRegistrationBean<TenantResolutionFilter> disableTenantFilterContainerRegistration(
         TenantResolutionFilter filter
     ) {

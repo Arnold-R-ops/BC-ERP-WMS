@@ -37,4 +37,6 @@ public interface ChannelRawEventRepository extends JpaRepository<ChannelRawEvent
      * Webhook 事件 id 去重（P1-B3：Shopify 会重发未确认的推送）
      */
     boolean existsByWebhookEventId(String webhookEventId);
+    Optional<ChannelRawEvent> findByWebhookEventId(String webhookEventId);
+    boolean existsByWebhookEventIdAndStatusIn(String webhookEventId,java.util.Collection<String> statuses);
 }

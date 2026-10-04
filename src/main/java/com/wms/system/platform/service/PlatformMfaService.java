@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +53,7 @@ public class PlatformMfaService {
     private final JwtProperties jwtProperties;
     private final ObjectMapper objectMapper;
     private final PlatformAccessGuard accessGuard;
+    private final PlatformSessionService sessions;
 
     @Transactional
     public PlatformAuthResponse login(PlatformLoginRequest request) {
@@ -72,7 +72,7 @@ public class PlatformMfaService {
     @Transactional(noRollbackFor = BusinessException.class)
     public PlatformAuthResponse confirmEnrollment(PlatformMfaVerifyRequest request, HttpServletRequest http) {
         PlatformMfaChallenge challenge = challenge(request.getChallengeToken(), "ENROLL");
-        PlatformUser user = userRepository.findById(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
+        PlatformUser user = userRepository.findByIdForSessionUpdate(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
         ensureNotLocked(user);
         String secret = crypto.decrypt(challenge.getPendingSecretEncrypted());
         if (!crypto.verifyTotp(secret, request.getCode(), java.time.Instant.now())) {
@@ -87,14 +87,14 @@ public class PlatformMfaService {
         user.setSecurityVersion(user.getSecurityVersion() + 1);
         challenge.setConsumedAt(OffsetDateTime.now());
         userRepository.save(user); challengeRepository.save(challenge);
-        auditService.record(user.getId(), null, "MFA_ENROLLED", "platform_identity", "SUCCESS", Map.of(), http);
-        return authenticated(user, recoveryCodeSet.codes());
+        auditService.recordInCurrentTransaction(user.getId(), null, "MFA_ENROLLED", "platform_identity", "SUCCESS", Map.of(), http);
+        return authenticated(user, recoveryCodeSet.codes(), http);
     }
 
     @Transactional(noRollbackFor = BusinessException.class)
     public PlatformAuthResponse verify(PlatformMfaVerifyRequest request, HttpServletRequest http) {
         PlatformMfaChallenge challenge = challenge(request.getChallengeToken(), "VERIFY");
-        PlatformUser user = userRepository.findById(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
+        PlatformUser user = userRepository.findByIdForSessionUpdate(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
         ensureNotLocked(user);
         boolean recovery = request.getRecoveryCode() != null && !request.getRecoveryCode().isBlank();
         boolean verified;
@@ -110,24 +110,24 @@ public class PlatformMfaService {
 
         resetFailures(user); challenge.setConsumedAt(OffsetDateTime.now());
         userRepository.save(user); challengeRepository.save(challenge);
-        auditService.record(user.getId(), null, recovery ? "MFA_RECOVERY_USED" : "MFA_VERIFIED",
+        auditService.recordInCurrentTransaction(user.getId(), null, recovery ? "MFA_RECOVERY_USED" : "MFA_VERIFIED",
             "platform_identity", "SUCCESS", Map.of(), http);
-        return authenticated(user, null);
+        return authenticated(user, null, http);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PlatformSessionResponse currentSession(String authorizationHeader) {
         var principal = accessGuard.requirePlatformUser();
         PlatformUser user = userRepository.findById(principal.getId())
             .filter(candidate -> Boolean.TRUE.equals(candidate.getEnabled()))
             .orElseThrow(this::invalidCredentials);
         String token = bearerToken(authorizationHeader);
-        OffsetDateTime expiresAt = jwtUtil.getPlatformTokenExpiration(token).toInstant().atOffset(ZoneOffset.UTC);
+        var window = sessions.check(jwtUtil.parsePlatformToken(token));
         return new PlatformSessionResponse(
             user.getNormalizedEmail(),
             userDetailsService.loadRoleCodes(user.getId()),
             Boolean.TRUE.equals(user.getMfaEnabled()),
-            expiresAt
+            window.expiresAt(), window.idleExpiresAt(), window.serverNow()
         );
     }
 
@@ -158,7 +158,7 @@ public class PlatformMfaService {
         var principal = accessGuard.requirePlatformUser();
         PlatformMfaChallenge challenge = challenge(request.getChallengeToken(), "LOGOUT_ALL");
         if (!principal.getId().equals(challenge.getPlatformUserId())) throw invalidMfa();
-        PlatformUser user = userRepository.findById(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
+        PlatformUser user = userRepository.findByIdForSessionUpdate(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
         ensureNotLocked(user);
 
         boolean verified = request.getCode() != null
@@ -203,7 +203,7 @@ public class PlatformMfaService {
         var principal = accessGuard.requirePlatformUser();
         PlatformMfaChallenge challenge = challenge(request.getChallengeToken(), "RECOVERY_REGEN");
         if (!principal.getId().equals(challenge.getPlatformUserId())) throw invalidMfa();
-        PlatformUser user = userRepository.findById(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
+        PlatformUser user = userRepository.findByIdForSessionUpdate(challenge.getPlatformUserId()).orElseThrow(this::invalidMfa);
         ensureNotLocked(user);
 
         boolean passwordVerified = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
@@ -305,12 +305,15 @@ public class PlatformMfaService {
         userRepository.save(user);
         auditService.recordInCurrentTransaction(
             user.getId(), null, "MFA_ENROLLED", "platform_identity", "SUCCESS", Map.of(), http);
-        return authenticated(user, recoveryCodeSet.codes());
+        return authenticated(user, recoveryCodeSet.codes(), http);
     }
 
-    private PlatformAuthResponse authenticated(PlatformUser user, List<String> recoveryCodes) {
+    private PlatformAuthResponse authenticated(PlatformUser user, List<String> recoveryCodes, HttpServletRequest http) {
         List<String> roles = userDetailsService.loadRoleCodes(user.getId());
-        String token = jwtUtil.generatePlatformToken(user.getId(), user.getNormalizedEmail(), roles, user.getSecurityVersion());
+        userRepository.flush();
+        var window = sessions.createForBrowser(user.getId(), user.getSecurityVersion(), http);
+        String token = jwtUtil.generatePlatformToken(user.getId(), user.getNormalizedEmail(), roles, user.getSecurityVersion(),
+            window.sessionId(), window.startedAt().toInstant().toEpochMilli(), window.expiresAt().toInstant().toEpochMilli());
         return new PlatformAuthResponse("AUTHENTICATED", null, null, null, token, "Bearer",
             user.getNormalizedEmail(), roles, jwtProperties.getPlatformExpiration(), recoveryCodes);
     }

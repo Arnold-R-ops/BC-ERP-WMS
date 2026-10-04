@@ -35,9 +35,17 @@ public class SessionHandoffService {
     private final DynamicPermissionService permissionService;
     private final JwtUtil jwtUtil;
     private final JwtProperties jwtProperties;
+    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
 
-    @Transactional(noRollbackFor = BusinessException.class)
     public LoginResponse consume(String rawCode) {
+        long tenant=TenantContextHolder.requireTenant().tenantId();
+        try(var admission=com.wms.system.tenant.security.TenantExecutionScope.open(tenant,
+                com.wms.system.tenant.security.TenantOperationPurpose.BUSINESS,null)) {
+            return new org.springframework.transaction.support.TransactionTemplate(transactionManager).execute(tx->consumeInside(rawCode));
+        }
+    }
+
+    private LoginResponse consumeInside(String rawCode) {
         String hash = tokenHasher.hash("session-handoff", rawCode);
         SessionHandoffCode handoff = repository.findByCodeHashForUpdate(hash)
             .orElseThrow(() -> new BusinessException(ErrorKeys.SESSION_HANDOFF_INVALID));
@@ -49,6 +57,8 @@ public class SessionHandoffService {
         if (!handoff.getTenantId().equals(hostTenant)) {
             throw new BusinessException(ErrorKeys.SESSION_HANDOFF_INVALID);
         }
+        var admission = com.wms.system.tenant.security.TenantExecutionScope.current();
+        if (admission != null) admission.pin(handoff.getTenantSessionVersion());
 
         User user = userRepository.findByIdAndCompanyId(
                 handoff.getTenantUserId(), hostTenant)

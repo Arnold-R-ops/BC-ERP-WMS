@@ -96,6 +96,9 @@ public class ChannelRawEvent extends BaseEntity {
     @Column(name = "webhook_event_id", length = 100)
     private String webhookEventId;
 
+    @Column(name = "source_inbox_id")
+    private Long sourceInboxId;
+
     /**
      * 渠道原样 JSON 报文（JSONB）
      */

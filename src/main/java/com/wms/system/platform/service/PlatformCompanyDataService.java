@@ -29,6 +29,7 @@ public class PlatformCompanyDataService {
     private final PlatformAccessProperties properties;
     private final PlatformAccessGuard guard;
     private final PlatformAuditService auditService;
+    private final com.wms.system.tenant.security.PlatformTenantDataSafety safety;
 
     public Page<PlatformCompanyResponse> listCompanies(String keyword, TenantStatus status, int page, int size,
                                                         HttpServletRequest request) {
@@ -88,13 +89,17 @@ public class PlatformCompanyDataService {
                                  HttpServletRequest request) {
         PlatformSecurityUser actor = guard.requireRead(companyId, resource);
         Tenant tenant = requireAvailable(companyId);
+        String accessReason=request.getHeader(com.wms.system.tenant.security.PlatformTenantDataSafety.REASON_HEADER);
+        var safetyContext=safety.auditContext(companyId,accessReason);
         PlatformDatasetCatalog.Dataset dataset = PlatformDatasetCatalog.find(resource)
             .orElseThrow(() -> new IllegalArgumentException("Unsupported platform dataset"));
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), properties.getMaxPageSize());
-        try {
+        try (var admission=com.wms.system.tenant.security.TenantExecutionScope.open(companyId,
+                com.wms.system.tenant.security.TenantOperationPurpose.PLATFORM_READ,null)) {
             PlatformDataPage result = TenantContextHolder.runWithResolvedTenant(context(tenant), () -> {
                 TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+                transaction.setReadOnly(true);
                 return transaction.execute(status -> {
                     long total = entityManager.createQuery(dataset.countJpql(), Long.class).getSingleResult();
                     List<Object[]> rows = entityManager.createQuery(dataset.selectJpql(), Object[].class)
@@ -104,8 +109,9 @@ public class PlatformCompanyDataService {
                         (int) Math.ceil(total / (double) safeSize), content);
                 });
             });
+            safety.require(companyId,com.wms.system.tenant.security.PlatformTenantDataSafety.decodeReason(accessReason));
             auditService.record(actor.getId(), companyId, "READ", resource, "SUCCESS",
-                Map.of("page", safePage, "size", safeSize, "returned", result.content().size()), request);
+                Map.of("page", safePage, "size", safeSize, "returned", result.content().size(),"safety",safetyContext), request);
             return result;
         } catch (RuntimeException exception) {
             auditService.record(actor.getId(), companyId, "READ", resource, "FAILED",

@@ -1,8 +1,9 @@
 # Codex 项目交接
 
-> **历史快照（截至 2026-08-25）**：本文的“当前阶段”、测试数量和 OpenAPI 同步状态不得用于判断当前发布候选。当前唯一收口报告是 `TENANT_ERP_A1_IMPLEMENTATION_REPORT_2026-09-01.md`，接口机器真相是实时导出的 `docs/frontend/openapi.json`。
+> **历史快照（截至 2026-08-25）**：本文的“当前阶段”、测试数量和 OpenAPI 同步状态不得用于判断当前发布候选。租户 A1 历史报告为 `TENANT_ERP_A1_IMPLEMENTATION_REPORT_2026-09-01.md`；本次整合范围和重新验收结果见 `SALESBINDER_ACCEPTANCE_CANDIDATE_2026-10-04.md`。接口机器真相以对应运行版本实时导出的 OpenAPI 为准。
 
 更新日期：2026-08-25
+- 后续待开发已登记 `PROD-OPS-01`：生产密钥管理、数据库备份与灾难恢复上线门禁。该任务独立于租户 ERP `TENANT-ERP-P0-01` 与平台第三至五阶段；生产部署前必须完成。详见 `docs/PRODUCTION_OPERATIONS_RELEASE_GATE_2026-08-25.md`。
 
 ## 当前阶段
 

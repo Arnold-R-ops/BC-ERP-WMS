@@ -46,14 +46,20 @@ public class ShopifyTokenProvider {
     private static final long EXPIRY_SAFETY_WINDOW_SECONDS = 300;
 
     private final RestTemplate restTemplate;
+    private final com.wms.system.tenant.security.TenantConnectionSafetyService tenantSafety;
 
     private final ConcurrentHashMap<Long, CachedToken> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Long> cacheEpochs = new ConcurrentHashMap<>();
 
     /**
      * 解析配置应使用的访问令牌。
      * 优先 client_credentials（有 clientId+clientSecret 时），否则回退静态令牌。
      */
     public String resolveAccessToken(IntegrationConfig config) {
+        tenantSafety.requireBusiness(config);
+        var scope = com.wms.system.tenant.security.TenantExecutionScope.current();
+        long epoch = scope == null ? 1L : scope.sessionVersion();
+        if (!java.util.Objects.equals(cacheEpochs.get(config.getId()),epoch)) cache.remove(config.getId());
         boolean hasClientCredentials = StringUtils.hasText(config.getClientId())
             && StringUtils.hasText(config.getClientSecret());
 
@@ -80,6 +86,8 @@ public class ShopifyTokenProvider {
                 return cached.token();
             }
             CachedToken fresh = requestToken(config);
+            tenantSafety.requireBusiness(config);
+            cacheEpochs.put(config.getId(),epoch);
             cache.put(config.getId(), fresh);
             return fresh.token();
         }
@@ -90,6 +98,7 @@ public class ShopifyTokenProvider {
      */
     public void invalidate(Long configId) {
         cache.remove(configId);
+        cacheEpochs.remove(configId);
         log.info("Shopify token cache invalidated: configId={}", configId);
     }
 

@@ -40,7 +40,7 @@ class PlatformCompanyDataServiceDirectoryTest {
     void setUp() {
         properties.setMaxPageSize(100);
         service = new PlatformCompanyDataService(tenants, delegatedDirectory, entityManager,
-            transactionManager, properties, guard, audit);
+            transactionManager, properties, guard, audit, mock(com.wms.system.tenant.security.PlatformTenantDataSafety.class));
         actor = new PlatformSecurityUser(PlatformUser.builder().id(7L)
             .normalizedEmail("platform@example.com").passwordHash("hidden")
             .displayName("Platform").enabled(true).build());

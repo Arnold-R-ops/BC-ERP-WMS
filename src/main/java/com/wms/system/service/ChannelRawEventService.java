@@ -17,9 +17,9 @@ import java.util.Map;
 /**
  * 渠道报文留底服务（P1 批次1）
  *
- * 全部方法使用 REQUIRES_NEW 独立事务：报文的落库与状态更新
- * 不随业务处理事务回滚——即使订单转换失败，"我们收到过什么"
- * 这个事实必须留存，这是可诊断、可重放的前提。
+ * 报文接收使用 REQUIRES_NEW 独立留底；处理结果加入调用方事务。
+ * P3-M1：不得在业务事务尚未提交时，独立提交 PROCESSED/去重标记；
+ * 否则业务回滚后会被错误地视为已处理。没有外层事务时状态更新仍独立提交。
  *
  * @author WMS Team
  * @since 2026-07-10
@@ -79,15 +79,16 @@ public class ChannelRawEventService {
             .eventType(eventType)
             .externalId(externalId)
             .payload(payload)
+            .sourceInboxId(com.wms.system.tenant.security.TenantWebhookReceiptScope.currentId())
             .status(ChannelRawEvent.STATUS_RECEIVED)
             .build();
         return repository.save(event);
     }
 
     /**
-     * 标记处理成功（独立事务）
+     * 标记处理成功（加入业务事务，无外层事务时独立提交）
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public void markProcessed(Long eventId) {
         repository.findById(eventId).ifPresent(e -> {
             e.setStatus(ChannelRawEvent.STATUS_PROCESSED);
@@ -98,9 +99,9 @@ public class ChannelRawEventService {
     }
 
     /**
-     * 标记处理失败并留下原因（独立事务）
+     * 标记处理失败并留下原因（加入调用方事务）
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public void markFailed(Long eventId, String errorMessage) {
         repository.findById(eventId).ifPresent(e -> {
             e.setStatus(ChannelRawEvent.STATUS_FAILED);
@@ -112,9 +113,9 @@ public class ChannelRawEventService {
     }
 
     /**
-     * 标记主动跳过（如去重命中已同步订单；独立事务）
+     * 标记主动跳过（如去重命中已同步订单；加入调用方事务）
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public void markSkipped(Long eventId, String reason) {
         repository.findById(eventId).ifPresent(e -> {
             e.setStatus(ChannelRawEvent.STATUS_SKIPPED);
@@ -125,9 +126,9 @@ public class ChannelRawEventService {
     }
 
     /**
-     * 标记待人工复核（P1-B3：渠道侧取消/修改无法自动处理时；独立事务）
+     * 标记待人工复核（P1-B3：渠道侧取消/修改无法自动处理时；加入调用方事务）
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public void markManualReview(Long eventId, String reason) {
         repository.findById(eventId).ifPresent(e -> {
             e.setStatus(ChannelRawEvent.STATUS_MANUAL_REVIEW);
@@ -143,6 +144,17 @@ public class ChannelRawEventService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ChannelRawEvent recordWebhook(String channel, String storeIdentifier, String eventType,
                                          String externalId, String payload, String webhookEventId) {
+        if(webhookEventId!=null) {
+            var existing=repository.findByWebhookEventId(webhookEventId);
+            if(existing.isPresent()) {
+                var event=existing.get();
+                if(event.getSourceInboxId()==null && com.wms.system.tenant.security.TenantWebhookReceiptScope.currentId()!=null) {
+                    event.setSourceInboxId(com.wms.system.tenant.security.TenantWebhookReceiptScope.currentId());
+                    repository.save(event);
+                }
+                return event;
+            }
+        }
         ChannelRawEvent event = ChannelRawEvent.builder()
             .channel(channel)
             .storeIdentifier(storeIdentifier)
@@ -151,6 +163,7 @@ public class ChannelRawEventService {
             .externalId(externalId)
             .payload(payload)
             .webhookEventId(webhookEventId)
+            .sourceInboxId(com.wms.system.tenant.security.TenantWebhookReceiptScope.currentId())
             .status(ChannelRawEvent.STATUS_RECEIVED)
             .build();
         return repository.save(event);
@@ -161,6 +174,7 @@ public class ChannelRawEventService {
      */
     @Transactional(readOnly = true)
     public boolean webhookAlreadyReceived(String webhookEventId) {
-        return webhookEventId != null && repository.existsByWebhookEventId(webhookEventId);
+        return webhookEventId != null && repository.existsByWebhookEventIdAndStatusIn(webhookEventId,
+            java.util.List.of(ChannelRawEvent.STATUS_PROCESSED,ChannelRawEvent.STATUS_SKIPPED,ChannelRawEvent.STATUS_MANUAL_REVIEW));
     }
 }

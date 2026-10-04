@@ -24,7 +24,7 @@ public class TenantLifecycleService {
     }
 
     public void activate(Tenant tenant) {
-        requireStatus(tenant, TenantStatus.PROVISIONING, TenantStatus.SUSPENDED);
+        requireStatus(tenant, TenantStatus.PROVISIONING);
         tenant.setStatus(TenantStatus.ACTIVE);
         tenant.setClosedAt(null);
         tenant.setPurgeDueAt(null);

@@ -40,16 +40,19 @@ class PlatformMfaServiceTest {
     @Mock PlatformAuditService auditService;
     @Mock PlatformAccessGuard accessGuard;
     @Mock JwtUtil jwtUtil;
+    @Mock PlatformSessionService sessions;
     PlatformMfaProperties properties;
     JwtProperties jwtProperties;
     PlatformMfaService service;
 
     @BeforeEach void setUp() {
+        lenient().when(userRepository.findByIdForSessionUpdate(anyLong()))
+            .thenAnswer(invocation -> userRepository.findById(invocation.getArgument(0)));
         properties = new PlatformMfaProperties();
         properties.setChallengeMinutes(5); properties.setMaxAttempts(5); properties.setLockMinutes(15);
         jwtProperties = new JwtProperties(); jwtProperties.setExpiration(86_400_000L); jwtProperties.setPlatformExpiration(43_200_000L);
         service = new PlatformMfaService(userRepository, challengeRepository, userDetailsService,
-            passwordEncoder, crypto, properties, auditService, jwtUtil, jwtProperties, new ObjectMapper(), accessGuard);
+            passwordEncoder, crypto, properties, auditService, jwtUtil, jwtProperties, new ObjectMapper(), accessGuard, sessions);
     }
 
     @Test void validPasswordCreatesEnrollmentChallengeWithoutIssuingJwt() {
@@ -114,7 +117,9 @@ class PlatformMfaServiceTest {
         when(crypto.verifyTotp(eq("TOTPSECRET"), anyString(), any()))
             .thenAnswer(invocation -> "123456".equals(invocation.getArgument(1)));
         when(userDetailsService.loadRoleCodes(7L)).thenReturn(List.of("PLATFORM_SUPER_ADMIN"));
-        when(jwtUtil.generatePlatformToken(7L, "admin@bcwms.com", List.of("PLATFORM_SUPER_ADMIN"), 3L))
+        var now = OffsetDateTime.now().withNano(0);
+        when(sessions.createForBrowser(7L, 3L, null)).thenReturn(new PlatformSessionService.Window(java.util.UUID.randomUUID(), now, now, now.plusMinutes(30), now.plusHours(12), now));
+        when(jwtUtil.generatePlatformToken(eq(7L), eq("admin@bcwms.com"), eq(List.of("PLATFORM_SUPER_ADMIN")), eq(3L), any(), anyLong(), anyLong()))
             .thenReturn("platform-token");
 
         assertThatThrownBy(() -> service.verify(request("challenge-token", "000000"), null))
@@ -133,7 +138,7 @@ class PlatformMfaServiceTest {
         assertThat(user.getMfaLockedUntil()).isNull();
         assertThat(challenge.getAttemptCount()).isEqualTo(1);
         assertThat(challenge.getConsumedAt()).isNotNull();
-        verify(auditService).record(eq(7L), isNull(), eq("MFA_VERIFIED"),
+        verify(auditService).recordInCurrentTransaction(eq(7L), isNull(), eq("MFA_VERIFIED"),
             eq("platform_identity"), eq("SUCCESS"), eq(java.util.Map.of()), isNull());
     }
 

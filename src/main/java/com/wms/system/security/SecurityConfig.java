@@ -61,6 +61,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final TenantResolutionFilter tenantResolutionFilter;
+    private final com.wms.system.tenant.web.TenantSecurityAdmissionFilter tenantSecurityAdmissionFilter;
     private final CustomUserDetailsService userDetailsService;
     private final DynamicAuthorizationManager dynamicAuthorizationManager;
 
@@ -99,7 +100,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             // Disable CSRF (Cross-Site Request Forgery protection)
-            // JWT is stateless, no cookies used, CSRF not needed
+            // Bearer transport uses no auth cookies. Platform JWTs also require a persisted backend session.
             .csrf(AbstractHttpConfigurer::disable)
 
             // Configure dynamic authorization using DynamicAuthorizationManager
@@ -118,7 +119,8 @@ public class SecurityConfig {
             // Add JWT authentication filter BEFORE UsernamePasswordAuthenticationFilter
             // This ensures JWT token is validated before authorization check
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(tenantResolutionFilter, JwtAuthenticationFilter.class);
+            .addFilterBefore(tenantSecurityAdmissionFilter, JwtAuthenticationFilter.class)
+            .addFilterBefore(tenantResolutionFilter, com.wms.system.tenant.web.TenantSecurityAdmissionFilter.class);
 
         return http.build();
     }

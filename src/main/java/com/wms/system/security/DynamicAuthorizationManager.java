@@ -70,6 +70,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/auth/login",      // Login endpoint
         "/api/platform/auth/login", // Platform login (Host surface gate still applies)
+        "/api/platform/auth/browser-session", // Grouping cookie only; never authenticates a user
         "/api/platform/auth/mfa/enroll/confirm", // Pre-JWT platform MFA enrollment challenge
         "/api/platform/auth/mfa/verify", // Pre-JWT platform MFA verification challenge
         "/api/platform/auth/invitations/status", // One-time platform administrator invitation lookup
@@ -94,6 +95,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      * Useful for user-specific operations like switching roles, updating profile, etc.
      */
     private static final String[] AUTHENTICATED_ENDPOINTS = {
+        "/api/company-access/status",
         "/api/auth/switch-role",  // Any authenticated user can switch their own role
         "/api/auth/logout",       // Any authenticated user can logout
         "/api/auth/refresh-token", // Any authenticated user can refresh token
@@ -109,6 +111,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
      * temporary password cannot be used to operate the system.
      */
     private static final String[] PASSWORD_CHANGE_WHITELIST = {
+        "/api/company-access/status",
         "/api/users/me/password",
         "/api/auth/**"
     };

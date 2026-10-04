@@ -39,6 +39,7 @@ import {
   writeAuthSession,
 } from './storage';
 import { createAuthSession, mergeRoleSwitchSession } from './session';
+import { sessionCacheScope as sessionScope } from './sessionCacheScope';
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -91,10 +92,6 @@ function releaseRefreshLease(owner: string): void {
   } catch {
     localStorage.removeItem(AUTH_REFRESH_LOCK_KEY);
   }
-}
-
-function sessionScope(session: AuthSession | null): string | null {
-  return session ? `${session.username}\u0000${session.currentRole}` : null;
 }
 
 export function AuthProvider({ children, onSessionScopeChange }: AuthProviderProps): JSX.Element {

@@ -570,6 +570,11 @@ public class AuthController {
                 claims.userId(), claims.companyId())
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.AUTH_TOKEN_INVALID, Map.of()));
+        if (!user.isEnabled() || Boolean.TRUE.equals(user.getIsDeleted())
+                || !claims.securityVersion().equals(user.getSecurityVersion())
+                || !claims.username().equals(user.getUsername())) {
+            throw new com.wms.system.tenant.security.TenantAccessException("AUTH_SESSION_INVALIDATED", 401);
+        }
         List<SysRole> activeRoles = userRoleService
             .getUserRoles(user.getCompanyId(), user.getId()).stream()
             .filter(SysRole::isActive)

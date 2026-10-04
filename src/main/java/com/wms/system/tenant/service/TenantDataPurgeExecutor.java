@@ -18,6 +18,7 @@ public class TenantDataPurgeExecutor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void execute(Long tenantId) {
+        com.wms.system.tenant.security.TenantLifecycleReleaseGate.requirePurgeReleased();
         Tenant tenant = tenantRepository.findByIdForUpdate(tenantId)
             .orElseThrow(() -> new IllegalStateException("Company no longer exists"));
         if (tenant.getStatus() == TenantStatus.PURGED) return;

@@ -47,6 +47,7 @@ public class ShopifyApiClient {
 
     private final RestTemplate restTemplate;
     private final ShopifyTokenProvider tokenProvider;
+    private final com.wms.system.tenant.security.TenantConnectionSafetyService tenantSafety;
     private final ObjectMapper objectMapper;
 
     /**
@@ -162,7 +163,10 @@ public class ShopifyApiClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         log.info("调用 Shopify API: {}", url);
-        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        tenantSafety.requireBusiness(config);
+        var response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        tenantSafety.requireBusiness(config);
+        return response;
     }
 
     private String fetchOrderPages(IntegrationConfig config, String initialPath) {

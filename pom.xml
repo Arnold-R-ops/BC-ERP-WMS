@@ -27,6 +27,8 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Do not overwrite classes watched by an existing service during isolated verification. -->
+        <wms.build.directory>${project.basedir}/target</wms.build.directory>
 
         <!-- 依赖版本管理 -->
         <lombok.version>1.18.30</lombok.version>
@@ -197,6 +199,7 @@
     </dependencies>
 
     <build>
+        <directory>${wms.build.directory}</directory>
         <plugins>
             <!-- Spring Boot Maven 插件 (打包成可执行 JAR) -->
             <plugin>

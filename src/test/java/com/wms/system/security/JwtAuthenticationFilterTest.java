@@ -38,6 +38,7 @@ class JwtAuthenticationFilterTest {
     @Mock private DynamicPermissionService permissionService;
     @Mock private PlatformUserDetailsService platformUserDetailsService;
     @Mock private FilterChain filterChain;
+    @Mock private com.wms.system.platform.service.PlatformSessionService platformSessions;
 
     private JwtAuthenticationFilter filter;
     private TenancyProperties tenancyProperties;
@@ -51,7 +52,7 @@ class JwtAuthenticationFilterTest {
             userDetailsService,
             permissionService,
             platformUserDetailsService,
-            tenancyProperties
+            tenancyProperties, platformSessions
         );
         User user = User.builder()
             .id(12L)
@@ -197,6 +198,33 @@ class JwtAuthenticationFilterTest {
         return new TenantJwtClaims(
             12L, companyId, "worker", "WAREHOUSE_STAFF",
             List.of("WAREHOUSE_STAFF"), 5L);
+    }
+
+    @Test void unavailablePlatformSessionStoreFailsClosedAs503NotRevocationSuccess() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/platform/auth/logout");
+        request.addHeader("Authorization", "Bearer token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        var claims = new PlatformJwtClaims(7L,"admin@bcwms.com",List.of("PLATFORM_SUPER_ADMIN"),1L);
+        when(jwtUtil.parsePlatformToken("token")).thenReturn(claims);
+        when(platformSessions.check(claims)).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("isolated unavailable"));
+        filter.doFilterInternal(request,response,filterChain);
+        assertThat(response.getStatus()).isEqualTo(503);
+        assertThat(response.getContentAsString()).contains("PLATFORM_SESSION_CHECK_UNAVAILABLE");
+        verifyNoInteractions(platformUserDetailsService,userDetailsService,permissionService);
+        verify(filterChain,never()).doFilter(request,response);
+    }
+
+    @Test void idlePlatformSessionCannotReachAuthorizationOrController() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/platform/tenants");
+        request.addHeader("Authorization", "Bearer token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        var claims = new PlatformJwtClaims(7L,"admin@bcwms.com",List.of("PLATFORM_SUPER_ADMIN"),1L);
+        when(jwtUtil.parsePlatformToken("token")).thenReturn(claims);
+        when(platformSessions.check(claims)).thenThrow(new com.wms.system.platform.service.PlatformSessionException("PLATFORM_SESSION_IDLE_EXPIRED"));
+        filter.doFilterInternal(request,response,filterChain);
+        assertThat(response.getStatus()).isEqualTo(401);
+        verifyNoInteractions(platformUserDetailsService,userDetailsService,permissionService);
+        verify(filterChain,never()).doFilter(request,response);
     }
 
     private TenantContext companyContext(Long companyId, String slug) {

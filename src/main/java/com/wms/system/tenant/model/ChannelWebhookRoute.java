@@ -31,7 +31,9 @@ public class ChannelWebhookRoute {
     @Column(name = "canonical_store_identifier", nullable = false, length = 255)
     private String canonicalStoreIdentifier;
 
-    @Column(name = "signing_secret", nullable = false, length = 200)
+    @Column(name = "signing_secret", nullable = false, columnDefinition = "TEXT")
+    @jakarta.persistence.Convert(converter = com.wms.system.tenant.security.TenantCredentialConverter.class)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String signingSecret;
 
     @Column(name = "active", nullable = false)

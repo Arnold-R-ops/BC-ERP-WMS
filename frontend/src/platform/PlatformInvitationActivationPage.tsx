@@ -69,8 +69,14 @@ export function PlatformInvitationActivationPage(): JSX.Element {
 
   const finish = () => {
     if (!authStep || !recoverySaved) return;
-    establishSession(authStep);
-    navigate('/', { replace: true });
+    try {
+      establishSession(authStep);
+      navigate('/', { replace: true });
+    } catch {
+      setAuthStep(null); setRecoverySaved(false);
+      message.warning(english ? 'Sign-in was interrupted. Sign in again.' : '本次登录已中断，请重新登录。');
+      navigate('/login', { replace: true });
+    }
   };
 
   if (loading && !status && !authStep) return <main className="platform-login-page"><Spin size="large" /></main>;

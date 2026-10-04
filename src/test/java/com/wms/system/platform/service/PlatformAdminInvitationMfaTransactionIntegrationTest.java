@@ -30,15 +30,16 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringBootTest(properties="spring.config.location=classpath:platform-r2-isolation.properties")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named="p3.r2.database-authorized",matches="true")
+@org.springframework.test.context.ContextConfiguration(initializers=com.wms.platformverification.PlatformR2SpringInitializer.class)
 class PlatformAdminInvitationMfaTransactionIntegrationTest {
     @Autowired PlatformAdminInvitationService invitationsService;
     @Autowired PlatformAdminInvitationRepository invitations;
@@ -49,26 +50,22 @@ class PlatformAdminInvitationMfaTransactionIntegrationTest {
     @Autowired PlatformMfaCrypto crypto;
     @Autowired PasswordEncoder passwordEncoder;
     @MockBean PlatformAuditService audit;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
+    private com.wms.platformverification.PlatformFixtureScope fixtures;
 
     private Long actorId;
     private Long challengeId;
     private Long actorRoleId;
     private Long roleId;
-    private boolean createdRole;
     private String invitedEmail;
     private String rawChallenge;
 
     @BeforeEach
     void setUp() {
-        PlatformRole role = roles.findByRoleCode("PLATFORM_SUPER_ADMIN")
-            .orElseGet(() -> {
-                createdRole = true;
-                return roles.saveAndFlush(PlatformRole.builder()
-                    .roleCode("PLATFORM_SUPER_ADMIN")
-                    .displayName("Platform super administrator")
-                    .build());
-            });
+        PlatformRole role = PlatformAccessGrantRoleRaceIntegrationTest.requireBaselineRole(roles, "PLATFORM_SUPER_ADMIN");
         roleId = role.getId();
+        fixtures=com.wms.platformverification.PlatformFixtureScope.open(jdbc,transactions,getClass().getName(),"credentialFailureFixture");
 
         String suffix = UUID.randomUUID().toString();
         PlatformUser actor = users.saveAndFlush(PlatformUser.builder()
@@ -82,6 +79,7 @@ class PlatformAdminInvitationMfaTransactionIntegrationTest {
             .mfaFailedAttempts(4)
             .build());
         actorId = actor.getId();
+        fixtures.ownUser(actorId);
         actorRoleId = userRoles.saveAndFlush(PlatformUserRole.builder()
             .platformUserId(actorId)
             .platformRoleId(roleId)
@@ -97,6 +95,7 @@ class PlatformAdminInvitationMfaTransactionIntegrationTest {
             .build());
         challengeId = challenge.getId();
         invitedEmail = "invited-" + suffix + "@example.com";
+        fixtures.expectInvitation(actorId, invitedEmail);
 
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken(
@@ -110,18 +109,7 @@ class PlatformAdminInvitationMfaTransactionIntegrationTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
-        if (challengeId != null && challenges.existsById(challengeId)) {
-            challenges.deleteById(challengeId);
-        }
-        if (actorRoleId != null && userRoles.existsById(actorRoleId)) {
-            userRoles.deleteById(actorRoleId);
-        }
-        if (actorId != null && users.existsById(actorId)) {
-            users.deleteById(actorId);
-        }
-        if (createdRole && roleId != null && roles.existsById(roleId)) {
-            roles.deleteById(roleId);
-        }
+        if (fixtures != null) fixtures.close();
     }
 
     @Test
@@ -137,8 +125,10 @@ class PlatformAdminInvitationMfaTransactionIntegrationTest {
         request.setInvitationType("SUPER_ADMIN");
         request.setRoleCode("PLATFORM_SUPER_ADMIN");
 
-        assertThatThrownBy(() -> invitationsService.create(request, null))
-            .isInstanceOf(BusinessException.class);
+        fixtures.requireOwnedUser(actorId);
+        PlatformMfaFailureFixture.requireReady(PlatformMfaFailureFixture.inspect(jdbc, actorId, challengeId), System.out::println);
+        Throwable failure = catchThrowable(() -> invitationsService.create(request, null));
+        PlatformMfaFailureFixture.assertCredentialFailure(failure, actorId, crypto.hashToken(rawChallenge), System.out::println);
 
         PlatformUser persistedActor = users.findById(actorId).orElseThrow();
         PlatformMfaChallenge persistedChallenge = challenges.findById(challengeId).orElseThrow();
