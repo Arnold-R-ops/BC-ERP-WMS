@@ -43,7 +43,7 @@ export function SupplierFormModal({ loading, open, supplier, onClose, onSubmit }
       <ProFormText fieldProps={{ maxLength: 100 }} label={t('suppliers.fields.contact')} name="contact" />
       <ProFormText fieldProps={{ maxLength: 30 }} label={t('suppliers.fields.phone')} name="phone" />
       <ProFormText fieldProps={{ maxLength: 100, type: 'email' }} label={t('suppliers.fields.email')} name="email" />
-      <ProFormTextArea fieldProps={{ maxLength: 500, showCount: true }} label={t('suppliers.fields.address')} name="address" />
+      <ProFormTextArea fieldProps={{ maxLength: 255, showCount: true }} label={t('suppliers.fields.address')} name="address" rules={[{ max: 255 }]} />
       <ProFormTextArea fieldProps={{ maxLength: 500, showCount: true }} label={t('common.remark')} name="remark" />
     </ModalForm>
   );

@@ -17,7 +17,7 @@ const DATASETS: DatasetDefinition[] = [
   { code: 'warehouses', zh: '仓库', en: 'Warehouses', fields: ['id', 'code', 'name', 'address', 'contact', 'phone', 'active', 'created_at', 'updated_at'] },
   { code: 'products', zh: '产品', en: 'Products', fields: ['id', 'product_code', 'product_name', 'category_id', 'brand', 'enabled', 'created_at', 'updated_at'] },
   { code: 'inventory', zh: '库存', en: 'Inventory', fields: ['id', 'product_sku_id', 'location_id', 'quantity', 'version', 'created_at', 'updated_at'] },
-  { code: 'sales_orders', zh: '销售订单', en: 'Sales orders', fields: ['id', 'order_no', 'customer_id', 'total_amount', 'status', 'channel', 'external_order_no', 'created_at', 'updated_at'] },
+  { code: 'sales_orders', zh: '销售订单', en: 'Sales orders', fields: ['id', 'order_no', 'customer_id', 'total_amount', 'commercial_status', 'allocation_status', 'warehouse_status', 'logistics_status', 'channel', 'external_order_no', 'created_at', 'updated_at'] },
 ];
 
 const FIELD_LABELS: Record<string, [string, string]> = {
@@ -28,6 +28,8 @@ const FIELD_LABELS: Record<string, [string, string]> = {
   product_code: ['产品编码', 'Product code'], product_name: ['产品名称', 'Product name'], category_id: ['类别 ID', 'Category ID'],
   brand: ['品牌', 'Brand'], product_sku_id: ['SKU ID', 'SKU ID'], location_id: ['库位 ID', 'Location ID'], quantity: ['数量', 'Quantity'],
   version: ['版本', 'Version'], order_no: ['订单号', 'Order number'], customer_id: ['客户 ID', 'Customer ID'], total_amount: ['总金额', 'Total amount'],
+  commercial_status: ['业务状态', 'Commercial status'], allocation_status: ['库存分配状态', 'Allocation status'],
+  warehouse_status: ['仓库状态', 'Warehouse status'], logistics_status: ['物流状态', 'Logistics status'],
   channel: ['渠道', 'Channel'], external_order_no: ['外部订单号', 'External order number'],
 };
 

@@ -235,10 +235,20 @@ BEGIN
             GREATEST(item.plan_qty, item.actual_qty, 1),
             item.actual_qty,
             GREATEST(item.plan_qty - item.actual_qty, 0),
-            item.production_date,
-            item.expiry_date,
+            -- Some old read-only records contain contradictory dates. Do not
+            -- invent corrected dates or weaken validation for new applications:
+            -- leave the derived dates unknown and retain the source facts.
+            CASE WHEN item.production_date > item.expiry_date THEN NULL
+                 ELSE item.production_date END,
+            CASE WHEN item.production_date > item.expiry_date THEN NULL
+                 ELSE item.expiry_date END,
             item.external_batch_code,
-            item.remark,
+            CASE WHEN item.production_date > item.expiry_date THEN
+                LEFT('[历史日期异常：原入库明细 ' || item.id::TEXT
+                    || '，生产日=' || item.production_date::TEXT
+                    || '，有效期=' || item.expiry_date::TEXT
+                    || '。原值保留在原单；原备注摘要] ' || COALESCE(item.remark, ''), 500)
+                ELSE item.remark END,
             item.created_at,
             item.updated_at
         FROM public.inbound_order_items item

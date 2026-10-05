@@ -100,7 +100,7 @@ export function RmaPage(): JSX.Element {
       const values = await createForm.validateFields();
       if (!values.lines?.length) { message.warning(english ? 'Add at least one dispatched line.' : '至少选择一条已发货明细'); return; }
       await createMutation.mutateAsync(values);
-      setCreateOpen(false); createForm.resetFields(); message.success(english ? 'RMA created.' : 'RMA 已创建'); await refresh();
+      setCreateOpen(false); createForm.resetFields(); message.success(english ? 'RMA created.' : '退货/换货单已创建'); await refresh();
     } catch (error) { if (error instanceof Error) message.error(getErrorMessage(error, t)); }
   };
 
@@ -139,7 +139,7 @@ export function RmaPage(): JSX.Element {
     </Card> : null}
     <Table columns={columns} dataSource={rmas.data ?? []} loading={rmas.isLoading} rowKey="id" scroll={{ x: 1510 }} pagination={{ pageSize: 15 }} />
 
-    <Modal open={createOpen} width={900} title={english ? 'Create linked RMA' : '创建关联销售单的 RMA'} onCancel={() => { setCreateOpen(false); createForm.resetFields(); }} onOk={() => void submitCreate()} confirmLoading={createMutation.isPending}>
+    <Modal open={createOpen} width={900} title={english ? 'Create linked RMA' : '新建退货/换货'} okText={english ? 'OK' : '确定'} cancelText={english ? 'Cancel' : '取消'} onCancel={() => { setCreateOpen(false); createForm.resetFields(); }} onOk={() => void submitCreate()} confirmLoading={createMutation.isPending}>
       <Alert showIcon type="info" style={{ marginBottom: 12 }} message={english ? 'Only completed dispatch tasks are returnable. This page does not support unlinked returns.' : '只能退回已有完成发货证据的数量；本页面不支持无原销售单退货。'} />
       <Form form={createForm} layout="vertical">
         <Form.Item hidden name="channelCaseId"><InputNumber /></Form.Item>
@@ -270,7 +270,7 @@ export function RmaPage(): JSX.Element {
       </Form>
     </Modal>
 
-    <Modal open={policyOpen} title={english ? 'RMA policy' : 'RMA 策略'} onCancel={() => setPolicyOpen(false)} onOk={() => void policyForm.validateFields().then(async (values) => { await policyMutation.mutateAsync(values); setPolicyOpen(false); await refresh(); message.success(english ? 'Policy updated.' : '策略已更新'); })} confirmLoading={policyMutation.isPending}>
+    <Modal open={policyOpen} title={english ? 'RMA policy' : '退货策略'} onCancel={() => setPolicyOpen(false)} onOk={() => void policyForm.validateFields().then(async (values) => { await policyMutation.mutateAsync(values); setPolicyOpen(false); await refresh(); message.success(english ? 'Policy updated.' : '策略已更新'); })} confirmLoading={policyMutation.isPending}>
       <Form form={policyForm} layout="vertical">
         <Form.Item name="approvalMode" label={english ? 'Approval mode' : '审批模式'} rules={[{ required: true }]}><Select options={(['DIRECT', 'RISK_BASED', 'ALWAYS'] as RmaApprovalMode[]).map((value) => ({ value, label: english ? value.replaceAll('_', ' ') : ({ RETURN_REFUND: '退货退款', EXCHANGE: '换货', REFUND_ONLY: '仅退款', VOLUNTARY_POLICY: '普通退货', DISTANCE_CANCELLATION: '远程销售撤销', FAULTY_NOT_AS_DESCRIBED: '商品质量/描述不符', OTHER_STATUTORY: '其他法定原因' } as Record<string, string>)[value] ?? value }))} /></Form.Item>
         <Form.Item name="standardReturnDays" label={english ? 'Commercial default days' : '商业默认退货天数'} rules={[{ required: true }]}><InputNumber min={1} max={365} precision={0} /></Form.Item>

@@ -579,6 +579,8 @@ public class GlobalExceptionHandler {
         return switch (errorKey) {
             // 404 Not Found
             case ErrorKeys.PRODUCT_SKU_NOT_FOUND,
+                 "COMMERCIAL_DOCUMENT_NOT_FOUND",
+                 "COMMERCIAL_RECEIPT_NOT_FOUND",
                  ErrorKeys.PRODUCT_NOT_FOUND,
                  ErrorKeys.CATEGORY_NOT_FOUND,
                  ErrorKeys.LOCATION_NOT_FOUND,
@@ -607,6 +609,12 @@ public class GlobalExceptionHandler {
 
             // 400 Bad Request
             case ErrorKeys.STOCK_INSUFFICIENT,
+                 "COMMERCIAL_INVALID_KIND",
+                 "COMMERCIAL_INVALID_AMOUNT",
+                 "COMMERCIAL_EMPTY_INVOICE",
+                 "COMMERCIAL_FUTURE_PAYMENT",
+                 "COMMERCIAL_CUSTOMER_IMMUTABLE",
+                 "COMMERCIAL_OVERPAYMENT",
                  ErrorKeys.CATEGORY_DEPTH_EXCEEDED,
                  ErrorKeys.CATEGORY_PARENT_DISABLED,
                  ErrorKeys.CATEGORY_CYCLE_DETECTED,
@@ -703,6 +711,12 @@ public class GlobalExceptionHandler {
 
             // 409 Conflict
             case ErrorKeys.STOCK_CONCURRENCY_CONFLICT,
+                 "COMMERCIAL_STALE_VERSION",
+                 "COMMERCIAL_REQUEST_CONFLICT",
+                 "COMMERCIAL_INVALID_STATE",
+                 "COMMERCIAL_QUOTE_EXPIRED",
+                 "COMMERCIAL_ORDER_NOT_CONFIRMED",
+                 "COMMERCIAL_PAID_INVOICE_VOID",
                  ErrorKeys.INVENTORY_RESERVED_QUANTITY_CONFLICT,
                  ErrorKeys.INVENTORY_POSTING_CONTEXT_MISMATCH,
                  ErrorKeys.INVENTORY_CORRECTION_MODE_CONFLICT,

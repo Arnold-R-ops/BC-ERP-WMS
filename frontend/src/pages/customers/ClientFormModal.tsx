@@ -94,7 +94,7 @@ export function ClientFormModal({
       <ProFormText fieldProps={{ maxLength: 100 }} label={t('clients.fields.contact')} name="contact" />
       <ProFormDigit fieldProps={{ min: 0, precision: 2 }} label={t('clients.fields.creditLimit')} name="creditLimit" />
       <h2 className="client-form-section">{t('clients.form.sections.billingAddress')}</h2>
-      <ProFormTextArea fieldProps={{ maxLength: 255, placeholder: t('clients.form.preview.addressPlaceholder'), showCount: true }} label={t('clients.fields.address')} name="address" />
+      <ProFormTextArea fieldProps={{ maxLength: 255, placeholder: t('clients.form.preview.addressPlaceholder'), showCount: true }} label={t('clients.fields.address')} name="address" rules={[{ max: 255 }]} />
       <h2 className="client-form-section">{t('clients.form.sections.shippingAddress')}</h2>
       <ProFormSwitch label={t('upgrade.sameAddress')} name="shippingSameAsBilling" />
       <ProFormDependency name={['shippingSameAsBilling']}>
