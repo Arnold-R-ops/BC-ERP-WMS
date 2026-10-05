@@ -167,3 +167,12 @@ SHA-256: DB1B4F448666625334AE97DE28A3CBF84BE9C9AF6800E68EDA23A744D4203761
 - [ ] 在退货和报表中检查中文表单、常用原因和 CSV 导出入口是否符合日常习惯。
 
 文件位置：报告在 `docs/SALESBINDER_ACCEPTANCE_CANDIDATE_2026-10-04.md`；本轮证据在 `target/acceptance-20261004/`；实际报价文件为 `api-run/ACCEPT-20261004-quote.pdf` 与 `api-run/ACCEPT-20261004-quote.xlsx`；PDF 视觉检查图为 `api-run/quotation-preview-1.png`；页面截图在 `browser/`。上述证据子目录均相对本轮证据目录。
+
+## 8. 验收反馈修复：折叠导航图标被滚动条挤压（2026-10-05）
+
+- 改动来源核对：本次 SalesBinder 升级对 `AppLayout.tsx` 的导航修改只有补货、报价、账单三个入口；没有修改导航配色、图标样式、折叠宽度或依赖组件版本。现有侧栏蓝色、边框及折叠按钮样式已存在于 `7e02c9f`（2026-08-22）。
+- 原因：折叠栏为 64px，原生滚动条占用内容宽度后，菜单项只剩约 24px；组件的图标容器仍有 40px 最小宽度，图标越过菜单项边界而被裁切。菜单较多时更容易出现滚动条。
+- 修复范围：只在 `frontend/src/styles.css` 为折叠菜单图标容器设置 `min-width: 0; width: 100%`。保留配色、图标、64px 折叠宽度、232px 展开宽度、菜单顺序及原生滚动方式；没有业务或数据库改动。
+- 真实浏览器检查：1280×720 窗口修复前 19/19 图标横向越界，修复后 0/19 越界；展开、滚动到底部以及底部渠道集成子菜单均正常。1280×1024 无滚动条状态也无越界，检查后已恢复原窗口尺寸。
+- 导航现有 8 项测试、类型检查与前端构建通过；新构建已由 55173 候选入口提供。原 5173/8080 环境没有切换。
+- 证据：`browser/sidebar-layout-verification.json`、`browser/09-sidebar-before.png`、`browser/11-sidebar-fixed.png`、`browser/12-sidebar-bottom.png`、`browser/13-sidebar-submenu.png`、`browser/14-sidebar-no-overflow.png`，以及 `sidebar-tests.log`、`sidebar-typecheck.log` 和 `sidebar-build.log`。
