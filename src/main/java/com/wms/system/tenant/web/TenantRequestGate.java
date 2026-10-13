@@ -18,7 +18,7 @@ public class TenantRequestGate {
     private static final Set<String> APP_EXACT_PATHS = Set.of(
         "/health/check",
         "/api/auth/health",
-        "/api/auth/login",
+        "/public/v1/account-finder",
         "/api/webhooks/shopify",
         "/public/v1/signup",
         "/public/v1/email-verification",
@@ -28,6 +28,10 @@ public class TenantRequestGate {
     public GateDecision decide(TenantContext context, HttpServletRequest request) {
         String path = request.getRequestURI();
         RequestSurface surface = context.surface();
+
+        if (path.equals("/public/v1/entry") && request.getMethod().equals("GET")) {
+            return GateDecision.allow();
+        }
 
         if (surface == RequestSurface.LOCAL_DEVELOPMENT) {
             return GateDecision.allow();
@@ -73,7 +77,8 @@ public class TenantRequestGate {
     }
 
     private boolean isNonTenantSurfacePath(String path) {
-        return path.equals("/public/v1/signup")
+        return path.equals("/public/v1/account-finder")
+            || path.equals("/public/v1/signup")
             || path.startsWith("/public/v1/signup/")
             || path.equals("/public/v1/email-verification")
             || path.startsWith("/public/v1/email-verification/")

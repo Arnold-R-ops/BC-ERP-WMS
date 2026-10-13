@@ -237,6 +237,6 @@ class PlatformCompanyDataServiceIntegrationTest {
             new PlatformSecurityUser(actor), null, List.of(new SimpleGrantedAuthority(authority))));
     }
     private void inCompany(Tenant tenant, Runnable action) {
-        TenantContextHolder.runWithTenant(PlatformCompanyDataService.context(tenant), action);
+        TenantContextHolder.runWithTenant(PlatformCompanyDataService.context(tenant, "bcwms.com"), action);
     }
 }

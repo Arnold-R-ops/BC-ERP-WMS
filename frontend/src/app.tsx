@@ -5,11 +5,12 @@ import zhCN from 'antd/locale/zh_CN';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { canAccessModule, type AppModule } from './access';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { TenantAccessBoundary } from './auth/TenantAccessBoundary';
 import { LoginPage } from './pages/LoginPage';
+import { AccountFinderPage } from './pages/AccountFinderPage';
 import { SessionHandoffPage } from './pages/SessionHandoffPage';
 
 const AppLayout = lazy(() =>
@@ -305,14 +306,14 @@ function AppRoutes(): JSX.Element {
   );
 }
 
-export function App(): JSX.Element {
+export function App({ publicEntry = false, baseDomain = '' }: { publicEntry?: boolean; baseDomain?: string }): JSX.Element {
   const { i18n, t } = useTranslation();
   const locale = i18n.language === 'en-US' ? enUS : zhCN;
   const proLocale = i18n.language === 'en-US' ? enUSIntl : zhCNIntl;
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
-    document.title = t('app.name');
+    document.title = 'FONGVO Ledger';
   }, [i18n.language, t]);
 
   return (
@@ -352,16 +353,19 @@ export function App(): JSX.Element {
       <ProConfigProvider intl={proLocale}>
         <AntdApp>
           <QueryClientProvider client={queryClient}>
-            <HashRouter
+            <BrowserRouter
               future={{
                 v7_relativeSplatPath: true,
                 v7_startTransition: true,
               }}
             >
-              <AuthProvider onSessionScopeChange={() => queryClient.clear()}>
+              {publicEntry ? <Routes>
+                <Route path="/account-finder" element={<AccountFinderPage baseDomain={baseDomain} />} />
+                <Route path="*" element={<Navigate to="/account-finder" replace />} />
+              </Routes> : <AuthProvider onSessionScopeChange={() => queryClient.clear()}>
                 <AppRoutes />
-              </AuthProvider>
-            </HashRouter>
+              </AuthProvider>}
+            </BrowserRouter>
           </QueryClientProvider>
         </AntdApp>
       </ProConfigProvider>

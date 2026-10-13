@@ -19,6 +19,17 @@ public final class CompanyScope {
 
     public static final long LEGACY_COMPANY_ID = 1L;
 
+    /** No implicit company 1 in production ORM/RLS sessions, including background work. */
+    public static Long persistenceCompanyId(boolean tenancyEnabled) {
+        TenantContext context = TenantContextHolder.current().orElse(null);
+        if (context != null && (context.surface() == RequestSurface.APP
+                || context.surface() == RequestSurface.PLATFORM)) return -1L;
+        if (tenancyEnabled && (context == null || !context.isTenantRequest())
+                && companyIdFrom(SecurityContextHolder.getContext().getAuthentication()) == null
+                && com.wms.system.tenant.security.TenantExecutionScope.current() == null) return -1L;
+        return currentCompanyId();
+    }
+
     private CompanyScope() {
     }
 

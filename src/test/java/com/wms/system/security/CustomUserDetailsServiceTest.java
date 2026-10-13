@@ -44,6 +44,8 @@ class CustomUserDetailsServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private com.wms.system.identity.service.LedgerIdentityAccess identityAccess;
 
     @InjectMocks
     private CustomUserDetailsService userDetailsService;

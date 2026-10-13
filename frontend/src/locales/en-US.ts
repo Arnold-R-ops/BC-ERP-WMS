@@ -1,4 +1,12 @@
 const enUS = {
+  ledgerEntry: {
+    findAccount: 'Enter your registered email to find your Ledger account',
+    email: 'Email', emailRequired: 'Enter your email', emailInvalid: 'Enter a valid email',
+    continue: 'Continue', identifier: 'Email or username',
+    unavailable: 'No available account was found. Check your email or contact your administrator.',
+    rateLimited: 'Too many requests. Please try again in one minute.',
+    entryFailed: 'Unable to connect to the login service. Please reload and try again.',
+  },
   commercial: { quotations: 'Quotations', invoices: 'Invoices and receipts' },
   upgrade: {
     closedRemainder: 'Remainder closed',

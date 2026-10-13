@@ -22,7 +22,7 @@ export function SessionHandoffPage(): JSX.Element {
     window.history.replaceState(
       null,
       document.title,
-      `${window.location.pathname}${window.location.search}#/session/handoff`,
+      '/session/handoff',
     );
     if (!code) {
       setState('failed');

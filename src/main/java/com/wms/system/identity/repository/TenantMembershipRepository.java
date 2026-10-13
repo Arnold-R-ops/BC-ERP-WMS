@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.List;
 
 public interface TenantMembershipRepository extends JpaRepository<TenantMembership, Long> {
+    Optional<TenantMembership> findByTenantIdAndTenantUserId(Long tenantId, Long tenantUserId);
     Optional<TenantMembership> findByIdentityIdAndTenantId(Long identityId, Long tenantId);
 
     List<TenantMembership> findByIdentityIdAndStatusIn(

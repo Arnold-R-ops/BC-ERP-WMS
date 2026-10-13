@@ -9,7 +9,7 @@ function projectEntry(fileName: string): string {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: './',
+    base: '/',
     plugins: [react()],
     server: {
       host: '127.0.0.1',

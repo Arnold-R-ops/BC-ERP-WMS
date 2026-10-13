@@ -70,6 +70,8 @@ class AuthControllerTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private com.wms.system.identity.service.LedgerIdentityAccess identityAccess;
 
     @Mock
     private SysRoleRepository roleRepository;

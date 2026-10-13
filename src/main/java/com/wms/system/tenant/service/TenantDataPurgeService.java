@@ -18,6 +18,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class TenantDataPurgeService {
+    private final com.wms.system.tenant.config.TenancyProperties tenancyProperties;
     private final TenantRepository tenantRepository;
     private final TenantPurgeJobRepository purgeJobRepository;
     private final PlatformExportJobRepository exportJobRepository;
@@ -33,7 +34,7 @@ public class TenantDataPurgeService {
         if (tenant == null) return;
         deleteExportArtifacts(tenantId);
         TenantContext context = new TenantContext(tenant.getId(), tenant.getSlug(),
-            tenant.getSlug() + ".bcwms.com", RequestSurface.TENANT, TenantStatus.PURGE_PENDING);
+            tenant.getSlug() + "." + tenancyProperties.getBaseDomain(), RequestSurface.TENANT, TenantStatus.PURGE_PENDING);
         try {
             TenantContextHolder.runWithResolvedTenant(context, () -> {
                 executor.execute(tenantId);

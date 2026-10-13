@@ -1,0 +1,75 @@
+# Render only the named uppercase placeholders, then run nginx -t before install.
+# Included inside nginx's http {}. This does not replace the existing fongvo.com website.
+log_format ledger_no_query '$remote_addr $host [$time_local] "$request_method $uri $server_protocol" $status $body_bytes_sent';
+limit_req_zone $binary_remote_addr zone=ledger_finder:10m rate=20r/m;
+limit_req_zone $binary_remote_addr zone=ledger_login:10m rate=20r/m;
+upstream ledger_backend { server 127.0.0.1:8080; }
+
+server {
+    listen 80;
+    server_name ${LEDGER_PUBLIC_HOST} *.${LEDGER_BASE_DOMAIN} ${LEDGER_PLATFORM_HOST};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name ${LEDGER_PUBLIC_HOST} *.${LEDGER_BASE_DOMAIN};
+    ssl_certificate ${LEDGER_TLS_FULLCHAIN};
+    ssl_certificate_key ${LEDGER_TLS_KEY};
+    root ${LEDGER_FRONTEND_ROOT};
+    index index.html;
+    access_log /var/log/nginx/ledger-access.log ledger_no_query;
+    add_header Referrer-Policy no-referrer always;
+    add_header X-Content-Type-Options nosniff always;
+
+    location = /public/v1/account-finder {
+        client_max_body_size 2k;
+        limit_req zone=ledger_finder burst=5 nodelay;
+        limit_req_status 429;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Host "";
+        proxy_set_header Forwarded "";
+        proxy_pass http://ledger_backend;
+    }
+    location = /api/auth/login {
+        client_max_body_size 4k;
+        limit_req zone=ledger_login burst=5 nodelay;
+        limit_req_status 429;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host "";
+        proxy_set_header Forwarded "";
+        proxy_pass http://ledger_backend;
+    }
+    location ~ ^/(api|public)/ {
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host "";
+        proxy_set_header Forwarded "";
+        proxy_pass http://ledger_backend;
+    }
+    location /assets/ { try_files $uri =404; }
+    location = /index.html { add_header Cache-Control "no-store"; }
+    location = /service-worker.js { add_header Cache-Control "no-cache"; }
+    location / { try_files $uri $uri/ /index.html; }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${LEDGER_PLATFORM_HOST};
+    ssl_certificate ${LEDGER_TLS_FULLCHAIN};
+    ssl_certificate_key ${LEDGER_TLS_KEY};
+    root ${LEDGER_FRONTEND_ROOT};
+    index platform.html;
+    access_log /var/log/nginx/ledger-platform-access.log ledger_no_query;
+    add_header Referrer-Policy no-referrer always;
+    add_header X-Content-Type-Options nosniff always;
+    location ~ ^/(api|public)/ {
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host "";
+        proxy_set_header Forwarded "";
+        proxy_pass http://ledger_backend;
+    }
+    location /assets/ { try_files $uri =404; }
+    location = /platform.html { add_header Cache-Control "no-store"; }
+    location / { try_files $uri $uri/ /platform.html; }
+}

@@ -56,6 +56,7 @@ import java.util.Map;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final com.wms.system.identity.service.LedgerIdentityAccess identityAccess;
 
     /**
      * ⭐ Load User by Username (Required by Spring Security)
@@ -110,6 +111,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         // Wrap User in SecurityUser for consistent security context
         // DynamicAuthorizationManager expects SecurityUser to extract user ID
+        try {
+            identityAccess.requireAccess(user);
+        } catch (org.springframework.security.authentication.DisabledException unavailable) {
+            throw new UsernameNotFoundException("Invalid credentials");
+        }
         return new SecurityUser(user);
     }
 
@@ -127,6 +133,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public SecurityUser loadTenantUser(Long userId, Long companyId) {
         User user = userRepository.findByIdAndCompanyId(userId, companyId)
             .orElseThrow(() -> new UsernameNotFoundException("Invalid authentication token"));
+        identityAccess.requireAccess(user);
         return new SecurityUser(user);
     }
 

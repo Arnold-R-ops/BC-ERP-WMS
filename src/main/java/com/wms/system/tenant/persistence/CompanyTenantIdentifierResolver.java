@@ -24,6 +24,11 @@ public final class CompanyTenantIdentifierResolver
 
     /** PostgreSQL BIGINT company identifiers are positive. */
     public static final long NO_COMPANY_ID = -1L;
+    private final boolean tenancyEnabled;
+
+    public CompanyTenantIdentifierResolver(boolean tenancyEnabled) {
+        this.tenancyEnabled = tenancyEnabled;
+    }
 
     @Override
     public Long resolveCurrentTenantIdentifier() {
@@ -33,7 +38,7 @@ public final class CompanyTenantIdentifierResolver
                     || context.surface() == RequestSurface.PLATFORM)) {
             return NO_COMPANY_ID;
         }
-        return CompanyScope.currentCompanyId();
+        return CompanyScope.persistenceCompanyId(tenancyEnabled);
     }
 
     @Override

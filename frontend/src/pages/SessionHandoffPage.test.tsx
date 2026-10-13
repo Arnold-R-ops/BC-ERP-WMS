@@ -20,6 +20,7 @@ describe('company session handoff page', () => {
   });
 
   it('consumes the fragment code once and enters the dashboard', async () => {
+    window.history.replaceState(null, '', '/session/handoff?code=single-use-code');
     completeHandoff.mockResolvedValue({ token: 'company-token' });
 
     render(

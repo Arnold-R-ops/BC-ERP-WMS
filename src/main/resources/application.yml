@@ -120,8 +120,7 @@ wms:
     # Keep runtime tenancy opt-in until onboarding, platform-access APIs and
     # production routing have completed end-to-end verification.
     enabled: ${WMS_TENANCY_ENABLED:false}
-    # Foundation-release startup validation deliberately rejects true until
-    # the remaining SaaS runtime stages are complete.
+    # Enabled tenancy requires safe database credentials and no localhost fallback.
     base-domain: ${WMS_BASE_DOMAIN:bcwms.com}
     app-host: ${WMS_APP_HOST:app.bcwms.com}
     platform-host: ${WMS_PLATFORM_HOST:platform.bcwms.com}

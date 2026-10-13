@@ -23,6 +23,7 @@ import java.util.zip.*;
 @Service
 @RequiredArgsConstructor
 public class PlatformExportWorker {
+    private final com.wms.system.tenant.config.TenancyProperties tenancyProperties;
     private final PlatformExportJobRepository jobRepository;
     private final TenantRepository tenantRepository;
     private final EntityManager entityManager;
@@ -56,7 +57,7 @@ public class PlatformExportWorker {
             try(var admission=com.wms.system.tenant.security.TenantExecutionScope.open(tenant.getId(),
                     com.wms.system.tenant.security.TenantOperationPurpose.PLATFORM_READ,null)) {
                 result = TenantContextHolder.runWithResolvedTenant(
-                    PlatformCompanyDataService.context(tenant), () -> export(seed, tenant));
+                    PlatformCompanyDataService.context(tenant, tenancyProperties.getBaseDomain()), () -> export(seed, tenant));
             }
             safety.requireWorkerExport(seed.getPlatformUserId(),seed.getTargetTenantId(),seed.getRequestedResource(),seed.getAccessReason());
             var completedSafety=safety.auditDecodedContext(seed.getTargetTenantId(),seed.getAccessReason());

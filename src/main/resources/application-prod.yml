@@ -14,6 +14,7 @@
 
 spring:
   jpa:
+    open-in-view: false
     show-sql: false
     properties:
       hibernate:
@@ -46,6 +47,11 @@ wms:
     lock-minutes: 15
     challenge-cleanup-cron: ${WMS_PLATFORM_MFA_CLEANUP_CRON:0 10 * * * *}
   tenancy:
+    enabled: true
+    base-domain: ${WMS_BASE_DOMAIN:ledger.fongvo.com}
+    app-host: ${WMS_APP_HOST:ledger.fongvo.com}
+    # Choose the platform hostname before deployment; no assumed public platform address.
+    platform-host: ${WMS_PLATFORM_HOST}
     require-safe-database-role: true
     purge-cron: ${WMS_TENANT_PURGE_CRON:0 20 * * * *}
     allow-local-development-host: false

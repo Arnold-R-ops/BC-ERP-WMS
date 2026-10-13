@@ -21,6 +21,7 @@ export function LoginPage(): JSX.Element {
   const location = useLocation();
 
   useEffect(() => {
+    document.title = 'FONGVO Ledger';
     const state = location.state as LoginLocationState | null;
     if (state?.passwordChanged) {
       message.success(t('auth.passwordChanged'));
@@ -51,7 +52,8 @@ export function LoginPage(): JSX.Element {
       </div>
 
       <section className="login-panel" aria-labelledby="login-title">
-        <div className="brand-mark" aria-hidden="true">2G</div>
+        <img src="/fongvo-mark.svg" alt="" width={48} height={48} />
+        <Typography.Text strong>FONGVO Ledger</Typography.Text>
         <Typography.Title id="login-title" level={2}>
           {t('auth.loginTitle')}
         </Typography.Title>
@@ -60,17 +62,18 @@ export function LoginPage(): JSX.Element {
         </Typography.Paragraph>
 
         <Form<LoginRequest>
+          initialValues={{ username: new URLSearchParams(location.search).get('email')?.slice(0, 254) ?? '' }}
           layout="vertical"
           onFinish={(values) => void handleSubmit(values)}
           requiredMark={false}
           size="large"
         >
           <Form.Item
-            label={t('auth.username')}
+            label={t('ledgerEntry.identifier')}
             name="username"
             rules={[{ required: true, message: t('auth.usernameRequired') }]}
           >
-            <Input autoComplete="username" prefix={<UserOutlined />} />
+            <Input autoComplete="username" prefix={<UserOutlined />} maxLength={254} />
           </Form.Item>
           <Form.Item
             label={t('auth.password')}

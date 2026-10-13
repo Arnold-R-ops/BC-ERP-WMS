@@ -33,6 +33,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class PlatformOperationAuthorizationService {
+    private final com.wms.system.tenant.config.TenancyProperties tenancyProperties;
     private final PlatformOperationAuthorizationRepository repository;
     private final TenantRepository tenantRepository;
     private final ProductRepository productRepository;
@@ -168,7 +169,7 @@ public class PlatformOperationAuthorizationService {
     private PlatformSecurityUser platformActorForLookup() { Authentication a = SecurityContextHolder.getContext().getAuthentication(); if (a == null || !(a.getPrincipal() instanceof PlatformSecurityUser u)) throw new AccessDeniedException("Platform authentication is required"); return u; }
     private boolean hasPlatformSuperAdmin() { Authentication a = SecurityContextHolder.getContext().getAuthentication(); return a != null && a.getAuthorities().stream().anyMatch(x -> "ROLE_PLATFORM_SUPER_ADMIN".equals(x.getAuthority())); }
     private Tenant requireOperable(Long id) { return tenantRepository.findById(id).filter(t -> t.getStatus() == TenantStatus.ACTIVE || t.getStatus() == TenantStatus.SUSPENDED).orElseThrow(() -> new IllegalStateException("Company is not operable")); }
-    private TenantContext context(Tenant t) { return new TenantContext(t.getId(), t.getSlug(), t.getSlug() + ".bcwms.com", RequestSurface.TENANT, t.getStatus()); }
+    private TenantContext context(Tenant t) { return new TenantContext(t.getId(), t.getSlug(), t.getSlug() + "." + tenancyProperties.getBaseDomain(), RequestSurface.TENANT, t.getStatus()); }
     private String normalizedOperation(String operation) { String result = operation == null ? "" : operation.trim().toUpperCase(Locale.ROOT); if (!Set.of("WRITE","DELETE").contains(result)) throw new IllegalArgumentException("Unsupported operation type"); return result; }
     private String scope(PlatformOperationRequest r) { return r.resourceType() + ":" + r.resourceId(); }
     private String trimReason(String value) { String result = value == null ? "" : value.trim(); if (result.isEmpty() || result.length() > 500) throw new IllegalArgumentException("Operation reason is required"); return result; }

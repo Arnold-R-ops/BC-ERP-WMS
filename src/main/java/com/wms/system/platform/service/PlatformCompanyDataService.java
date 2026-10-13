@@ -22,6 +22,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class PlatformCompanyDataService {
+    private final com.wms.system.tenant.config.TenancyProperties tenancyProperties;
     private final TenantRepository tenantRepository;
     private final PlatformTenantDirectoryRepository platformTenantDirectoryRepository;
     private final EntityManager entityManager;
@@ -97,7 +98,7 @@ public class PlatformCompanyDataService {
         int safeSize = Math.min(Math.max(1, size), properties.getMaxPageSize());
         try (var admission=com.wms.system.tenant.security.TenantExecutionScope.open(companyId,
                 com.wms.system.tenant.security.TenantOperationPurpose.PLATFORM_READ,null)) {
-            PlatformDataPage result = TenantContextHolder.runWithResolvedTenant(context(tenant), () -> {
+            PlatformDataPage result = TenantContextHolder.runWithResolvedTenant(context(tenant, tenancyProperties.getBaseDomain()), () -> {
                 TransactionTemplate transaction = new TransactionTemplate(transactionManager);
                 transaction.setReadOnly(true);
                 return transaction.execute(status -> {
@@ -141,8 +142,8 @@ public class PlatformCompanyDataService {
             .orElseThrow(() -> new NoSuchElementException("Company data is unavailable"));
     }
 
-    public static TenantContext context(Tenant tenant) {
-        return new TenantContext(tenant.getId(), tenant.getSlug(), tenant.getSlug() + ".bcwms.com",
+    public static TenantContext context(Tenant tenant, String baseDomain) {
+        return new TenantContext(tenant.getId(), tenant.getSlug(), tenant.getSlug() + "." + baseDomain,
             RequestSurface.TENANT, tenant.getStatus());
     }
 }

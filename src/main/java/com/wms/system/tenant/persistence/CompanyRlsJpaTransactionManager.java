@@ -33,13 +33,15 @@ public final class CompanyRlsJpaTransactionManager implements PlatformTransactio
 
     private final JpaTransactionManager delegate;
     private final DataSource dataSource;
+    private final boolean tenancyEnabled;
 
     public CompanyRlsJpaTransactionManager(
             EntityManagerFactory entityManagerFactory,
-            DataSource dataSource) {
+            DataSource dataSource, boolean tenancyEnabled) {
         this.delegate = new JpaTransactionManager(entityManagerFactory);
         this.delegate.setDataSource(dataSource);
         this.dataSource = dataSource;
+        this.tenancyEnabled = tenancyEnabled;
     }
 
     @Override
@@ -104,6 +106,6 @@ public final class CompanyRlsJpaTransactionManager implements PlatformTransactio
                     || context.surface() == RequestSurface.PLATFORM)) {
             return CompanyTenantIdentifierResolver.NO_COMPANY_ID;
         }
-        return CompanyScope.currentCompanyId();
+        return CompanyScope.persistenceCompanyId(tenancyEnabled);
     }
 }

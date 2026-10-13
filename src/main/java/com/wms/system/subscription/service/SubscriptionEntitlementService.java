@@ -41,6 +41,12 @@ public class SubscriptionEntitlementService {
             .anyMatch(key -> ALL_SERVICES.equals(key) || entitlementKey.equals(key));
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasActiveSubscription(Long tenantId) {
+        return tenantSubscriptionRepository.findByTenantId(tenantId)
+            .filter(this::isEntitlementEligible).isPresent();
+    }
+
     private boolean isEntitlementEligible(TenantSubscription subscription) {
         SubscriptionStatus status = subscription.getStatus();
         if (status == SubscriptionStatus.ACTIVE || status == SubscriptionStatus.FREE) {

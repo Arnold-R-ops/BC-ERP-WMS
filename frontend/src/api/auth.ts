@@ -19,6 +19,7 @@ export function login(request: LoginRequest): Promise<LoginResponse> {
     method: 'POST',
     body: request,
     suppressAuthEvents: true,
+    omitAuth: true,
   });
 }
 

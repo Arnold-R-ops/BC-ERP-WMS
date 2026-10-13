@@ -35,6 +35,7 @@ public class SessionHandoffService {
     private final DynamicPermissionService permissionService;
     private final JwtUtil jwtUtil;
     private final JwtProperties jwtProperties;
+    private final com.wms.system.identity.service.LedgerIdentityAccess identityAccess;
     private final org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     public LoginResponse consume(String rawCode) {
@@ -65,6 +66,11 @@ public class SessionHandoffService {
             .filter(User::isEnabled)
             .filter(candidate -> !Boolean.TRUE.equals(candidate.getIsDeleted()))
             .orElseThrow(() -> new BusinessException(ErrorKeys.SESSION_HANDOFF_INVALID));
+        try {
+            identityAccess.requireAccess(user);
+        } catch (org.springframework.security.authentication.DisabledException unavailable) {
+            throw new BusinessException(ErrorKeys.SESSION_HANDOFF_INVALID);
+        }
         List<SysRole> activeRoles = userRoleService.getUserRoles(hostTenant, user.getId())
             .stream()
             .filter(SysRole::isActive)

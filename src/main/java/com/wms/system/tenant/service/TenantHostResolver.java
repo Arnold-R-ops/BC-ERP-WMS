@@ -43,7 +43,7 @@ public class TenantHostResolver {
             return Optional.of(new TenantContext(null, null, host, RequestSurface.LOCAL_DEVELOPMENT, null));
         }
 
-        String suffix = "." + properties.getBaseDomain().toLowerCase(Locale.ROOT);
+        String suffix = "." + normalizeConfiguredHost(properties.getBaseDomain());
         if (!host.endsWith(suffix)) {
             return Optional.empty();
         }

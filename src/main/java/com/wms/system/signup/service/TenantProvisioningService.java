@@ -276,9 +276,12 @@ public class TenantProvisioningService {
 
     private void rejectSlug(String slug) {
         String normalized = normalizeSlug(slug);
+        String hostname = normalized + "." + tenancyProperties.getBaseDomain();
         if (tenancyProperties.getReservedSlugs().stream().anyMatch(s -> s.equalsIgnoreCase(normalized))
+                || hostname.equalsIgnoreCase(tenancyProperties.getAppHost())
+                || hostname.equalsIgnoreCase(tenancyProperties.getPlatformHost())
                 || tenantRepository.existsBySlug(normalized)
-                || domainRepository.existsByHostname(normalized + "." + tenancyProperties.getBaseDomain())) {
+                || domainRepository.existsByHostname(hostname)) {
             throw new BusinessException(ErrorKeys.SIGNUP_SLUG_UNAVAILABLE);
         }
     }

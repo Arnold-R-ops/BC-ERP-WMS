@@ -1,4 +1,12 @@
 const zhCN = {
+  ledgerEntry: {
+    findAccount: '输入注册邮箱，进入您的 Ledger 账户',
+    email: '邮箱', emailRequired: '请输入邮箱', emailInvalid: '请输入有效邮箱',
+    continue: '继续', identifier: '邮箱或用户名',
+    unavailable: '暂时无法找到可用账户，请核对邮箱或联系管理员。',
+    rateLimited: '查询过于频繁，请一分钟后重试。',
+    entryFailed: '暂时无法连接登录服务，请刷新页面重试。',
+  },
   commercial: { quotations: '报价', invoices: '账单与收款' },
   upgrade: {
     closedRemainder: '关闭剩余',

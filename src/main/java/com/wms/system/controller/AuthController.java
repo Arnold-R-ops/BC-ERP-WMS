@@ -96,6 +96,7 @@ public class AuthController {
     private final DynamicPermissionService dynamicPermissionService;
     private final TenancyProperties tenancyProperties;
     private final UserManagementService userManagementService;
+    private final com.wms.system.identity.service.LedgerIdentityAccess identityAccess;
 
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
@@ -140,11 +141,13 @@ public class AuthController {
         try {
             // 1. Authenticate user credentials via Spring Security
             TenantContext requestContext = TenantContextHolder.current().orElse(null);
+            String loginUsername = request.getUsername();
             Authentication authentication;
             if (requestContext != null
                     && requestContext.surface() == RequestSurface.TENANT) {
+                loginUsername = identityAccess.resolveUsername(requestContext.tenantId(), loginUsername);
                 User credentialUser = userRepository.findByCompanyIdAndUsername(
-                        requestContext.tenantId(), request.getUsername())
+                        requestContext.tenantId(), loginUsername)
                     .orElseThrow(() -> new BusinessException(
                         ErrorKeys.AUTH_INVALID_CREDENTIALS, Map.of()));
                 authentication = authenticationManager.authenticate(
@@ -167,7 +170,7 @@ public class AuthController {
             User user = (requestContext != null
                     && requestContext.surface() == RequestSurface.TENANT)
                 ? userRepository.findByCompanyIdAndUsername(
-                        requestContext.tenantId(), request.getUsername())
+                        requestContext.tenantId(), loginUsername)
                     .orElseThrow(() -> new BusinessException(
                         ErrorKeys.AUTH_INVALID_CREDENTIALS, Map.of()))
                 : userRepository.findByUsername(request.getUsername())

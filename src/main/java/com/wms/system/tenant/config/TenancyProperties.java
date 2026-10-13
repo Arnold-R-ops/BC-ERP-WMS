@@ -35,27 +35,33 @@ public class TenancyProperties {
         "static", "cdn", "status", "help"
     ));
 
-    @AssertTrue(message = "wms.tenancy.enabled cannot be true before all isolation enforcement is ready")
+    @AssertTrue(message = "Enabled tenancy requires a safe database role and forbids local host fallback")
     public boolean isSafeToEnable() {
-        // Foundation-release safety interlock. Enabling tenancy must require a
-        // deliberate code change after onboarding, platform-access APIs and
-        // end-to-end production routing are complete; it cannot be bypassed by
-        // a second environment variable.
-        return !enabled;
+        return !enabled || (requireSafeDatabaseRole && !allowLocalDevelopmentHost);
     }
 
-    @AssertTrue(message = "Tenant app/platform hosts must be distinct subdomains of the base domain")
+    @AssertTrue(message = "Public host must be the base domain or its child; platform must be a distinct child")
     public boolean isHostTopologyValid() {
         String base = normalize(baseDomain);
         String app = normalize(appHost);
         String platform = normalize(platformHost);
-        return !base.isBlank()
+        return validHostname(base) && validHostname(app) && validHostname(platform)
             && !app.equals(platform)
-            && app.endsWith("." + base)
+            && (app.equals(base) || app.endsWith("." + base))
             && platform.endsWith("." + base);
+    }
+
+    private static boolean validHostname(String value) {
+        return value.length() <= 253 && value.contains(".")
+            && java.util.Arrays.stream(value.split("\\.", -1)).allMatch(label ->
+                label.matches("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"));
     }
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
+
+    public void setBaseDomain(String value) { baseDomain = normalize(value); }
+    public void setAppHost(String value) { appHost = normalize(value); }
+    public void setPlatformHost(String value) { platformHost = normalize(value); }
 }

@@ -63,16 +63,17 @@ public class WmsSystemApplication {
      * the production application use the exact same company discriminator.
      */
     @Bean
-    public CompanyTenantIdentifierResolver companyTenantIdentifierResolver() {
-        return new CompanyTenantIdentifierResolver();
+    public CompanyTenantIdentifierResolver companyTenantIdentifierResolver(org.springframework.core.env.Environment environment) {
+        return new CompanyTenantIdentifierResolver(environment.getProperty("wms.tenancy.enabled", Boolean.class, false));
     }
 
     /** Sets PostgreSQL's transaction-local company id before any ORM query. */
     @Bean
     public PlatformTransactionManager transactionManager(
             EntityManagerFactory entityManagerFactory,
-            DataSource dataSource) {
-        return new CompanyRlsJpaTransactionManager(entityManagerFactory, dataSource);
+            DataSource dataSource, org.springframework.core.env.Environment environment) {
+        return new CompanyRlsJpaTransactionManager(entityManagerFactory, dataSource,
+            environment.getProperty("wms.tenancy.enabled", Boolean.class, false));
     }
 
     /**

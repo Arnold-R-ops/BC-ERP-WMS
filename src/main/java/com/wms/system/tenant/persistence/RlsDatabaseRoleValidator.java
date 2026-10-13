@@ -16,9 +16,14 @@ public class RlsDatabaseRoleValidator implements ApplicationRunner {
 
     private final JdbcTemplate jdbcTemplate;
     private final TenancyProperties tenancyProperties;
+    private final org.springframework.core.env.Environment environment;
 
     @Override
     public void run(ApplicationArguments args) {
+        if (tenancyProperties.isEnabled()
+                && environment.getProperty("spring.jpa.open-in-view", Boolean.class, true)) {
+            throw new IllegalStateException("Enabled tenancy requires spring.jpa.open-in-view=false");
+        }
         DatabaseRole role = jdbcTemplate.queryForObject("""
             SELECT rolname, rolsuper, rolbypassrls
             FROM pg_roles
