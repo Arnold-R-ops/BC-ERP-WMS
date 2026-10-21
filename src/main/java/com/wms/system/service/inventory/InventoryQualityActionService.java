@@ -497,6 +497,9 @@ public class InventoryQualityActionService {
         if (quantity == source.getQuantity()) {
             result = source;
         } else {
+            if (source.getStocktakeTaskId() != null) throw new BusinessException("PACKAGING_STOCKTAKE_LOCKED");
+            // A quality segment specifies units, not which physical opened box supplied them.
+            source.setPackaging(null);
             source.setQuantity(source.getQuantity() - quantity);
             batchRepository.saveAndFlush(source);
             String segmentNo = segmentNumber(action, ordinal);

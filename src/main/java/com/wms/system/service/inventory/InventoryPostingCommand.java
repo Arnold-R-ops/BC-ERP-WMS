@@ -11,6 +11,11 @@ public record InventoryPostingCommand(
     Long productSkuId,
     Long locationId,
     Integer delta,
-    PostingContext context
+    PostingContext context,
+    com.wms.system.entity.StockPackaging packagingAfter
 ) {
+    public InventoryPostingCommand(Long inventoryBatchId, Long productSkuId, Long locationId,
+                                   Integer delta, PostingContext context) {
+        this(inventoryBatchId, productSkuId, locationId, delta, context, null);
+    }
 }

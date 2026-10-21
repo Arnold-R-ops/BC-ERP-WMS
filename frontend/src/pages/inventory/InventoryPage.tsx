@@ -270,6 +270,7 @@ export function InventoryPage(): JSX.Element {
       />
 
       <InventoryDetailsDrawer
+        onInventoryChange={() => { void actionRef.current?.reload(); }}
         nearExpiryDays={nearExpiryThresholds.get(selectedSummary?.productSkuId ?? -1)}
         onClose={() => setSelectedSummary(undefined)}
         open={selectedSummary !== undefined}

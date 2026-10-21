@@ -29,6 +29,14 @@ public class SubmitCountRequest {
     @Min(value = 0, message = "实盘数量不能为负数")
     private Integer countedQty;
 
+    @jakarta.validation.Valid
+    private com.wms.system.entity.StockPackaging packaging;
+
+    public SubmitCountRequest(Integer countedQty, String remark) {
+        this.countedQty = countedQty;
+        this.remark = remark;
+    }
+
     /**
      * Remark (optional)
      */

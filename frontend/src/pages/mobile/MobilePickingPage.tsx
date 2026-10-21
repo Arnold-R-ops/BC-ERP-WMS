@@ -4,6 +4,8 @@ import { App as AntdApp, Button, Empty, InputNumber, Progress, Select, Skeleton,
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
+import { PackagingPicker } from '../inventory/PackagingPicker';
+import type { PackagingSelection } from '../../api/packaging';
 import {
   dispatchOutboundTask,
   listOutboundTasks,
@@ -22,6 +24,8 @@ export function MobilePickingPage(): JSX.Element {
   const [locationVerified, setLocationVerified] = useState(false);
   const [identityVerified, setIdentityVerified] = useState(false);
   const [actualQty, setActualQty] = useState(0);
+  const [packagingSelection, setPackagingSelection] = useState<PackagingSelection>();
+  const [packagingValid, setPackagingValid] = useState(false);
   const dispatchAttempt = useRef<OutboundCommandAttempt>();
   const { online } = useMobileOperation();
   const { message } = AntdApp.useApp();
@@ -81,10 +85,11 @@ export function MobilePickingPage(): JSX.Element {
   };
 
   const confirm = async (): Promise<void> => {
-    if (!activeTask?.id || !trackingMode || !online || !locationVerified || !identityVerified) return;
+    if (!activeTask?.id || !trackingMode || !online || !locationVerified || !identityVerified || !packagingValid) return;
     const payload: ConfirmDispatchPayload = trackingMode === 'LOCATION_VISUAL'
       ? { actualQty, locationId: activeTask.locationId, skuCode: activeTask.productSkuCode }
       : { actualQty, batchCode: activeTask.batchCode };
+    payload.packagingSelection = packagingSelection;
     const attempt = resolveOutboundCommandAttempt(
       dispatchAttempt.current,
       'dispatch',
@@ -163,7 +168,9 @@ export function MobilePickingPage(): JSX.Element {
                     <span>{t('mobile.picking.actualQty')}</span>
                     <InputNumber disabled={!online} max={activeTask.planQty ?? 0} min={1} onChange={(value) => setActualQty(Number(value ?? 0))} precision={0} value={actualQty} />
                   </label>
-                  <Button block disabled={!online || !trackingMode || !locationVerified || !identityVerified || actualQty < 1} loading={confirmMutation.isPending} onClick={() => void confirm()} size="large" type="primary">
+                  <PackagingPicker batchId={activeTask.assignedBatchId} quantity={actualQty}
+                    value={packagingSelection} onChange={setPackagingSelection} onValid={setPackagingValid} />
+                  <Button block disabled={!online || !trackingMode || !locationVerified || !identityVerified || actualQty < 1 || !packagingValid} loading={confirmMutation.isPending} onClick={() => void confirm()} size="large" type="primary">
                     {t('mobile.picking.confirm')}
                   </Button>
                 </section>

@@ -171,8 +171,19 @@ public class ReceivingReceiptExecutor {
             request, taskItems, locations, allocations, task.getSourceType());
         Set<Long> receivedSkuIds = new LinkedHashSet<>();
         int sequence = 0;
+        Map<String, String> receiptBatchCodes = new java.util.LinkedHashMap<>();
+        Set<String> receiptLotLocations = new java.util.HashSet<>();
         for (ValidatedLine line : lines) {
-            String batchCode = uniqueNumber("RCB");
+            String lotKey = line.taskItem().getId() + "|" + line.productionDate() + "|" + line.expiryDate() + "|" + line.externalBatchCode();
+            if (!receiptLotLocations.add(lotKey + "|" + line.location().getId()))
+                throw validation("lines.locationId", line.location().getId());
+            String batchCode = receiptBatchCodes.computeIfAbsent(lotKey, ignored -> uniqueNumber("RCB"));
+            if (line.request().packaging() != null) {
+                line.request().packaging().requireTotal(line.request().quantity());
+                int size = line.taskItem().getProductSku().getConversionRate() == null ? 1
+                    : Math.max(1, line.taskItem().getProductSku().getConversionRate());
+                if (line.request().packaging().packSize() != size) throw new BusinessException("PACKAGING_INVALID");
+            }
             boolean inspectionRequired =
                 inspectionPolicyService.requiresInspection(line.taskItem().getProductSku());
             InventoryQualityStatus receiptQualityStatus = inspectionRequired
@@ -214,7 +225,7 @@ public class ReceivingReceiptExecutor {
                     normalizeActor(actorName),
                     postingId,
                     idempotencyKey
-                )
+                ), line.request().packaging()
             ));
 
             event.addItem(ReceiptEventItem.builder()

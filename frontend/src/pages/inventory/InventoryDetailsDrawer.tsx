@@ -1,5 +1,8 @@
 import { Alert, Button, Descriptions, Drawer, Empty, Table, Tag, type TableColumnsType } from 'antd';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { PackagingArrangeModal } from './PackagingArrangeModal';
+import { PackagingSurface } from './PackagingSurface';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { hasPermission } from '../../access';
@@ -18,6 +21,7 @@ interface InventoryDetailsDrawerProps {
   summary?: InventorySummary;
   nearExpiryDays?: number;
   onClose: () => void;
+  onInventoryChange?: () => void;
 }
 
 export function InventoryDetailsDrawer({
@@ -25,13 +29,19 @@ export function InventoryDetailsDrawer({
   summary,
   nearExpiryDays = 90,
   onClose,
+  onInventoryChange,
 }: InventoryDetailsDrawerProps): JSX.Element {
   const { i18n, t } = useTranslation();
   const navigate = useNavigate();
   const { session } = useAuth();
+  const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>([]);
+  const [arrangingIds, setArrangingIds] = useState<number[]>();
+  const canArrange = session?.currentRole === 'TENANT_ADMIN'
+    || hasPermission(session?.currentRole, session?.permissionCodes, 'stocktake:count');
   const canHold = session?.currentRole === 'TENANT_ADMIN'
     || hasPermission(session?.currentRole, session?.permissionCodes, 'inventory_quality:hold');
   const productSkuId = summary?.productSkuId;
+  useEffect(() => { setSelectedBatchIds([]); setArrangingIds(undefined); }, [productSkuId, open]);
   const detailsQuery = useQuery({
     queryKey: ['inventory', 'details', productSkuId],
     queryFn: () => getInventoryDetails(productSkuId as number),
@@ -95,14 +105,18 @@ export function InventoryDetailsDrawer({
       width: 150,
       render: (value: InventoryQualityStatus | undefined) => (
         <Tag color={getQualityStatusColor(value)}>
-          {t(`inventory.qualityStatus.${value ?? 'AVAILABLE'}`)}
+          {t(`purchasing.qualityStatus.${value ?? 'AVAILABLE'}`)}
         </Tag>
       ),
     },
     {
       title: t('inventory.fields.packageStatus'),
       dataIndex: 'packageStatus',
-      width: 130,
+      width: 240,
+      render: (_, row) => row.packaging ? <div>
+        <div>{t('packaging.sealed')}: {row.packaging.sealedBoxes}</div>
+        <div>{t('packaging.openedCount', { count: row.packaging.openedQuantities.length })}: {row.packaging.openedQuantities.map(q => `${q}${row.baseUnit ?? ''}`).join('、') || '—'}</div>
+      </div> : t('packaging.unverified'),
     },
     {
       title: t('inventory.fields.expiryDate'),
@@ -145,7 +159,7 @@ export function InventoryDetailsDrawer({
   ];
 
   return (
-    <Drawer
+    <PackagingSurface><Drawer
       destroyOnHidden
       onClose={onClose}
       open={open}
@@ -166,16 +180,14 @@ export function InventoryDetailsDrawer({
           {
             key: 'total',
             label: t('inventory.fields.onHand'),
-            children: i18n.language === 'zh-CN'
-              ? summary?.displayQuantity ?? summary?.totalQuantity ?? 0
-              : t('common.unitsValue', { count: summary?.totalQuantity ?? 0 }),
+            children: detailsQuery.data ? `${details.reduce((sum, row) => sum + (row.quantity ?? 0), 0)} ${details[0]?.baseUnit ?? ''}`
+              : summary?.displayQuantity ?? summary?.totalQuantity ?? 0,
           },
           {
             key: 'available',
             label: t('inventory.fields.available'),
-            children: i18n.language === 'zh-CN'
-              ? summary?.displayAvailableQuantity ?? summary?.availableQuantity ?? 0
-              : t('common.unitsValue', { count: summary?.availableQuantity ?? 0 }),
+            children: detailsQuery.data ? `${details.reduce((sum, row) => sum + (row.availableQuantity ?? 0), 0)} ${details[0]?.baseUnit ?? ''}`
+              : summary?.displayAvailableQuantity ?? summary?.availableQuantity ?? 0,
           },
         ]}
         size="small"
@@ -200,6 +212,12 @@ export function InventoryDetailsDrawer({
       )}
 
       <Table<InventoryDetail>
+        rowSelection={canArrange ? { selectedRowKeys: selectedBatchIds,
+          onChange: keys => setSelectedBatchIds(keys.map(Number)),
+          getCheckboxProps: row => ({ disabled: !row.batchId || !!row.stocktakeTaskId || (row.reservedQuantity ?? 0) > 0 }),
+        } : undefined}
+        title={canArrange ? () => <Button disabled={selectedBatchIds.length === 0}
+          onClick={() => setArrangingIds(selectedBatchIds)}>{t('packaging.arrange')}</Button> : undefined}
         columns={columns}
         dataSource={details}
         loading={detailsQuery.isLoading}
@@ -215,10 +233,12 @@ export function InventoryDetailsDrawer({
               ? 'inventory-row-near-expiry'
               : '';
         }}
-        rowKey={(record) => `${record.batchCode ?? 'batch'}-${record.locationCode ?? 'location'}`}
+        rowKey="batchId"
         scroll={{ x: 1400 }}
         size="small"
       />
-    </Drawer>
+      {arrangingIds && <PackagingArrangeModal batchIds={arrangingIds} onClose={() => setArrangingIds(undefined)}
+        onSaved={() => { setSelectedBatchIds([]); void detailsQuery.refetch(); onInventoryChange?.(); }} />}
+    </Drawer></PackagingSurface>
   );
 }

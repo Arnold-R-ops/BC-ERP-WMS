@@ -72,6 +72,8 @@ public interface OutboundTaskRepository extends JpaRepository<OutboundTask, Long
      */
     List<OutboundTask> findByAssignedBatchId(Long assignedBatchId);
 
+    boolean existsByAssignedBatchIdInAndStatusIn(List<Long> batchIds, List<OutboundTaskStatus> statuses);
+
     /**
      * 根据状态查询任务列表
      *

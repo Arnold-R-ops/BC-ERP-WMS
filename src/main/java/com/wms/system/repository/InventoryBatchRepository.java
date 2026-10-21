@@ -178,9 +178,18 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
         Number getReturnInspectionQuantity();
         LocalDate getFurthestExpiryDate();
         String getWarehouseNames();
+        Number getSealedBoxes();
+        Number getOpenedBoxes();
+        Number getUnverifiedQuantity();
     }
 
     interface InventoryDetailRow {
+        com.wms.system.entity.StockPackaging getPackaging();
+        Integer getVersion();
+        Long getLocationId();
+        Long getWarehouseId();
+        Long getStocktakeTaskId();
+        String getBaseUnit();
         Long getBatchId();
         String getBatchCode();
         String getWarehouseName();
@@ -205,6 +214,9 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 p.base_unit AS "baseUnit",
                 p.conversion_rate AS "conversionRate",
                 p.safety_stock AS "safetyStock",
+                COALESCE(SUM(CAST(b.packaging->>'sealedBoxes' AS bigint)), 0) AS "sealedBoxes",
+                COALESCE(SUM(jsonb_array_length(b.packaging->'openedQuantities')), 0) AS "openedBoxes",
+                COALESCE(SUM(CASE WHEN b.packaging IS NULL THEN b.quantity ELSE 0 END), 0) AS "unverifiedQuantity",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.quantity ELSE 0 END), 0) AS "totalQuantity",
                 COALESCE((
                     SELECT SUM(tdl.quantity - tdl.received_quantity - tdl.shortage_closed_quantity)
@@ -215,7 +227,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                 ), 0) AS "inTransitQuantity",
                 COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN b.reserved_quantity ELSE 0 END), 0) AS "totalReservedQuantity",
                 COALESCE(SUM(CASE
-                    WHEN b.quality_status = 'AVAILABLE'
+                    WHEN b.quality_status = 'AVAILABLE' AND b.stocktake_task_id IS NULL
                      AND (b.expiry_date IS NULL OR b.expiry_date >= CURRENT_DATE)
                     THEN b.quantity - b.reserved_quantity ELSE 0 END), 0) AS "totalAvailableQuantity",
                 COALESCE(SUM(CASE WHEN b.quality_status = 'PENDING_INSPECTION' THEN b.quantity ELSE 0 END), 0) AS "pendingInspectionQuantity",
@@ -272,13 +284,15 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("""
         SELECT
             b.id AS batchId,
+            b.packaging AS packaging, b.version AS version, l.id AS locationId, w.id AS warehouseId,
+            b.stocktakeTaskId AS stocktakeTaskId, p.baseUnit AS baseUnit,
             b.batchCode AS batchCode,
             COALESCE(w.name, 'Unknown Warehouse') AS warehouseName,
             b.locationCode AS locationCode,
             b.quantity AS quantity,
             b.reservedQuantity AS reservedQuantity,
             CASE
-              WHEN b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+              WHEN b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE AND b.stocktakeTaskId IS NULL
                AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)
               THEN b.quantity - b.reservedQuantity ELSE 0
             END AS availableQuantity,
@@ -302,13 +316,15 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("""
         SELECT
             b.id AS batchId,
+            b.packaging AS packaging, b.version AS version, l.id AS locationId, w.id AS warehouseId,
+            b.stocktakeTaskId AS stocktakeTaskId, p.baseUnit AS baseUnit,
             b.batchCode AS batchCode,
             COALESCE(w.name, 'Unknown Warehouse') AS warehouseName,
             b.locationCode AS locationCode,
             b.quantity AS quantity,
             b.reservedQuantity AS reservedQuantity,
             CASE
-              WHEN b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE
+              WHEN b.qualityStatus = com.wms.system.entity.enums.InventoryQualityStatus.AVAILABLE AND b.stocktakeTaskId IS NULL
                AND (b.expiryDate IS NULL OR b.expiryDate >= CURRENT_DATE)
               THEN b.quantity - b.reservedQuantity ELSE 0
             END AS availableQuantity,

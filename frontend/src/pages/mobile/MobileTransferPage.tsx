@@ -1,6 +1,6 @@
 import { CheckCircleFilled, EditOutlined, ExportOutlined, InboxOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, App as AntdApp, Button, Checkbox, Empty, Form, Input, InputNumber, Modal, Progress, Select, Skeleton, Space, Tag, Typography } from 'antd';
+import { Alert, App as AntdApp, Button, Checkbox, Empty, Form, Input, InputNumber, Modal, Progress, Select, Skeleton, Space, Tag, Typography, type FormInstance } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { hasPermission } from '../../access';
@@ -19,20 +19,23 @@ import {
   type TransferReceiptPayload,
   type TransferWarehouseDirection,
   type TransferWarehouseTask,
+  type TransferWarehouseDispatchLine,
   type TransferWarehouseTaskUpdatePayload,
 } from '../../api/transfers';
 import { useAuth } from '../../auth/AuthProvider';
+import type { PackagingSelection, PackagingView } from '../../api/packaging';
+import { PackagingPicker } from '../inventory/PackagingPicker';
 import { formatDateTime } from '../workflowUtils';
 import { ScanInput } from './ScanInput';
 import { WarehouseOperationSteps } from './WarehouseOperationSteps';
 import { useMobileOperation } from './WarehouseMobileLayout';
 
 interface IdempotencyAttempt { fingerprint: string; key: string }
-interface DispatchDraft { locationVerified: boolean; productVerified: boolean; quantity: number; selected: boolean }
+interface DispatchDraft { locationVerified: boolean; productVerified: boolean; quantity: number; selected: boolean; packagingSelection?: PackagingSelection; packagingValid?: boolean }
 interface DispatchFormValues { handoverReference?: string; estimatedArrivalAt?: string; warehouseRemark?: string }
 interface ReceiptFormValues {
   remark?: string;
-  lines: Array<{ dispatchLineId: number; locationId?: number; disposition: TransferReceiptDisposition; quantity: number }>;
+  lines: Array<{ dispatchLineId: number; locationId?: number; disposition: TransferReceiptDisposition; quantity: number; packagingSelection?: PackagingSelection; packagingValid?: boolean }>;
 }
 interface TransferOperationLine {
   id: number;
@@ -62,6 +65,26 @@ function isCompleteReceiptLine(
   return Number.isInteger(line.dispatchLineId) && line.dispatchLineId > 0
     && Number.isInteger(line.locationId) && Number(line.locationId) > 0
     && Number.isInteger(line.quantity) && line.quantity > 0;
+}
+
+function ReceiptPackagingField({ form, index, lines }: {
+  form: FormInstance<ReceiptFormValues>; index: number; lines: TransferWarehouseDispatchLine[];
+}): JSX.Element | null {
+  const id = Form.useWatch(['lines', index, 'dispatchLineId'], form);
+  const quantity = Form.useWatch(['lines', index, 'quantity'], form);
+  const selection = Form.useWatch(['lines', index, 'packagingSelection'], form);
+  const source = lines.find(line => line.dispatchLineId === id);
+  const view = useMemo<PackagingView | undefined>(() => source ? {
+    batchId: source.sourceBatchId, batchCode: source.sourceBatchCode, productSkuId: source.productSkuId,
+    warehouseId: 0, locationId: 0, locationCode: '', quantity: source.openQuantity,
+    version: source.packagingVersion ?? 0, reservedQuantity: 0, baseUnit: source.baseUnit,
+    standardPackSize: source.packaging?.packSize ?? 1, packaging: source.packaging,
+  } : undefined, [source]);
+  if (!view) return null;
+  return <div style={{ width: '100%' }}><PackagingPicker suppliedView={view} quantity={quantity ?? 0}
+    value={selection} onChange={value => form.setFieldValue(['lines', index, 'packagingSelection'], value)}
+    onValid={valid => { if (form.getFieldValue(['lines', index, 'packagingValid']) !== valid)
+      form.setFieldValue(['lines', index, 'packagingValid'], valid); }} /></div>;
 }
 
 export function MobileTransferPage(): JSX.Element {
@@ -166,14 +189,17 @@ export function MobileTransferPage(): JSX.Element {
   }, [direction, dispatchForm, operationLines, selectedTask]);
 
   const patchDraft = (lineId: number, patch: Partial<DispatchDraft>): void => {
-    setDispatchDrafts((current) => ({ ...current, [lineId]: { ...current[lineId], ...patch } }));
+    setDispatchDrafts((current) => {
+      const next = { ...current[lineId], ...patch };
+      return JSON.stringify(next) === JSON.stringify(current[lineId]) ? current : { ...current, [lineId]: next };
+    });
   };
 
   const selectedDispatchLines = useMemo(() => operationLines.filter((line) => dispatchDrafts[line.id]?.selected), [dispatchDrafts, operationLines]);
   const readyDispatchLines = selectedDispatchLines.filter((line) => {
     const draft = dispatchDrafts[line.id];
     return line.allocationId && draft?.productVerified && draft.locationVerified
-      && draft.quantity > 0 && draft.quantity <= line.remainingQuantity;
+      && draft.packagingValid && draft.quantity > 0 && draft.quantity <= line.remainingQuantity;
   });
   const readyPercent = selectedDispatchLines.length
     ? Math.round((readyDispatchLines.length / selectedDispatchLines.length) * 100) : 0;
@@ -221,6 +247,7 @@ export function MobileTransferPage(): JSX.Element {
       lines: readyDispatchLines.map((line) => ({
         allocationId: line.allocationId as number,
         quantity: dispatchDrafts[line.id].quantity,
+        packagingSelection: dispatchDrafts[line.id].packagingSelection,
       })),
     };
     if (metadata.handoverReference) payload.handoverReference = metadata.handoverReference;
@@ -253,6 +280,10 @@ export function MobileTransferPage(): JSX.Element {
   const submitReceipt = async (): Promise<void> => {
     if (!selectedTask || !online) return;
     const values = await receiptForm.validateFields();
+    if (values.lines.some(line => line.packagingValid !== true)) {
+      message.error(t('packaging.selectSource'));
+      return;
+    }
     if (!values.lines.length) {
       message.error(english ? 'Add at least one receipt line.' : '请至少添加一条调入明细');
       return;
@@ -276,7 +307,8 @@ export function MobileTransferPage(): JSX.Element {
     const payload: TransferReceiptPayload = {
       version: selectedTask.version,
       remark: values.remark,
-      lines: completeLines,
+      lines: completeLines.map(line => ({ dispatchLineId: line.dispatchLineId, locationId: line.locationId,
+        disposition: line.disposition, quantity: line.quantity, packagingSelection: line.packagingSelection })),
     };
     const fingerprint = createTransferCommandFingerprint(selectedTask.id, payload);
     if (receiptAttempt.current?.fingerprint !== fingerprint) {
@@ -412,6 +444,11 @@ export function MobileTransferPage(): JSX.Element {
                           <InputNumber min={1} max={line.remainingQuantity} onChange={(value) => patchDraft(line.id, { quantity: Number(value ?? 0), selected: true })} precision={0} value={draft.quantity} />
                           <Button onClick={() => patchDraft(line.id, { selected: true, productVerified: true, locationVerified: true })} size="small">{english ? 'Manual verify' : '人工核验'}</Button>
                         </Space> : null}
+                        {direction === 'OUTBOUND' && draft?.selected && <div onClick={event => event.stopPropagation()}>
+                          <PackagingPicker batchId={line.sourceBatchId} quantity={draft.quantity} value={draft.packagingSelection}
+                            onChange={value => patchDraft(line.id, { packagingSelection: value })}
+                            onValid={valid => patchDraft(line.id, { packagingValid: valid })} />
+                        </div>}
                       </article>
                     );
                   })}
@@ -444,6 +481,7 @@ export function MobileTransferPage(): JSX.Element {
                   <InputNumber min={1} max={source?.remainingQuantity} precision={0} />
                 </Form.Item>
                 <Button danger onClick={() => remove(field.name)}>{english ? 'Remove' : '删除'}</Button>
+                <ReceiptPackagingField form={receiptForm} index={field.name} lines={selectedTask?.dispatchLines ?? []} />
               </div>;
             })}
             <Button onClick={() => add({ disposition: 'AVAILABLE' })}>{english ? 'Add split row' : '添加拆分行'}</Button>

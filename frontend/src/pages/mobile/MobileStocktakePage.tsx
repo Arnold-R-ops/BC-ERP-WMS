@@ -1,6 +1,8 @@
 import { AuditOutlined, CheckCircleFilled, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { App as AntdApp, Button, Empty, Input, InputNumber, Progress, Select, Skeleton, Tag, Typography } from 'antd';
+import { App as AntdApp, Button, Checkbox, Empty, Input, InputNumber, Progress, Select, Skeleton, Tag, Typography } from 'antd';
+import { PackagingEditor } from '../inventory/PackagingEditor';
+import { emptyPackaging, packagingTotal, type StockPackaging } from '../../api/packaging';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../api/errors';
@@ -24,6 +26,12 @@ export function MobileStocktakePage(): JSX.Element {
   const [candidateIds, setCandidateIds] = useState<number[]>([]);
   const [countedQty, setCountedQty] = useState<number>();
   const [remark, setRemark] = useState('');
+  const [recordPackaging, setRecordPackaging] = useState(false);
+  const [packaging, setPackaging] = useState<StockPackaging>(emptyPackaging(1));
+  useEffect(() => {
+    setPackaging(selectedItem?.countedPackaging ?? emptyPackaging(selectedItem?.standardPackSize ?? 1));
+    setRecordPackaging(!!selectedItem?.packagingRequired || !!selectedItem?.countedPackaging || (selectedItem?.standardPackSize ?? 1) > 1);
+  }, [selectedItem?.id]);
   const { online } = useMobileOperation();
   const { message, modal } = AntdApp.useApp();
   const { t } = useTranslation();
@@ -72,6 +80,7 @@ export function MobileStocktakePage(): JSX.Element {
   const busy = countMutation.isPending || finishMutation.isPending;
   const hasUnsavedCount = selectedItem !== undefined && (
     countedQty !== selectedItem.countedQty || remark.trim() !== (selectedItem.remark ?? '').trim()
+      || (recordPackaging && JSON.stringify(packaging) !== JSON.stringify(selectedItem.countedPackaging))
   );
 
   const scan = (code: string): void => {
@@ -98,7 +107,7 @@ export function MobileStocktakePage(): JSX.Element {
       await countMutation.mutateAsync({
         taskId: selectedTaskId,
         itemId: selectedItem.id,
-        payload: { countedQty, remark: remark.trim() || undefined },
+        payload: { countedQty, remark: remark.trim() || undefined, packaging: recordPackaging ? packaging : undefined },
       });
       message.success(t('mobile.stocktake.countSaved'));
       setSelectedItem(undefined);
@@ -177,6 +186,10 @@ export function MobileStocktakePage(): JSX.Element {
                         <span>{selectedItem.productBarcode ?? '-'}</span>
                       </div>
                       <label className="mobile-field-label"><span>{t('mobile.stocktake.countedQty')}</span><InputNumber autoFocus disabled={!online || busy} min={0} onChange={(value) => setCountedQty(value === null ? undefined : Number(value))} precision={0} value={countedQty} /></label>
+                      <Checkbox checked={recordPackaging} disabled={selectedItem.packagingRequired || busy}
+                        onChange={e => setRecordPackaging(e.target.checked)}>{t('packaging.record')}</Checkbox>
+                      {recordPackaging && <PackagingEditor value={packaging} unit={selectedItem.baseUnit} disabled={!online || busy}
+                        onChange={value => { setPackaging(value); setCountedQty(packagingTotal(value)); }} />}
                       <label className="mobile-field-label"><span>{t('common.remark')}</span><Input.TextArea disabled={!online || busy} maxLength={500} onChange={(event) => setRemark(event.target.value)} rows={2} value={remark} /></label>
                       <Button block disabled={!online || busy || countedQty === undefined} loading={countMutation.isPending} onClick={() => void saveCount()} size="large" type="primary">{t('mobile.stocktake.saveCount')}</Button>
                     </section>

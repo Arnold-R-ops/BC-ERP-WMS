@@ -1,4 +1,15 @@
 const enUS = {
+  packaging: {
+    standard: 'Standard pack: {{size}} {{unit}}', sealed: 'Unopened boxes', openedCount: '{{count}} opened boxes',
+    openedQuantity: 'Actual contents of opened box', overStandard: 'Above standard pack; record actual contents', addOpened: 'Add an opened box',
+    total: 'Total {{quantity}} {{unit}}', verify: 'Verify actual packaging', arrange: 'Repack / open / relocate',
+    arrangeNotice: 'Enter the actual contents and location of each resulting box. A box above the standard size remains one opened box. Repacking must preserve total stock.',
+    unverified: 'Packaging unverified', verifyOne: 'Verify packaging at each location before repacking.',
+    location: 'Resulting location', addLocation: 'Add destination', balance: 'Before {{before}} {{unit}} → after {{after}} {{unit}}',
+    record: 'Record unopened boxes and each opened balance', selectSource: 'Confirm actual picking sources', takeSealed: 'Take unopened boxes',
+    takeOpened: 'Take from opened box containing {{quantity}} {{unit}}', openAndTake: 'Open another box and take',
+    selected: 'Selected {{quantity}} {{unit}} / requested {{expected}} {{unit}}', selectRows: 'Select location records from the same batch first',
+  },
   ledgerEntry: {
     findAccount: 'Enter your registered email to find your Ledger account',
     email: 'Email', emailRequired: 'Enter your email', emailInvalid: 'Enter a valid email',
@@ -1525,6 +1536,17 @@ const enUS = {
     PURCHASER: 'Purchaser',
   },
   errors: {
+    PACKAGING_INVALID: 'Check the unopened box counts and actual opened quantities.',
+    PACKAGING_TOTAL_MISMATCH: 'Packaging totals do not match stock. Use stocktaking for actual differences.',
+    PACKAGING_STALE: 'This stock has changed. Refresh and verify it again.',
+    PACKAGING_SELECTION_REQUIRED: 'Record actual packaging or select the actual picking sources.',
+    PACKAGING_VERIFY_REQUIRED: 'Verify the actual packaging first.',
+    PACKAGING_STOCKTAKE_LOCKED: 'This stock is being counted. Complete the stocktake before continuing.',
+    PACKAGING_RESERVED: 'This stock is assigned to an open task. Resolve the task before repacking.',
+    PACKAGING_LOT_MISMATCH: 'Repacking requires the same product, batch, warehouse, quality and dates.',
+    PACKAGING_CANNOT_RESEAL: 'Opened goods cannot become original unopened boxes through repacking.',
+    PACKAGING_LOCATION_INVALID: 'Choose an enabled location in the same warehouse.',
+    PACKAGING_TARGET_NOT_SELECTED: 'Include the existing destination stock in this repacking operation.',
     COMMERCIAL_INVALID_KIND: 'Invalid document type',
     COMMERCIAL_STALE_VERSION: 'The quote has changed. Refresh before editing',
     COMMERCIAL_CUSTOMER_IMMUTABLE: 'Create a new quote to change the customer',

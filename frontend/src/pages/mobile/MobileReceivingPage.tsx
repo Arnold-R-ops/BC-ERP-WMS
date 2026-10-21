@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { hasPermission } from '../../access';
 import { getErrorMessage } from '../../api/errors';
+import { PackagingEditor } from '../inventory/PackagingEditor';
+import { emptyPackaging, packagingTotal, type StockPackaging } from '../../api/packaging';
 import {
   createReceiptIdempotencyKey,
   getReceivingTask,
@@ -32,6 +34,7 @@ import { WarehouseOperationSteps } from './WarehouseOperationSteps';
 import { useMobileOperation } from './WarehouseMobileLayout';
 
 interface ReceiptDraft {
+  packaging?: StockPackaging;
   selected: boolean;
   quantity: number;
   locationId?: number;
@@ -219,6 +222,7 @@ export function MobileReceivingPage({ embeddedTaskId, onReceiptSaved }: {
     const draft = drafts[item.id];
     const expiryManaged = item.expiryManagementEnabled;
     return draft.locationId && draft.quantity > 0 && draft.quantity <= item.remainingQuantity
+      && (!draft.packaging || packagingTotal(draft.packaging) === draft.quantity)
       && (!expiryManaged || (draft.productionDate && draft.expiryDate));
   }).length;
   const readyPercent = selectedCount === 0 ? 0 : Math.round((readyCount / selectedCount) * 100);
@@ -267,6 +271,7 @@ export function MobileReceivingPage({ embeddedTaskId, onReceiptSaved }: {
           receivingTaskItemId: item.id,
           locationId: draft.locationId as number,
           quantity: draft.quantity,
+          packaging: draft.packaging,
           productionDate: draft.productionDate || undefined,
           expiryDate: draft.expiryDate || undefined,
           externalBatchCode: draft.externalBatchCode || undefined,
@@ -400,6 +405,11 @@ export function MobileReceivingPage({ embeddedTaskId, onReceiptSaved }: {
                           <label><span>{t('purchasing.fields.externalBatchCode')}</span><Input maxLength={100} onChange={(event) => patchDraft(item.id, { externalBatchCode: event.target.value })} value={draft?.externalBatchCode} /></label>
                           <label><span>{t('purchasing.fields.productionDate')}{expiryManaged ? ' *' : ''}</span><Input onChange={(event) => patchDraft(item.id, { productionDate: event.target.value })} type="date" value={draft?.productionDate} /></label>
                           <label><span>{t('purchasing.fields.expiryDate')}{expiryManaged ? ' *' : ''}</span><Input onChange={(event) => patchDraft(item.id, { expiryDate: event.target.value })} type="date" value={draft?.expiryDate} /></label>
+                          <Checkbox checked={!!draft?.packaging} onChange={event => patchDraft(item.id, {
+                            packaging: event.target.checked ? emptyPackaging(item.standardPackSize ?? 1) : undefined,
+                          })}>{t('packaging.record')}</Checkbox>
+                          {draft?.packaging && <PackagingEditor value={draft.packaging} unit={item.baseUnit}
+                            onChange={packaging => patchDraft(item.id, { packaging, quantity: packagingTotal(packaging), selected: true })} />}
                         </div>
                       </article>
                     );

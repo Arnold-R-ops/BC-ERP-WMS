@@ -75,6 +75,17 @@ public record TransferWarehouseTaskResponse(
         LocalDate expiryDate,
         int dispatchedQuantity,
         int receivedQuantity,
-        int openQuantity
-    ) { }
+        int openQuantity,
+        Long packagingVersion,
+        com.wms.system.entity.StockPackaging packaging,
+        String baseUnit
+    ) {
+        public DispatchLine(Long dispatchLineId, String dispatchNumber, Long transferLineId, Long productSkuId,
+            String skuCode, String productName, Long sourceBatchId, String sourceBatchCode, String externalBatchCode,
+            LocalDate productionDate, LocalDate expiryDate, int dispatchedQuantity, int receivedQuantity, int openQuantity) {
+            this(dispatchLineId, dispatchNumber, transferLineId, productSkuId, skuCode, productName, sourceBatchId,
+                sourceBatchCode, externalBatchCode, productionDate, expiryDate, dispatchedQuantity, receivedQuantity,
+                openQuantity, 0L, null, "件");
+        }
+    }
 }

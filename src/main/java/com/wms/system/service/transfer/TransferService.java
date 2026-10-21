@@ -342,6 +342,8 @@ public class TransferService {
             int open = dispatchLine.openQuantity();
             if (open <= 0) continue;
             dispatchLine.setShortageClosedQuantity(dispatchLine.getShortageClosedQuantity() + open);
+            if (dispatchLine.getPackaging() != null)
+                dispatchLine.setPackaging(com.wms.system.entity.StockPackaging.empty(dispatchLine.getPackaging().packSize()));
             TransferOrderLine line = dispatchLine.getTransferLine();
             line.setShortageClosedQuantity(line.getShortageClosedQuantity() + open);
         }
@@ -490,6 +492,9 @@ public class TransferService {
             InventoryBatch batch = batchRepository.findByIdForPosting(allocation.getSourceBatch().getId())
                 .orElseThrow(() -> notFound("inventoryBatchId", allocation.getSourceBatch().getId()));
             requireTransferBatch(batch, order, allocation.getTransferLine().getProductSku().getId());
+            if (batch.getStocktakeTaskId() != null) throw new BusinessException("PACKAGING_STOCKTAKE_LOCKED");
+            var selected = request.lines().stream().filter(l -> l.allocationId().equals(allocation.getId())).findFirst().orElseThrow().packagingSelection();
+            var packagingTake = takePackaging(batch.getPackaging(), selected, batch.getVersion(), quantity);
             batch.releaseReservedQuantity(quantity);
             batchRepository.saveAndFlush(batch);
             allocation.setConsumedQuantity(allocation.getConsumedQuantity() + quantity);
@@ -503,13 +508,14 @@ public class TransferService {
                 batch.getId(), line.getProductSku().getId(), batch.getLocation().getId(), -quantity,
                 context(order, order.getSourceWarehouse().getId(), SourceType.TRANSFER_OUT,
                     "TRANSFER_OUT", request.warehouseRemark(), actorId, actorName,
-                    postingId, key)));
+                    postingId, key), packagingTake == null ? null : packagingTake.remaining()));
             locationOccupancyService.refreshLocationStatus(batch.getLocation().getId());
             dispatch.addLine(TransferDispatchLine.builder()
                 .transferLine(line).allocation(allocation).sourceBatch(batch)
                 .sourceBatchCode(batch.getBatchCode()).externalBatchCode(batch.getExternalBatchCode())
                 .productionDate(batch.getProductionDate()).expiryDate(batch.getExpiryDate())
                 .quantity(quantity).postingId(postingId)
+                .packaging(packagingTake == null ? null : packagingTake.taken())
                 .stockTransactionId(posting.stockTransactionId()).build());
         }
         allocationRepository.saveAll(allocations);
@@ -550,6 +556,7 @@ public class TransferService {
         }
         Map<Long, TransferDispatchLine> dispatchById = dispatchLines.stream()
             .collect(Collectors.toMap(TransferDispatchLine::getId, Function.identity()));
+        var receiptPackaging = planReceiptPackaging(request.lines(), dispatchById);
         Map<Long, Integer> totals = request.lines().stream().collect(Collectors.groupingBy(
             ReceiveTransferRequest.Line::dispatchLineId, LinkedHashMap::new,
             Collectors.summingInt(ReceiveTransferRequest.Line::quantity)));
@@ -597,7 +604,7 @@ public class TransferService {
                 location.getId(), requestedLine.quantity(),
                 context(order, order.getDestinationWarehouse().getId(), SourceType.TRANSFER_IN,
                     "TRANSFER_IN", request.remark(), actorId, actorName,
-                    postingId, key)));
+                    postingId, key), receiptPackaging.taken().get(requestedLine)));
             locationOccupancyService.refreshLocationStatus(location.getId());
             TransferReceiptLine receiptLine = TransferReceiptLine.builder()
                 .dispatchLine(dispatchLine).transferLine(dispatchLine.getTransferLine())
@@ -619,6 +626,7 @@ public class TransferService {
                 directWakeBackorders.add(line.getBackorderLineId());
             }
         }
+        receiptPackaging.remaining().forEach((id, packaging) -> dispatchById.get(id).setPackaging(packaging));
         dispatchLineRepository.saveAll(dispatchLines);
         receipt = receiptRepository.saveAndFlush(receipt);
         if (Boolean.TRUE.equals(order.getReceivingInspectionSnapshot())) {
@@ -931,6 +939,51 @@ public class TransferService {
         return order.getTasks().stream().filter(item -> item.getDirection() == direction).findFirst();
     }
 
+    private com.wms.system.entity.StockPackaging.Taken takePackaging(com.wms.system.entity.StockPackaging packaging,
+        com.wms.system.entity.StockPackaging.Selection selection, int version, int quantity) {
+        if (packaging == null) {
+            if (selection != null) throw new BusinessException("PACKAGING_VERIFY_REQUIRED");
+            return null;
+        }
+        if (selection == null && quantity == packaging.total())
+            return new com.wms.system.entity.StockPackaging.Taken(com.wms.system.entity.StockPackaging.empty(packaging.packSize()), packaging);
+        return packaging.take(selection, version, quantity);
+    }
+
+    private record ReceiptPackagingPlan(
+        Map<ReceiveTransferRequest.Line, com.wms.system.entity.StockPackaging> taken,
+        Map<Long, com.wms.system.entity.StockPackaging> remaining) {}
+
+    private ReceiptPackagingPlan planReceiptPackaging(List<ReceiveTransferRequest.Line> lines,
+        Map<Long, TransferDispatchLine> dispatches) {
+        var taken = new IdentityHashMap<ReceiveTransferRequest.Line, com.wms.system.entity.StockPackaging>();
+        var remaining = new HashMap<Long, com.wms.system.entity.StockPackaging>();
+        for (var group : lines.stream().collect(Collectors.groupingBy(ReceiveTransferRequest.Line::dispatchLineId)).entrySet()) {
+            var dispatch = dispatches.get(group.getKey());
+            var original = dispatch.getPackaging();
+            int version = Math.toIntExact(dispatch.getVersion());
+            int sealed = 0, total = 0;
+            var opened = original == null ? new ArrayList<Integer>()
+                : new ArrayList<Integer>(Collections.nCopies(original.openedQuantities().size(), 0));
+            var newlyOpened = new ArrayList<Integer>();
+            for (var line : group.getValue()) {
+                var result = takePackaging(original, line.packagingSelection(), version, line.quantity());
+                if (result == null) continue;
+                taken.put(line, result.taken());
+                var selection = line.packagingSelection();
+                if (selection == null) selection = new com.wms.system.entity.StockPackaging.Selection(
+                    version, original.sealedBoxes(), original.openedQuantities(), List.of());
+                sealed = Math.addExact(sealed, selection.sealedBoxes());
+                total = Math.addExact(total, line.quantity());
+                for (int i = 0; i < opened.size(); i++) opened.set(i, Math.addExact(opened.get(i), selection.openedQuantities().get(i)));
+                if (selection.takeFromNewlyOpened() != null) newlyOpened.addAll(selection.takeFromNewlyOpened());
+            }
+            if (original != null) remaining.put(dispatch.getId(), original.take(
+                new com.wms.system.entity.StockPackaging.Selection(version, sealed, opened, newlyOpened), version, total).remaining());
+        }
+        return new ReceiptPackagingPlan(taken, remaining);
+    }
+
     private LinkedHashMap<Long, Integer> normalizeDispatchLines(List<DispatchTransferRequest.Line> lines) {
         LinkedHashMap<Long, Integer> result = new LinkedHashMap<>();
         for (DispatchTransferRequest.Line line : lines) {
@@ -1083,7 +1136,7 @@ public class TransferService {
                     line.getTransferLine().getProductSku().getSkuCode(), line.getTransferLine().getProductSku().getName(),
                     line.getSourceBatch().getId(), line.getSourceBatchCode(), line.getExternalBatchCode(),
                     line.getProductionDate(), line.getExpiryDate(), line.getQuantity(), line.getReceivedQuantity(),
-                    line.openQuantity())).toList();
+                    line.openQuantity(), line.getVersion(), line.getPackaging(), line.getTransferLine().getProductSku().getDisplayBaseUnit())).toList();
         return new TransferWarehouseTaskResponse(task.getId(), task.getVersion(), task.getTaskNumber(),
             task.getDirection(), task.getStatus(), task.getPriority(), task.getExpectedFrom(), task.getExpectedTo(),
             task.getAssignee(), task.getTeamName(), task.getOperationArea(), task.getWarehouseRemark(),

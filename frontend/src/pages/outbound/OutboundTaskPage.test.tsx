@@ -20,6 +20,13 @@ vi.mock('../../api/productSkus', async (importOriginal) => ({
 import { dispatchOutboundTask, listOutboundTasks } from '../../api/outbound';
 import { getProductSku } from '../../api/productSkus';
 import { OutboundTaskPage } from './OutboundTaskPage';
+vi.mock('../../api/packaging', async importOriginal => ({
+  ...await importOriginal<typeof import('../../api/packaging')>(),
+  getPackaging: vi.fn(async (batchId: number) => ({
+    batchId, batchCode: 'BATCH-001', productSkuId: 12, warehouseId: 1, locationId: 13,
+    locationCode: 'WH-A-01', quantity: 50, version: 0, reservedQuantity: 50, standardPackSize: 1,
+  })),
+}));
 
 function renderPage(): void {
   const queryClient = new QueryClient({
@@ -50,6 +57,7 @@ describe('outbound task workspace', () => {
       productName: 'V4.4 测试茶叶',
       productBarcode: 'TEA-001',
       batchCode: 'BATCH-001',
+      assignedBatchId: 71,
       locationId: 13,
       locationCode: 'WH-A-01',
       planQty: 50,

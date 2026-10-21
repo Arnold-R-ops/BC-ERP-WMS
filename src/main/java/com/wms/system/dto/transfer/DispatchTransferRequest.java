@@ -17,6 +17,9 @@ public record DispatchTransferRequest(
     @Schema(name = "DispatchTransferLineRequest")
     public record Line(
         @NotNull @Positive Long allocationId,
-        @NotNull @Positive Integer quantity
-    ) { }
+        @NotNull @Positive Integer quantity,
+        com.wms.system.entity.StockPackaging.Selection packagingSelection
+    ) {
+        public Line(Long allocationId, Integer quantity) { this(allocationId, quantity, null); }
+    }
 }

@@ -1,11 +1,17 @@
 import type { components } from './schema';
 import { apiRequest } from './http';
+import type { StockPackaging } from './packaging';
 
 export type StocktakeTask = components['schemas']['StocktakeTaskResponse'];
-export type StocktakeItem = components['schemas']['StocktakeItemResponse'];
-export type StocktakeReviewItem = components['schemas']['StocktakeItemDetailResponse'];
+export type StocktakeItem = components['schemas']['StocktakeItemResponse'] & {
+  countedPackaging?: StockPackaging; standardPackSize?: number;
+  baseUnit?: string; packagingRequired?: boolean;
+};
+export type StocktakeReviewItem = components['schemas']['StocktakeItemDetailResponse'] & {
+  countedPackaging?: StockPackaging; standardPackSize?: number; baseUnit?: string;
+};
 export type CreateStocktakePayload = components['schemas']['CreateStocktakeTaskRequest'];
-export type SubmitCountPayload = components['schemas']['SubmitCountRequest'];
+export type SubmitCountPayload = components['schemas']['SubmitCountRequest'] & { packaging?: StockPackaging };
 export type ReviewStocktakePayload = components['schemas']['ReviewStocktakeRequest'];
 
 export type StocktakeStatus =

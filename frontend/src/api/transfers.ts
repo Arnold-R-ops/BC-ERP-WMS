@@ -1,4 +1,5 @@
 import { apiRequest } from './http';
+import type { PackagingSelection, StockPackaging } from './packaging';
 
 export type TransferBusinessStatus =
   | 'DRAFT'
@@ -282,6 +283,9 @@ export interface TransferWarehouseTaskLine {
 }
 
 export interface TransferWarehouseDispatchLine {
+  packagingVersion?: number;
+  packaging?: StockPackaging | null;
+  baseUnit?: string;
   dispatchLineId: number;
   dispatchNumber: string;
   transferLineId: number;
@@ -351,7 +355,7 @@ export interface TransferDispatchPayload {
   handoverReference?: string;
   estimatedArrivalAt?: string;
   warehouseRemark?: string;
-  lines: Array<{ allocationId: number; quantity: number }>;
+  lines: Array<{ allocationId: number; quantity: number; packagingSelection?: PackagingSelection }>;
 }
 
 export interface TransferReceiptPayload {
@@ -362,6 +366,7 @@ export interface TransferReceiptPayload {
     locationId: number;
     quantity: number;
     disposition: TransferReceiptDisposition;
+    packagingSelection?: PackagingSelection;
   }>;
 }
 

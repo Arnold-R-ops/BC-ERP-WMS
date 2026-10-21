@@ -53,6 +53,10 @@ public class TransferDispatchLine extends BaseEntity {
     @Column(nullable = false, updatable = false)
     private Integer quantity;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "packaging", columnDefinition = "jsonb")
+    private StockPackaging packaging;
+
     @Column(name = "posting_id", nullable = false, length = 120, updatable = false)
     private String postingId;
 

@@ -75,6 +75,7 @@ public class InventoryQualityStateService {
             ));
 
         InventoryQualityStatus fromStatus = batch.getQualityStatus();
+        if (batch.getStocktakeTaskId() != null) throw new BusinessException("PACKAGING_STOCKTAKE_LOCKED");
         validateTransition(batch, fromStatus, validated.targetStatus());
 
         batch.setQualityStatus(validated.targetStatus());

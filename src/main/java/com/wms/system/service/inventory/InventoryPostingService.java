@@ -89,7 +89,26 @@ public class InventoryPostingService {
         }
 
         int quantityAfter = (int) candidateQuantity;
+        if (batch.getStocktakeTaskId() != null) {
+            throw new BusinessException("PACKAGING_STOCKTAKE_LOCKED");
+        }
+        if (command.packagingAfter() != null) {
+            command.packagingAfter().requireTotal(quantityAfter);
+            batch.setPackaging(command.packagingAfter());
+        } else if (batch.getPackaging() != null && validated.delta() != 0) {
+            if (quantityAfter == 0) {
+                batch.setPackaging(com.wms.system.entity.StockPackaging.empty(batch.getPackaging().packSize()));
+            } else if (validated.context().sourceType() == SourceType.SALE_OUT
+                || validated.context().sourceType() == SourceType.TRANSFER_OUT) {
+                throw new BusinessException("PACKAGING_SELECTION_REQUIRED");
+            } else {
+                // Existing exception workflows have quantities but no physical source selection.
+                // Discard obsolete composition instead of inventing unopened/opened boxes.
+                batch.setPackaging(null);
+            }
+        }
         if (validated.delta() == 0) {
+            if (command.packagingAfter() != null) inventoryBatchRepository.save(batch);
             return result(batch, validated, quantityBefore, quantityAfter, false, null);
         }
 

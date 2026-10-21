@@ -16,6 +16,13 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventoryDetailDto {
+    private com.wms.system.entity.StockPackaging packaging;
+    private Integer version;
+    private Long locationId;
+    private Long warehouseId;
+    private Long stocktakeTaskId;
+    private String baseUnit;
+    private Integer standardPackSize;
     private Long batchId;
     private String batchCode;
     private String traceCode;

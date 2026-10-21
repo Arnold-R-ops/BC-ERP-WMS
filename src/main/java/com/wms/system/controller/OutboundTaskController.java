@@ -86,7 +86,8 @@ public class OutboundTaskController {
                 request.getSkuCode(),
                 request.getBatchCode(),
                 userId,
-                username
+                username,
+                request.getPackagingSelection()
             )
         );
 

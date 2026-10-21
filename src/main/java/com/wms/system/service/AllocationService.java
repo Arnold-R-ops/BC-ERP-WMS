@@ -279,6 +279,27 @@ public class AllocationService {
 
         Map<Long, BatchAllocation> allocations = new LinkedHashMap<>();
         int remainingRequest = item.getQuantity();
+        if (fefoBatches.stream().anyMatch(batch -> batch.getPackaging() != null)) {
+            // Orders specify base units, not a requirement for factory-sealed cartons.
+            // Prefer existing opened stock only within the same expiry group.
+            Map<java.time.LocalDate, List<InventoryBatch>> expiryGroups = new LinkedHashMap<>();
+            for (InventoryBatch batch : fefoBatches)
+                expiryGroups.computeIfAbsent(batch.getExpiryDate(), ignored -> new ArrayList<>()).add(batch);
+            for (List<InventoryBatch> group : expiryGroups.values()) {
+                for (InventoryBatch batch : group) {
+                    int opened = batch.getPackaging() == null ? 0
+                        : batch.getPackaging().openedQuantities().stream().mapToInt(Integer::intValue).sum();
+                    int amount = Math.min(remainingRequest, Math.min(opened, remainingByBatch.get(batch.getId())));
+                    remainingRequest -= addAllocation(batch, amount, remainingByBatch, allocations);
+                }
+                for (InventoryBatch batch : group) {
+                    int amount = Math.min(remainingRequest, remainingByBatch.get(batch.getId()));
+                    remainingRequest -= addAllocation(batch, amount, remainingByBatch, allocations);
+                }
+                if (remainingRequest == 0) return new ArrayList<>(allocations.values());
+            }
+            throw new BusinessException(ErrorKeys.BATCH_STOCK_INSUFFICIENT);
+        }
         boolean fullPackRequest = remainingRequest % packSize == 0;
 
         if (!fullPackRequest) {

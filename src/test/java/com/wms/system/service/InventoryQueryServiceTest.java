@@ -70,12 +70,13 @@ class InventoryQueryServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         var row = summaryRow(29, 5, 24, 10);
         when(row.getBaseUnit()).thenReturn("袋");
-        when(row.getPackUnit()).thenReturn("箱");
+        when(row.getSealedBoxes()).thenReturn(1);
+        when(row.getOpenedBoxes()).thenReturn(2);
         when(inventoryBatchRepository.findInventorySummaryRows(LEGACY_COMPANY_ID, "", pageable))
             .thenReturn(new PageImpl<>(List.of(row), pageable, 1));
         var summary = inventoryQueryService.getSummary(pageable, null).getContent().get(0);
-        assertThat(summary.getDisplayQuantity()).isEqualTo("2箱 + 5袋");
-        assertThat(summary.getDisplayAvailableQuantity()).isEqualTo("2箱 + 0袋");
+        assertThat(summary.getDisplayQuantity()).contains("29袋", "1", "2");
+        assertThat(summary.getDisplayAvailableQuantity()).isEqualTo("24袋");
     }
 
     @Test
@@ -180,8 +181,6 @@ class InventoryQueryServiceTest {
         when(row.getProductName()).thenReturn("Tea 500g");
         when(row.getSkuCode()).thenReturn("SKU-001");
         when(row.getSpecs()).thenReturn("500g x 12");
-        when(row.getPackUnit()).thenReturn("box");
-        when(row.getConversionRate()).thenReturn(12);
         when(row.getSafetyStock()).thenReturn(safetyStock);
         when(row.getTotalQuantity()).thenReturn(total);
         when(row.getTotalReservedQuantity()).thenReturn(reserved);

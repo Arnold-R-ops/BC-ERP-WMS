@@ -2,7 +2,9 @@ import type { components } from './schema';
 import { apiRequest } from './http';
 
 export type OutboundTask = components['schemas']['OutboundTaskResponse'];
-export type ConfirmDispatchPayload = components['schemas']['ConfirmDispatchRequest'];
+export type ConfirmDispatchPayload = components['schemas']['ConfirmDispatchRequest'] & {
+  packagingSelection?: import('./packaging').PackagingSelection;
+};
 export type OutboundTaskStatus = 'PENDING' | 'PICKING' | 'COMPLETED';
 
 export interface OutboundTaskListParams {

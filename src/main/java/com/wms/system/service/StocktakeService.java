@@ -57,6 +57,7 @@ public class StocktakeService {
     private final StocktakeTaskRepository stocktakeTaskRepository;
     private final StocktakeItemRepository stocktakeItemRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
+    private final OutboundTaskRepository outboundTaskRepository;
     private final ProductSkuRepository productSkuRepository;
     private final LocationRepository locationRepository;
     private final WarehouseRepository warehouseRepository;
@@ -184,6 +185,28 @@ public class StocktakeService {
             );
         }
 
+        List<StocktakeItem> countItems = stocktakeItemRepository.findByTaskId(taskId);
+        List<Long> countBatchIds = countItems.stream().map(StocktakeItem::getBatchId).distinct().sorted().toList();
+        List<InventoryBatch> countBatches = countBatchIds.isEmpty() ? List.of()
+            : inventoryBatchRepository.findAllByIdForPosting(countBatchIds);
+        if (countBatches.size() != countBatchIds.size()) throw new BusinessException(ErrorKeys.BATCH_NOT_FOUND);
+        if (!countBatchIds.isEmpty() && outboundTaskRepository.existsByAssignedBatchIdInAndStatusIn(countBatchIds,
+            List.of(OutboundTaskStatus.PENDING, OutboundTaskStatus.PICKING, OutboundTaskStatus.QUALITY_EXCEPTION)))
+            throw new BusinessException("PACKAGING_RESERVED");
+        for (InventoryBatch batch : countBatches) {
+            if (batch.getStocktakeTaskId() != null) throw new BusinessException("PACKAGING_STOCKTAKE_LOCKED");
+            if (batch.getReservedQuantity() != null && batch.getReservedQuantity() > 0)
+                throw new BusinessException("PACKAGING_RESERVED");
+            batch.setStocktakeTaskId(taskId);
+        }
+        inventoryBatchRepository.saveAllAndFlush(countBatches);
+        for (StocktakeItem item : countItems) {
+            InventoryBatch batch = countBatches.stream().filter(b -> b.getId().equals(item.getBatchId())).findFirst().orElseThrow();
+            item.setSnapshotQty(batch.getQuantity());
+            item.setSnapshotBatchVersion(batch.getVersion());
+        }
+        stocktakeItemRepository.saveAll(countItems);
+        task.setSnapshotTime(LocalDateTime.now());
         task.setStatus(StocktakeStatus.COUNTING);
         StocktakeTask savedTask = stocktakeTaskRepository.save(task);
 
@@ -238,6 +261,16 @@ public class StocktakeService {
         }
 
         // 4. Update item
+        InventoryBatch countedBatch = inventoryBatchRepository.findByIdForPosting(item.getBatchId())
+            .orElseThrow(() -> new BusinessException(ErrorKeys.BATCH_NOT_FOUND));
+        if (request.getPackaging() != null) {
+            request.getPackaging().requireTotal(request.getCountedQty());
+            if (!java.util.Objects.equals(request.getPackaging().packSize(), com.wms.system.dto.inventory.PackagingView.of(countedBatch).standardPackSize()))
+                throw new BusinessException("PACKAGING_INVALID");
+        } else if (countedBatch.getPackaging() != null) {
+            throw new BusinessException("PACKAGING_SELECTION_REQUIRED");
+        }
+        item.setCountedPackaging(request.getPackaging());
         boolean wasNotCounted = !item.getIsCounted();
         item.setCountedQty(request.getCountedQty());
         item.setDifferenceQty(item.calculateDifference());
@@ -409,7 +442,7 @@ public class StocktakeService {
         // Get all items with differences
         List<StocktakeItem> items = stocktakeItemRepository.findByTaskId(taskId);
         List<StocktakeItem> differenceItems = items.stream()
-            .filter(StocktakeItem::hasDifference)
+            .filter(item -> item.hasDifference() || item.getCountedPackaging() != null || item.getSnapshotBatchVersion() != null)
             .sorted(Comparator.comparing(StocktakeItem::getBatchId)
                 .thenComparing(StocktakeItem::getId))
             .collect(Collectors.toList());
@@ -436,6 +469,12 @@ public class StocktakeService {
         }
 
         for (StocktakeItem item : differenceItems) {
+            InventoryBatch batch = lockedBatches.stream().filter(b -> b.getId().equals(item.getBatchId())).findFirst().orElseThrow();
+            if (item.getSnapshotBatchVersion() != null && (!java.util.Objects.equals(batch.getStocktakeTaskId(), taskId)
+                || !java.util.Objects.equals(batch.getVersion(), item.getSnapshotBatchVersion())
+                || !java.util.Objects.equals(batch.getQuantity(), item.getSnapshotQty())))
+                throw new BusinessException("PACKAGING_STALE");
+            batch.setStocktakeTaskId(null);
             Integer adjustment = item.getDifferenceQty();
             SourceType sourceType = adjustment > 0 ? SourceType.INVENTORY_GAIN : SourceType.INVENTORY_LOSS;
             String postingId = "STOCKTAKE:" + task.getTaskNo() + ":" + item.getId();
@@ -456,7 +495,8 @@ public class StocktakeService {
                     reviewedByName,
                     postingId,
                     childKey
-                )
+                ),
+                item.getCountedPackaging()
             ));
             locationOccupancyService.refreshLocationStatus(item.getLocationId());
 
@@ -738,6 +778,10 @@ public class StocktakeService {
             .locationId(item.getLocationId())
             .locationCode(location != null ? location.getLocationCode() : null)
             .countedQty(item.getCountedQty())
+            .countedPackaging(item.getCountedPackaging())
+            .packagingRequired(batch != null && batch.getPackaging() != null)
+            .standardPackSize(batch == null ? 1 : com.wms.system.dto.inventory.PackagingView.of(batch).standardPackSize())
+            .baseUnit(product == null ? "件" : product.getDisplayBaseUnit())
             .isCounted(item.getIsCounted())
             .countedBy(item.getCountedBy())
             .countedByName(item.getCountedByName())
@@ -754,7 +798,7 @@ public class StocktakeService {
         InventoryBatch batch = inventoryBatchRepository.findById(item.getBatchId()).orElse(null);
         Location location = locationRepository.findById(item.getLocationId()).orElse(null);
 
-        return StocktakeItemDetailResponse.detailBuilder()
+        StocktakeItemDetailResponse response = StocktakeItemDetailResponse.detailBuilder()
             .id(item.getId())
             .taskId(item.getTaskId())
             .productSkuId(item.getProductSkuId())
@@ -773,9 +817,25 @@ public class StocktakeService {
             .snapshotQty(item.getSnapshotQty())
             .differenceQty(item.getDifferenceQty())
             .build();
+        response.setCountedPackaging(item.getCountedPackaging());
+        response.setStandardPackSize(batch == null ? 1 : com.wms.system.dto.inventory.PackagingView.of(batch).standardPackSize());
+        response.setBaseUnit(product == null ? "件" : product.getDisplayBaseUnit());
+        return response;
     }
 
     // ========== Delete/Cancel/Void Operations ==========
+
+    private void releaseCountLocks(Long taskId) {
+        List<Long> ids = stocktakeItemRepository.findByTaskId(taskId).stream().map(StocktakeItem::getBatchId).distinct().sorted().toList();
+        if (ids.isEmpty()) return;
+        for (InventoryBatch batch : inventoryBatchRepository.findAllByIdForPosting(ids)) {
+            if (java.util.Objects.equals(batch.getStocktakeTaskId(), taskId)) {
+                batch.setStocktakeTaskId(null);
+                // A cancelled count may already have physically repacked goods; require a fresh verification.
+                batch.setPackaging(null);
+            }
+        }
+    }
 
     /**
      * Delete stocktake task (physical delete, CREATED only)
@@ -839,7 +899,7 @@ public class StocktakeService {
             );
         }
 
-        StocktakeTask task = stocktakeTaskRepository.findById(taskId)
+        StocktakeTask task = stocktakeTaskRepository.findByIdForUpdate(taskId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.STOCKTAKE_TASK_NOT_FOUND,
                 Map.of("taskId", taskId)
@@ -863,6 +923,7 @@ public class StocktakeService {
             );
         }
 
+        releaseCountLocks(taskId);
         task.setStatus(StocktakeStatus.CANCELLED);
         task.setReviewComment("业务取消: " + reason);
         task = stocktakeTaskRepository.save(task);
@@ -897,7 +958,7 @@ public class StocktakeService {
             );
         }
 
-        StocktakeTask task = stocktakeTaskRepository.findById(taskId)
+        StocktakeTask task = stocktakeTaskRepository.findByIdForUpdate(taskId)
             .orElseThrow(() -> new BusinessException(
                 ErrorKeys.STOCKTAKE_TASK_NOT_FOUND,
                 Map.of("taskId", taskId)
@@ -921,6 +982,7 @@ public class StocktakeService {
             );
         }
 
+        releaseCountLocks(taskId);
         task.setStatus(StocktakeStatus.VOIDED);
         task.setReviewComment("系统作废: " + reason);
         task = stocktakeTaskRepository.save(task);

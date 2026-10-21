@@ -17,6 +17,11 @@ public record ReceiveTransferRequest(
         @NotNull @Positive Long dispatchLineId,
         @NotNull @Positive Long locationId,
         @NotNull TransferReceiptDisposition disposition,
-        @NotNull @Positive Integer quantity
-    ) { }
+        @NotNull @Positive Integer quantity,
+        com.wms.system.entity.StockPackaging.Selection packagingSelection
+    ) {
+        public Line(Long dispatchLineId, Long locationId, TransferReceiptDisposition disposition, Integer quantity) {
+            this(dispatchLineId, locationId, disposition, quantity, null);
+        }
+    }
 }

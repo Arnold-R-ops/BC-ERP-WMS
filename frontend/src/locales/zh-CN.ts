@@ -1,4 +1,15 @@
 const zhCN = {
+  packaging: {
+    standard: '标准箱规：每箱 {{size}} {{unit}}', sealed: '未拆整箱数', openedCount: '{{count}} 个拆箱',
+    openedQuantity: '拆箱实际数量', overStandard: '超过标准箱规，按实物记录', addOpened: '增加一个拆箱',
+    total: '合计 {{quantity}} {{unit}}', verify: '核实整箱和拆箱', arrange: '整理 / 开箱 / 移位',
+    arrangeNotice: '填写整理后每个实际拆箱的数量和库位。超过箱规仍按一个拆箱记录；整理不能改变产品总量。',
+    unverified: '包装未核实', verifyOne: '请先分别核实各库位的整箱和拆箱，再进行整理。',
+    location: '整理后库位', addLocation: '增加目标库位', balance: '整理前 {{before}} {{unit}} → 整理后 {{after}} {{unit}}',
+    record: '记录整箱及各拆箱数量', selectSource: '核对本次实际取货来源', takeSealed: '取未拆整箱',
+    takeOpened: '从剩 {{quantity}} {{unit}} 的拆箱取', openAndTake: '另开一个整箱，取出数量',
+    selected: '已选择 {{quantity}} {{unit}} / 本次 {{expected}} {{unit}}', selectRows: '请先选择同批次的库位记录',
+  },
   ledgerEntry: {
     findAccount: '输入注册邮箱，进入您的 Ledger 账户',
     email: '邮箱', emailRequired: '请输入邮箱', emailInvalid: '请输入有效邮箱',
@@ -1875,6 +1886,17 @@ const zhCN = {
     PURCHASER: '采购员',
   },
   errors: {
+    PACKAGING_INVALID: '整箱或拆箱数量无效，请核对填写内容。',
+    PACKAGING_TOTAL_MISMATCH: '各箱数量合计与库存数量不一致；实际差异请通过盘点处理。',
+    PACKAGING_STALE: '这批货物已被其他操作更新，请刷新后重新核对。',
+    PACKAGING_SELECTION_REQUIRED: '请填写实际整箱及拆箱数量，或选择本次取货来源。',
+    PACKAGING_VERIFY_REQUIRED: '请先核实这批货物的实际包装组成。',
+    PACKAGING_STOCKTAKE_LOCKED: '这批货物正在盘点，请完成盘点后再操作。',
+    PACKAGING_RESERVED: '这批货物已有任务占用，请先处理关联任务。',
+    PACKAGING_LOT_MISMATCH: '只能整理同商品、同批次、同仓库且质量及效期一致的货物。',
+    PACKAGING_CANNOT_RESEAL: '整理不能把拆箱改记为原装未拆整箱。',
+    PACKAGING_LOCATION_INVALID: '请选择同仓库内可用的库位。',
+    PACKAGING_TARGET_NOT_SELECTED: '目标库位已有货物，请把目标现有记录一起选入整理。',
     COMMERCIAL_INVALID_KIND: '单据类型无效',
     COMMERCIAL_STALE_VERSION: '报价已被更新，请刷新后再修改',
     COMMERCIAL_CUSTOMER_IMMUTABLE: '已保存报价不能更换客户，请新建报价',

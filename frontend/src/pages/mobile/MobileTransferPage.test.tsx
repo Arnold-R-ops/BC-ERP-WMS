@@ -31,6 +31,13 @@ import {
   updateTransferWarehouseTask,
 } from '../../api/transfers';
 import { MobileTransferPage } from './MobileTransferPage';
+vi.mock('../../api/packaging', async importOriginal => ({
+  ...await importOriginal<typeof import('../../api/packaging')>(),
+  getPackaging: vi.fn(async (batchId: number) => ({
+    batchId, batchCode: 'BATCH-71', productSkuId: 101, warehouseId: 1, locationId: 7,
+    locationCode: 'A-01-01', quantity: 5, version: 0, reservedQuantity: 5, standardPackSize: 1,
+  })),
+}));
 
 const outboundTask: TransferWarehouseTask = {
   id: 12,

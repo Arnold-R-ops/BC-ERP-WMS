@@ -99,4 +99,20 @@ public class StocktakeItemResponse {
      * Remark
      */
     private String remark;
+
+    private com.wms.system.entity.StockPackaging countedPackaging;
+    private Integer standardPackSize;
+    private String baseUnit;
+    private Boolean packagingRequired;
+
+    public StocktakeItemResponse(Long id, Long taskId, Long productSkuId, String productName,
+        String productBarcode, Long batchId, String batchCode, Long locationId, String locationCode,
+        Integer countedQty, Boolean isCounted, Long countedBy, String countedByName,
+        LocalDateTime countedAt, String remark) {
+        this.id = id; this.taskId = taskId; this.productSkuId = productSkuId; this.productName = productName;
+        this.productBarcode = productBarcode; this.batchId = batchId; this.batchCode = batchCode;
+        this.locationId = locationId; this.locationCode = locationCode; this.countedQty = countedQty;
+        this.isCounted = isCounted; this.countedBy = countedBy; this.countedByName = countedByName;
+        this.countedAt = countedAt; this.remark = remark;
+    }
 }

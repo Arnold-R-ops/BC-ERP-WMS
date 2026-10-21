@@ -139,6 +139,13 @@ public class StocktakeItem extends BaseEntity {
     @Column(name = "counted_qty")
     private Integer countedQty;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "counted_packaging", columnDefinition = "jsonb")
+    private StockPackaging countedPackaging;
+
+    @Column(name = "snapshot_batch_version")
+    private Integer snapshotBatchVersion;
+
     /**
      * 差异数量
      *

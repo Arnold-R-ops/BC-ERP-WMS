@@ -84,6 +84,14 @@ export function StocktakeTaskDrawer({
       );
     }
     result.push({
+      title: t('packaging.record'), dataIndex: 'countedPackaging', width: 230,
+      render: (_, item) => item.countedPackaging ? <span>
+        {t('packaging.sealed')}: {item.countedPackaging.sealedBoxes};{' '}
+        {t('packaging.openedCount', { count: item.countedPackaging.openedQuantities.length })}:{' '}
+        {item.countedPackaging.openedQuantities.map(q => `${q}${item.baseUnit ?? ''}`).join('、') || '—'}
+      </span> : '—',
+    });
+    result.push({
       title: t('common.actions'), valueType: 'option', width: 105, fixed: 'right',
       render: (_, item) => task?.status === 'COUNTING' && canCount ? [
         <Button key="count" onClick={() => onCount(item)} size="small" type="link">

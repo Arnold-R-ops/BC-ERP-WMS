@@ -3,6 +3,8 @@ import { apiRequest } from './http';
 export type ReceivingTaskStatus = 'PENDING' | 'PARTIALLY_RECEIVED' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
 
 export interface ReceivingTaskItem {
+  standardPackSize?: number;
+  baseUnit?: string;
   id: number;
   productSkuId?: number;
   skuCode?: string;
@@ -47,6 +49,7 @@ export interface ReceivingTask {
 }
 
 export interface ReceivingReceiptLineInput {
+  packaging?: import('./packaging').StockPackaging;
   receivingTaskItemId: number;
   locationId: number;
   quantity: number;

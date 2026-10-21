@@ -10,7 +10,6 @@ import com.wms.system.exception.BusinessException;
 import com.wms.system.exception.ErrorKeys;
 import com.wms.system.repository.InventoryBatchRepository;
 import com.wms.system.repository.LocationRepository;
-import com.wms.system.util.PackageStatusFormatter;
 import com.wms.system.tenant.context.CompanyScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -74,7 +73,6 @@ public class InventoryQueryService {
         int inTransitQuantity = numberToInt(row.getInTransitQuantity());
         int reservedQuantity = numberToInt(row.getTotalReservedQuantity());
         int availableQuantity = numberToInt(row.getTotalAvailableQuantity());
-        int conversionRate = Math.max(numberToInt(row.getConversionRate()), 1);
         int safetyStock = numberToInt(row.getSafetyStock());
 
         SkuInfoDto skuInfo = SkuInfoDto.builder()
@@ -89,13 +87,19 @@ public class InventoryQueryService {
             .productSkuId(row.getProductSkuId())
             .skuInfo(skuInfo)
             .warehouseNames(parseWarehouseNames(row.getWarehouseNames()))
-            .displayQuantity(formatQuantity(totalQuantity, conversionRate, row.getPackUnit(), row.getBaseUnit()))
+            .displayQuantity(totalQuantity + safeUnit(row.getBaseUnit()) + "（未拆整箱 "
+                + numberToInt(row.getSealedBoxes()) + "，拆箱 " + numberToInt(row.getOpenedBoxes())
+                + (numberToInt(row.getUnverifiedQuantity()) > 0 ? "，包装未核实 "
+                    + numberToInt(row.getUnverifiedQuantity()) + safeUnit(row.getBaseUnit()) : "") + "）")
+            .sealedBoxes(numberToInt(row.getSealedBoxes()))
+            .openedBoxes(numberToInt(row.getOpenedBoxes()))
+            .unverifiedQuantity(numberToInt(row.getUnverifiedQuantity()))
             .totalQuantity(totalQuantity)
             .inTransitQuantity(inTransitQuantity)
             .companyOwnedQuantity(totalQuantity + inTransitQuantity)
             .reservedQuantity(reservedQuantity)
             .availableQuantity(availableQuantity)
-            .displayAvailableQuantity(formatQuantity(availableQuantity, conversionRate, row.getPackUnit(), row.getBaseUnit()))
+            .displayAvailableQuantity(availableQuantity + safeUnit(row.getBaseUnit()))
             .pendingInspectionQuantity(numberToInt(row.getPendingInspectionQuantity()))
             .quarantinedQuantity(numberToInt(row.getQuarantinedQuantity()))
             .damagedQuantity(numberToInt(row.getDamagedQuantity()))
@@ -109,6 +113,10 @@ public class InventoryQueryService {
 
     private InventoryDetailDto buildInventoryDetail(InventoryBatchRepository.InventoryDetailRow row) {
         return InventoryDetailDto.builder()
+            .packaging(row.getPackaging())
+            .version(row.getVersion()).locationId(row.getLocationId()).warehouseId(row.getWarehouseId())
+            .stocktakeTaskId(row.getStocktakeTaskId()).baseUnit(safeUnit(row.getBaseUnit()))
+            .standardPackSize(row.getPackaging() == null ? Math.max(1, numberToInt(row.getConversionRate())) : row.getPackaging().packSize())
             .batchId(row.getBatchId())
             .batchCode(row.getBatchCode())
             .traceCode(row.getBatchCode())
@@ -118,7 +126,10 @@ public class InventoryQueryService {
             .reservedQuantity(numberToInt(row.getReservedQuantity()))
             .availableQuantity(numberToInt(row.getAvailableQuantity()))
             .qualityStatus(row.getQualityStatus())
-            .packageStatus(PackageStatusFormatter.plain(row.getQuantity(), row.getConversionRate()))
+            .packageStatus(row.getPackaging() == null ? "包装未核实" : "未拆整箱 " + row.getPackaging().sealedBoxes()
+                + "；拆箱 " + row.getPackaging().openedQuantities().size() + "（"
+                + row.getPackaging().openedQuantities().stream().map(q -> q + safeUnit(row.getBaseUnit()))
+                    .collect(java.util.stream.Collectors.joining("、")) + "）")
             .expiryDate(row.getExpiryDate())
             .build();
     }
@@ -135,24 +146,9 @@ public class InventoryQueryService {
             .toList();
     }
 
-    private String formatQuantity(int totalQuantity, int conversionRate, String packUnit, String baseUnit) {
-        String unit = baseUnit == null || baseUnit.isBlank() ? "件" : baseUnit;
-        if (totalQuantity <= 0) {
-            return "0" + unit;
-        }
-
-        if (conversionRate <= 1) {
-            return totalQuantity + unit;
-        }
-
-        String safePackUnit = (packUnit == null || packUnit.isBlank()) ? "箱" : packUnit;
-        int packCount = totalQuantity / conversionRate;
-        int looseCount = totalQuantity % conversionRate;
-
-        return packCount + safePackUnit + " + " + looseCount + unit;
-    }
-
     private int numberToInt(Number number) {
         return number == null ? 0 : number.intValue();
     }
+
+    private String safeUnit(String unit) { return unit == null || unit.isBlank() ? "件" : unit; }
 }

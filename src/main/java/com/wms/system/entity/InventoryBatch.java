@@ -171,6 +171,20 @@ public class InventoryBatch extends BaseEntity {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
+    /** Null means actual packaging has not been counted; never infer it from quantity. */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "packaging", columnDefinition = "jsonb")
+    private StockPackaging packaging;
+
+    @Column(name = "stocktake_task_id")
+    private Long stocktakeTaskId;
+
+    @PrePersist
+    @PreUpdate
+    private void validatePackagingBalance() {
+        if (packaging != null) packaging.requireTotal(quantity);
+    }
+
     /**
      * Quantity reserved by approved sales orders but not yet shipped.
      *
@@ -312,7 +326,7 @@ public class InventoryBatch extends BaseEntity {
     }
 
     public int getAvailableQuantity() {
-        if (!isSaleable()) {
+        if (!isSaleable() || stocktakeTaskId != null) {
             return 0;
         }
         return this.quantity - (this.reservedQuantity == null ? 0 : this.reservedQuantity);

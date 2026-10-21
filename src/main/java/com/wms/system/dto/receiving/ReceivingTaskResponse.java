@@ -60,7 +60,17 @@ public record ReceivingTaskResponse(
         LocalDate productionDate,
         LocalDate expiryDate,
         String externalBatchCode,
-        String remark
+        String remark,
+        Integer standardPackSize,
+        String baseUnit
     ) {
+        public Item(Long id, Long productSkuId, String skuCode, String barcode, String productName,
+            Boolean expiryManagementEnabled, ReceivingInspectionRequirement inspectionRequirement,
+            Integer expectedQuantity, Integer receivedQuantity, Integer closedQuantity, Integer remainingQuantity,
+            LocalDate productionDate, LocalDate expiryDate, String externalBatchCode, String remark) {
+            this(id, productSkuId, skuCode, barcode, productName, expiryManagementEnabled, inspectionRequirement,
+                expectedQuantity, receivedQuantity, closedQuantity, remainingQuantity, productionDate, expiryDate,
+                externalBatchCode, remark, 1, "件");
+        }
     }
 }

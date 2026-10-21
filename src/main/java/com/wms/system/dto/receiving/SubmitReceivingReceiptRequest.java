@@ -21,7 +21,12 @@ public record SubmitReceivingReceiptRequest(
         @NotNull @Positive Integer quantity,
         LocalDate productionDate,
         LocalDate expiryDate,
-        @Size(max = 100) String externalBatchCode
+        @Size(max = 100) String externalBatchCode,
+        @Valid com.wms.system.entity.StockPackaging packaging
     ) {
+        public Line(Long receivingTaskItemId, Long locationId, Integer quantity, LocalDate productionDate,
+                    LocalDate expiryDate, String externalBatchCode) {
+            this(receivingTaskItemId, locationId, quantity, productionDate, expiryDate, externalBatchCode, null);
+        }
     }
 }

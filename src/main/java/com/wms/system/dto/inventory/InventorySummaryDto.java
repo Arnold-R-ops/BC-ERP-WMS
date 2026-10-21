@@ -21,6 +21,9 @@ public class InventorySummaryDto {
     private SkuInfoDto skuInfo;
     private List<String> warehouseNames;
     private String displayQuantity;
+    private Integer sealedBoxes;
+    private Integer openedBoxes;
+    private Integer unverifiedQuantity;
     private Integer totalQuantity;
     /** Dispatched between warehouses and not yet received or closed as shortage. */
     private Integer inTransitQuantity;

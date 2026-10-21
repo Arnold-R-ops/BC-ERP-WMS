@@ -28,4 +28,11 @@ public class ConfirmDispatchRequest {
 
     @Size(max = 500, message = "备注长度不能超过 500 个字符")
     private String remark;
+
+    private com.wms.system.entity.StockPackaging.Selection packagingSelection;
+
+    public ConfirmDispatchRequest(Integer actualQty, Long locationId, String skuCode, String batchCode, String remark) {
+        this.actualQty = actualQty; this.locationId = locationId; this.skuCode = skuCode;
+        this.batchCode = batchCode; this.remark = remark;
+    }
 }

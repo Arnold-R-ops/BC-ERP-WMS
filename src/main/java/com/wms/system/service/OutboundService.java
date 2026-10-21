@@ -134,6 +134,14 @@ public class OutboundService {
         Long operatorId,
         String operatorName
     ) {
+        return confirmDispatch(taskId, actualQty, scannedLocationId, skuCode, scannedBatchCode,
+            operatorId, operatorName, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public OutboundTaskResponse confirmDispatch(Long taskId, Integer actualQty, Long scannedLocationId,
+        String skuCode, String scannedBatchCode, Long operatorId, String operatorName,
+        StockPackaging.Selection packagingSelection) {
         log.info("Confirming dispatch: taskId={}, actualQty={}, operatorId={}, operatorName={}",
             taskId, actualQty, operatorId, operatorName);
 
@@ -212,6 +220,18 @@ public class OutboundService {
         }
         verifyPickingIdentity(task, locked.batch(), scannedLocationId, skuCode, scannedBatchCode);
         requireDispatchableQuantity(locked.batch(), actualQty);
+        if (locked.batch().getStocktakeTaskId() != null) throw new BusinessException("PACKAGING_STOCKTAKE_LOCKED");
+        StockPackaging packagingAfter = null;
+        if (locked.batch().getPackaging() != null) {
+            if (packagingSelection == null && actualQty.equals(locked.batch().getQuantity())) {
+                packagingAfter = StockPackaging.empty(locked.batch().getPackaging().packSize());
+            } else {
+                packagingAfter = locked.batch().getPackaging()
+                    .take(packagingSelection, locked.batch().getVersion(), actualQty).remaining();
+            }
+        } else if (packagingSelection != null) {
+            throw new BusinessException("PACKAGING_VERIFY_REQUIRED");
+        }
 
         // 4. Update task
         task.setActualQty(actualQty);
@@ -226,7 +246,7 @@ public class OutboundService {
             savedTask.getPickedBy(), savedTask.getPickedAt());
 
         // 5-6. Consume any reservation and post quantity/ledger/Outbox atomically.
-        postDispatch(locked, actualQty, operatorId, operatorName);
+        postDispatch(locked, actualQty, operatorId, operatorName, packagingAfter);
 
         updateSalesOrderItemShipment(task.getSalesOrderItemId(), actualQty);
 
@@ -481,7 +501,8 @@ public class OutboundService {
         LockedDispatch locked,
         Integer actualQty,
         Long operatorId,
-        String operatorName
+        String operatorName,
+        StockPackaging packagingAfter
     ) {
         OutboundTask task = locked.task();
         InventoryBatch batch = locked.batch();
@@ -517,7 +538,7 @@ public class OutboundService {
                 operatorName,
                 postingId,
                 "sale-out-task:" + task.getId()
-            )
+            ), packagingAfter
         ));
         locationOccupancyService.refreshLocationStatus(batch.getLocation().getId());
     }

@@ -1,9 +1,13 @@
 import type { components } from './schema';
 import { apiRequest } from './http';
+import type { StockPackaging } from './packaging';
 
 export type InventorySummary = components['schemas']['InventorySummaryDto'];
 export type InventorySummaryPage = components['schemas']['PageInventorySummaryDto'];
-export type InventoryDetail = components['schemas']['InventoryDetailDto'];
+export type InventoryDetail = components['schemas']['InventoryDetailDto'] & {
+  packaging?: StockPackaging | null; version?: number; locationId?: number; warehouseId?: number;
+  stocktakeTaskId?: number; baseUnit?: string; standardPackSize?: number;
+};
 export type LocationInventory = components['schemas']['LocationViewDto'];
 export type InventoryBatch = components['schemas']['InventoryBatchResponse'];
 

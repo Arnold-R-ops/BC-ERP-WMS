@@ -1,6 +1,8 @@
 import { Alert, Descriptions, Form, Input, InputNumber, Modal, Spin } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { PackagingPicker } from '../inventory/PackagingPicker';
+import type { PackagingSelection } from '../../api/packaging';
 import { useTranslation } from 'react-i18next';
 import type { ConfirmDispatchPayload, OutboundTask } from '../../api/outbound';
 import { getProductSku, PRODUCT_SKUS_QUERY_KEY } from '../../api/productSkus';
@@ -26,6 +28,9 @@ export function OutboundConfirmModal({
   task,
 }: OutboundConfirmModalProps): JSX.Element {
   const [form] = Form.useForm<ConfirmFormValues>();
+  const [packagingSelection, setPackagingSelection] = useState<PackagingSelection>();
+  const [packagingValid, setPackagingValid] = useState(false);
+  const actualQty = Form.useWatch('actualQty', form) ?? task?.planQty ?? 0;
   const { t } = useTranslation();
   const skuQuery = useQuery({
     queryKey: [...PRODUCT_SKUS_QUERY_KEY, task?.productSkuId],
@@ -43,7 +48,7 @@ export function OutboundConfirmModal({
   }, [form, open, task?.id, task?.planQty]);
 
   const submit = async (values: ConfirmFormValues): Promise<void> => {
-    if (!task || !trackingMode) {
+    if (!task || !trackingMode || !packagingValid) {
       return;
     }
 
@@ -57,7 +62,7 @@ export function OutboundConfirmModal({
         actualQty: values.actualQty,
         batchCode: values.batchCode?.trim(),
       };
-    await onConfirm(payload);
+    await onConfirm({ ...payload, packagingSelection });
   };
 
   return (
@@ -65,7 +70,7 @@ export function OutboundConfirmModal({
       cancelText={t('common.cancel')}
       destroyOnHidden
       forceRender
-      okButtonProps={{ disabled: !trackingMode || skuQuery.isError, loading }}
+      okButtonProps={{ disabled: !trackingMode || skuQuery.isError || !packagingValid, loading }}
       okText={t('outbound.actions.confirm')}
       onCancel={onCancel}
       onOk={() => form.submit()}
@@ -93,6 +98,8 @@ export function OutboundConfirmModal({
         ) : null}
 
         <Form form={form} layout="vertical" onFinish={submit}>
+          {open && task?.assignedBatchId && <PackagingPicker batchId={task.assignedBatchId} quantity={actualQty}
+            value={packagingSelection} onChange={setPackagingSelection} onValid={setPackagingValid} />}
           <Form.Item
             label={t('outbound.fields.actualQty')}
             name="actualQty"

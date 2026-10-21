@@ -63,6 +63,9 @@ class StocktakeServiceTest {
     private InventoryBatchRepository inventoryBatchRepository;
 
     @Mock
+    private OutboundTaskRepository outboundTaskRepository;
+
+    @Mock
     private ProductSkuRepository productSkuRepository;
 
     @Mock
@@ -140,6 +143,8 @@ class StocktakeServiceTest {
 
         lenient().when(stocktakeTaskRepository.findByIdForUpdate(1L))
             .thenReturn(Optional.of(testTask));
+        lenient().when(inventoryBatchRepository.findByIdForPosting(1L))
+            .thenReturn(Optional.of(testBatch));
         lenient().when(inventoryPostingService.post(any(InventoryPostingCommand.class)))
             .thenAnswer(invocation -> {
                 InventoryPostingCommand command = invocation.getArgument(0);
